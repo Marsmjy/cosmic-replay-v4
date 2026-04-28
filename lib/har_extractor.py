@@ -600,6 +600,44 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                         new_v = maybe_var(v, k)
                         if new_v != v:
                             fields[k] = new_v
+        
+        # ⭐ 新增：处理 pick_basedata 的 value_id（环境相关的基础资料选择）
+        elif action_wrap.get("type") == "pick_basedata":
+            field_key = action_wrap.get("field_key", "")
+            value_id = action_wrap.get("value_id")
+            
+            # 判断是否需要变量化（环境相关的基础资料）
+            # 需要变量化的field_key：企业、组织、职位等环境特定数据
+            ENV_RELATED_FIELDS = {
+                "ba_e_enterprise": "企业",
+                "ba_po_adminorg": "行政组织",
+                "ba_po_position": "职位",
+                "ba_org": "组织",
+                "ba_dept": "部门",
+                "ba_company": "公司",
+                "enterprise": "企业",
+                "adminorg": "行政组织",
+                "position": "职位",
+                "org": "组织",
+                "dept": "部门",
+            }
+            
+            # 不需要变量化的field_key（系统枚举值）
+            ENUM_FIELDS = {
+                "gender": "性别",  # 1010=男, 1020=女
+                "certificatetype": "证件类型",  # 1020=身份证
+                "ba_e_laborrelstatus": "用工状态",  # 1010等
+                "status": "状态",
+                "type": "类型",
+            }
+            
+            if field_key in ENV_RELATED_FIELDS and value_id:
+                # 环境相关的基础资料，需要变量化
+                vname = f"{field_key}_id"
+                if vname not in vars_map:
+                    vars_map[vname] = str(value_id)
+                    vars_labels[vname] = ENV_RELATED_FIELDS[field_key]
+                action_wrap["value_id"] = f"${{vars.{vname}}}"
 
     # 生成变量标签（基于字段名和变量类型）
     def _generate_var_label(vname: str, key_hint: str) -> str:
@@ -644,6 +682,9 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     # 为每个变量生成标签
     for vname in vars_map:
         if not vname.startswith('_'):
+            # 如果已经有标签，跳过（保留pick_basedata等处理时设置的标签）
+            if vname in vars_labels and vars_labels[vname]:
+                continue
             # 从seen_values反推key_hint
             key_hint = ''
             for val, name in seen_values.items():
