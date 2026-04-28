@@ -799,6 +799,7 @@
               <div class="flex items-center gap-3 bg-slate-950 rounded px-3 py-2">
                 <div class="w-36 shrink-0">
                   <code class="mono text-xs text-sky-400" x-text="pv.key"></code>
+                  <span x-show="getVarLabel(pv.key)" class="text-xs text-slate-500 ml-1" x-text="'(' + getVarLabel(pv.key) + ')'"></span>
                 </div>
                 <div class="flex-1">
                   <input type="text" :value="pv.value" @input="updateParsedVar(pv.key, $event.target.value)"
@@ -2063,7 +2064,7 @@ function app() {
       });
       es.addEventListener('step_start', (ev) => {
         const d = JSON.parse(ev.data);
-        const p = addPhase('step:'+d.id, d.id, d.detail, 'running');
+        const p = addPhase('step:'+d.id, d.label || d.id, d.detail, 'running');
         if (d.resolved_request) p.resolved_request = d.resolved_request;
       });
       es.addEventListener('step_ok', (ev) => {
@@ -2149,6 +2150,53 @@ function app() {
     currentRunningStepLabel() {
       const p = this.phases.find(x => x.status === 'running');
       return p ? p.label : '';
+    },
+    
+    // 变量名中文标注
+    getVarLabel(key) {
+      const labels = {
+        'test_name': '测试名称',
+        'test_number': '测试编号',
+        'test_id': '测试ID',
+        'test_code': '测试编码',
+        'test_cert_no': '身份证号',
+        'test_phone': '手机号',
+        'test_email': '测试邮箱',
+        'org_name': '组织名称',
+        'org_number': '组织编码',
+        'emp_name': '员工姓名',
+        'emp_number': '员工编号',
+        'emp_id': '员工ID',
+        'date': '日期',
+        'start_date': '开始日期',
+        'end_date': '结束日期',
+        'amount': '金额',
+        'quantity': '数量',
+        'phone': '手机号',
+        'email': '邮箱',
+        'address': '地址',
+        'remark': '备注',
+        'description': '描述',
+        '_t_name': '测试名称',
+        '_t_number': '测试编号',
+        '_t_id': '测试ID',
+      };
+      if (labels[key]) return labels[key];
+      // 推断
+      const k = key.toLowerCase();
+      if (k.includes('name')) return '名称';
+      if (k.includes('number') || k.includes('code')) return '编号';
+      if (k.includes('cert') || k.includes('certificate')) return '证件号';
+      if (k.includes('id')) return 'ID';
+      if (k.includes('date')) return '日期';
+      if (k.includes('amount') || k.includes('money')) return '金额';
+      if (k.includes('qty') || k.includes('quantity')) return '数量';
+      if (k.includes('phone') || k.includes('mobile')) return '手机';
+      if (k.includes('email')) return '邮箱';
+      if (k.includes('addr')) return '地址';
+      if (k.includes('remark') || k.includes('note')) return '备注';
+      if (k.includes('desc')) return '描述';
+      return '';
     },
 
     copyPatch(txt) {
@@ -2889,13 +2937,60 @@ function app() {
                 if (val.includes('${rand:')) hint = '随机';
                 else if (val.includes('${today}')) hint = '日期';
                 else if (val.includes('${vars.')) hint = '引用';
-                vars.push({key, value: val, hint});
+                const label = this._getVarLabelFromYaml(key) || this._inferVarLabel(key); vars.push({key, value: val, hint, label});
               }
             }
           }
         }
         return vars;
       } catch (e) { return []; }
+    },
+    
+    _getVarLabelFromYaml(key) {
+      // 从YAML的vars_labels字段读取中文标签
+      try {
+        const lines = this.yamlSource.split('\n');
+        let inVarsLabels = false;
+        let indent = 0;
+        for (const line of lines) {
+          if (/^vars_labels\s*:/.test(line.trimStart())) {
+            inVarsLabels = true;
+            indent = line.length - line.trimStart().length + 2;
+            continue;
+          }
+          if (inVarsLabels) {
+            const trimmed = line.trimStart();
+            const curIndent = line.length - trimmed.length;
+            if (curIndent < indent && trimmed && !trimmed.startsWith('#')) break;
+            if (curIndent >= indent && trimmed && !trimmed.startsWith('#')) {
+              const m = trimmed.match(/^([^:]+):\s*(.*)$/);
+              if (m) {
+                const k = m[1].trim();
+                if (k === key) return m[2].trim().replace(/^["']|["']$/g, '');
+              }
+            }
+          }
+        }
+      } catch (e) {}
+      return '';
+    },
+    
+    _inferVarLabel(key) {
+      // 根据变量名推断中文标签（备用）
+      const k = key.toLowerCase();
+      if (k.includes('name')) return '名称';
+      if (k.includes('number') || k.includes('code')) return '编号';
+      if (k.includes('cert') || k.includes('certificate')) return '证件号';
+      if (k.includes('id')) return 'ID';
+      if (k.includes('date')) return '日期';
+      if (k.includes('amount') || k.includes('money')) return '金额';
+      if (k.includes('qty') || k.includes('quantity')) return '数量';
+      if (k.includes('phone') || k.includes('mobile')) return '手机';
+      if (k.includes('email')) return '邮箱';
+      if (k.includes('addr')) return '地址';
+      if (k.includes('remark') || k.includes('note')) return '备注';
+      if (k.includes('desc')) return '描述';
+      return '';
     },
 
     updateParsedVar(key, newVal) {

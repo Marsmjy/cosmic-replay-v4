@@ -359,6 +359,34 @@ def api_delete_case(name: str):
     return {"ok": True}
 
 
+@APP.put("/api/cases/{name:path}/display_name")
+def api_update_case_display_name(name: str, body: dict = Body(...)):
+    """更新用例的显示名称（修改YAML中的name字段）"""
+    p = case_path_from_name(name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {name}")
+    
+    new_display_name = body.get("display_name", "")
+    if not new_display_name:
+        raise HTTPException(400, "display_name不能为空")
+    
+    # 读取YAML
+    content = p.read_text(encoding="utf-8")
+    case = load_yaml(content)
+    if not isinstance(case, dict):
+        raise HTTPException(500, "用例解析失败")
+    
+    # 更新name字段
+    case["name"] = new_display_name
+    
+    # 写回文件
+    import yaml
+    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    p.write_text(new_content, encoding="utf-8")
+    
+    return {"ok": True, "display_name": new_display_name}
+
+
 @APP.post("/api/cases/batch_delete")
 def api_batch_delete_cases(body: dict = Body(...)):
     """批量删除用例"""

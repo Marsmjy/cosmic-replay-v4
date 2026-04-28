@@ -638,8 +638,10 @@ def run_case(case: dict, on_event=None) -> RunResult:
         resolved_request = _build_resolved_request(step)
 
         step_start = time.time()
+        # 优先使用HAR提取的description（中文描述），否则使用_step_label推断
+        label = step.get("description") or _step_label(step)
         emit("step_start", {
-            "id": sid, "type": stype, "detail": detail, "optional": optional,
+            "id": sid, "type": stype, "label": label, "detail": detail, "optional": optional,
             "resolved_request": resolved_request,
         })
 
@@ -896,6 +898,47 @@ def _step_detail(step: dict) -> str:
     if t == "pick_basedata":
         return f"{step.get('form_id')}  {step.get('field_key')}={step.get('value_id')}"
     return ""
+
+def _step_label(step: dict) -> str:
+    """生成步骤的中文描述标签"""
+    t = step.get("type")
+    
+    # invoke操作的细分描述
+    if t == "invoke":
+        ac = step.get("ac", "")
+        ac_labels = {
+            "menuItemClick": "切换菜单",
+            "saveandeffect": "保存并生效",
+            "submitandeffect": "提交并生效",
+            "addnew": "新增",
+            "delete": "删除",
+            "edit": "编辑",
+            "submit": "提交",
+            "save": "保存",
+        }
+        if ac in ac_labels:
+            return ac_labels[ac]
+        # 默认invoke描述
+        method = step.get("method", "")
+        if method:
+            return f"执行{method}"
+        return "执行操作"
+    
+    # 步骤类型的中文描述
+    type_labels = {
+        "open_form": "打开表单",
+        "update_fields": "更新字段",
+        "pick_basedata": "选择基础资料",
+        "click_toolbar": "点击工具栏",
+        "click_menu": "点击菜单",
+        "sleep": "等待",
+        "assert": "断言检查",
+        "wait_loading": "等待加载",
+    }
+    
+    if t in type_labels:
+        return type_labels[t]
+    return t or "未知步骤"
 
 
 def _print_error_detail(step_id: str, errors: list[str], resp: Any):

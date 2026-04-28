@@ -378,6 +378,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     相同的已解析值，保证所有轮次编码/名称一致，UI 只显示 2 个变量。
     """
     vars_map: dict[str, Any] = {}
+    vars_labels: dict[str, str] = {}  # 变量名 → 中文标签
     seen_values: dict[str, str] = {}   # 原始值 → 变量名
 
     # 字段 key 名暗示"必然唯一"——一定得抽 vars，否则跑第二次必挂"已存在"
@@ -600,7 +601,58 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                         if new_v != v:
                             fields[k] = new_v
 
-    return actions_seq, vars_map
+    # 生成变量标签（基于字段名和变量类型）
+    def _generate_var_label(vname: str, key_hint: str) -> str:
+        """根据变量名和字段上下文生成中文标签"""
+        # 优先使用字段标签映射
+        label = _FIELD_LABELS.get(key_hint.lower())
+        if label:
+            return label
+        
+        # 根据变量名推断
+        vn = vname.lower()
+        if 'name' in vn:
+            return '名称'
+        if 'number' in vn or 'code' in vn:
+            return '编号'
+        if 'cert' in vn:
+            return '证件号'
+        if 'phone' in vn or 'mobile' in vn:
+            return '手机号'
+        if 'email' in vn:
+            return '邮箱'
+        if 'date' in vn:
+            return '日期'
+        if 'id' in vn:
+            return 'ID'
+        
+        # 根据 key_hint 推断
+        kl = key_hint.lower()
+        if 'name' in kl:
+            return '名称'
+        if 'number' in kl or 'code' in kl:
+            return '编号'
+        if 'cert' in kl:
+            return '证件号'
+        if 'phone' in kl or 'mobile' in kl:
+            return '手机号'
+        if 'emp' in kl:
+            return '员工信息'
+        
+        return ''
+    
+    # 为每个变量生成标签
+    for vname in vars_map:
+        if not vname.startswith('_'):
+            # 从seen_values反推key_hint
+            key_hint = ''
+            for val, name in seen_values.items():
+                if name == vname:
+                    # 尝试从值推断
+                    break
+            vars_labels[vname] = _generate_var_label(vname, key_hint)
+
+    return actions_seq, vars_map, vars_labels
 
 
 # ---------- 步骤提取 ----------
@@ -1352,7 +1404,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             s["id"] = f"{sid}_{_id_seen[sid]}" if _id_seen[sid] > 1 else sid
 
     # 抽 vars
-    _, vars_map = detect_var_placeholders(cleaned)
+    _, vars_map, vars_labels = detect_var_placeholders(cleaned)
     # _date_replaced 是内部标记，不输出
     vars_map.pop("_date_replaced", None)
 
@@ -1393,6 +1445,11 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
     else:
         built_vars.update(vars_map)
 
+    # 保存变量标签（供前端显示中文标注）
+    built_vars_labels = OrderedDict()
+    if vars_labels:
+        built_vars_labels.update(vars_labels)
+
     case = OrderedDict([
         ("name", case_name),
         ("description",
@@ -1405,6 +1462,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             ("datacenter_id", "${env:COSMIC_DATACENTER_ID}"),
         ])),
         ("vars", built_vars),
+        ("vars_labels", built_vars_labels),  # 变量中文标签
         ("main_form_id", main_form),
         ("steps", yaml_steps),
         ("assertions", _build_default_assertions(yaml_steps)),
@@ -1468,7 +1526,7 @@ def preview_har(har_path: Path) -> dict:
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(raw_steps)
-    _, detected_vars = detect_var_placeholders(preview_copy)
+    _, detected_vars, detected_labels = detect_var_placeholders(preview_copy)
     detected_vars.pop("_date_replaced", None)
     var_items = []
     for vname, template in detected_vars.items():
