@@ -1,0 +1,38 @@
+# 环境配置示例
+# 复制此文件到 config/envs/sit.yaml 并填入真实值
+
+env_id: sit
+name: SIT环境
+base_url: https://sit.example.kingdee.com
+datacenter_id: ""
+
+# 登录凭证（推荐使用环境变量）
+credentials:
+  # 方式1: 环境变量（推荐）
+  username_env: COSMIC_USERNAME
+  password_env: COSMIC_PASSWORD
+  
+  # 方式2: 明文（不推荐，仅用于开发测试）
+  # username: admin
+  # password: your-password
+  
+  # 方式3: 加密存储（使用 python -m lib.security.crypto 加密）
+  # password: ENC:xxxxxx
+
+# 基础数据配置
+basedata:
+  # 组织ID
+  org_id: ""
+  # 业务单元ID
+  biz_unit_id: ""
+
+# 网络配置
+sign_required: true
+timeout: 30
+login_retries: 3
+
+# Cookie配置（可选，用于免登录）
+cookies: []
+  # - name: kwexc
+  #   value_env: COSMIC_COOKIE  # 推荐使用环境变量
+  #   # value: ENC:xxxx  # 或加密存储

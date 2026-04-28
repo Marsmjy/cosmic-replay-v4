@@ -1,0 +1,65 @@
+groups:
+  - name: cosmic-replay-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="cosmic-replay"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "cosmic-replay服务不可用"
+          description: "服务已宕机超过1分钟"
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(cosmic_replay_http_requests_total{status=~"5.."}[5m])) 
+          / sum(rate(cosmic_replay_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP错误率过高"
+          description: "5xx错误率超过5%"
+
+      - alert: HighCaseFailureRate
+        expr: |
+          sum(rate(cosmic_replay_case_runs_total{status="failed"}[10m]))
+          / sum(rate(cosmic_replay_case_runs_total[10m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "用例执行失败率过高"
+          description: "失败率超过10%"
+
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(cosmic_replay_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "响应时间过长"
+          description: "P95响应时间超过2秒"
+
+      - alert: HighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name="cosmic-replay-v2"} 
+          / container_spec_memory_limit_bytes{name="cosmic-replay-v2"} > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用过高"
+          description: "容器内存使用超过90%"
+
+      - alert: ExecutionQueueBacklog
+        expr: cosmic_replay_queue_size > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "执行队列积压"
+          description: "队列大小超过50"

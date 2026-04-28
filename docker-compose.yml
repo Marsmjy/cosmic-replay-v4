@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  cosmic-replay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cosmic-replay:v2
+    container_name: cosmic-replay-v2
+    ports:
+      - "8765:8765"
+    environment:
+      - COSMIC_USERNAME=${COSMIC_USERNAME}
+      - COSMIC_PASSWORD=${COSMIC_PASSWORD}
+      - COSMIC_API_KEY=${COSMIC_API_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./cases:/app/cases
+      - ./logs:/app/logs
+      - ./config:/app/config
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8765/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"

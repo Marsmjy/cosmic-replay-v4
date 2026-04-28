@@ -1,0 +1,336 @@
+/* cosmic-replay v2 - Application Styles */
+
+html, body {
+  height: 100%;
+}
+
+/* ============= 主题系统 ============= */
+:root {
+  /* 暗色主题（默认） */
+  --bg-primary: #0b1020;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --bg-input: #1e293b;
+  --text-primary: #e5e7eb;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --accent-color: #0ea5e9;
+}
+
+/* 亮色主题 */
+.theme-light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-input: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --accent-color: #0ea5e9;
+}
+
+body {
+  font-family: -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ============= 输入框样式修复 ============= */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-color) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+/* placeholder 样式 */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* 亮色主题下的特殊调整 */
+.theme-light input[type="text"],
+.theme-light input[type="number"],
+.theme-light textarea,
+.theme-light select {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ============= 光标修复 ============= */
+/* 移除表格行的光标样式 */
+tr, td, div, span, p {
+  cursor: default;
+}
+
+/* 只有可交互元素才显示pointer */
+button, a, input, select, textarea, [role="button"], .cursor-pointer {
+  cursor: pointer;
+}
+
+/* 移除可能的contenteditable光标 */
+[contenteditable="false"] {
+  cursor: default;
+}
+
+/* ============= 其他样式 ============= */
+.mono {
+  font-family: ui-monospace, "JetBrains Mono", Consolas, monospace;
+}
+
+/* Scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.theme-light .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+/* Animations */
+.fadein {
+  animation: fadein .3s ease-out;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pulse-dot {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+.drop-hover {
+  background: rgba(14, 165, 233, .08);
+  border-color: #0ea5e9;
+}
+
+/* P0-1: 失败步骤高亮动画 */
+.animate-pulse-once {
+  animation: pulse-highlight .6s ease-out;
+}
+
+@keyframes pulse-highlight {
+  0% { background: rgba(244, 63, 94, .4); transform: scale(1.02); }
+  50% { background: rgba(244, 63, 94, .2); }
+  100% { background: rgba(244, 63, 94, .15); transform: scale(1); }
+}
+
+.fail-step-highlight {
+  background: rgba(244, 63, 94, .2);
+  border-left: 3px solid #f43f5e;
+  padding-left: 8px;
+}
+
+/* Toast 通知样式 */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.toast-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 8px;
+  animation: toast-in .3s ease-out;
+  max-width: 300px;
+}
+
+.toast-item.error {
+  border-color: #be123c;
+  background: rgba(159, 18, 57, 0.95);
+}
+
+.toast-item.success {
+  border-color: #15803d;
+  background: rgba(20, 83, 45, 0.95);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 新手引导样式 */
+.guide-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 50;
+}
+
+.guide-highlight {
+  position: relative;
+  z-index: 51;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.5);
+  border-radius: 8px;
+}
+
+.guide-tooltip {
+  position: absolute;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 320px;
+  z-index: 52;
+}
+
+/* 断言可视化面板 */
+.assertion-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.assertion-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.assertion-item:last-child {
+  border-bottom: none;
+}
+
+.assertion-pass {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.assertion-fail {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 主题切换按钮 */
+.theme-toggle-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-primary);
+}
+
+/* 亮色主题下的面板背景调整 */
+.theme-light .bg-slate-900 {
+  background: #ffffff !important;
+}
+
+.theme-light .bg-slate-800 {
+  background: #f1f5f9 !important;
+}
+
+.theme-light .bg-slate-800\/40 {
+  background: rgba(241, 245, 249, 0.4) !important;
+}
+
+.theme-light .bg-slate-800\/50 {
+  background: rgba(241, 245, 249, 0.5) !important;
+}
+
+.theme-light .bg-slate-800\/60 {
+  background: rgba(241, 245, 249, 0.6) !important;
+}
+
+.theme-light .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.theme-light .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.theme-light .text-slate-300 {
+  color: #475569 !important;
+}
+
+.theme-light .text-slate-200 {
+  color: #334155 !important;
+}
+
+.theme-light .text-white {
+  color: #1e293b !important;
+}
+
+.theme-light .hover\:bg-slate-800:hover {
+  background: #f1f5f9 !important;
+}
+
+.theme-light .hover\:text-slate-200:hover {
+  color: #334155 !important;
+}
+
+.theme-light .hover\:text-slate-300:hover {
+  color: #475569 !important;
+}
+
+/* 环境标识在亮色主题下 */
+.theme-light .bg-emerald-900\/40 {
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
+.theme-light .bg-amber-900\/40 {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+.theme-light .bg-sky-900\/40 {
+  background: rgba(14, 165, 233, 0.15) !important;
+}
