@@ -2796,7 +2796,38 @@ function app() {
       
       // 其他
       if (ev.type === 'session_ready') {
-        return `<span class="text-slate-400">rootPageId: ${d.root_page_id?.slice(0, 20)}…</span>`;
+        // 显示变量信息（方便排查环境）
+        const vars = d.resolved_vars || [];
+        const rootPageId = d.root_page_id?.slice(0, 20) || '';
+        let varsHtml = '';
+        if (vars.length > 0) {
+          varsHtml = vars.map(v => {
+            const val = v.value?.length > 30 ? v.value.slice(0, 30) + '...' : v.value;
+            return `<div class="flex gap-2"><span class="text-sky-400">${v.label || v.key}:</span><span class="text-slate-300">${val}</span></div>`;
+          }).join('');
+        }
+        return `<div class="space-y-1">
+          <div class="text-slate-400">rootPageId: ${rootPageId}…</div>
+          ${vars.length > 0 ? `<div class="mt-2 text-xs text-slate-500">变量:</div>${varsHtml}` : ''}
+        </div>`;
+      }
+      
+      // case_start 也要显示变量模板（方便排查）
+      if (ev.type === 'case_start') {
+        const varsDef = d.vars_def || {};
+        const varsLabels = d.vars_labels || {};
+        let varsHtml = '';
+        if (Object.keys(varsDef).length > 0) {
+          varsHtml = `<div class="mt-2 p-2 bg-slate-800 rounded text-xs">` +
+            Object.entries(varsDef).map(([k, v]) => {
+              const label = varsLabels[k] || '';
+              const val = String(v).length > 40 ? String(v).slice(0, 40) + '...' : v;
+              return `<div><span class="text-sky-400">${k}</span>` +
+                (label ? `<span class="text-slate-500">(${label})</span>` : '') +
+                `: <span class="text-slate-300">${val}</span></div>`;
+            }).join('') + `</div>`;
+        }
+        return `<span class="text-slate-300">${d.name || '用例'}</span>${varsHtml}`;
       }
       
       // 默认显示JSON

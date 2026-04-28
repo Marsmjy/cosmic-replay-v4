@@ -547,7 +547,13 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 pass
 
     result = RunResult()
-    emit("case_start", {"name": case.get("name", "?"), "description": case.get("description", "")})
+    emit("case_start", {
+        "name": case.get("name", "?"), 
+        "description": case.get("description", ""),
+        # 先发送vars定义（显示用户配置的模板）
+        "vars_def": {k: v for k, v in (case.get("vars") or {}).items() if not k.startswith("_")},
+        "vars_labels": case.get("vars_labels", {}),
+    })
 
     # 1. 解析 env
     env = case.get("env", {}) or {}
