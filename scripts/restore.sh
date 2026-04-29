@@ -1,5 +1,5 @@
 #!/bin/bash
-# cosmic-replay-v2 恢复脚本
+# cosmic-replay-v4 恢复脚本
 # 用法: ./scripts/restore.sh <backup_file.tar.gz>
 
 set -e
@@ -40,7 +40,7 @@ main() {
     BACKUP_FILE=${1:-}
     
     log_info "=========================================="
-    log_info "cosmic-replay-v2 恢复脚本"
+    log_info "cosmic-replay-v4 恢复脚本"
     log_info "=========================================="
     
     # 检查备份文件

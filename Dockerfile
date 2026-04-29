@@ -1,4 +1,4 @@
-# cosmic-replay v2 - Docker Image
+# cosmic-replay v4 - Docker Image
 # 用于生产环境部署
 
 FROM python:3.11-slim

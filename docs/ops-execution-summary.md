@@ -1,8 +1,8 @@
-# cosmic-replay-v2 运维架构执行摘要
+# cosmic-replay-v4 运维架构执行摘要
 
 ## 执行概览
 
-**项目**: cosmic-replay-v2 (HAR回放自动化测试工具)  
+**项目**: cosmic-replay-v4 (HAR回放自动化测试工具)  
 **分析时间**: 2026-04-28  
 **分析人**: DevOps架构师  
 

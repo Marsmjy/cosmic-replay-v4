@@ -1,5 +1,5 @@
 """
-cosmic-replay v2 - 测试配置和共享fixtures
+cosmic-replay v4 - 测试配置和共享fixtures
 """
 import pytest
 import json

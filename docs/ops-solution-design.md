@@ -1,11 +1,11 @@
-# cosmic-replay-v2 运维方案设计
+# cosmic-replay-v4 运维方案设计
 
 ## 一、部署方案增强
 
 ### 1.1 优化后的Dockerfile
 
 ```dockerfile
-# cosmic-replay v2 - Production Docker Image
+# cosmic-replay v4 - Production Docker Image
 # 多阶段构建 + 安全加固
 
 # ===== 构建阶段 =====
@@ -34,7 +34,7 @@ FROM python:3.11-slim AS runtime
 LABEL maintainer="Mars"
 LABEL version="2.0.0"
 LABEL description="cosmic-replay HAR回放自动化测试工具"
-LABEL org.opencontainers.image.source="https://github.com/xxx/cosmic-replay-v2"
+LABEL org.opencontainers.image.source="https://github.com/xxx/cosmic-replay-v4"
 
 # 创建非root用户
 RUN groupadd -r cosmic --gid=1000 && \
@@ -84,17 +84,17 @@ CMD ["python", "-m", "lib.webui.server", "--port", "8766", "--host", "0.0.0.0", 
 ### 1.2 增强的docker-compose.yml
 
 ```yaml
-# cosmic-replay v2 - Production Docker Compose
+# cosmic-replay v4 - Production Docker Compose
 version: "3.8"
 
 services:
-  cosmic-replay-v2:
+  cosmic-replay-v4:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: cosmic-replay-v2:${VERSION:-latest}
-    container_name: cosmic-replay-v2
+    image: cosmic-replay-v4:${VERSION:-latest}
+    container_name: cosmic-replay-v4
     restart: unless-stopped
     
     # 资源限制
@@ -269,7 +269,7 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cosmic-replay-v2
+  name: cosmic-replay-v4
   namespace: cosmic-replay
   labels:
     app: cosmic-replay
@@ -301,7 +301,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: cosmic-replay
-          image: cosmic-replay-v2:v2.0.0
+          image: cosmic-replay-v4:v2.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -442,7 +442,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: cosmic-replay-v2
+    name: cosmic-replay-v4
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -482,7 +482,7 @@ APP_INFO = Info(
 )
 APP_INFO.info({
     'version': '2.0.0',
-    'service': 'cosmic-replay-v2'
+    'service': 'cosmic-replay-v4'
 })
 
 # ===== 请求指标 =====
@@ -610,7 +610,7 @@ alerting:
 scrape_configs:
   - job_name: 'cosmic-replay'
     static_configs:
-      - targets: ['cosmic-replay-v2:8766']
+      - targets: ['cosmic-replay-v4:8766']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
@@ -676,8 +676,8 @@ groups:
       # 内存使用过高
       - alert: HighMemoryUsage
         expr: |
-          container_memory_usage_bytes{name="cosmic-replay-v2"} 
-          / container_spec_memory_limit_bytes{name="cosmic-replay-v2"} > 0.9
+          container_memory_usage_bytes{name="cosmic-replay-v4"} 
+          / container_spec_memory_limit_bytes{name="cosmic-replay-v4"} > 0.9
         for: 5m
         labels:
           severity: critical
@@ -880,7 +880,7 @@ scrape_configs:
           - localhost
         labels:
           job: cosmic-replay
-          app: cosmic-replay-v2
+          app: cosmic-replay-v4
           __path__: /var/log/cosmic-replay/*.jsonl
     pipeline_stages:
       - json:
@@ -1027,7 +1027,7 @@ class ConfigValidator:
 ```bash
 #!/bin/bash
 # scripts/backup.sh
-# cosmic-replay-v2 备份脚本
+# cosmic-replay-v4 备份脚本
 
 set -e
 
@@ -1077,7 +1077,7 @@ echo "备份完成: ${BACKUP_NAME}"
 ```bash
 #!/bin/bash
 # scripts/restore.sh
-# cosmic-replay-v2 恢复脚本
+# cosmic-replay-v4 恢复脚本
 
 set -e
 
@@ -1141,7 +1141,7 @@ spec:
           serviceAccountName: cosmic-replay-backup
           containers:
             - name: backup
-              image: cosmic-replay-v2:v2.0.0
+              image: cosmic-replay-v4:v2.0.0
               command:
                 - /bin/bash
                 - /app/scripts/backup.sh

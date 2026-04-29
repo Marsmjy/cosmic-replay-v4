@@ -1,5 +1,5 @@
 """
-cosmic-replay v2 - 测试数据工厂
+cosmic-replay v4 - 测试数据工厂
 
 提供可复用的测试数据生成方法
 """

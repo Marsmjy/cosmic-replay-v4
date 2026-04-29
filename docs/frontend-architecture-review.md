@@ -1,4 +1,4 @@
-# cosmic-replay-v2 前端架构深度分析报告
+# cosmic-replay-v4 前端架构深度分析报告
 
 > 分析时间：2026-04-28  
 > 分析范围：lib/webui/static/index.html（2873行，127KB）、app.css（150行）、server.py（API层）

@@ -1,5 +1,5 @@
 """
-cosmic-replay v2 - LogStore模块单元测试
+cosmic-replay v4 - LogStore模块单元测试
 
 测试目标：
 1. 日志添加与存储
@@ -305,4 +305,4 @@ class TestEdgeCases:
 
 
 # 运行测试命令：
-# cd cosmic-replay-v2 && python -m pytest tests/unit/test_log_store.py -v
+# cd cosmic-replay-v4 && python -m pytest tests/unit/test_log_store.py -v

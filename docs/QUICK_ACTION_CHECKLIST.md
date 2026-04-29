@@ -1,4 +1,4 @@
-# cosmic-replay-v2 快速行动清单
+# cosmic-replay-v4 快速行动清单
 
 > 基于九角色深度分析 | 立即可执行
 
@@ -25,7 +25,7 @@ pip install python-jose[cryptography]
 touch README.md LICENSE CHANGELOG.md
 
 # README核心内容
-echo "# cosmic-replay-v2" > README.md
+echo "# cosmic-replay-v4" > README.md
 echo "苍穹表单协议回放自动化测试工具" >> README.md
 echo "" >> README.md
 echo "## 快速开始" >> README.md

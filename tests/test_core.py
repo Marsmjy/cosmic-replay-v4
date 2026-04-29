@@ -1,5 +1,5 @@
 """
-cosmic-replay v2 - 核心功能单元测试
+cosmic-replay v4 - 核心功能单元测试
 
 测试目标：
 1. ExecutionHistory类的add/get方法
@@ -340,4 +340,4 @@ class TestEdgeCases:
 
 
 # 运行测试命令：
-# cd cosmic-replay-v2 && python -m pytest tests/test_core.py -v
+# cd cosmic-replay-v4 && python -m pytest tests/test_core.py -v

@@ -1,5 +1,5 @@
 #!/bin/bash
-# cosmic-replay-v2 备份脚本
+# cosmic-replay-v4 备份脚本
 # 用法: ./scripts/backup.sh
 
 set -e
@@ -143,7 +143,7 @@ send_notification() {
 # 主流程
 main() {
     log_info "=========================================="
-    log_info "cosmic-replay-v2 备份脚本"
+    log_info "cosmic-replay-v4 备份脚本"
     log_info "=========================================="
     
     check_directories

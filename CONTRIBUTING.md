@@ -1,6 +1,6 @@
-# Contributing to cosmic-replay-v2
+# Contributing to cosmic-replay-v4
 
-感谢你考虑为 cosmic-replay-v2 做贡献！
+感谢你考虑为 cosmic-replay-v4 做贡献！
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 报告Bug
 
-1. 在 [Issues](https://github.com/Marsmjy/cosmic-replay-v2/issues) 页面搜索是否已有相同问题
+1. 在 [Issues](https://github.com/Marsmjy/cosmic-replay-v4/issues) 页面搜索是否已有相同问题
 2. 如果没有，创建新Issue，包含：
    - 清晰的标题
    - 复现步骤
@@ -39,8 +39,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/Marsmjy/cosmic-replay-v2.git
-cd cosmic-replay-v2
+git clone https://github.com/Marsmjy/cosmic-replay-v4.git
+cd cosmic-replay-v4
 
 # 安装依赖
 pip install -r requirements.txt
@@ -126,5 +126,5 @@ lib/
 
 ## 联系方式
 
-- Issues: https://github.com/Marsmjy/cosmic-replay-v2/issues
+- Issues: https://github.com/Marsmjy/cosmic-replay-v4/issues
 - Email: 维护者邮箱（待补充）

@@ -17,7 +17,7 @@
 
 发送邮件至：[维护者邮箱待补充]
 
-邮件标题：`[Security] cosmic-replay-v2 安全漏洞报告`
+邮件标题：`[Security] cosmic-replay-v4 安全漏洞报告`
 
 ### 邮件内容
 
@@ -114,7 +114,7 @@
 
 ## 安全更新
 
-安全更新将在 [GitHub Releases](https://github.com/Marsmjy/cosmic-replay-v2/releases) 发布。
+安全更新将在 [GitHub Releases](https://github.com/Marsmjy/cosmic-replay-v4/releases) 发布。
 
 严重安全漏洞将通过以下方式通知：
 - GitHub Security Advisories
@@ -129,4 +129,4 @@
 2. 按上述流程报告
 3. 等待修复后再公开讨论
 
-感谢你帮助保持 cosmic-replay-v2 的安全！
+感谢你帮助保持 cosmic-replay-v4 的安全！

@@ -1,4 +1,4 @@
-# cosmic-replay-v2 数据架构深度分析与优化方案
+# cosmic-replay-v4 数据架构深度分析与优化方案
 
 > 分析日期：2026-04-28  
 > 分析角色：数据架构师
@@ -57,7 +57,7 @@ LogEntry:
 ### 2.1 当前存储架构
 
 ```
-cosmic-replay-v2/
+cosmic-replay-v4/
 ├── config/
 │   ├── webui.yaml          # Web UI 配置
 │   └── envs/*.yaml         # 环境配置

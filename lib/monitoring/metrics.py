@@ -22,7 +22,7 @@ APP_INFO = Info(
 )
 APP_INFO.info({
     'version': '2.0.0',
-    'service': 'cosmic-replay-v2'
+    'service': 'cosmic-replay-v4'
 })
 
 

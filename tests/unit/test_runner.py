@@ -1,5 +1,5 @@
 """
-cosmic-replay v2 - Runner模块单元测试
+cosmic-replay v4 - Runner模块单元测试
 
 测试目标：
 1. YAML解析功能
@@ -473,4 +473,4 @@ class TestHelperFunctions:
 
 
 # 运行测试命令：
-# cd cosmic-replay-v2 && python -m pytest tests/unit/test_runner.py -v
+# cd cosmic-replay-v4 && python -m pytest tests/unit/test_runner.py -v

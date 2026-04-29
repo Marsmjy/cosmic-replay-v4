@@ -1,3 +1,3 @@
 """
-cosmic-replay v2 - 集成测试包
+cosmic-replay v4 - 集成测试包
 """

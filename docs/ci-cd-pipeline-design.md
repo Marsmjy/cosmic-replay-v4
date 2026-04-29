@@ -1,4 +1,4 @@
-# cosmic-replay-v2 CI/CD流水线设计
+# cosmic-replay-v4 CI/CD流水线设计
 
 ## 一、流水线架构总览
 
@@ -51,7 +51,7 @@ on:
 
 env:
   REGISTRY: harbor.example.com
-  IMAGE_NAME: cosmic-replay-v2
+  IMAGE_NAME: cosmic-replay-v4
   PYTHON_VERSION: '3.11'
 
 jobs:
@@ -267,11 +267,11 @@ jobs:
       
       - name: Deploy to development
         run: |
-          kubectl set image deployment/cosmic-replay-v2 \
+          kubectl set image deployment/cosmic-replay-v4 \
             cosmic-replay=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             -n cosmic-replay-dev
           
-          kubectl rollout status deployment/cosmic-replay-v2 \
+          kubectl rollout status deployment/cosmic-replay-v4 \
             -n cosmic-replay-dev --timeout=300s
       
       - name: Run smoke tests
@@ -317,11 +317,11 @@ jobs:
           kubectl apply -f deploy/k8s/ingress.yaml
           
           # 更新镜像
-          kubectl set image deployment/cosmic-replay-v2 \
+          kubectl set image deployment/cosmic-replay-v4 \
             cosmic-replay=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             -n cosmic-replay-staging
           
-          kubectl rollout status deployment/cosmic-replay-v2 \
+          kubectl rollout status deployment/cosmic-replay-v4 \
             -n cosmic-replay-staging --timeout=300s
       
       - name: Run E2E tests
@@ -367,22 +367,22 @@ jobs:
       
       - name: Pre-deployment backup
         run: |
-          kubectl exec deployment/cosmic-replay-v2 -n cosmic-replay \
+          kubectl exec deployment/cosmic-replay-v4 -n cosmic-replay \
             -- /app/scripts/backup.sh
       
       - name: Deploy to production (Canary)
         run: |
           # Canary部署 - 先部署1个副本
-          kubectl patch deployment cosmic-replay-v2 -n cosmic-replay \
+          kubectl patch deployment cosmic-replay-v4 -n cosmic-replay \
             --type='json' \
             -p='[{"op": "replace", "path": "/spec/replicas", "value": 3}]'
           
-          kubectl set image deployment/cosmic-replay-v2 \
+          kubectl set image deployment/cosmic-replay-v4 \
             cosmic-replay=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
             -n cosmic-replay
           
           # 等待新Pod就绪
-          kubectl rollout status deployment/cosmic-replay-v2 \
+          kubectl rollout status deployment/cosmic-replay-v4 \
             -n cosmic-replay --timeout=300s
       
       - name: Verify deployment
@@ -402,7 +402,7 @@ jobs:
       - name: Complete rollout
         run: |
           # 扩展到完整副本数
-          kubectl patch deployment cosmic-replay-v2 -n cosmic-replay \
+          kubectl patch deployment cosmic-replay-v4 -n cosmic-replay \
             --type='json' \
             -p='[{"op": "replace", "path": "/spec/replicas", "value": 5}]'
       
@@ -592,7 +592,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/xxx/cosmic-replay-v2.git
+    repoURL: https://github.com/xxx/cosmic-replay-v4.git
     targetRevision: main
     path: deploy/k8s
     
@@ -643,8 +643,8 @@ commonLabels:
   app.kubernetes.io/managed-by: kustomize
 
 images:
-  - name: cosmic-replay-v2
-    newName: harbor.example.com/cosmic-replay-v2
+  - name: cosmic-replay-v4
+    newName: harbor.example.com/cosmic-replay-v4
     newTag: latest
 
 configMapGenerator:
@@ -828,8 +828,8 @@ jobs:
       - name: Rollback deployment
         if: failure()
         run: |
-          kubectl rollout undo deployment/cosmic-replay-v2 -n cosmic-replay
-          kubectl rollout status deployment/cosmic-replay-v2 -n cosmic-replay --timeout=300s
+          kubectl rollout undo deployment/cosmic-replay-v4 -n cosmic-replay
+          kubectl rollout status deployment/cosmic-replay-v4 -n cosmic-replay --timeout=300s
       
       - name: Notify team
         if: failure()
@@ -851,13 +851,13 @@ VERSION=${1:-}
 
 if [ -z "$VERSION" ]; then
     echo "可用版本:"
-    kubectl rollout history deployment/cosmic-replay-v2 -n cosmic-replay
+    kubectl rollout history deployment/cosmic-replay-v4 -n cosmic-replay
     exit 1
 fi
 
 echo "回滚到版本: $VERSION"
-kubectl rollout undo deployment/cosmic-replay-v2 --to-revision=$VERSION -n cosmic-replay
-kubectl rollout status deployment/cosmic-replay-v2 -n cosmic-replay --timeout=300s
+kubectl rollout undo deployment/cosmic-replay-v4 --to-revision=$VERSION -n cosmic-replay
+kubectl rollout status deployment/cosmic-replay-v4 -n cosmic-replay --timeout=300s
 
 echo "回滚完成"
 kubectl get pods -n cosmic-replay -l app=cosmic-replay
@@ -927,7 +927,7 @@ spec:
                   vault kv put cosmic-replay/api-key key=$NEW_KEY
                   
                   # 触发Pod重启以加载新Secret
-                  kubectl rollout restart deployment/cosmic-replay-v2 -n cosmic-replay
+                  kubectl rollout restart deployment/cosmic-replay-v4 -n cosmic-replay
 ```
 
 ---

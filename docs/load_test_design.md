@@ -1,4 +1,4 @@
-# cosmic-replay-v2 压测设计方案
+# cosmic-replay-v4 压测设计方案
 
 ## 1. 压测目标与范围
 
@@ -644,7 +644,7 @@ REPORT_DIR="reports/loadtest_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$REPORT_DIR"
 
 echo "========================================="
-echo "cosmic-replay-v2 压测套件"
+echo "cosmic-replay-v4 压测套件"
 echo "目标: $BASE_URL"
 echo "报告目录: $REPORT_DIR"
 echo "========================================="
@@ -1031,7 +1031,7 @@ memory:
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>cosmic-replay-v2 压测报告</h1>
+    <h1>cosmic-replay-v4 压测报告</h1>
     <p>生成时间: {{ timestamp }}</p>
     
     <h2>1. 执行摘要</h2>
