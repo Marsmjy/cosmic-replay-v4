@@ -5,14 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cosmic-replay:v2
-    container_name: cosmic-replay-v2
+    image: cosmic-replay:v4
+    container_name: cosmic-replay-v4
     ports:
-      - "8765:8765"
+      - "8768:8768"
     environment:
       - COSMIC_USERNAME=${COSMIC_USERNAME}
       - COSMIC_PASSWORD=${COSMIC_PASSWORD}
-      - COSMIC_API_KEY=${COSMIC_API_KEY:-}
+      - COSMIC_DATACENTER_ID=${COSMIC_DATACENTER_ID}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
       - ./cases:/app/cases
@@ -27,7 +27,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8765/api/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8768/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
