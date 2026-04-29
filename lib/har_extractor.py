@@ -553,6 +553,34 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
         # ⭐ 规则7：遇到 keep_page save 步骤时，先处理其 post_data 中嵌入的脏字段值
         # （用户在编辑某字段时直接点保存，字段值仅出现在 save 的 post_data 中）
         ac = action_wrap.get("ac", "")
+        method = action_wrap.get("method", "")
+        
+        # ⭐ 新增：处理 click 步骤的 post_data（用户编辑后直接点保存按钮的场景）
+        # click btnsave 的 post_data 格式和 save 一样：[context, entries]
+        # entries 包含 {"k": "number", "v": "xxx", "r": -1} 格式的字段值
+        if ac == "click" or method == "click":
+            pd = action_wrap.get("post_data") or [{}, []]
+            if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
+                for entry in pd[1]:
+                    if isinstance(entry, dict):
+                        fk = entry.get("k", "")
+                        fv = entry.get("v")
+                        if fk in UNIQUE_KEY_HINTS:
+                            if isinstance(fv, dict) and "zh_CN" in fv:
+                                new_zh = maybe_var(fv.get("zh_CN"), fk)
+                                if new_zh != fv.get("zh_CN"):
+                                    fv = dict(fv)
+                                    fv["zh_CN"] = new_zh
+                                    if "GLang" in fv:
+                                        fv["GLang"] = new_zh
+                                    if "zh_TW" in fv:
+                                        fv["zh_TW"] = new_zh
+                                    entry["v"] = fv
+                            elif isinstance(fv, str):
+                                new_v = maybe_var(fv, fk)
+                                if new_v != fv:
+                                    entry["v"] = new_v
+        
         if ac in _SAVE_ACS:
             pd = action_wrap.get("post_data") or [{}, []]
             if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
