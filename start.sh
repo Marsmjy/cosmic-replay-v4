@@ -1,5 +1,5 @@
 #!/bin/bash
-# cosmic-replay-v2 启动脚本
+# cosmic-replay-v4 启动脚本
 
 # 设置项目根目录
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
