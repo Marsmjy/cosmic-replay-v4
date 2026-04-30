@@ -99,7 +99,6 @@ cosmic-replay-v4/
 │   └── operating_guide.md  # CLI 操作指南
 ├── skills/                 # AI Agent skill 包（给 Claude/其他 AI 用）
 │   ├── cosmic-replay-troubleshooter/  # 排故 skill
-│   └── cosmic-replay-core/            # 核心 skill
 ├── README.md
 ├── QUICKSTART.md
 └── start.sh
