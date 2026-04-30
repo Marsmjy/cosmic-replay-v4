@@ -134,7 +134,7 @@ grep "UNIQUE_KEY_HINTS\|ENV_RELATED_FIELDS\|ENUM_FIELDS" lib/har_extractor.py | 
 | A-3: 字段是系统枚举值（性别/证件类型）被错误变量化了 | 行 654 `ENUM_FIELDS` | 把 field_key 加进去 |
 | A-4: click 步骤的 post_data 里字段值没识别 | 行 553-580 `_extract_click_postdata()` | 检查 field_key 是否在识别范围内 |
 | A-5（新增）: `newentry` 步骤的 post_data 里 name/number 字段值没变量化 | 行 613-642 `detect_var_placeholders()` | 新增 `ac=="newentry"` 分支，walk post_data[1] 中的 UNIQUE_KEY_HINTS 字段值 |
-| A-6（新增）: `ename`（属性名称）被错误标记为"名称"变量 | 行 395 `HR_NAME_FIELDS` | `ename` 在 `HR_NAME_FIELDS` 中 → 被分类为 name → 使用 `test_name` 变量。这是正常的（属性名称也是名称类字段），如果希望区分可以手动改 YAML |
+| A-6（新增）: `ename`（属性名称）被错误标记为"名称"变量 | 行 394 `HR_NAME_FIELDS` + 行 398 `_CLASSIFY_KEY_EXCLUSIONS` | `ename` 同时在 `HR_NAME_FIELDS` 和 `_CLASSIFY_KEY_EXCLUSIONS` 中。① 从 `HR_NAME_FIELDS` 移除 → 停止精确匹配为 name；② 加入 `_CLASSIFY_KEY_EXCLUSIONS` → 后缀匹配 `endswith("name")` 时跳过 → `_classify_key()` 返回 `None` → `ename` 保持 HAR 原始内容不变 |
 
 **验证方法**：
 ```bash
@@ -360,10 +360,12 @@ print(_find_login_script())  # 应输出 /.../cosmic-replay-v4/lib/cosmic_login.
 |------|-------------|------|------|--------------|
 | `har_extractor.py` | `detect_var_placeholders()` | 371-724 | 变量识别引擎 | 变量没识别/识别错了时 |
 | `har_extractor.py` | `UNIQUE_KEY_HINTS` | 385 | 唯一标识字段名单 | 编码/编号/名称没被变量化 |
+| `har_extractor.py` | `_CLASSIFY_KEY_EXCLUSIONS` | 398 | 后缀匹配排障：ename 等被误识别为 name | 属性名称被变量化时 → 把字段 key 加进来 |
 | `har_extractor.py` | `ENV_RELATED_FIELDS` | 639-651 | 环境相关基础资料名单 | 组织/企业/部门没变量化 |
 | `har_extractor.py` | `ENUM_FIELDS` | 654-660 | 系统枚举值名单 | 性别/类型被错误变量化 |
 | `har_extractor.py` | `_extract_click_postdata()` | 553-580 | click步骤post_data变量化 | 用户直接保存的字段没变量化 |
-| `har_extractor.py` | `_SAVE_BUTTON_KEYS` | 77 | btnsave→saveandeffect映射 | HAR把保存录成click时 |
+| `har_extractor.py` | newentry 步骤变量化 | 617-645 | newentry 步骤的 post_data 中 name/number 字段抽变量 | 业务模型附表等场景中新增条目行字段值硬编码时 |
+| `har_extractor.py` | `_SAVE_BUTTON_KEYS` | 77 | btnsave→core 标记 | HAR把保存录成click时 |
 | `har_extractor.py` | AC_TIER + btnsave转换 | 760-767 | click+btnsave自动转saveandeffect | 新增save按钮类型时 |
 | `runner.py` | `STEP_HANDLERS` | 312 | 步骤类型执行器映射 | 添加/修改步骤处理逻辑 |
 | `runner.py` | `run_case()` | 536 | 用例执行主循环 | 修改执行流程 |
@@ -439,6 +441,7 @@ grep -B2 -A10 "btnsave\|ac: click\|ac: saveandeffect" cases/xxx.yaml
 11. **Web UI 启动报找不到 cosmic_login.py** → 检查两处修复：(a) `lib/replay.py` 的 `_find_login_script()` 是否加了 `same_dir` 搜索；(b) `lib/webui/server.py` 的 `main()` 是否调了 `_load_dotenv()`。改完后必须重启进程（Python 缓存模块）
 12. **⛔ 改代码后必须重启 Web UI** → Python 的 uvicorn 在启动时一次性加载所有模块。对 `lib/replay.py` / `lib/runner.py` / `lib/har_extractor.py` 的任何修改，在旧的 Web UI 进程（PID）上永远不会生效。可以 kill 后 `python3 -m lib.webui.server --port 8768` 重启
 13. **断言选择** → save 步骤用 `no_save_failure`（捕获字段级校验错误），不要用 `no_error_actions`（漏报"数据已存在"和"名称重复"）
+14. **`newentry` 步骤的 post_data 字段值也要检查** → `ac=newentry` 的 `post_data[1]` 中的 `name`/`number` 等字段值也可能不是变量化的。如果看到 "ppppp1" 等硬编码值，检查 `detect_var_placeholders()` 的 `newentry` 分支（`har_extractor.py` 行 617-645）。不想变量化的字段（如 `ename` 属性名称）加到 `_CLASSIFY_KEY_EXCLUSIONS` 集合中
 
 ---
 
@@ -472,5 +475,7 @@ python3 -m lib.webui.server
 | 字段值还是旧环境的测试数据 | 没被变量识别规则命中 | 模式 A-2 |
 | HAR 导入后 YAML 只有 savedeffect 没有 menuItemClick | 录制范围不对，缺少入口 | 模式 B-1 |
 | YAML 中 ac: click + key: btnsave，PASS 但无数据 | HAR 把保存录成 click 未转 saveandeffect | 模式 C-5 |
+| `ename` 被变量化为 `test_name`（不应变量化） | `_CLASSIFY_KEY_EXCLUSIONS` 中缺少 `ename`，或 `HR_NAME_FIELDS` 未移除 | 模式 A-6 |
+| `name`/`number` 在 `newentry` 步骤中硬编码（如 "ppppp1"） | `detect_var_placeholders()` 的 `newentry` 分支未触发 | 模式 A-5 |
 | `FileNotFoundError: 找不到 cosmic-login skill` | `COSMIC_LOGIN_SCRIPT` 未设 + `_find_login_script()` 搜索路径没覆盖 | 模式 D |
 | save 返回空 `[]`，`page_ids.get(form_id)` 为 None | `_pending_by_app` 链路断裂 | 模式 B-3 |
