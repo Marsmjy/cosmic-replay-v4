@@ -1,6 +1,6 @@
 # COSMIC REPLAY v4
 
-> 苍穹表单协议回放自动化测试工具 - HAR录制一键生成可执行YAML用例
+> 苍穹表单协议回放自动化测试工具 — HAR 录制一键生成可执行 YAML 用例
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -8,23 +8,15 @@
 
 ---
 
-## 核心功能
+## 项目定位
 
-| 功能 | 说明 |
-|------|------|
-| **HAR → YAML** | 智能转换，自动清理noise步骤、合并字段、抽取变量 |
-| **智能变量识别** | 自动识别编码/名称字段，避免重复数据冲突 |
-| **实时回放** | Web UI实时展示步骤执行，SSE推送事件流 |
-| **智能诊断** | advisor自动分析失败原因，给出YAML修复补丁 |
-| **批量执行** | 支持多用例批量运行，生成执行报告 |
-| **多环境支持** | 同一套用例切换SIT/UAT/生产环境运行 |
-| **现代UI** | 宇宙主题设计，毛玻璃效果，渐变配色 |
+**一句话**：上传浏览器录制 HAR → 自动生成 YAML 测试用例 → 直接运行验证业务流。
+
+苍穹平台没有开放运行期业务数据 OpenAPI，纯手工回归测试成本高。本工具直接回放 `batchInvokeAction.do` 协议，3-5 秒一条用例，无头无浏览器。
 
 ---
 
-## 快速开始
-
-### 安装
+## 安装
 
 ```bash
 git clone https://github.com/Marsmjy/cosmic-replay-v4.git
@@ -32,221 +24,117 @@ cd cosmic-replay-v4
 pip install -r requirements.txt
 ```
 
-### 配置环境变量
+### 配置
 
 ```bash
 cp .env.example .env
-# 编辑 .env 填入你的金蝶账号密码
+# 编辑 .env 填入你的金蝶账号密码和 datacenterId
 ```
 
-### 启动Web UI
+`.env` 文件内容示例：
+
+```
+COSMIC_USERNAME=你的手机号
+COSMIC_PASSWORD=你的密码
+COSMIC_DATACENTER_ID=你的数据中心ID
+```
+
+---
+
+## 启动
 
 ```bash
 ./start.sh
-# 或指定端口
-./start.sh --port 9000
 ```
 
 访问 http://127.0.0.1:8768
 
-### CLI执行用例
+或手动启动：
 
 ```bash
-# 单个用例
-python -m lib.runner run cases/新增员工.yaml
-
-# 指定环境
-python -m lib.runner run cases/新增员工.yaml --env sit
+python3 -m lib.webui.server --init   # 首次初始化
+python3 -m lib.webui.server           # 启动
 ```
 
 ---
 
-## 使用流程
+## 工作流
 
 ```
-1. 浏览器录制 → 导出HAR文件
+浏览器 F12 → Netwok → 勾选 Preserve log
        ↓
-2. Web UI导入 → 自动生成YAML用例
+ 完整操作业务（新增→填写→保存）
        ↓
-3. 智能识别 → 编码/名称自动变量化
+ 右键保存为 xxx.har
        ↓
-4. 审查编辑 → 调整步骤、变量、断言
+ Web UI → HAR导入 → 自动生成 YAML
        ↓
-5. 执行回放 → 实时查看执行结果
+ 审查/编辑 YAML → 点击运行
        ↓
-6. 失败诊断 → advisor给出修复建议
+ ① PASS → 数据入库 → 完成
+ ② FAIL → advisor 给出修复建议 → 改 YAML → 再跑
 ```
 
 ---
 
-## v4 新特性
-
-### 🎨 宇宙主题UI
-- 全新Logo SVG设计（轨道环绕概念）
-- 深空渐变背景 + 毛玻璃效果
-- 现代化配色方案（cyan/violet/purple）
-
-### 🧠 智能变量识别
-- 自动识别 `number/code` → `${vars.test_number}`
-- 自动识别 `name/fullname` → `${vars.test_name}`
-- 支持 `click` 步骤的 `post_data` 字段识别
-- 环境相关字段变量化（企业/组织/职位）
-
-### 📊 执行日志增强
-- case_start 显示变量模板定义
-- session_ready 显示解析后变量值
-- 统一执行历史和调试执行日志格式
-
----
-
-## 项目结构
+## 目录结构
 
 ```
 cosmic-replay-v4/
-├── lib/
-│   ├── webui/
-│   │   ├── server.py          # FastAPI后端
-│   │   ├── log_store.py       # 日志存储
-│   │   └── static/
-│   │       ├── index.html     # 前端单页
-│   │       ├── logo.svg       # Logo SVG
-│   │       └── css/theme-v4.css  # 宇宙主题样式
-│   ├── runner.py              # 用例执行引擎
-│   ├── replay.py              # HTTP协议回放器
-│   ├── har_extractor.py       # HAR解析器（含变量识别）
-│   ├── advisor.py             # 失败诊断器
-│   └── config.py              # 配置管理
-├── cases/                      # YAML用例目录
-├── config/
-│   ├── webui.yaml             # Web UI配置
-│   └── envs/
-│       └── sit.yaml           # 环境配置
-├── docs/                       # 文档目录
-├── SESSION_CONTEXT.md          # 会话上下文（跨会话恢复）
-└── start.sh                    # 启动脚本
+├── lib/                    # 核心代码
+│   ├── har_extractor.py    # HAR → YAML（变量识别/步骤裁剪）
+│   ├── runner.py           # YAML 执行引擎
+│   ├── replay.py           # 苍穹 API 调用封装
+│   ├── diagnoser.py        # 错误诊断
+│   ├── advisor.py          # 修复建议生成
+│   ├── config.py           # 配置管理
+│   └── webui/              # FastAPI 后端
+├── cases/                  # YAML 测试用例资产
+├── har_uploads/            # 上传的 HAR 文件
+├── config/                 # 环境配置（不提交 git）
+│   └── envs/               # 多环境配置（sit/uat/prod）
+├── docs/                   # 使用和开发文档
+│   ├── user_guide.md       # Web UI 操作指南
+│   ├── troubleshooting.md  # 失败诊断与修复指南
+│   └── operating_guide.md  # CLI 操作指南
+├── skills/                 # AI Agent skill 包（给 Claude/其他 AI 用）
+│   ├── cosmic-replay-troubleshooter/  # 排故 skill
+│   └── cosmic-replay-core/            # 核心 skill
+├── README.md
+├── QUICKSTART.md
+└── start.sh
 ```
 
 ---
 
-## 配置
+## 给 AI Agent 使用
 
-### 环境配置 (config/envs/sit.yaml)
-
-```yaml
-env_id: sit
-base_url: https://sit.example.com
-credentials:
-  username: ${env:COSMIC_USERNAME}
-  password: ${env:COSMIC_PASSWORD}
-  datacenter_id: ${env:COSMIC_DATACENTER_ID}
-```
-
-### 敏感信息
-
-使用环境变量存储敏感信息（.env文件）：
+项目中包含 AI Agent skill 包，可直接加载给 Claude Code 或其他 AI 使用：
 
 ```bash
-COSMIC_BASE_URL=https://your-server.com
-COSMIC_USERNAME=your_username
-COSMIC_PASSWORD=your_password
-COSMIC_DATACENTER_ID=your_dc_id
+# Claude Code 加载 skill
+claude --load skills/cosmic-replay-troubleshooter
+
+# 然后直接说：帮我把 xxx.har 导入并运行
 ```
 
----
-
-## API文档
-
-启动后访问：
-- Swagger UI: http://127.0.0.1:8768/docs
-- ReDoc: http://127.0.0.1:8768/redoc
-
-### 主要端点
-
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| GET | /api/cases | 列出所有用例 |
-| GET | /api/cases/{name} | 获取用例详情 |
-| PATCH | /api/cases/{name} | 更新用例 |
-| POST | /api/cases/{name}/run | 执行用例 |
-| GET | /api/runs/{run_id}/events | SSE事件流 |
-| POST | /api/tasks | 创建批量任务 |
-| GET | /api/tasks/{id}/report | 获取执行报告 |
+Skill 包含完整的故障因果链、修复方案和关键代码速查表。参考 `skills/cosmic-replay-troubleshooter/SKILL.md`。
 
 ---
 
-## Docker部署
+## 常见问题
 
-```bash
-# 构建镜像
-docker build -t cosmic-replay:v4 .
+| 问题 | 解决 |
+|------|------|
+| save 返回空 `[]` | pageId 链路断裂 → 重启 Web UI 后重试 |
+| "XXX 已存在" | 编码/名称变量冲突 → 加大 `${rand:N}` 位数 |
+| PASS 但数据未入库 | save 断言用 `no_save_failure` 代替 `no_error_actions` |
+| 找不到 `cosmic_login.py` | 直接 `python3 -m lib.webui.server` 启动即可（已有自动发现） |
 
-# 运行容器
-docker run -d \
-  -p 8768:8768 \
-  -e COSMIC_USERNAME=${COSMIC_USERNAME} \
-  -e COSMIC_PASSWORD=${COSMIC_PASSWORD} \
-  -e COSMIC_DATACENTER_ID=${COSMIC_DATACENTER_ID} \
-  -v $(pwd)/cases:/app/cases \
-  cosmic-replay:v4
-```
+完整排故指南见 `docs/troubleshooting.md` 或 `skills/cosmic-replay-troubleshooter/`。
 
 ---
 
-## 开发
+## License
 
-### 运行测试
-
-```bash
-pytest tests/ -v --cov=lib
-```
-
-### 代码规范
-
-```bash
-ruff check lib/
-black lib/ --check
-```
-
----
-
-## 文档
-
-- [快速入门](QUICKSTART.md)
-- [部署指南](DEPLOYMENT_GUIDE.md)
-- [会话上下文](SESSION_CONTEXT.md)
-- [用户指南](docs/user_guide.md)
-- [API文档](docs/api/openapi.yaml)
-
----
-
-## 许可证
-
-[MIT License](LICENSE)
-
----
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request。
-
-请阅读 [贡献指南](CONTRIBUTING.md) 了解详情。
-
----
-
-## 致谢
-
-本项目基于以下开源项目构建：
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Alpine.js](https://alpinejs.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-
----
-
-## 版本历史
-
-| 版本 | 日期 | 说明 |
-|------|------|------|
-| v4.0 | 2026-04-29 | 宇宙主题UI + 智能变量识别 |
-| v3.0 | 2026-04-28 | UI重构尝试 |
-| v2.0 | 2026-04-27 | 基础功能完善 |
-| v1.0 | 2026-04-26 | 初始版本 |
+MIT

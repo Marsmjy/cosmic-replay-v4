@@ -213,4 +213,58 @@ KEY_TYPE_HINTS = {
 }
 ```
 
+---
+
+## 附录：pageId 链路排查（2026-04-30 新增）
+
+### 症状
+
+PASS 但数据未入库。`click btnsave` 返回空 `[]`（正常应为 17KB+ 含 `"保存成功。"`）。
+
+### 根因链（由浅到深）
+
+| 层 | 原因 | 位置 | 修复 PR |
+|----|------|------|---------|
+| 1 | `_pending_by_app` 属性未初始化 | `replay.py:__init__` | 加 `self._pending_by_app = {}` |
+| 2 | `_harvest_virtual_tab_pageids()` 从未被调用 | `replay.py:invoke()` | 加 `self._harvest_virtual_tab_pageids(resp)` |
+| 3 | pageId 查找没用 `_pending_by_app` 后备 | `replay.py:invoke()` pageId 选择 | `page_id = _pending_by_app.get(app_id) or root_page_id` |
+| 4 | `ac="new"` 不在 pageId 追踪列表中 | `replay.py:424` | `("addnew", "modify", ...)` → 加 `"new"` |
+| 5 | **L2 pageId 优先级高于 `_pending_by_app`** | `replay.py:390-402` | `_pending_by_app` 优先于 L2 pageId，但不覆盖 32hex 表单级 pageId |
+
+### 诊断方法
+
+在 Web UI 执行结果日志里搜：
+
+- `harvest/showForm` → 是否正确的 formId 被更新
+- `harvest/virtual_tab` → `addVirtualTab` 是否被捕获
+- `pending_by_app` → pageId 是否从 pending 获取
+
+### 自查清单
+
+```bash
+# 1. 确认 click btnsave 不是空响应
+#    在 replay.py invoke() 方法加临时 print 看响应长度
+
+# 2. 确认 _pending_by_app 在 entryRowClick 后正确设置
+#    加临时 print: f"_pending_by_app={dict(replay._pending_by_app)}"
+
+# 3. 确认 load_laborreltype 用的 pageId 不是 L2 pageId
+#    检查 page_id 是否以 /J9YH7GL2XOVroot... 开头（是则不对）
+```
+
+### 代码对照
+
+```python
+# replay.py:390-402 - 正确的 pageId 选择逻辑（v4-fix-5）
+if page_id is None:
+    page_id = self.page_ids.get(form_id)
+    pending_pid = self._pending_by_app.get(app_id)
+    if (pending_pid and len(pending_pid) >= 16
+            and page_id != pending_pid
+            and (page_id is None or len(page_id) > 32 or '/' in page_id)):
+        page_id = pending_pid  # _pending_by_app 优先于 L2 pageId
+    if page_id is None:
+        page_id = self.s.root_page_id
+```
+
 每条映射都提升 advisor 的覆盖率。积累到 100+ 条后，行政组织/员工/部门等主流场景基本能一键给补丁。

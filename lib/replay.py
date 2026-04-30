@@ -74,6 +74,10 @@ def _find_login_script() -> Path:
 
     # 本 skill 同级目录往上找 .claude/skills/cosmic-login/cosmic_login.py
     here = Path(__file__).resolve()
+    # 先找同目录下的 cosmic_login.py（lib/ 目录，和 replay.py 同目录）
+    same_dir = here.parent / "cosmic_login.py"
+    if same_dir.exists():
+        return same_dir
     for parent in [here.parent.parent.parent, here.parent.parent, here.parent.parent.parent.parent]:
         p = parent / "cosmic-login" / "cosmic_login.py"
         if p.exists():
@@ -193,6 +197,8 @@ class CosmicFormReplay:
         self.last_response: Any = None
         # menuItemClick 响应里下发的 tab pageId，等下一次 open_form / invoke 消费
         self._pending_tab_page_id: str | None = None
+        # addVirtualTab 响应里按 appId 记的 pending pageId（未绑定表单，按 app 兜底）
+        self._pending_by_app: dict[str, str] = {}
 
     # ---------- HTTP 低层 ----------
 
@@ -382,7 +388,18 @@ class CosmicFormReplay:
           3. 都没有就用 root_page_id 兜底
         """
         if page_id is None:
-            page_id = self.page_ids.get(form_id) or self.s.root_page_id
+            page_id = self.page_ids.get(form_id)
+            # ⭐ 优先使用 _pending_by_app（来自 addVirtualTab 的下发 pageId）
+            # 但只在当前 pageId 是 L2 pageId（菜单级）时才覆盖，不覆盖 32hex 表单级 pageId
+            pending_pid = self._pending_by_app.get(app_id)
+            if (pending_pid and len(pending_pid) >= 16
+                    and page_id != pending_pid
+                    and (page_id is None or len(page_id) > 32 or '/' in page_id)):
+                old_id = page_id
+                page_id = pending_pid
+                log.debug(f"[pending_by_app] {form_id}/{ac}: {str(old_id)[:20]}→{str(pending_pid)[:20]}")
+            if page_id is None:
+                page_id = self.s.root_page_id
         if not page_id:
             raise ProtocolError(f"No pageId for {form_id}. Call init_root() / open_form() first.")
 
@@ -412,6 +429,7 @@ class CosmicFormReplay:
 
         self.last_response = resp
         self._harvest_page_ids(resp)
+        self._harvest_virtual_tab_pageids(resp)
         # ⭐ 关键：服务端通过 addVirtualTab 下发的新 pageId 需要被正确路由到下一个目标表单
         #
         # 两种场景：
@@ -421,7 +439,7 @@ class CosmicFormReplay:
         #    → 覆盖当前 form_id 的 pageId（同一个 form，不同态）
         new_pid = self._extract_new_tab_page_id(resp, form_id)
         if new_pid:
-            if ac in ("addnew", "modify", "copyBill", "edit"):
+            if ac in ("addnew", "modify", "copyBill", "edit", "new"):
                 # 同 form 切换态
                 if new_pid != self.page_ids.get(form_id):
                     log.info(f"[{ac}] form {form_id} pageId: {self.page_ids.get(form_id, '')[:30]} → {new_pid[:30]}")

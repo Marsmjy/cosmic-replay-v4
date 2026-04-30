@@ -48,6 +48,22 @@ from datetime import date, datetime
 from lib.task_manager import TASK_MANAGER, CaseResult, ExecutionTask
 
 
+def _load_dotenv():
+    """从项目根目录加载 .env 文件到 os.environ（不覆盖已有值）"""
+    dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    if dotenv_path.exists():
+        for line in dotenv_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key, val = key.strip(), val.strip().strip("\"'").strip()
+            if key and val and key not in os.environ:
+                os.environ[key] = val
+
+
 class _SafeEncoder(json.JSONEncoder):
     """JSON encoder that handles datetime.date / datetime objects gracefully."""
     def default(self, o):
@@ -871,6 +887,9 @@ if STATIC_DIR.exists():
 # 启动
 # ============================================================
 def main():
+    # 启动时自动加载项目 .env，确保 COSMIC_LOGIN_SCRIPT 等环境变量可用
+    _load_dotenv()
+
     ap = argparse.ArgumentParser(description="cosmic-replay Web UI")
     ap.add_argument("--port", type=int, default=None, help="端口（默认读配置 8765）")
     ap.add_argument("--host", default=None, help="监听地址（默认读配置 127.0.0.1）")

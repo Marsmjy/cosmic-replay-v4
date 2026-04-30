@@ -18,6 +18,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance optimization framework
 - Monitoring and alerting system design
 
+### Fixed (2026-04-30)
+
+#### pageId 链路修复（`lib/replay.py`）
+
+- **`_pending_by_app` 初始化**：`__init__` 加 `self._pending_by_app = {}`
+- **`_harvest_virtual_tab_pageids` 调用**：在 `invoke()` 响应处理后调用，用于捕获 `addVirtualTab` 下发的 pageId
+- **pageId 查找后备**：当 `page_ids[form_id]` 为空时，检查 `_pending_by_app[app_id]` 作为后备
+- **`ac="new"` 追踪**：`("addnew", "modify", "copyBill", "edit")` 列表加 `"new"`，确保 `ac=new` 响应中的新 pageId 被保存
+- **L2 pageId 优先级修复**：`_pending_by_app` 的 pageId（来自 `addVirtualTab`，32hex 格式）优先于 L2 pageId（`{menuId}root{baseId}` 格式），但不覆盖 32hex 表单级 pageId
+
+#### HAR 导入修复（`lib/har_extractor.py`）
+
+- **`newentry` 步骤 post_data 变量化**：新增 `ac="newentry"` 分支处理，将新增条目行的 name/number 等字段值抽为变量，避免出现 "ppppp1" 等硬编码值
+- **`_CLASSIFY_KEY_EXCLUSIONS` 排除列表**：新增排除集，`ename`（属性名称）不再被后缀匹配误分类为 name 字段，保持 HAR 原始内容不变
+- **`_SAVE_BUTTON_KEYS` 修正**：`btnsave`/`btnsaveandnew`/`btnsaveaddnew`/`btnsavenew` 标记为 `tier: core`（不被标 optional）
+- **不移改 ac**：`ac=click` 的 btnsave 保留 `ac=click`，不改为 `saveandeffect`（某些表单的保存就是 `ac=click`）
+
+#### 环境修复
+
+- **`_find_login_script()` 搜索路径**：优先搜索 `lib/cosmic_login.py`（与 `replay.py` 同目录）
+- **Web UI 自动加载 `.env`**：`lib/webui/server.py` 的 `main()` 启动时调用 `_load_dotenv()` 读取项目根 `.env` 文件
+- **清除所有相关的 `__pycache__` 和 `.pyc`**
+
 ---
 
 ## [2.0.0] - 2026-04-28

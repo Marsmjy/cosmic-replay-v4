@@ -16,6 +16,29 @@
 | GitHub | https://github.com/Marsmjy/cosmic-replay-v4.git |
 | 功能 | HAR文件自动化测试回放工具（金蝶苍穹平台） |
 
+## 关键修复记录（2026-04-30）
+
+### pageId 链路修复（`lib/replay.py`）
+1. `__init__` 加 `self._pending_by_app = {}`（第201行）
+2. `invoke()` 响应处理后调用 `self._harvest_virtual_tab_pageids(resp)`（第432行）
+3. pageId 查找加 `_pending_by_app` 后备（第390-402行）
+4. `ac="new"` 加到 pageId 追踪列表（第439行）
+5. L2 pageId 优先级修复：`_pending_by_app` 优先于 L2 pageId，不覆盖 32hex 表单级 pageId（第394-400行）
+
+### HAR 导入修复（`lib/har_extractor.py`）
+- `newentry` 步骤 post_data 变量化：`ac=newentry` 时 walk post_data 的 name/number 等字段
+- `_CLASSIFY_KEY_EXCLUSIONS`：新增排除集，`ename`（属性名称）不再被后缀匹配误分类为 name
+- `_SAVE_BUTTON_KEYS` 标记 `btnsave` 等按钮为 `tier: core`
+- 不改动 `ac`（保持 `click`，不改成 `saveandeffect`）
+
+### Web UI 修复（`lib/webui/server.py`）
+- `main()` 启动时调用 `_load_dotenv()` 自动加载 `.env` 文件
+
+### 要点
+- **改代码后必须重启 Web UI 进程**（Python 模块启动时一次性加载）
+- **save 步骤断言用 `no_save_failure`**（`no_error_actions` 漏报字段级校验错误）
+- **`ac=click + key=btnsave` 的表单不要改成 `saveandeffect`**，只需加 `tier: core`
+
 ---
 
 ## 二、版本历史

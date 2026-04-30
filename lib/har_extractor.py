@@ -75,6 +75,10 @@ AC_TIER = {
 # 即使 ac 不在 AC_TIER 中，只要是 toolbarap/tbmain 上的 itemClick，也视为 core
 _CORE_TOOLBAR_KEYS = {"toolbarap", "tbmain", "toolbar"}
 
+# ⭐ 规则6补充：btnsave 类按钮点击 → 视为 core（不被标 optional）
+# 这类 save 按钮的 ac 是 click 而非 saveandeffect，但属于业务核心操作
+_SAVE_BUTTON_KEYS = {"btnsave", "btnsaveandnew", "btnsaveaddnew", "btnsavenew"}
+
 
 # 值类型识别（从 HAR 里的值反推是什么形式）
 _RX_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -386,9 +390,11 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                         "billno", "orderno"}
     NUMBER_KEYS = {"number", "code", "billno", "orderno"}
     NAME_KEYS = {"name", "simplename", "fullname"}
+    # ⭐ 排除列表：后缀命中 NAME_KEYS 但不是实际名称字段的 key
+    _CLASSIFY_KEY_EXCLUSIONS = {"ename", "classtypeid"}
     # HR 特定字段：需要随机化以避免重复
     HR_UNIQUE_SUFFIXES = {"empnumber", "certificatenumber", "phone"}
-    HR_NAME_FIELDS = {"ba_em_name", "em_name", "ename", "staffname"}
+    HR_NAME_FIELDS = {"ba_em_name", "em_name", "staffname"}
     HR_PHONE_FIELDS = {"phone", "tel", "mobile", "cellphone", "contactphone"}
 
     # ── 连续新增计数器 ──
@@ -428,6 +434,9 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
         for hint in NUMBER_KEYS:
             if kl.endswith(hint) and len(kl) > len(hint):
                 return "number"
+        # ⭐ 排除非名称类字段（如 ename 属性名称不变量化）
+        if kl in _CLASSIFY_KEY_EXCLUSIONS:
+            return None
         for hint in NAME_KEYS:
             if kl.endswith(hint) and len(kl) > len(hint):
                 return "name"
@@ -609,6 +618,30 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
 
         if action_wrap.get("type") == "invoke" and action_wrap.get("method") == "updateValue":
             walk_update_fields(action_wrap.get("post_data") or [])
+        # ⭐ 规则9：处理 newentry（新增条目行）步骤的 post_data
+        # 业务模型的基础资料附表等场景中，新增条目行时 name 等字段值嵌入在 newentry 的 post_data 中
+        elif ac == "newentry":
+            pd = action_wrap.get("post_data") or [{}, []]
+            if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
+                for entry in pd[1]:
+                    if isinstance(entry, dict):
+                        fk = entry.get("k", "")
+                        fv = entry.get("v")
+                        if fk in UNIQUE_KEY_HINTS:
+                            if isinstance(fv, dict) and "zh_CN" in fv:
+                                new_zh = maybe_var(fv.get("zh_CN"), fk)
+                                if new_zh != fv.get("zh_CN"):
+                                    fv = dict(fv)
+                                    fv["zh_CN"] = new_zh
+                                    if "GLang" in fv:
+                                        fv["GLang"] = new_zh
+                                    if "zh_TW" in fv:
+                                        fv["zh_TW"] = new_zh
+                                    entry["v"] = fv
+                            elif isinstance(fv, str):
+                                new_v = maybe_var(fv, fk)
+                                if new_v != fv:
+                                    entry["v"] = new_v
         # ⭐ 规则5补充：也处理 merge 后的 update_fields 类型
         elif action_wrap.get("type") == "update_fields":
             fields = action_wrap.get("fields")
@@ -760,7 +793,10 @@ def extract_steps(har: dict) -> list[dict]:
                 tier = AC_TIER.get(ac, "ui_reaction")
                 # ⭐ 规则6补充：toolbar 按钮点击一律视为 core
                 ctrl_key = action.get("key", "")
-                if tier != "core" and ctrl_key in _CORE_TOOLBAR_KEYS:
+                # ⭐ 规则6补充：btnsave 类按钮 → 视为 core（HAR 可能把保存录成 click）
+                if ac == "click" and ctrl_key in _SAVE_BUTTON_KEYS:
+                    tier = "core"
+                elif tier != "core" and ctrl_key in _CORE_TOOLBAR_KEYS:
                     tier = "core"
                 steps.append({
                     "_har_index": i,
