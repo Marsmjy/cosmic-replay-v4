@@ -52,7 +52,7 @@ def _load_dotenv():
     """从项目根目录加载 .env 文件到 os.environ（不覆盖已有值）"""
     dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
     if dotenv_path.exists():
-        for line in dotenv_path.read_text().splitlines():
+        for line in dotenv_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
@@ -490,6 +490,8 @@ def api_run_case(name: str, body: dict = Body(default={})):
         raise HTTPException(404, f"用例不存在: {name}")
 
     env_id = body.get("env_id") or CONFIG.webui.default_env
+    if body.get("env_id") and body["env_id"] != CONFIG.webui.default_env:
+        CONFIG.set_default_env(body["env_id"])
     try:
         case = load_yaml(p)
     except Exception as e:

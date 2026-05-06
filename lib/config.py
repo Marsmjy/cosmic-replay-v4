@@ -207,6 +207,34 @@ class Config:
 
     # ---------- 写回 ----------
 
+    def set_default_env(self, env_id: str) -> None:
+        """更新默认环境并持久化到 webui.yaml"""
+        if self.webui.default_env == env_id:
+            return
+        self.webui.default_env = env_id
+        self._save_webui()
+
+    def _save_webui(self) -> None:
+        """将当前 webui 配置持久化到 webui.yaml"""
+        data = {
+            "webui": {
+                "port": self.webui.port,
+                "host": self.webui.host,
+                "open_browser": self.webui.open_browser,
+                "default_env": self.webui.default_env,
+            },
+            "logging": {
+                "level": self.webui.logging_level,
+                "log_dir": self.webui.logging_dir,
+            },
+            "paths": {
+                "cases_dir": self.webui.cases_dir,
+                "har_upload_dir": self.webui.har_upload_dir,
+            },
+        }
+        path = self.config_dir / "webui.yaml"
+        _dump_yaml(path, data)
+
     def save_webui(self, prefs: dict) -> None:
         """部分更新 webui.yaml 并热重载"""
         path = self.config_dir / "webui.yaml"
@@ -248,12 +276,19 @@ class Config:
         }
         _dump_yaml(path, out)
         self._load()
+        # 如果当前默认环境无效，设新建的为默认
+        if not self.get_env(self.webui.default_env):
+            self.set_default_env(env_id)
 
     def delete_env(self, env_id: str) -> bool:
         path = self.config_dir / "envs" / f"{env_id}.yaml"
         if path.exists():
             path.unlink()
             self._load()
+            # 如果删除的是默认环境，切换到第一个可用环境
+            if self.webui.default_env == env_id:
+                new_default = self.envs[0].id if self.envs else ""
+                self.set_default_env(new_default)
             return True
         return False
 
