@@ -15,7 +15,7 @@
     cfg.save_env("sit", {...})                # 写回 envs/sit.yaml
     cfg.init_from_example()                   # 首次使用：从 example 拷贝
 
-凭证解析：username_env / password_env 优先于明文。
+凭证解析：环境变量 COSMIC_USERNAME / COSMIC_PASSWORD 优先于明文。
 """
 from __future__ import annotations
 
@@ -83,23 +83,17 @@ class WebUIPrefs:
 class Credentials:
     username: str = ""
     password: str = ""
-    username_env: str = ""
-    password_env: str = ""
 
     def resolve_username(self) -> str:
-        # 环境变量优先，fallback 到 yaml 里的明文 username
-        # 之前只走 env 是错的：yaml 里写了账号但没设环境变量时会拿到空字符串
-        if self.username_env:
-            v = os.environ.get(self.username_env, "")
-            if v:
-                return v
+        v = os.environ.get("COSMIC_USERNAME", "")
+        if v:
+            return v
         return self.username
 
     def resolve_password(self) -> str:
-        if self.password_env:
-            v = os.environ.get(self.password_env, "")
-            if v:
-                return v
+        v = os.environ.get("COSMIC_PASSWORD", "")
+        if v:
+            return v
         return self.password
 
     def is_configured(self) -> bool:
@@ -183,8 +177,6 @@ class Config:
         creds = Credentials(
             username=str(creds_block.get("username", "") or ""),
             password=str(creds_block.get("password", "") or ""),
-            username_env=str(creds_block.get("username_env", "") or ""),
-            password_env=str(creds_block.get("password_env", "") or ""),
         )
         env = EnvConfig(
             file=path.name,
@@ -291,8 +283,6 @@ class Config:
             cred = {
                 "username": e.credentials.username,
                 "password": "********" if mask_secrets and e.credentials.password else e.credentials.password,
-                "username_env": e.credentials.username_env,
-                "password_env": e.credentials.password_env,
                 "configured": e.credentials.is_configured(),
             }
             envs_out.append({
