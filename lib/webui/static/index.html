@@ -2240,7 +2240,7 @@ function app() {
         this.harFile = data.har_file;
         // ⭐ 初始化变量配置面板
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
-        this.harCaseName = file.name.replace(/\.har$/i, '').replace(/[^a-zA-Z0-9_]/g, '_');
+        this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harStep = 2;
       } catch (e) {
         this.showToast('上传失败: ' + e.message);
