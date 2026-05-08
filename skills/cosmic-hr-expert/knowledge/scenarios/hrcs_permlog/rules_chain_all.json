@@ -1,0 +1,890 @@
+{
+  "scene": "hrcs_permlog",
+  "formId": "hrcs_permlog",
+  "description": "rules_chain_all.json · 场景 hrcs_permlog · 13 opKey 全表 · permlog 是只读日志视图 · 无 OP 业务插件 · processlog/donothing_archiveset 走 List FormPlugin · 6 HIES 通用 + first/previous/next/last/save 5 个 BillForm 导航 + processlog/donothing_archiveset 2 个核心",
+  "_metaSummary": {
+    "totalOpKeys": 13,
+    "coreOpKeys": [
+      "processlog",
+      "donothing_archiveset"
+    ],
+    "hiesOpKeys": [
+      "importdata_hr",
+      "show_import_record_hr",
+      "export_from_list_hr",
+      "export_from_impttpl_hr",
+      "export_from_expttpl_hr",
+      "show_export_record_hr"
+    ],
+    "navOpKeys": [
+      "first",
+      "previous",
+      "next",
+      "last",
+      "save"
+    ],
+    "scene": "permlog 是日志只读视图 · 没有 audit/delete/disable 等编辑 opKey · save 也只是 BillForm 下导航默认带的占位 opKey · 没有真业务"
+  },
+  "opKeys": {
+    "processlog": {
+      "opKey": "processlog",
+      "name": "处理日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "处理日志（核心 opKey · 反射调 logtype.handlerclass.doHandler）",
+        "frequency": "运营审计场景 · 把未处理日志推到 handler 自动处理",
+        "stateTransition": "hashandle 0→1（由 handler.doHandler 内部更新 · 标品本插件不直接 set）",
+        "extValue": 5
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "PermLogListPlugin.beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+          "role": "拦 processlog · 单选校验 · 反射调 handlerclass.doHandler(logId) · 异常 catch 错误提示"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "PermLogListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+          "role": "**核心** · beforeDoOperation 反射调 logtype.handlerclass.doHandler · final 类不可继承 · ISV 走并列挂插件"
+        },
+        {
+          "order": 2,
+          "plugin": "HRAdminStrictPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminStrictPlugin",
+          "role": "preOpenForm 已校验过 · 此操作执行时不再触发"
+        }
+      ],
+      "validators": [
+        {
+          "name": "单选校验",
+          "logic": "ListSelectedRowCollection.size() > 1 → setCancel(true) + showErrorNotification('please selected 1 row.')",
+          "source": "PermLogListPlugin.java L106-L111",
+          "id": "V_processlog_"
+        },
+        {
+          "name": "logtype.handlerclass 存在性校验",
+          "logic": "PermLogTaskServiceHelper.getAllPermLogType() 构建 logTypeMap · permLogDyn.logtype.id 不在 map 里 → continue 跳过（不报错 · 静默忽略）",
+          "source": "PermLogListPlugin.java L114-L120",
+          "id": "V_processlog_logtypehandlerclass"
+        },
+        {
+          "name": "handlerclass 反射调用异常兜底",
+          "logic": "Class.forName + newInstance + getMethod(doHandler).invoke 抛任意异常 → LOGGER.error + showErrorNotification('exception:' + msg) + setCancel(true)",
+          "source": "PermLogListPlugin.java L121-L130",
+          "id": "V_processlog_handlerclass"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "logtype.id",
+        "logtype.handlerclass"
+      ],
+      "events": [],
+      "mines": [
+        "❌ ISV 不能 extends PermLogListPlugin（final 类）· 必须并列挂插件覆盖 beforeDoOperation",
+        "⚠ processlog 是 donothing 类型 · 不进事务 · 反射调用的 handlerclass 自己负责事务",
+        "⚠ handlerclass 必须 public 无参构造 + public Object doHandler(long logId) · 否则 NoSuchMethodException",
+        "⚠ 错误提示 'please selected 1 row.' 标品硬编码英文未做 i18n · ISV 加 ResManager 包装",
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal · permlog 非 HisModel · 完全用不上）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · permlog 没有 OP 插件 · 业务在 List FormPlugin）"
+      ],
+      "metadataConfig": {
+        "opType": "donothing · 苍穹平台 donothing 类型不走 OP 插件链 · 直接由 List FormPlugin 的 beforeDoOperation/afterDoOperation 处理"
+      },
+      "_synthesized": {
+        "from": "Agent 精修 · PermLogListPlugin.java 反编译 L102-L140 实证",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "manual_curation_2026-04-28"
+      }
+    },
+    "donothing_archiveset": {
+      "opKey": "donothing_archiveset",
+      "name": "归档设置",
+      "opType": "donothing",
+      "overview": {
+        "scene": "归档设置 · 操作成功后弹 hrcs_permlogarchive_set Modal 子页",
+        "frequency": "运营管理 · 配置日志归档周期/规则",
+        "stateTransition": "无 · 仅打开子页",
+        "extValue": 4
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "PermLogListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+          "role": "afterDoOperation 监听 · operationResult.isSuccess 后 showLogSetting() 弹 Modal"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [
+        {
+          "order": 1,
+          "plugin": "PermLogListPlugin.afterDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+          "role": "switch(opKey) case donothing_archiveset · operationResult 非空且 isSuccess → showLogSetting · setFormId(hrcs_permlogarchive_set) · ShowType.Modal"
+        }
+      ],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ donothing_archiveset 是占位操作 · 真实归档配置在 hrcs_permlogarchive_set 子页 Modal · ISV 想改归档规则需要扩展那个表单",
+        "⚠ ShowType.Modal 阻塞主页面 · 子页关闭前 List 不可操作 · ISV 不要把耗时 IO 放到 showLogSetting 链路",
+        "❌ 禁继承 PermLogListPlugin（final）"
+      ],
+      "metadataConfig": {
+        "opType": "donothing"
+      },
+      "_synthesized": {
+        "from": "Agent 精修 · PermLogListPlugin.java L142-L160 实证",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "manual_curation_2026-04-28"
+      }
+    },
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "HIES 导入数据（HR 标品通用模板）· permlog 为日志只读视图 · **业务上不会真用导入** · 是 BillForm 模板默认带的 opKey",
+        "frequency": "极低 · 运维特殊场景",
+        "stateTransition": "新增日志记录（绕过业务流）",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 导入模板编辑器（标品 hbp 共用）"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验（hbp 通用 preOpenForm）"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 导入模板（hbp 通用 preOpenForm）"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "HIES 按钮显隐切换（hbp 通用 afterBindData）"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "禁止 URL 直接访问（hbp 通用 preOpenForm）"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ permlog 是日志只读视图 · 实际业务 0 用导入 · 此 opKey 是 BillForm 模板默认占位",
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ HBP 导入模板插件链都是 hbp 通用 · ISV 想改导入逻辑挂在 HRBaseUeEdit 后",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · plugins.json 实证",
+        "confidence": "distilled",
+        "decompiledCount": "0/5",
+        "generatedBy": "scripts/enrich_opkey_chain.py + manual_review"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "HIES 查看导入记录（HR 标品通用 · permlog 0 实际使用）",
+        "frequency": "极低",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 导入模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ permlog 不实际用导入记录功能",
+        "⚠ HIES 通用 opKey · 跨场景共享 · 不要在这里写 permlog 专属逻辑",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "**核心 HIES 导出**：按列表当前过滤条件导出权限日志（实际业务高频用 · 审计场景）",
+        "frequency": "高 · 审计/运营周期导出",
+        "stateTransition": "",
+        "extValue": 4
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 导入/导出共用模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        },
+        {
+          "order": 6,
+          "plugin": "PermLogListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+          "role": "**关键叠加** · setFilter 已强制 hashandle=1 · 导出范围被限制"
+        }
+      ],
+      "validators": [
+        {
+          "name": "导出受 setFilter 强制条件影响",
+          "logic": "PermLogListPlugin.setFilter setCustomQFilters(hashandle='1') · 导出只能拿已处理日志 · ISV 想导出全量必须并列挂插件改写 customQFilters",
+          "source": "PermLogListPlugin.java L272-L273",
+          "id": "V_export_from_list_hr_setFilter"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "全部 114 字段（按列表选中列）"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ **强制 hashandle=1 过滤生效** · 导出永远只有已处理日志 · ISV 必须并列挂 ListPlugin 改写 customQFilters",
+        "⚠ 114 字段中 95+ 都是跨表 JOIN 字段（rolefunc_/roledim_/roleopen_/influuser_ 等前缀）· 大数据量导出注意性能",
+        "⚠ HIES 导出是分布式异步任务 · 不要假设导出立刻可下载",
+        "⚠ 多语言字段（description 是 MuliLangTextField）导出受当前用户语言影响",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "PermLogListPlugin.setFilter 实证 + plugins.json",
+        "confidence": "verified",
+        "decompiledCount": "1/6"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "HIES 按导入模板格式导出（标品通用 · permlog 不实用）",
+        "frequency": "极低",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ permlog 不实际使用导入模板",
+        "⚠ HIES 通用 opKey · ISV 改不动模板格式 · 改用扩展 export_from_list_hr 输出列",
+        "❌ 禁继承 HisUniqueValidateOp"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "HIES 按预定义导出模板格式导出（标品通用）",
+        "frequency": "中 · 业务方维护自己的导出模板",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 受 PermLogListPlugin.setFilter hashandle=1 影响（同 export_from_list_hr）",
+        "⚠ 导出模板基础资料里配的字段不存在则报错 · ISV 改字段名时同步改模板",
+        "❌ 禁继承 HisModelFormCommonPlugin"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py + setFilter 实证",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看历史导出记录（标品通用）",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 导出记录列表是 HIES 平台子页 · 不是 hrcs_permlog 自己的表",
+        "⚠ ISV 想审计'谁导了多少日志' · 在导出记录基础资料里看 · 别在 hrcs_permlog 加字段",
+        "❌ 禁继承 HisModelListCommonPlugin"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "BillForm 导航 · 跳第一行（标品默认带 · permlog List 视图实际用不到）",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板（默认链路）"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ first/previous/next/last 是平台 BillForm 模板默认带的导航 opKey · permlog 是 List 视图 · 这些导航是详情子页（hrcs_permlog_role 等）使用",
+        "⚠ ISV 不要在这里写业务"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "BillForm 导航 · 跳上一行",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 详情子页（hrcs_permlog_role 等）才用得到 · permlog List 主页面不触发",
+        "⚠ ISV 别覆盖默认导航逻辑"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "BillForm 导航 · 跳下一行",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 详情子页才使用",
+        "⚠ ISV 别覆盖"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "BillForm 导航 · 跳最后一行",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 详情子页才使用",
+        "⚠ ISV 别覆盖"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "BillForm 默认 save · permlog 是日志只读视图 · **业务上 0 用 save**（日志数据由其他场景的编辑插件直接 insert · 不走 hrcs_permlog 表单 save 流程）",
+        "frequency": "几乎为 0",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "HBP 模板"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "证书校验"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "UE 模板"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "按钮切换"
+        },
+        {
+          "order": 5,
+          "plugin": "ForbidUrlOpenPlugin",
+          "className": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+          "role": "URL 防绕"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ permlog 是日志视图 · 实际业务 **不会触发 save** · 日志由其他场景调 PermLogServiceHelper 直接 insert",
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal · permlog 非 HisModel）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · permlog 没 OP 插件）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py",
+        "confidence": "distilled",
+        "decompiledCount": "0/5"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "first",
+        "previous",
+        "next",
+        "last",
+        "save",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr",
+        "processlog",
+        "donothing_archiveset"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    },
+    "agentRefinedAt": {
+      "refinedAt": "2026-04-28",
+      "source": "manual_curation Agent v2.2 · PermLogListPlugin.java + HRAdminStrictPlugin.java 反编译实证",
+      "opKeysRefined": [
+        "processlog",
+        "donothing_archiveset",
+        "export_from_list_hr"
+      ],
+      "note": "核心 opKey 已升级为 verified · 其余仍为 distilled · 因为 5 个 hbp 共用模板插件不属于 hrcs_permlog 域"
+    }
+  }
+}

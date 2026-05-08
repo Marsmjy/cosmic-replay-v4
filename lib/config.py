@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any
@@ -126,8 +127,10 @@ class Config:
 
     def __init__(self, config_dir: Path | None = None):
         self.config_dir = Path(config_dir) if config_dir else CONFIG_DIR
+        self._lock = threading.RLock()
         self.webui = WebUIPrefs()
         self.envs: list[EnvConfig] = []
+        self.raw: dict = {}  # 完整的 webui.yaml 原始数据
         self._load()
 
     # ---------- 加载 ----------
@@ -140,6 +143,7 @@ class Config:
         webui_file = self.config_dir / "webui.yaml"
         if webui_file.exists():
             data = _load_yaml(webui_file)
+            self.raw = data  # 保存完整原始数据
             self._apply_webui(data)
         # envs/*.yaml
         envs_dir = self.config_dir / "envs"
@@ -209,31 +213,33 @@ class Config:
 
     def set_default_env(self, env_id: str) -> None:
         """更新默认环境并持久化到 webui.yaml"""
-        if self.webui.default_env == env_id:
-            return
-        self.webui.default_env = env_id
-        self._save_webui()
+        with self._lock:
+            if self.webui.default_env == env_id:
+                return
+            self.webui.default_env = env_id
+            self._save_webui()
 
     def _save_webui(self) -> None:
         """将当前 webui 配置持久化到 webui.yaml"""
-        data = {
-            "webui": {
-                "port": self.webui.port,
-                "host": self.webui.host,
-                "open_browser": self.webui.open_browser,
-                "default_env": self.webui.default_env,
-            },
-            "logging": {
-                "level": self.webui.logging_level,
-                "log_dir": self.webui.logging_dir,
-            },
-            "paths": {
-                "cases_dir": self.webui.cases_dir,
-                "har_upload_dir": self.webui.har_upload_dir,
-            },
-        }
-        path = self.config_dir / "webui.yaml"
-        _dump_yaml(path, data)
+        with self._lock:
+            data = {
+                "webui": {
+                    "port": self.webui.port,
+                    "host": self.webui.host,
+                    "open_browser": self.webui.open_browser,
+                    "default_env": self.webui.default_env,
+                },
+                "logging": {
+                    "level": self.webui.logging_level,
+                    "log_dir": self.webui.logging_dir,
+                },
+                "paths": {
+                    "cases_dir": self.webui.cases_dir,
+                    "har_upload_dir": self.webui.har_upload_dir,
+                },
+            }
+            path = self.config_dir / "webui.yaml"
+            _dump_yaml(path, data)
 
     def save_webui(self, prefs: dict) -> None:
         """部分更新 webui.yaml 并热重载"""
@@ -258,39 +264,41 @@ class Config:
 
     def save_env(self, env_id: str, data: dict) -> None:
         """保存或新建一个环境配置"""
-        filename = f"{env_id}.yaml"
-        path = self.config_dir / "envs" / filename
-        out: dict = {
-            "env": {
-                "name": data.get("name", env_id),
-                "base_url": data.get("base_url", ""),
-                "datacenter_id": data.get("datacenter_id", ""),
-            },
-            "credentials": data.get("credentials", {}) or {},
-            "basedata": data.get("basedata", {}) or {},
-            "runtime": {
-                "sign_required": bool(data.get("sign_required", True)),
-                "timeout": int(data.get("timeout", 30)),
-                "login_retries": int(data.get("login_retries", 3)),
-            },
-        }
-        _dump_yaml(path, out)
-        self._load()
-        # 如果当前默认环境无效，设新建的为默认
-        if not self.get_env(self.webui.default_env):
-            self.set_default_env(env_id)
+        with self._lock:
+            filename = f"{env_id}.yaml"
+            path = self.config_dir / "envs" / filename
+            out: dict = {
+                "env": {
+                    "name": data.get("name", env_id),
+                    "base_url": data.get("base_url", ""),
+                    "datacenter_id": data.get("datacenter_id", ""),
+                },
+                "credentials": data.get("credentials", {}) or {},
+                "basedata": data.get("basedata", {}) or {},
+                "runtime": {
+                    "sign_required": bool(data.get("sign_required", True)),
+                    "timeout": int(data.get("timeout", 30)),
+                    "login_retries": int(data.get("login_retries", 3)),
+                },
+            }
+            _dump_yaml(path, out)
+            self._load()
+            # 如果当前默认环境无效，设新建的为默认
+            if not self.get_env(self.webui.default_env):
+                self.set_default_env(env_id)
 
     def delete_env(self, env_id: str) -> bool:
-        path = self.config_dir / "envs" / f"{env_id}.yaml"
-        if path.exists():
-            path.unlink()
-            self._load()
-            # 如果删除的是默认环境，切换到第一个可用环境
-            if self.webui.default_env == env_id:
-                new_default = self.envs[0].id if self.envs else ""
-                self.set_default_env(new_default)
-            return True
-        return False
+        with self._lock:
+            path = self.config_dir / "envs" / f"{env_id}.yaml"
+            if path.exists():
+                path.unlink()
+                self._load()
+                # 如果删除的是默认环境，切换到第一个可用环境
+                if self.webui.default_env == env_id:
+                    new_default = self.envs[0].id if self.envs else ""
+                    self.set_default_env(new_default)
+                return True
+            return False
 
     def reload(self) -> None:
         self._load()

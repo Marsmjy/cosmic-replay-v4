@@ -1,0 +1,4123 @@
+{
+  "scene": "haos_changescene",
+  "formId": "haos_changescene",
+  "description": "rules_chain_all.json · 场景 haos_changescene",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据 (HIES 流程)",
+        "frequency": "中",
+        "stateTransition": "见 04 §阶段 5 场景 B 实证 · ChangeSceneSaveOp 兜底联动 changeoperat",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录",
+        "frequency": "低",
+        "stateTransition": "HIES UI 路径",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出",
+        "frequency": "中",
+        "stateTransition": "HIES 路径",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出",
+        "frequency": "低",
+        "stateTransition": "HIES 路径",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出",
+        "frequency": "低",
+        "stateTransition": "HIES 路径",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录",
+        "frequency": "低",
+        "stateTransition": "HIES UI 路径",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "进入新增模式 · 表单 UI 操作 · 不直接落库",
+        "frequency": "中",
+        "stateTransition": "无（仅 UI 行为）",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "name": "ISV 新增前置默认值（CS-03 风格）",
+          "fields": [],
+          "logic": "afterCreateNewData 阶段给 ISV 字段设默认值 · 不是 onAddValidators",
+          "source": "PR-003",
+          "id": "V_new_1"
+        },
+        {
+          "name": "INV-CS-01 · 必填提示（UI 层）",
+          "fields": [
+            "orgchangetype"
+          ],
+          "logic": "BasedataField 必填 · UI 红星标识",
+          "source": "scene_doc.json",
+          "id": "V_new_2"
+        },
+        {
+          "name": "ISV 字段必填提示",
+          "fields": [
+            "${ISV_FLAG}_bizline"
+          ],
+          "logic": "如果 CS-01 加了必填字段 · UI 同样红星",
+          "source": "CS-01",
+          "id": "V_new_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "new 仅打开新表单 · 数据不落库",
+          "mechanism": "FormPlugin 层",
+          "violation": "在 new 阶段做后端事务无效",
+          "id": "B_new_R1"
+        },
+        {
+          "rule": "新增的 enable 默认 1",
+          "mechanism": "BaseFormModel 默认值",
+          "violation": "新增即可见",
+          "id": "B_new_R2"
+        },
+        {
+          "rule": "新增的 status 默认 A(暂存)",
+          "mechanism": "BillStatusField 默认",
+          "violation": "需要走 submit + audit 才正式生效",
+          "id": "B_new_R3"
+        },
+        {
+          "rule": "新增时 issyspreset=false",
+          "mechanism": "业务自建数据非预置",
+          "violation": "ISV 不要手设 issyspreset · 平台维护",
+          "id": "B_new_R4"
+        },
+        {
+          "rule": "新增后立即触发联动（orgchangetype→changeoperat）",
+          "mechanism": "ChangeSceneEditPlugin.propertyChanged",
+          "violation": "需要新增时填默认 type · 自动出 operat",
+          "id": "B_new_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "进入修改模式 · 表单 UI 操作 · 不直接落库",
+        "frequency": "中",
+        "stateTransition": "无（仅 UI 行为）",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "name": "INV-CS-03 · 出厂数据修改限制",
+          "fields": [
+            "issyspreset"
+          ],
+          "logic": "issyspreset=true 的字段在表单层禁编辑 · 平台 isvCanModify=false 处理",
+          "source": "scene_doc.json 字段 isvCanModify",
+          "id": "V_modify_1"
+        },
+        {
+          "name": "ISV 修改前置校验（onAddValidators · 极少）",
+          "fields": [],
+          "logic": "modify 是 UI 操作 · 真正的校验走 save",
+          "source": "PR-010",
+          "id": "V_modify_2"
+        },
+        {
+          "name": "ISV 字段修改约束",
+          "fields": [
+            "${ISV_FLAG}_*"
+          ],
+          "logic": "ISV 加的字段如有'创建后不可改' 约束 · 在 propertyChanged 监听 + 拒绝 setValue",
+          "source": "CS-01 配套",
+          "id": "V_modify_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "modify 仅打开表单到编辑模式 · 数据不落库",
+          "mechanism": "FormPlugin 层操作",
+          "violation": "在 modify 阶段做业务规则会失效",
+          "id": "B_modify_R1"
+        },
+        {
+          "rule": "真正的修改写入走 save",
+          "mechanism": "用户改完点保存 → save",
+          "violation": "误以为 modify 触发后端事务",
+          "id": "B_modify_R2"
+        },
+        {
+          "rule": "修改 number 受 INV-CS-03 限制",
+          "mechanism": "出厂数据 isvCanModify=false",
+          "violation": "尝试改 number · 表单层禁编辑",
+          "id": "B_modify_R3"
+        },
+        {
+          "rule": "修改 orgchangetype 触发 changeoperat 联动",
+          "mechanism": "ChangeSceneEditPlugin.propertyChanged",
+          "violation": "不要在自定义 propertyChanged 重复联动 · 保持单一来源",
+          "id": "B_modify_R4"
+        },
+        {
+          "rule": "PR-004 · 联动 setValue 可能死循环",
+          "mechanism": "FormPlugin propertyChanged · 同字段 setValue 触发新事件",
+          "violation": "死循环 · 浏览器卡死",
+          "id": "B_modify_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "查看",
+        "frequency": "高",
+        "stateTransition": "仅 UI · 无业务影响",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存变动场景 · 包括新增和修改 · 标品 8 插件链",
+        "frequency": "中（业务字典维护时触发 · 一年若干次）",
+        "stateTransition": "新增：null → A(暂存) · 修改：保留原 status",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BaseDataSavePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataSavePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        },
+        {
+          "order": 8,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [
+        {
+          "name": "标品 BasedataField 必填校验",
+          "fields": [
+            "orgchangetype"
+          ],
+          "logic": "INV-CS-01 · orgchangetype required=true · 平台层 BasedataField 自动校验",
+          "source": "scene_doc.json (main).orgchangetype.required=true",
+          "id": "V_save_1"
+        },
+        {
+          "name": "ChangeSceneImportValidator（标品 · 反编译实证）",
+          "fields": [
+            "orgchangetype",
+            "changeoperat"
+          ],
+          "logic": "ChangeSceneSaveOp.onAddValidators 注册 · 导入路径数据格式校验",
+          "source": "ChangeSceneSaveOp.java:31-34",
+          "id": "V_save_2"
+        },
+        {
+          "name": "ISV 字段必填校验（如 CS-01 加的 ${ISV_FLAG}_bizline 必填）",
+          "fields": [
+            "${ISV_FLAG}_bizline"
+          ],
+          "logic": "ISV 加业务字段后 · 在自建 Validator 里走 dataEntity.getString 检查 · 注意 onPreparePropertys 必须先声明",
+          "source": "CS-01 + PR-010 第 2 步",
+          "id": "V_save_3"
+        },
+        {
+          "name": "ISV 出厂数据保护校验（CS-02 通用模式）",
+          "fields": [
+            "issyspreset"
+          ],
+          "logic": "issyspreset=true 的修改请求一律拒绝（INV-CS-03）· addErrorMessage('系统预置数据不可修改')",
+          "source": "INV-CS-03 + PR-007",
+          "id": "V_save_4"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "INV-CS-01 · orgchangetype 必填",
+          "mechanism": "BasedataField required=true · 平台层 + 标品 onAddValidators 双重校验",
+          "violation": "保存时报红",
+          "id": "B_save_R1"
+        },
+        {
+          "rule": "INV-CS-02 · changeoperat 由 orgchangetype 联动",
+          "mechanism": "FormPlugin propertyChanged 阶段（ChangeSceneEditPlugin.java:21-36）+ OP beginOperationTransaction 兜底（ChangeSceneSaveOp.java:42-55）",
+          "violation": "导入时只填 type 没填 operat · 标品自动按 ChangeSceneServiceHelper.getChangeOperate 算",
+          "id": "B_save_R2"
+        },
+        {
+          "rule": "INV-CS-03 · 出厂数据 isvCanModify=false 的字段不能改",
+          "mechanism": "scene_doc.json 字段 isvCanModify=false · 平台层拦",
+          "violation": "modifyMeta 改这些字段 · 静默忽略 / 升级覆盖",
+          "id": "B_save_R3"
+        },
+        {
+          "rule": "PR-006 · CodeRuleOp 是平台模板插件 · 业务侧配编码规则",
+          "mechanism": "save 链 order=1 是 CodeRuleOp · 走平台编码规则基础资料配置",
+          "violation": "ISV 自定义 OP 写编码逻辑 → 重复造轮子",
+          "id": "B_save_R4"
+        },
+        {
+          "rule": "PR-002 · RowKey 顺序：ISV 自建校验 RowKey=1 · 早于标品 8 个",
+          "mechanism": "平台执行链按 RowKey 顺序",
+          "violation": "ISV RowKey 排在标品后 → 错过拦截时机",
+          "id": "B_save_R5"
+        },
+        {
+          "rule": "ChangeSceneSaveOp.beginOperationTransaction 仅 importtype != null 时触发",
+          "mechanism": "HRStringUtils.isEmpty(importtype) → return · 普通保存路径不影响",
+          "violation": "ISV 在 OP 层联动逻辑没判断 importtype · 普通保存也覆盖了 · 跟表单层重复",
+          "id": "B_save_R6"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "orgchangetype",
+        "changeoperat",
+        "name",
+        "description",
+        "number"
+      ],
+      "readFields": [
+        "orgchangetype.id",
+        "changeoperat",
+        "issyspreset"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/8",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除变动场景 · ⚠ 标品没反向引用校验 · CS-02 必装",
+        "frequency": "极低（标品建议禁用而非删除）",
+        "stateTransition": "存在 → 物理删除（含 4 张物理表全部 DELETE）",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataDeletePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataDeletePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "ChangeSceneDeleteValidator（CS-02 ISV 实施）⭐",
+          "fields": [
+            "id",
+            "issyspreset"
+          ],
+          "logic": "for each dataEntity → if (issyspreset) reject · for each 7 entry 字段 in homs_orgbatchchgbill → exists 命中 reject · QFilter haos_adminorgdetail.changescene 命中 reject",
+          "source": "CS-02 + INV-CS-06",
+          "id": "V_delete_1"
+        },
+        {
+          "name": "标品 HRBaseDataStatusOp 状态校验",
+          "fields": [
+            "status"
+          ],
+          "logic": "已审核（status=C）的数据不能直接删 · 必须先反审核",
+          "source": "HRBaseDataStatusOp 标品行为",
+          "id": "V_delete_2"
+        },
+        {
+          "name": "ISV 出厂数据保护",
+          "fields": [
+            "issyspreset"
+          ],
+          "logic": "issyspreset=true 直接拒（双重保护 · 平台 + ISV）",
+          "source": "PR-007 + INV-CS-03",
+          "id": "V_delete_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "INV-CS-06 · 标品 delete 链没反向引用校验",
+          "mechanism": "delete 4 个标品插件都不查 homs_orgbatchchgbill / haos_adminorgdetail",
+          "violation": "标品行为 · ISV 必须 CS-02 补",
+          "id": "B_delete_R1"
+        },
+        {
+          "rule": "孤儿外键风险",
+          "mechanism": "删 changescene id=X 后 · 历史 homs_orgbatchchgbill.7×*_changescene + haos_adminorgdetail.changescene 全部变 dangling reference",
+          "violation": "F7 显示空 / 业务报表分类错位",
+          "id": "B_delete_R2"
+        },
+        {
+          "rule": "CS-02 必装 · 删除走 'DISABLE 替代 DELETE' 原则",
+          "mechanism": "业务 SOP + ISV Validator",
+          "violation": "DBA 紧急回滚（INSERT 恢复主键 + 子表数据）",
+          "id": "B_delete_R3"
+        },
+        {
+          "rule": "INV-CS-03 · issyspreset=true 出厂数据连删都禁",
+          "mechanism": "ISV ChangeSceneDeleteValidator 第 1 道判断",
+          "violation": "标品升级覆盖 · 历史所有引用变 dangling",
+          "id": "B_delete_R4"
+        },
+        {
+          "rule": "PR-001 · CS-02 父类必须 HRDataBaseOp · 不继承 ChangeSceneSaveOp",
+          "mechanism": "白名单合规",
+          "violation": "继承场景特有类 · 标品升级编译失败",
+          "id": "B_delete_R5"
+        },
+        {
+          "rule": "PR-010 · onAddValidators 阶段注册 · 不在 afterExecute",
+          "mechanism": "OP 13 步生命周期第 4 步",
+          "violation": "afterExecute 阶段已删完 · addErrorMessage 没用",
+          "id": "B_delete_R6"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "id",
+        "issyspreset",
+        "name"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）",
+        "❌ 标品 delete 链没有反向引用校验（INV-CS-06）· ISV 必须用 CS-02 补 · 否则历史 homs_orgbatchchgbill 7 entry × changescene 全部变孤儿外键",
+        "❌ 业务 SOP 上禁止 delete · 改用 disable（保留外键完整性）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/4",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "审核变动场景 · 平台 BaseData 标准状态链",
+        "frequency": "低（业务字典走完 submit 后审核）",
+        "stateTransition": "status: B(已提交) → C(已审核)",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataAuditPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataAuditPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "标品 BaseDataAuditPlugin",
+          "fields": [
+            "status"
+          ],
+          "logic": "已审核（C）不能再审核 · 平台拦",
+          "source": "BaseDataAuditPlugin 标品",
+          "id": "V_audit_1"
+        },
+        {
+          "name": "ISV 自定义审核校验（业务可选）",
+          "fields": [
+            "orgchangetype",
+            "changeoperat"
+          ],
+          "logic": "ISV 可在审核前再校验业务字段完整性 · onAddValidators 阶段",
+          "source": "PR-010",
+          "id": "V_audit_2"
+        },
+        {
+          "name": "标品 HRBaseDataLogOp",
+          "fields": [],
+          "logic": "afterExecute 写日志",
+          "source": "HRBaseDataLogOp 标品",
+          "id": "V_audit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "audit 前必须 submit · 状态 A 直接 audit 平台拒",
+          "mechanism": "BaseDataAuditPlugin 状态机校验",
+          "violation": "用户跳过 submit · 平台拒",
+          "id": "B_audit_R1"
+        },
+        {
+          "rule": "audit 后 status=C · 不能再修改某些核心字段",
+          "mechanism": "HRBaseDataStatusOp",
+          "violation": "改 orgchangetype 在 audit 状态被拒",
+          "id": "B_audit_R2"
+        },
+        {
+          "rule": "对应 unaudit 反向操作",
+          "mechanism": "BaseDataUnAuditPlugin",
+          "violation": "无 - 双向可逆",
+          "id": "B_audit_R3"
+        },
+        {
+          "rule": "PR-001 · ISV 审核校验不继承标品",
+          "mechanism": "并列挂",
+          "violation": "继承 BaseDataAuditPlugin 风险",
+          "id": "B_audit_R4"
+        },
+        {
+          "rule": "审核后基础资料才正式投入使用",
+          "mechanism": "业务 SOP",
+          "violation": "未审核数据下游也能选 · 但业务上不规范",
+          "id": "B_audit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "反审核 · audit 的可逆操作",
+        "frequency": "低",
+        "stateTransition": "status: C(已审核) → B(已提交)",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataUnAuditPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataUnAuditPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "标品 BaseDataUnAuditPlugin",
+          "fields": [
+            "status"
+          ],
+          "logic": "未审核的不能反审核",
+          "source": "BaseDataUnAuditPlugin 标品",
+          "id": "V_unaudit_1"
+        },
+        {
+          "name": "ISV 反审核业务校验",
+          "fields": [],
+          "logic": "反审核会让数据回到 B 状态 · 业务规则可能要校验 enable 状态",
+          "source": "PR-010",
+          "id": "V_unaudit_2"
+        },
+        {
+          "name": "标品 HRBaseDataLogOp 写日志",
+          "fields": [],
+          "logic": "afterExecute 写 t_hbp_blog",
+          "source": "HRBaseDataLogOp",
+          "id": "V_unaudit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "unaudit 只在 status=C 时可用",
+          "mechanism": "状态机",
+          "violation": "标品拒",
+          "id": "B_unaudit_R1"
+        },
+        {
+          "rule": "对应 audit 的反向操作",
+          "mechanism": "可逆设计",
+          "violation": "无",
+          "id": "B_unaudit_R2"
+        },
+        {
+          "rule": "已被下游引用的字典项 · 是否允许反审核需业务定义",
+          "mechanism": "ISV 自建校验（如 CS-02 风格）",
+          "violation": "下游引用变 '被反审字典项' · 业务可能有问题",
+          "id": "B_unaudit_R3"
+        },
+        {
+          "rule": "PR-001 · ISV 不继承标品",
+          "mechanism": "并列挂",
+          "violation": "继承风险",
+          "id": "B_unaudit_R4"
+        },
+        {
+          "rule": "PR-010 · onAddValidators 阶段",
+          "mechanism": "13 步生命周期",
+          "violation": "afterExecute 阶段反审已完成",
+          "id": "B_unaudit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "禁用变动场景 · 推荐做法（替代 delete）",
+        "frequency": "中（业务淘汰旧字典时使用）",
+        "stateTransition": "enable: 1 → 0 · 写入 disabler/disabledate",
+        "extValue": 4
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataDisablePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataDisablePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "ChangeSceneRefCheckOp 提醒（CS-02 同源）",
+          "fields": [
+            "id"
+          ],
+          "logic": "禁用前可选地查反向引用数 · 用 addWarningMessage 提示但不阻塞 · 让用户知情同意",
+          "source": "CS-02 + INV-CS-06",
+          "id": "V_disable_1"
+        },
+        {
+          "name": "标品 HRBaseDataStatusOp 状态校验",
+          "fields": [
+            "status",
+            "enable"
+          ],
+          "logic": "已禁用的不能再禁用 · 平台拦",
+          "source": "HRBaseDataStatusOp 标品",
+          "id": "V_disable_2"
+        },
+        {
+          "name": "ISV 出厂数据保护",
+          "fields": [
+            "issyspreset"
+          ],
+          "logic": "issyspreset=true 的出厂数据不允许禁用（业务上保留预置项）",
+          "source": "INV-CS-03",
+          "id": "V_disable_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "禁用 vs 删除：业务推荐 disable",
+          "mechanism": "enable=0 后下游 F7 选不到 · 但已落地引用保留",
+          "violation": "用 delete 替代 → 孤儿外键事故（08 §3）",
+          "id": "B_disable_R1"
+        },
+        {
+          "rule": "disable 写入 disabler / disabledate（系统维护）",
+          "mechanism": "BaseDataDisablePlugin 标品自动",
+          "violation": "ISV 不要手改这两个字段 · isvCanModify=false",
+          "id": "B_disable_R2"
+        },
+        {
+          "rule": "下游 BasedataField 默认过滤 enable=1",
+          "mechanism": "平台行为 · disable 后下游 F7 不展示",
+          "violation": "下游业务不再选到这条字典",
+          "id": "B_disable_R3"
+        },
+        {
+          "rule": "已被引用的 changescene · disable 不影响历史",
+          "mechanism": "外键完整性保持（id 仍在）",
+          "violation": "无 - 这是 disable 的最大优势",
+          "id": "B_disable_R4"
+        },
+        {
+          "rule": "PR-001 / PR-002 · ISV 提醒插件并列挂 + RowKey=1",
+          "mechanism": "走 HRDataBaseOp + onAddValidators",
+          "violation": "继承标品 disable 插件 · 维护噩梦",
+          "id": "B_disable_R5"
+        },
+        {
+          "rule": "INV-CS-03 · 出厂数据保护",
+          "mechanism": "ISV Validator 配 issyspreset 判断",
+          "violation": "禁用预置项 · 平台升级会再次启用 · 状态摇摆",
+          "id": "B_disable_R6"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable",
+        "disabler",
+        "disabledate"
+      ],
+      "readFields": [
+        "id",
+        "issyspreset",
+        "enable"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用变动场景 · disable 的可逆操作",
+        "frequency": "低（误禁后恢复 · 或预禁后手动启用）",
+        "stateTransition": "enable: 0 → 1 · 清空 disabler/disabledate",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataEnablePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataEnablePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "ISV 启用前校验（业务上很少加）",
+          "fields": [
+            "enable"
+          ],
+          "logic": "如果 ISV 想做'启用前校验' · 走 onAddValidators 注册",
+          "source": "PR-010",
+          "id": "V_enable_1"
+        },
+        {
+          "name": "标品 HRBaseDataEnableOp",
+          "fields": [
+            "enable"
+          ],
+          "logic": "状态校验 · 已启用的不能再启用",
+          "source": "HRBaseDataEnableOp 标品行为",
+          "id": "V_enable_2"
+        },
+        {
+          "name": "标品 HRBaseDataLogOp 写日志",
+          "fields": [],
+          "logic": "afterExecute 写 t_hbp_blog 操作日志",
+          "source": "HRBaseDataLogOp 标品",
+          "id": "V_enable_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "启用是 disable 的可逆操作 · 安全",
+          "mechanism": "enable: 0 → 1",
+          "violation": "无",
+          "id": "B_enable_R1"
+        },
+        {
+          "rule": "启用后下游 F7 可以选到",
+          "mechanism": "BasedataField 默认过滤 enable=1",
+          "violation": "下游业务恢复使用本字典项",
+          "id": "B_enable_R2"
+        },
+        {
+          "rule": "issyspreset=true 出厂数据状态由平台维护",
+          "mechanism": "平台升级会同步 enable 状态",
+          "violation": "ISV 手动改预置项 enable · 升级被覆盖",
+          "id": "B_enable_R3"
+        },
+        {
+          "rule": "PR-001 · ISV 自建启用插件不继承 ChangeSceneSaveOp",
+          "mechanism": "并列挂 + HRDataBaseOp 父类",
+          "violation": "继承场景特有类 · 编译风险",
+          "id": "B_enable_R4"
+        },
+        {
+          "rule": "PR-005 · ISV 自定义 enable 触发的发事件 · variables 内 traceId 用 ID.genStringId",
+          "mechanism": "苍穹分布式 ID",
+          "violation": "UUID/timestamp",
+          "id": "B_enable_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable"
+      ],
+      "readFields": [
+        "id",
+        "enable"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭",
+        "frequency": "高",
+        "stateTransition": "仅 UI · 无业务",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "返回数据",
+        "frequency": "中",
+        "stateTransition": "F7 选择返回",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交变动场景 · 平台 BaseData 标准状态链",
+        "frequency": "低（业务字典走完 save 后 submit）",
+        "stateTransition": "status: A(暂存) → B(已提交)",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BaseDataSubmitPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataSubmitPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        }
+      ],
+      "validators": [
+        {
+          "name": "标品 BaseDataSubmitPlugin",
+          "fields": [
+            "status"
+          ],
+          "logic": "已提交（B）不能再提交 · 平台拦",
+          "source": "BaseDataSubmitPlugin 标品",
+          "id": "V_submit_1"
+        },
+        {
+          "name": "标品 CodeRuleOp 提交时再校验编码",
+          "fields": [
+            "number"
+          ],
+          "logic": "submit 链 order=1 是 CodeRuleOp · numberValidator 校验编码",
+          "source": "submit 执行链",
+          "id": "V_submit_2"
+        },
+        {
+          "name": "ISV 提交校验（如完整性最后一道关）",
+          "fields": [
+            "orgchangetype",
+            "changeoperat",
+            "name"
+          ],
+          "logic": "ISV 可加最后一道完整性校验",
+          "source": "PR-010",
+          "id": "V_submit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "submit 是 save 之后的标准流程",
+          "mechanism": "BaseData 状态机：A → B",
+          "violation": "跳过 submit 直接走 audit 被拒",
+          "id": "B_submit_R1"
+        },
+        {
+          "rule": "submit 触发 BdVersionSaveServicePlugin 写版本历史",
+          "mechanism": "submit 链 order=3",
+          "violation": "name 修改历史也在此时落地",
+          "id": "B_submit_R2"
+        },
+        {
+          "rule": "submit 不影响 enable 状态",
+          "mechanism": "enable 走独立的 disable/enable 操作链",
+          "violation": "无",
+          "id": "B_submit_R3"
+        },
+        {
+          "rule": "对应 unsubmit 反向操作",
+          "mechanism": "BaseDataUnSubmitPlugin",
+          "violation": "无 - 双向可逆",
+          "id": "B_submit_R4"
+        },
+        {
+          "rule": "PR-001 · ISV submit 校验不继承标品",
+          "mechanism": "并列挂",
+          "violation": "继承风险",
+          "id": "B_submit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销 · submit 的可逆操作",
+        "frequency": "低",
+        "stateTransition": "status: B(已提交) → A(暂存)",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataUnSubmitPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataUnSubmitPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "name": "标品 BaseDataUnSubmitPlugin",
+          "fields": [
+            "status"
+          ],
+          "logic": "未提交不能撤销",
+          "source": "BaseDataUnSubmitPlugin",
+          "id": "V_unsubmit_1"
+        },
+        {
+          "name": "ISV 撤销业务校验",
+          "fields": [],
+          "logic": "已审核的字典项不能直接 unsubmit · 必须先 unaudit",
+          "source": "状态机串联约束",
+          "id": "V_unsubmit_2"
+        },
+        {
+          "name": "标品 HRBaseDataLogOp",
+          "fields": [],
+          "logic": "afterExecute 写日志",
+          "source": "HRBaseDataLogOp",
+          "id": "V_unsubmit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "unsubmit 只在 status=B 时可用",
+          "mechanism": "状态机",
+          "violation": "C 状态需先 unaudit",
+          "id": "B_unsubmit_R1"
+        },
+        {
+          "rule": "对应 submit 反向操作",
+          "mechanism": "可逆",
+          "violation": "无",
+          "id": "B_unsubmit_R2"
+        },
+        {
+          "rule": "撤销后字典项回到暂存 · 下游 F7 仍能选（基于 enable=1）",
+          "mechanism": "下游过滤看的是 enable 不是 status",
+          "violation": "用户可能误以为撤销后下游不可见",
+          "id": "B_unsubmit_R3"
+        },
+        {
+          "rule": "PR-001 · 并列挂",
+          "mechanism": "白名单",
+          "violation": "继承风险",
+          "id": "B_unsubmit_R4"
+        },
+        {
+          "rule": "已被引用的字典项是否允许撤销 · 业务定义",
+          "mechanism": "ISV 自建校验",
+          "violation": "撤销可能扰乱下游业务一致性",
+          "id": "B_unsubmit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "copy": {
+      "opKey": "copy",
+      "name": "复制",
+      "opType": "copy",
+      "overview": {
+        "scene": "复制变动场景为新行 · 表单 UI 操作",
+        "frequency": "低（基于现有项快速建新项）",
+        "stateTransition": "新行：null → A(暂存)",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "name": "ISV 字段复制校验（CS-06 配套）",
+          "fields": [
+            "${ISV_FLAG}_*"
+          ],
+          "logic": "ISV 加的子表行 · 复制后必须重新 ID.genLongId 否则主键冲突",
+          "source": "PR-005 + CS-06",
+          "id": "V_copy_1"
+        },
+        {
+          "name": "INV-CS-03 · 出厂数据不可复制",
+          "fields": [
+            "issyspreset"
+          ],
+          "logic": "issyspreset=true 标识'出厂' · 复制后需清空标识",
+          "source": "scene_doc.json",
+          "id": "V_copy_2"
+        },
+        {
+          "name": "复制时 number 必须重新生成",
+          "fields": [
+            "number"
+          ],
+          "logic": "走 CodeRuleOp 自动生成新编码 · 不能复用原 number",
+          "source": "PR-006",
+          "id": "V_copy_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "rule": "复制后 status / enable / disabler 等系统字段重置",
+          "mechanism": "BaseFormModel 默认值机制",
+          "violation": "保留 disabler/disabledate 引发数据错乱",
+          "id": "B_copy_R1"
+        },
+        {
+          "rule": "PR-005 · 子表行 id 必须 ID.genLongId 重新生成",
+          "mechanism": "kd.bos.id.ID",
+          "violation": "复用旧 id · DB 主键冲突",
+          "id": "B_copy_R2"
+        },
+        {
+          "rule": "复制后 issyspreset 必须为 false",
+          "mechanism": "复制行为默认",
+          "violation": "复制保留 true · 平台升级被覆盖",
+          "id": "B_copy_R3"
+        },
+        {
+          "rule": "复制不触发 BEC（标品本场景没 BEC · 实证）",
+          "mechanism": "grep 实证",
+          "violation": "无",
+          "id": "B_copy_R4"
+        },
+        {
+          "rule": "PR-001 · ISV 复制定制不继承场景特有类",
+          "mechanism": "并列挂",
+          "violation": "继承风险",
+          "id": "B_copy_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新",
+        "frequency": "高",
+        "stateTransition": "仅 UI · 重新加载",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增",
+        "frequency": "低",
+        "stateTransition": "submit + new 复合",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "saveandnew": {
+      "opKey": "saveandnew",
+      "name": "保存并新增",
+      "opType": "saveandnew",
+      "overview": {
+        "scene": "保存并新增",
+        "frequency": "中",
+        "stateTransition": "save + new 复合操作",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataSavePlugin",
+          "className": "kd.bd.assistant.plugin.basedata.BaseDataSavePlugin",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一条",
+        "frequency": "低",
+        "stateTransition": "翻页 UI",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一条",
+        "frequency": "低",
+        "stateTransition": "翻页 UI",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一条",
+        "frequency": "低",
+        "stateTransition": "翻页 UI",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后一条",
+        "frequency": "低",
+        "stateTransition": "翻页 UI",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdata": {
+      "opKey": "importdata",
+      "name": "导入数据",
+      "opType": "importdata",
+      "overview": {
+        "scene": "导入数据 (标品旧)",
+        "frequency": "低",
+        "stateTransition": "走标品基础导入",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdetails": {
+      "opKey": "importdetails",
+      "name": "查看导入结果",
+      "opType": "importdetails",
+      "overview": {
+        "scene": "查看导入结果",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importtemplatelist": {
+      "opKey": "importtemplatelist",
+      "name": "管理模板",
+      "opType": "importtemplatelist",
+      "overview": {
+        "scene": "管理模板",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist": {
+      "opKey": "exportlist",
+      "name": "导出数据（按导入模板）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据 (按导入模板 · 标品旧)",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据（按列表）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据 (按列表 · 标品旧)",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist_expt": {
+      "opKey": "exportlist_expt",
+      "name": "导出数据（按导出模板）",
+      "opType": "exportlist_expt",
+      "overview": {
+        "scene": "导出数据 (按导出模板 · 标品旧)",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出结果",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importexport_userset": {
+      "opKey": "importexport_userset",
+      "name": "导入导出个性化设置",
+      "opType": "importexport_userset",
+      "overview": {
+        "scene": "导入导出个性化设置",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarselect": {
+      "opKey": "mobtoolbarselect",
+      "name": "选择",
+      "opType": "mobtoolbarselect",
+      "overview": {
+        "scene": "移动端选择",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarcancel": {
+      "opKey": "mobtoolbarcancel",
+      "name": "取消",
+      "opType": "mobtoolbarcancel",
+      "overview": {
+        "scene": "移动端取消",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistory": {
+      "opKey": "namehistory",
+      "name": "改名",
+      "opType": "donothing",
+      "overview": {
+        "scene": "改名历史",
+        "frequency": "低",
+        "stateTransition": "BaseData 名称版本管理",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistoryview": {
+      "opKey": "namehistoryview",
+      "name": "名称历史查询",
+      "opType": "donothing",
+      "overview": {
+        "scene": "名称历史查询",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "assign": {
+      "opKey": "assign",
+      "name": "分配",
+      "opType": "assign",
+      "overview": {
+        "scene": "分配",
+        "frequency": "低",
+        "stateTransition": "多组织分配 · 平台默认",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unassign": {
+      "opKey": "unassign",
+      "name": "取消分配",
+      "opType": "unassign",
+      "overview": {
+        "scene": "取消分配",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "bdctrlchange": {
+      "opKey": "bdctrlchange",
+      "name": "变更控制策略",
+      "opType": "donothing",
+      "overview": {
+        "scene": "变更控制策略",
+        "frequency": "低",
+        "stateTransition": "ctrlstrategy 字段相关",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "individuation": {
+      "opKey": "individuation",
+      "name": "空操作",
+      "opType": "donothing",
+      "overview": {
+        "scene": "个性化",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "assign_new": {
+      "opKey": "assign_new",
+      "name": "分配",
+      "opType": "donothing",
+      "overview": {
+        "scene": "新分配模式",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "auto_assign": {
+      "opKey": "auto_assign",
+      "name": "自动分配管理",
+      "opType": "donothing",
+      "overview": {
+        "scene": "自动分配管理",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "tbl_assign_import": {
+      "opKey": "tbl_assign_import",
+      "name": "Excel导入分配关系",
+      "opType": "donothing",
+      "overview": {
+        "scene": "Excel 导入分配关系",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "logview": {
+      "opKey": "logview",
+      "name": "查看全部日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看全部日志",
+        "frequency": "低",
+        "stateTransition": "走 t_hbp_blog 日志表",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewonelog": {
+      "opKey": "viewonelog",
+      "name": "查看日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看单条日志",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "ChangeSceneSaveOp",
+          "className": "kd.hr.haos.opplugin.web.ChangeSceneSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 ChangeSceneSaveOp（场景特有类 · PR-001 · 标品升级方法签名变 ISV 编译失败）· 改用 HRDataBaseOp 并列挂",
+        "❌ 禁继承 ChangeSceneEditPlugin（场景特有类 · PR-001）· 改用 HRCoreBaseBillEdit 并列挂",
+        "❌ 禁继承 ChangeSceneListPlugin（场景特有类 · PR-001）· 改用 HRDataBaseList 并列挂",
+        "❌ 禁继承 ListOrderCommonPlugin（haos 域内部类 · 不在 SDK 白名单）· 改用 HRDataBaseList",
+        "❌ 禁继承 AbsOrgBaseOp（hjm/admin_org forbidden 实证 · 不在 HR SDK 白名单）· 改用 HRDataBaseOp",
+        "❌ 禁继承 HisModelOPCommonPlugin / HisUniqueValidateOp / HisModelFormCommonPlugin / HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承 · 本场景非时序也不需要）",
+        "❌ 不要直接调用 ChangeSceneServiceHelper（haos business 包 · 业务实现类 · 跨版本可能改方法签名）· 业务联动需求改用 ISV 自建映射表（CS-03 案例）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "importdata",
+        "importdetails",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "new",
+        "modify",
+        "view",
+        "save",
+        "delete",
+        "audit",
+        "unaudit",
+        "disable",
+        "enable",
+        "close",
+        "returndata",
+        "submit",
+        "unsubmit",
+        "copy",
+        "refresh",
+        "option",
+        "submitandnew",
+        "saveandnew",
+        "first",
+        "previous",
+        "next",
+        "last",
+        "importdata",
+        "importdetails",
+        "importtemplatelist",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails",
+        "importexport_userset",
+        "mobtoolbarselect",
+        "mobtoolbarcancel",
+        "namehistory",
+        "namehistoryview",
+        "assign",
+        "unassign",
+        "bdctrlchange",
+        "individuation",
+        "assign_new",
+        "auto_assign",
+        "tbl_assign_import",
+        "logview",
+        "viewonelog",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

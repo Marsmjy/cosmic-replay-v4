@@ -1,0 +1,63 @@
+package ${ISV_FLAG}.odc.homs.validator;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * 年度编制计划校验规划单位创建不能存在已启用的
+ *
+ * @version 1.0
+ * @author: yaoshuai
+ * @date:2023/12/26
+ */
+public class PlanYearSaveValidator extends AbstractValidator {
+
+    private static Log logger = LogFactory.getLog(PlanYearSaveValidator.class);
+
+    /**
+     * 年度编制计划
+     */
+    private static final String PLANYEAR = "${ISV_FLAG}_planyear";
+
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+        logger.info("PlanYearSaveValidator开始执行校验操作");
+
+
+        QFilter qf = new QFilter("${ISV_FLAG}_org.number", QCP.in, Arrays.stream(dataEntities)
+                .map(ExtendedDataEntity::getDataEntity)
+                .filter(d -> d.getDynamicObject("${ISV_FLAG}_org") != null)
+                .map(d -> d.getString("number")).collect(Collectors.toList()))
+                .and("enable", QCP.equals, "1")
+                .and("iscurrentversion", QCP.equals, "1")
+                .and("datastatus", QCP.equals, "1");
+        List<String> numberList = Arrays.stream(BusinessDataServiceHelper.load(PLANYEAR, "id,${ISV_FLAG}_org.number", qf.toArray()))
+                .map(o -> o.getString("${ISV_FLAG}_org.number")).collect(Collectors.toList());
+
+        for (ExtendedDataEntity entity : dataEntities) {
+            //获取当前实体
+            DynamicObject dataEntity = entity.getDataEntity();
+            //获取编制规划单位
+            DynamicObject org = dataEntity.getDynamicObject("${ISV_FLAG}_org");
+            if (Objects.nonNull(org)) {
+                String orgNumber = org.getString("number");
+                if (numberList.contains(orgNumber)) {
+                    throw new KDBizException("已存在相同已启用的编制规划单位的年度编制计划,请重新选择");
+                }
+            }
+        }
+    }
+}

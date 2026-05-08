@@ -1,0 +1,28 @@
+package ${ISV_FLAG}.swc.hsas.plugin.form.salmap.util;
+
+import kd.bos.dataentity.serialization.SerializationUtils;
+import kd.bos.form.IFormView;
+import kd.bos.form.events.SetFilterEvent;
+import kd.bos.orm.query.QFilter;
+
+import java.util.Arrays;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/6/24 11:40
+ * FileName: SetFilterUtil
+ * Description: 算薪地图跳转后---列表过滤
+ */
+public class SetFilterUtil {
+
+    public static void setFilterBySalaryMap(SetFilterEvent e, IFormView view) {
+        String formEntity = view.getFormShowParameter().getCustomParam("formEntity");
+        if(formEntity != null){
+            String customQFilterStr = view.getFormShowParameter().getCustomParam("customQFilter");
+            QFilter customQFilter = SerializationUtils.deSerializeFromBase64(customQFilterStr);
+            if(customQFilter != null){
+                e.setCustomQFilters(Arrays.asList(customQFilter.toArray()));
+            }
+        }
+    }
+}

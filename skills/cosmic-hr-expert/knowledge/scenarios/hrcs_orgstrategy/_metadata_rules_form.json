@@ -1,0 +1,822 @@
+{
+  "formId": "hrcs_orgstrategy",
+  "formName": "行政组织-组织管理关系策略设置",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "15HQ9/QY8WRF",
+  "bizappId": "15NPDX/GJFOO",
+  "metaIdTechnical": "15I1YPE6ME++",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hrcs_orgstrategy",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hrcs_orgstrategy.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hrcs_orgstrategy",
+      "type": "BaseEntity",
+      "title": "行政组织-组织管理关系策略设置",
+      "physicalTable": null,
+      "fieldCount": 42
+    }
+  ],
+  "formRules": [
+    {
+      "PreDescription": "禁用状态隐藏变更按钮",
+      "TrueActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "1+XDMKUQEGAT",
+          "Fields": {
+            "FieldId": {
+              "Id": "zlTJbHhEqT"
+            }
+          }
+        }
+      },
+      "Description": "禁用状态隐藏变更按钮",
+      "Enabled": "false",
+      "Id": "1+XDMF33TY0G",
+      "PreCondition": "enable = '0'"
+    },
+    {
+      "PreDescription": "1=1",
+      "TrueActions": {
+        "UnlockFieldAction": {
+          "RET": "251",
+          "ActionType": "UnlockFieldAction",
+          "Description": "解锁字段",
+          "Id": "0O68O1+5RTZ0",
+          "Fields": {
+            "FieldId": {
+              "Id": "U4UXvmLY1G"
+            }
+          }
+        }
+      },
+      "Description": "修改业务类型",
+      "Id": "0O68MZTBNKBG",
+      "PreCondition": "bussinessfield.number <> \"\""
+    }
+  ],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "编码",
+      "physicalColumn": "t_hbss_orgstrategy.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "名称",
+      "physicalColumn": "t_hbss_orgstrategy.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "数据状态",
+      "physicalColumn": "t_hbss_orgstrategy.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hrcs_orgstrategy",
+      "title": "创建人",
+      "physicalColumn": "t_hbss_orgstrategy.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hrcs_orgstrategy",
+      "title": "修改人",
+      "physicalColumn": "t_hbss_orgstrategy.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "使用状态",
+      "physicalColumn": "t_hbss_orgstrategy.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "创建时间",
+      "physicalColumn": "t_hbss_orgstrategy.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "修改时间",
+      "physicalColumn": "t_hbss_orgstrategy.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "主数据内码",
+      "physicalColumn": "t_hbss_orgstrategy.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "simplename": {
+      "fieldId": "gqZ5asQ06s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "简称",
+      "physicalColumn": "t_hbss_orgstrategy.fsimplename",
+      "_fieldApId": "gqZ5asQ06s"
+    },
+    "description": {
+      "fieldId": "zaveTaE81T",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "描述",
+      "physicalColumn": "t_hbss_orgstrategy.fdescription",
+      "_fieldApId": "zaveTaE81T"
+    },
+    "index": {
+      "fieldId": "TJLOdUhRYt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "排序号",
+      "physicalColumn": "t_hbss_orgstrategy.findex",
+      "_fieldApId": "TJLOdUhRYt"
+    },
+    "issyspreset": {
+      "fieldId": "bwFJZ504Tx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "系统预置",
+      "physicalColumn": "t_hbss_orgstrategy.fissyspreset",
+      "_fieldApId": "bwFJZ504Tx"
+    },
+    "disabler": {
+      "fieldId": "Ts8h2qRoVF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrcs_orgstrategy",
+      "title": "禁用人",
+      "physicalColumn": "t_hbss_orgstrategy.FDisablerID",
+      "_fieldApId": "Ts8h2qRoVF"
+    },
+    "disabledate": {
+      "fieldId": "zc6fWQT855",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "禁用时间",
+      "physicalColumn": "t_hbss_orgstrategy.FDisableDate",
+      "_fieldApId": "zc6fWQT855"
+    },
+    "initdatasource": {
+      "fieldId": "RMkqRu1en6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "数据来源",
+      "physicalColumn": "t_hbss_orgstrategy.finitdatasource",
+      "_fieldApId": "RMkqRu1en6"
+    },
+    "orinumber": {
+      "fieldId": "GWZgDaCR43",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "出厂编码",
+      "physicalColumn": "t_hbss_orgstrategy.forinumber",
+      "_fieldApId": "GWZgDaCR43"
+    },
+    "oristatus": {
+      "fieldId": "KseEVBIdjS",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "t_hbss_orgstrategy.foristatus",
+      "_fieldApId": "KseEVBIdjS"
+    },
+    "oriname": {
+      "fieldId": "P6qNEDrcgQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "出厂名称",
+      "physicalColumn": "t_hbss_orgstrategy.foriname",
+      "_fieldApId": "P6qNEDrcgQ"
+    },
+    "inheritedorg": {
+      "fieldId": "3mzQv9jo8A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "参照行政组织",
+      "physicalColumn": "t_hbss_orgstrategy.finheritedorgid",
+      "_fieldApId": "3mzQv9jo8A"
+    },
+    "effdt": {
+      "fieldId": "LzWhmFZEAm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "生效日期",
+      "physicalColumn": "t_hbss_orgstrategy.feffdt",
+      "_fieldApId": "LzWhmFZEAm"
+    },
+    "defstrategytype": {
+      "fieldId": "ydG2igX7Oi",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_strategy",
+      "entity": "hrcs_orgstrategy",
+      "title": "默认策略",
+      "physicalColumn": "t_hbss_orgstrategy.fstrategyid",
+      "_fieldApId": "ydG2igX7Oi"
+    },
+    "leffdt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "失效日期",
+      "physicalColumn": "t_hbss_orgstrategy.fleffdt"
+    },
+    "sourceorg": {
+      "fieldId": "5sKP1mUgnY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "源策略组织",
+      "physicalColumn": "t_hbss_orgstrategy.fsourceorgid",
+      "_fieldApId": "5sKP1mUgnY"
+    },
+    "hrbu": {
+      "fieldId": "WQ5lruw0h8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hrcs_orgstrategy",
+      "title": "业务单元",
+      "physicalColumn": "—",
+      "_fieldApId": "WQ5lruw0h8"
+    },
+    "orgteam": {
+      "fieldId": "TLB1WSRTek",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "行政组织",
+      "physicalColumn": "t_hbss_orgstrategy.forgteamid",
+      "_fieldApId": "TLB1WSRTek"
+    },
+    "bussinessfield": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_bussinesstype",
+      "entity": "hrcs_orgstrategy",
+      "title": "业务类型关系",
+      "physicalColumn": "t_hbss_orgstrategy.fbussinessfieldid"
+    },
+    "entryhrbu": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hrcs_orgstrategy",
+      "title": "默认HR管理组织",
+      "physicalColumn": "t_hbss_orgstrategy.fhrbuid"
+    },
+    "entryinheritedorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "参照行政组织",
+      "physicalColumn": "t_hbss_orgstrategy.finheritedorgid"
+    },
+    "entryenable": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "业务状态",
+      "physicalColumn": "t_hbss_orgstrategy.fenable"
+    },
+    "entrydefstrategy": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_strategy",
+      "entity": "hrcs_orgstrategy",
+      "title": "策略",
+      "physicalColumn": "t_hbss_orgstrategy.fstrategyid"
+    },
+    "entryorgteam": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "分录行政组织",
+      "physicalColumn": "t_hbss_orgstrategy.forgteamid"
+    },
+    "entryeffdt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "生效日期",
+      "physicalColumn": "t_hbss_orgstrategy.feffdt"
+    },
+    "strategyentrytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "策略来源",
+      "physicalColumn": "t_hbss_orgstrategy.fstrategyentrytype"
+    },
+    "entryleffdt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "失效日期",
+      "physicalColumn": "t_hbss_orgstrategy.fleffdt"
+    },
+    "entrysourceorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrcs_orgstrategy",
+      "title": "源策略组织",
+      "physicalColumn": "t_hbss_orgstrategy.fsourceorgid"
+    },
+    "sourceentry": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "源分录内码",
+      "physicalColumn": "t_hbss_orgstrategy.fsourceentryid"
+    },
+    "entrystrategy": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "管理关系内码",
+      "physicalColumn": "t_hbss_orgstrategy.fid"
+    },
+    "entrychangetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "变更类型",
+      "physicalColumn": "—"
+    },
+    "inittype": {
+      "fieldId": "FTtM7siUmI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "初始类型",
+      "physicalColumn": "t_hbss_orgstrategy.finittype",
+      "_fieldApId": "FTtM7siUmI"
+    },
+    "effectivedate": {
+      "fieldId": "ZCUDW1YAA2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "生效日期",
+      "physicalColumn": "—",
+      "_fieldApId": "ZCUDW1YAA2"
+    },
+    "changetype": {
+      "fieldId": "g4yQpISSac",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_orgstrategy",
+      "title": "变更类型",
+      "physicalColumn": "—",
+      "_fieldApId": "g4yQpISSac"
+    }
+  },
+  "requiredFields": {
+    "hrcs_orgstrategy": [
+      "inheritedorg",
+      "effdt",
+      "entryhrbu",
+      "entryinheritedorg",
+      "entrydefstrategy",
+      "entryeffdt"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2+QE4JA9QV27_moblist_1jxWyepZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "15I1YPE6ME++_moblist_cZFIIiKp",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_jIBl0dK8",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "15I1YPE6ME++_cNFGgrNx",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_mob_tcERKdKL",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "15I1YPE6ME++_mob_WUixdmo0",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_list_fyn0N8Wu",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "15I1YPE6ME++_list_EyIBg9I2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.managestrategy.AdminOrgManageStrategyEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.managestrategy.log.ManageStrategyListPlugin",
+      "Description": "kd.hr.hrcs.formplugin.web.managestrategy.log.ManageStrategyListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.managestrategy.OrgManageStrategyQueryPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 28,
+        "fieldId_already": 0,
+        "formRules_count": 2,
+        "clientRules_count": 2,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 15
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 28,
+        "fieldId_already": 0,
+        "formRules_count": 2,
+        "clientRules_count": 2,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 15
+      }
+    }
+  ]
+}

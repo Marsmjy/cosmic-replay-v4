@@ -1,0 +1,45 @@
+{
+  "scene": "core_hr_onboard",
+  "title": "入职管理（hom · 入职办理 + 预入职 + 候选人协作）",
+  "cloud": "core_hr",
+  "description": "入职管理 7 单据聚合 · chgaction 大类 = INFO_INIT。实证：OnbrdEffectOp.beginOperationTransaction 调 IPersonGenericService.saveBatch 创建 hrpi_employee + hrpi_assignment + hrpi_empentrel + hrpi_trialperiod。关键 OP：OnbrdBillSaveOp / OnbrdEffectOp / OnbrdAfterEffectOp / PreOnBrdSaveOp。ISV 扩展点：IStaffOnbrdExtPlugin (占编)、IHOMLoginExtPlugin (登录)、IOnbrdInviteSupportAttachmentExtPlugin (附件)、IActivityDomainExtPlugin (协作)。",
+  "entities": [
+    "hom_onbrdinfo",
+    "hom_onbrdinfo_emp",
+    "hom_preonbrdbasebill",
+    "hom_prebatchonbrdbill",
+    "hom_personallonbrd",
+    "hom_personwaitstart",
+    "hom_candidate"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (BasedataField → hpfs_chgaction)",
+    "chgEvent": "INFO_INIT (入职大类)",
+    "createsHrpi": [
+      "hrpi_employee",
+      "hrpi_assignment",
+      "hrpi_empentrel",
+      "hrpi_empposorgrel",
+      "hrpi_trialperiod"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IStaffOnbrdExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IHOMLoginExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IOnbrdInviteSupportAttachmentExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.activity.IActivityDomainExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hom.opplugin.onbrd.OnbrdBillSaveOp",
+    "kd.hr.hom.opplugin.onbrd.OnbrdEffectOp",
+    "kd.hr.hom.opplugin.onbrd.OnbrdAfterEffectOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 7 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

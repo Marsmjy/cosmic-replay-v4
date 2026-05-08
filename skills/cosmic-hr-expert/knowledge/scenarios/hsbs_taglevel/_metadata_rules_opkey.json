@@ -1,0 +1,488 @@
+{
+  "export_from_list_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "export_from_list_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按列表导出",
+    "operationType": "export_from_list_hr",
+    "operationId": "5IGHIO2OCK+P",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": ""
+      }
+    }
+  },
+  "show_export_record_hr": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "show_export_record_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出记录",
+    "operationType": "show_export_record_hr",
+    "operationId": "5IGHM=T797H9",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "modify": {
+    "parameter": null,
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "modify",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "修改",
+    "operationType": "modify",
+    "operationId": "b5994054000017ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "view": {
+    "parameter": null,
+    "permissionItemId": "47150e89000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "view",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看",
+    "operationType": "view",
+    "operationId": "b5994054000018ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "close",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "6096194600001fac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "不能保存禁用的数据。",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "RuleType": "FormValidate",
+        "Id": "1VRALXJOVNKD"
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "编码唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2+R3Y9FBSJ51",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "名称唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "name"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2+R3ZR7WI4N2",
+        "IsCheckMultilang": true,
+        "CustomPromp": "",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "b599405400001aac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 4,
+    "pluginCount": 6,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "RowKey": 2,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 3,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "控制使用状态",
+        "RowKey": 4,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "RowKey": 5,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "close",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "close": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "close",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "关闭",
+    "operationType": "close",
+    "operationId": "b5994054000021ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f381c03f000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "option": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "option",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选项设置",
+    "operationType": "option",
+    "operationId": "c8d21820000086ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportlistbyselectfields": {
+    "parameter": {
+      "_Type_": "ExportParameter",
+      "ByList": true
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "exportlistbyselectfields",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出数据（按列表）",
+    "operationType": "exportlist",
+    "operationId": "13NUAIBA368/",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "ExportParameter",
+      "_raw_keys": [
+        "_Type_",
+        "ByList"
+      ],
+      "ByList": true
+    }
+  },
+  "exportdetails": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "exportdetails",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出结果",
+    "operationType": "exportdetails",
+    "operationId": "0H1RYY0PPC=0",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "importexport_userset": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "importexport_userset",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导入导出个性化设置",
+    "operationType": "importexport_userset",
+    "operationId": "1V3RLZ3IDN4R",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarselect": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "mobtoolbarselect",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选择",
+    "operationType": "mobtoolbarselect",
+    "operationId": "2MMZBM6FC174",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarcancel": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "mobtoolbarcancel",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "取消",
+    "operationType": "mobtoolbarcancel",
+    "operationId": "2MMZF4V/MARY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "logview": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "2DA5R551WK78",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "logview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看全部日志",
+    "operationType": "donothing",
+    "operationId": "21A5O/3PV7IL",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "viewonelog": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsbs_taglevel",
+      "opKey": "viewonelog",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看日志",
+    "operationType": "donothing",
+    "operationId": "2COQ5049N75G",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:00",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 15,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 4,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 6,
+        "parameterParsed_filled": 4,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

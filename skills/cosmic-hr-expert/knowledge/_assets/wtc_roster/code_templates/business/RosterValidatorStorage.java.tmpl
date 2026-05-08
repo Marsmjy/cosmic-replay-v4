@@ -1,0 +1,88 @@
+//package ${ISV_FLAG}.wtc.attendancecycle.plugin.form.wts_rosterview;
+//
+//import kd.bos.dataentity.entity.DynamicObject;
+//import kd.bos.dataentity.entity.DynamicObjectCollection;
+//import kd.bos.dataentity.resource.ResManager;
+//import kd.bos.orm.query.QCP;
+//import kd.bos.orm.query.QFilter;
+//import kd.bos.servicehelper.QueryServiceHelper;
+//import kd.sdk.wtc.wts.business.roster.OnRosterForbidEventArgs;
+//import kd.sdk.wtc.wts.business.roster.OnRosterValidatorEventArgs;
+//import kd.sdk.wtc.wts.business.roster.RosterValidatorExtPlugin;
+//import org.apache.commons.collections.CollectionUtils;
+//
+//import java.text.SimpleDateFormat;
+//import java.util.*;
+//import java.util.stream.Collectors;
+//
+///**
+// * 考勤周期封存后，不可以改排班
+// */
+//public class RosterValidatorStorage implements RosterValidatorExtPlugin {
+//
+//    private static long getBaseDataId(DynamicObject dynamicObject, String baseDataKey) {
+//        Object obj = dynamicObject.get(baseDataKey);
+//        if (obj instanceof Long) {
+//            return (Long) obj;
+//        } else {
+//            return obj instanceof DynamicObject ? ((DynamicObject) obj).getLong("id") : 0L;
+//        }
+//    }
+//
+//    private static String date2Str(Date date) {
+//        if (date == null) {
+//            return "";
+//        } else {
+//            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+//            return format.format(date);
+//        }
+//    }
+//
+//
+//    @Override
+//    public void onValidate(OnRosterValidatorEventArgs event) {
+//        Collection<DynamicObject> dynamicObjectList = event.getDynamicObjectList();
+//        if (!CollectionUtils.isEmpty(dynamicObjectList)) {
+//            //校验结果map
+//            Map<Long, Map<String, String>> result = event.getResult() == null ? new HashMap<>(dynamicObjectList.size()) : event.getResult();
+//
+//            //k-考勤档案id v-对应考勤人排班
+//            Map<Long, List<DynamicObject>> attFileBaseListMap = dynamicObjectList.stream().collect(Collectors.groupingBy((dy) -> getBaseDataId(dy, "attfilebase")));
+//
+//            QFilter qFilter = new QFilter("fileboid", QCP.in, attFileBaseListMap.keySet())
+//                    .and("storageto", QCP.is_notnull, null);
+//            DynamicObjectCollection attStateInfoDyCol = QueryServiceHelper.query("wtp_attstateinfo",
+//                    "fileboid.id fileboid,storageto", new QFilter[]{qFilter});
+//            //k-考勤档案id v-封存日期
+//            Map<Long, Date> storagetoMap = attStateInfoDyCol.stream().collect(Collectors.toMap(d -> d.getLong("fileboid"), d -> d.getDate("storageto")));
+//
+//            for (Map.Entry<Long, List<DynamicObject>> entry : attFileBaseListMap.entrySet()) {
+//                Long attFileId = entry.getKey();
+//                //排班日期
+//                List<Date> rosterDateList = entry.getValue().stream().map((dy) -> dy.getDate("rosterdate")).distinct().sorted().collect(Collectors.toList());
+//                Date date = storagetoMap.get(attFileId);
+//                //判断封存日期是否为空
+//                if (date == null) {
+//                    continue;
+//                }
+//                Map<String, String> errInfoMap = new HashMap<>();
+//                for (Date rosterDate : rosterDateList) {
+//                    if (rosterDate.compareTo(date) <= 0) {
+//                        errInfoMap.put(date2Str(rosterDate), ResManager.loadKDString("档案已封存，不可排班。", "RosterValidatorStorage_0", "sdk-wtc"));
+//                    }
+//                }
+//                Map<String, String> map = result.getOrDefault(attFileId, new HashMap<>());
+//                map.putAll(errInfoMap);
+//                result.put(attFileId, map);
+//            }
+//
+//            event.setResult(result);
+//        }
+//    }
+//
+//    @Override
+//    public void onForbidRoster(OnRosterForbidEventArgs onRosterForbidEventArgs) {
+//
+//    }
+//
+//}

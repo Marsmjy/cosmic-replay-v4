@@ -1,0 +1,508 @@
+package ${ISV_FLAG}.hr.hdm.orgtransfer.business;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.MainEntityType;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.MetadataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+/**
+ * 成建制划转 Helper
+ */
+public class OrgTransferHelper {
+
+
+    /**
+     * @description: 组织变动消费明细(获取数据范围 当天生效的 + （ 当天操作并且已经生效的数据 ）)
+     * @param: taskDays
+     * changeScenceSet 变动场景
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/31 10:17
+     */
+    public static DynamicObject[] queryHAOSChangeMsg(Map<String, Object> taskDays, Set<String> changeSceneSet) {
+
+        //当天生效的
+        QFilter qFilterEffect = new QFilter("orgchgentry.chgeffecttime", QCP.large_equals, taskDays.get("beforeDt"));
+        qFilterEffect.and("orgchgentry.chgeffecttime", QCP.less_than, taskDays.get("currDt"));
+
+        //当天操作并且已经生效的数据
+        QFilter qFilter = new QFilter("orgchgentry.operationtime", QCP.large_equals, taskDays.get("beforeDt"));
+        qFilter.and("orgchgentry.operationtime", QCP.less_than, taskDays.get("currModifyDt"));
+        qFilter.and("orgchgentry.chgeffecttime", QCP.less_than, taskDays.get("currDt"));
+
+        QFilter finalQFilter = qFilterEffect.or(qFilter);
+
+        //限定变动场景条件
+        QFilter changeSceneFilter = new QFilter("orgchgentry.changescene.number", QCP.in, changeSceneSet);
+
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("homs_orgchgrecord");
+        return helper.query("adminorg,orgchgentry.chgeffecttime,orgchgentry.changescene,orgchgentry.operationtime", new QFilter[]{finalQFilter.and(changeSceneFilter)});
+    }
+
+
+    /**
+     * 岗位变动消费明细(获取数据范围 当天生效的+（当天操作并且已经生效的数据）)
+     *
+     * @param taskDays 变动消费明细时间区间
+     * @return
+     */
+    /**
+     * @description: 岗位变动消费明细(获取数据范围 当天生效的 + （ 当天操作并且已经生效的数据 ）)
+     * @param: taskDays 变动消费明细时间区间
+     * changeSceneSet 变动场景
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/31 10:23
+     */
+    public static DynamicObject[] queryPosChangeMsg(Map<String, Object> taskDays, Set<String> changeSceneSet) {
+        //当天生效的
+        QFilter qFilterEffect = new QFilter("changedate", QCP.large_equals, taskDays.get("beforeDt"));
+        qFilterEffect.and("changedate", QCP.less_than, taskDays.get("currDt"));
+
+        //当天操作并且已经生效的数据
+        QFilter qFilter = new QFilter("operatetime", QCP.large_equals, taskDays.get("beforeDt"));
+        qFilter.and("operatetime", QCP.less_than, taskDays.get("currModifyDt"));
+        qFilter.and("changedate", QCP.less_than, taskDays.get("currDt"));
+
+        QFilter finalQFilter = qFilterEffect.or(qFilter);
+
+        //限定变动场景条件
+        QFilter changeSceneFilter = new QFilter("changescene.number", QCP.in, changeSceneSet);
+
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_chgrecordevt");
+        return helper.loadDynamicObjectArray(new QFilter[]{finalQFilter.and(changeSceneFilter)});
+    }
+
+    /**
+     * 行政组织有效的历史数据
+     *
+     * @param idSet 组织id集合  effectDate：生效日期
+     * @return
+     */
+    public static DynamicObject[] queryOrgHisDataByIdAndEffectDate(Set<Long> idSet,Date effectDate) {
+        QFilter qFilter = new QFilter("boid", QCP.in, idSet);
+        qFilter.and("iscurrentversion",QCP.not_equals,"1");
+        qFilter.and("datastatus",QCP.equals,"1");
+        qFilter.and("bsed",QCP.less_equals,effectDate);
+        qFilter.and("bsled",QCP.large_equals,effectDate);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("haos_adminorgdetail");
+        return helper.query("id,boid,bsed,bsled", new QFilter[]{qFilter});
+    }
+
+    /**
+     * 岗位有效的历史数据
+     *
+     * @param  idSet 岗位id集合  effectDate：生效日期
+     * @return
+     */
+    public static DynamicObject[] queryPosHisDataByIdAndEffectDate(Set<Long> idSet,Date effectDate) {
+        QFilter qFilter = new QFilter("boid", QCP.in, idSet);
+        qFilter.and("iscurrentversion",QCP.not_equals,"1");
+        qFilter.and("datastatus",QCP.equals,"1");
+        qFilter.and("bsed",QCP.less_equals,effectDate);
+        qFilter.and("bsled",QCP.large_equals,effectDate);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_positionhr");
+        return helper.query("id,boid,bsed,bsled", new QFilter[]{qFilter});
+    }
+
+
+    /**
+     * 查询岗位的行政组织
+     *
+     * @param idSet 岗位id
+     * @return
+     */
+    public static DynamicObject[] queryPosInfo(Set<Long> idSet) {
+        //当天生效的
+        QFilter qFilter = new QFilter("id", QCP.in, idSet);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_positionhr");
+        return helper.query("adminorg", new QFilter[]{qFilter});
+    }
+
+    /**
+     * @description: 获取更名的变动明细详情
+     * @param: entryIdSet
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/30 15:35
+     */
+    public static DynamicObject[] queryPosChangeNameDetailData(Set<Long> entryIdSet) {
+        QFilter qFilter = new QFilter("parent", QCP.in, entryIdSet);
+        qFilter.and(new QFilter("propkey", QCP.equals, "name"));
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_chgrecorddetail");
+        return helper.loadDynamicObjectArray(new QFilter[]{qFilter});
+    }
+
+    /**
+     * @description: 获取组织变动信息
+     * @param: changeMsgList
+     * changeType
+     * chgSceneNumberSet
+     * @return: java.util.List<kd.bos.dataentity.entity.DynamicObject>
+     * @author ningjie
+     * @date: 2025/7/23 19:55
+     */
+    public static List<DynamicObject> getOrgTransferDyList(List<DynamicObject> changeMsgList, String changeType, Set<String> chgSceneNumberSet) {
+
+        List<DynamicObject> transferDyList = new ArrayList<>();
+
+        Date modifyTime = new Date();
+
+        // 消费明细id集合
+        DynamicObjectCollection posTranMappingIdSet = OrgTransferHelper.queryOrgTranMappingIdSet(changeType);
+        Set<String> dealKeySet = posTranMappingIdSet.stream().map(data -> data.getString("${ISV_FLAG}_mapping_id")).collect(Collectors.toSet());
+
+
+        changeMsgList.stream().forEach(changeMsg -> {
+            DynamicObjectCollection orgChgEntry = changeMsg.getDynamicObjectCollection("orgchgentry");
+            if (CollectionUtils.isEmpty(orgChgEntry)) return;
+
+            Optional<DynamicObject> orgChgOp = orgChgEntry.stream().filter(orgChg -> {
+                if (Objects.isNull(orgChg.getDynamicObject("changescene"))
+                        || !chgSceneNumberSet.contains(orgChg.getString("changescene.number"))) return false;
+                if(dealKeySet.contains(orgChg.getString("id"))) return false;
+                return true;
+            }).sorted((e1, e2) -> {
+                int compareResult = e2.getDate("chgeffecttime").compareTo(e1.getDate("chgeffecttime"));
+                if (compareResult == 0) {
+                    return e2.getDate("operationtime").compareTo(e1.getDate("operationtime"));
+                }
+                return compareResult;
+            }).findFirst();
+
+            if (orgChgOp.isPresent()) {
+                DynamicObject orgChg = orgChgOp.get();
+                TransferEntity entity = new TransferEntity();
+                entity.setChangeType(changeType);
+                entity.setOrgId(changeMsg.getLong("adminorg.id"));
+                entity.setOrgNumber(changeMsg.getString("adminorg.number"));
+                entity.setOrgName(changeMsg.getString("adminorg.name"));
+                entity.setEffectDate(orgChg.getDate("chgeffecttime"));
+                entity.setExecuteStatus("01");
+                entity.setModifyDate(modifyTime);
+                entity.setMappingId(orgChg.getLong("id"));
+                DynamicObject transferDy = convertOrgTransfer(entity);
+                transferDyList.add(transferDy);
+            }
+        });
+
+        return transferDyList;
+
+    }
+
+    /**
+     * @description: 获取岗位变动信息
+     * @param: changeMsgArr
+     * changeType
+     * chgSceneNumberSet
+     * @return: java.util.List<kd.bos.dataentity.entity.DynamicObject>
+     * @author ningjie
+     * @date: 2025/7/23 19:55
+     */
+    public static List<DynamicObject> getPosTransferDyList(List<DynamicObject> posChangeList, String changeType) {
+
+        List<DynamicObject> transferDyList = new ArrayList<>();
+
+        Date modifyTime = new Date();
+
+        posChangeList.stream().forEach(changeMsg -> {
+            Long posId = changeMsg.getLong("targetposition.id");
+            TransferEntity entity = new TransferEntity();
+            entity.setChangeType(changeType);
+            entity.setOrgId(posId);
+            entity.setOrgNumber(changeMsg.getString("targetposition.number"));
+            entity.setOrgName(changeMsg.getString("targetposition.name"));
+            entity.setEffectDate(changeMsg.getDate("changedate"));
+            entity.setExecuteStatus("01");
+            entity.setModifyDate(modifyTime);
+            entity.setMappingId(changeMsg.getLong("id"));
+            DynamicObject transferDy = convertOrgTransfer(entity);
+            transferDyList.add(transferDy);
+        });
+
+        return transferDyList;
+
+    }
+
+
+    /**
+     * @description: 获取生效日期之内的任职经历信息(根据组织id集合)
+     * @param: orgId 组织id
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/23 12:12
+     */
+    public static DynamicObject[] getInEffectDateEmpPosOrgRelArrByOrgIdSet(Set<Long> orgIdSet, Date effectDate) {
+        QFilter qFilter = new QFilter("adminorg.id", QCP.in, orgIdSet);
+        qFilter.and("startdate",QCP.less_equals,effectDate);
+        qFilter.and("enddate",QCP.large_equals,effectDate);
+        qFilter.and("iscurrentdata",QCP.equals,"1");
+        qFilter.and("isdeleted",QCP.equals,"0");
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        DynamicObject[] arr = helper.loadDynamicObjectArray(new QFilter[]{qFilter});
+        return arr;
+    }
+
+    /**
+     * @description: 获取生效日期之后的任职经历信息(根据组织id集合)
+     * @param: orgId 组织id
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/23 12:12
+     */
+    public static DynamicObject[] getAfterEffectDateEmpPosOrgRelArrByOrgIdSet(Set<Long> orgIdSet, Date effectDate) {
+        QFilter qFilter = new QFilter("adminorg.id", QCP.in, orgIdSet);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        return helper.query("adminorg,enddate,adminorgvid", new QFilter[]{qFilter});
+    }
+
+    /**
+     * @description: 获取生效日期之后的任职经历信息(根据岗位d集合)
+     * @param: posIdSet 岗位id
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/23 12:12
+     */
+    public static DynamicObject[] getAfterEffectDateEmpPosOrgRelArrByPosIdSet(Set<Long> posIdSet, Date effectDate) {
+        QFilter qFilter = new QFilter("position.id", QCP.in, posIdSet);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        return helper.query("position,enddate,positionvid", new QFilter[]{qFilter});
+    }
+
+    /**
+     * @description: 获取任职经历信息（根据岗位id）
+     * @param: posId 岗位id
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/7/23 12:08
+     */
+    public static DynamicObject[] getEmpPosOrgRelArrByPosId(Long posId,Date effectDate) {
+        QFilter qFilter = new QFilter("position.id", QCP.equals, posId);
+        qFilter.and("startdate",QCP.less_equals,effectDate);
+        qFilter.and("enddate",QCP.large_equals,effectDate);
+        qFilter.and("iscurrentdata",QCP.equals,"1");
+        qFilter.and("isdeleted",QCP.equals,"0");
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        DynamicObject[] arr = helper.loadDynamicObjectArray(new QFilter[]{qFilter});
+        return arr;
+    }
+
+    /**
+     * @description: 过滤已经处理过的数据
+     * @param: posChangeList
+     * changeType
+     * getCompareId
+     * @return: java.util.List<kd.bos.dataentity.entity.DynamicObject>
+     * @author ningjie
+     * @date: 2025/7/30 16:15
+     */
+    public static List<DynamicObject> excludHisDataDyList(List<DynamicObject> posChangeList, String changeType, BiFunction<DynamicObject, Set<String>, Boolean> getCompareId) {
+        // 消费明细id集合
+        DynamicObjectCollection posTranMappingIdSet = OrgTransferHelper.queryOrgTranMappingIdSet(changeType);
+        Set<String> dealKeySet = posTranMappingIdSet.stream().map(data -> data.getString("${ISV_FLAG}_mapping_id")).collect(Collectors.toSet());
+        return posChangeList.stream().filter(data -> getCompareId.apply(data, dealKeySet)).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 获取批量调整单信息
+     *
+     * @param idSet
+     * @return
+     */
+    public static Map<Long, DynamicObject> queryAssignmentByIdSet(Set<Long> idSet) {
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_assignment");
+        DynamicObject[] arr = helper.loadDynamicObjectArray(new QFilter[]{new QFilter("id", QCP.in, idSet)});
+        return Arrays.stream(arr).collect(Collectors.toMap(data -> data.getLong("id"), data -> data, (v1, v2) -> v2));
+    }
+
+
+    /**
+     * 获取批量调整单信息
+     *
+     * @param id id
+     * @return
+     */
+    public static DynamicObject queryTransferBatchBill(Long id) {
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hdm_transferbatch");
+        return helper.loadDynamicObject(new QFilter("id", QCP.equals, id));
+    }
+
+    /**
+     * 查询成建制划转映射信息(${ISV_FLAG}_orguntitransfer 变动记录中间表)
+     *
+     * @return
+     */
+    public static DynamicObjectCollection queryOrgTranMappingIdSet(String changeType) {
+        QFilter qFilter = new QFilter("id", QCP.not_equals, 0);
+        qFilter.and(new QFilter("${ISV_FLAG}_changetype", QCP.equals, changeType));
+        DynamicObjectCollection orgTransferColl =
+                QueryServiceHelper.query("${ISV_FLAG}_orguntitransfer", "${ISV_FLAG}_mapping_id,${ISV_FLAG}_takeeffectdate", new QFilter[]{qFilter});
+        return orgTransferColl;
+    }
+
+    public static DynamicObject[] queryOrgTranArr(String changeType) {
+        QFilter qFilter = new QFilter("${ISV_FLAG}_executestatus", QCP.equals, "01");
+        qFilter.and(new QFilter("${ISV_FLAG}_changetype", QCP.equals, changeType));
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_orguntitransfer",
+                "${ISV_FLAG}_takeeffectdate,${ISV_FLAG}_orgid,${ISV_FLAG}_orgnumber,${ISV_FLAG}_orgname,${ISV_FLAG}_executestatus,${ISV_FLAG}_resultmsg,${ISV_FLAG}_resultmsg_tag",
+                new QFilter[]{qFilter}, "${ISV_FLAG}_takeeffectdate asc,${ISV_FLAG}_modifydate asc");
+    }
+
+
+    public static DynamicObject queryByEmployeeId(Long employeeId) {
+        HRBaseServiceHelper SERVICE_HELPER = new HRBaseServiceHelper("hrpi_empentrel");
+        QFilter employeeFilter = new QFilter("employee.id", "=", employeeId);
+        QFilter currentFilter = new QFilter("iscurrentdata", "=", "1");
+        return SERVICE_HELPER.loadDynamicObject(employeeFilter.and(currentFilter));
+    }
+
+    /**
+     * 封装成建制划转基础信息
+     *
+     * @param entity 转换实体
+     * @return
+     */
+    public static DynamicObject convertOrgTransfer(TransferEntity entity) {
+
+        MainEntityType orgUnTiTransfer = MetadataServiceHelper.getDataEntityType("${ISV_FLAG}_orguntitransfer");
+        DynamicObject transferDy = new DynamicObject(orgUnTiTransfer);
+        // 变动类型
+        transferDy.set("${ISV_FLAG}_changetype", entity.getChangeType());
+
+        transferDy.set("${ISV_FLAG}_orgid", entity.getOrgId());
+        // 岗位编码
+        transferDy.set("${ISV_FLAG}_orgnumber", entity.getOrgNumber());
+        // 岗位名称
+        transferDy.set("${ISV_FLAG}_orgname", entity.getOrgName());
+
+        // 关联消费明细的id
+        transferDy.set("${ISV_FLAG}_mapping_id", entity.getMappingId());
+        // 更新日期
+        transferDy.set("${ISV_FLAG}_modifydate", entity.getModifyDate());
+        // 生效日期
+        transferDy.set("${ISV_FLAG}_takeeffectdate", entity.getEffectDate());
+        // 执行状态：待执行
+        transferDy.set("${ISV_FLAG}_executestatus", entity.getExecuteStatus());
+
+        return transferDy;
+    }
+
+    static class TransferEntity {
+
+        /**
+         * 变动类型
+         */
+        private String changeType;
+        /**
+         * 组织/岗位boid
+         */
+        private Long orgId;
+
+        /**
+         * 组织/岗位编码
+         */
+        private String orgNumber;
+
+        /**
+         * 组织/岗位名称
+         */
+        private String orgName;
+
+        /**
+         * 变动明细id
+         */
+        private Long mappingId;
+
+        /**
+         * 生效日期
+         */
+        private Date effectDate;
+
+        /**
+         * 执行状态：01：待执行
+         */
+        private String executeStatus;
+
+        /**
+         * 操作时间
+         */
+        private Date modifyDate;
+
+        public String getChangeType() {
+            return changeType;
+        }
+
+        public void setChangeType(String changeType) {
+            this.changeType = changeType;
+        }
+
+        public Long getOrgId() {
+            return orgId;
+        }
+
+        public void setOrgId(Long orgId) {
+            this.orgId = orgId;
+        }
+
+        public String getOrgNumber() {
+            return orgNumber;
+        }
+
+        public void setOrgNumber(String orgNumber) {
+            this.orgNumber = orgNumber;
+        }
+
+        public String getOrgName() {
+            return orgName;
+        }
+
+        public void setOrgName(String orgName) {
+            this.orgName = orgName;
+        }
+
+        public Long getMappingId() {
+            return mappingId;
+        }
+
+        public void setMappingId(Long mappingId) {
+            this.mappingId = mappingId;
+        }
+
+        public String getExecuteStatus() {
+            return executeStatus;
+        }
+
+        public void setExecuteStatus(String executeStatus) {
+            this.executeStatus = executeStatus;
+        }
+
+        public Date getEffectDate() {
+            return effectDate;
+        }
+
+        public void setEffectDate(Date effectDate) {
+            this.effectDate = effectDate;
+        }
+
+        public Date getModifyDate() {
+            return modifyDate;
+        }
+
+        public void setModifyDate(Date modifyDate) {
+            this.modifyDate = modifyDate;
+        }
+    }
+
+
+}

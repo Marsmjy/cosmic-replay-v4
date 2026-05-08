@@ -1,0 +1,33 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+
+/**
+ * @Author: lzf
+ * @CreateTime: 2023-09-06  15:02
+ * @Description: 编制计划保存时使用状态默认禁用
+ */
+public class CompilationPlanSaveOp extends AbstractOperationServicePlugIn {
+    private static Log logger = LogFactory.getLog(CompilationPlanSaveOp.class);
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("enable");
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        logger.info("进入编制计划保存时使用状态默认禁用");
+        super.beginOperationTransaction(e);
+        for (DynamicObject object : e.getDataEntities()) {
+            //使用状态默认禁用
+            object.set("enable","2");
+        }
+    }
+}

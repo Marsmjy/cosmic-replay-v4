@@ -1,0 +1,82 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.args.BeforeOperationArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-03-13  10:00
+ * @Description: 保存详情时, 如果分录行没有数据则删除当前编制详情
+ */
+public class SavePlanOp extends AbstractOperationServicePlugIn {
+
+    private static Log logger = LogFactory.getLog(SavePlanOp.class);
+
+    @Override
+    public void beforeExecuteOperationTransaction(BeforeOperationArgs e) {
+        super.beforeExecuteOperationTransaction(e);
+        DynamicObject[] dataEntities = e.getDataEntities();
+
+
+        List<String> yearNumberList = Arrays.stream(dataEntities).map(d -> d.getDynamicObject("${ISV_FLAG}_planyear").getString("number")).collect(Collectors.toList());
+        String selectField = Arrays.stream(dataEntities).map(d -> getadminStr(d, d.getDynamicObject("adminorg"), d.getDynamicObject("${ISV_FLAG}_planyear").getInt("${ISV_FLAG}_orghierarchy"))).collect(Collectors.joining(","));
+        QFilter qf = new QFilter("${ISV_FLAG}_planyear.number", QCP.in, yearNumberList);
+        Map<String, List<DynamicObject>> groupMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail", "id,billstatus,adminorg,${ISV_FLAG}_planyear.number," + selectField, qf.toArray()))
+                .collect(Collectors.groupingBy(o -> o.getString("${ISV_FLAG}_planyear.number")));
+
+
+
+        for (DynamicObject dataEntry : dataEntities) {
+            //末级组织
+            DynamicObject lastOrg = dataEntry.getDynamicObject("adminorg");
+            //编制计划
+            DynamicObject planYear = dataEntry.getDynamicObject("${ISV_FLAG}_planyear");
+            //组织层级
+            String hierarchy = planYear.getString("${ISV_FLAG}_orghierarchy");
+            int intHierarchy = Integer.parseInt(hierarchy);
+            String adminStr = getadminStr(dataEntry, lastOrg, intHierarchy);
+
+            //获取当前组织下的所有详情
+            List<DynamicObject> detailObjs = groupMap.get(planYear.getString("number"));
+            detailObjs = detailObjs.stream().filter(d -> !StringUtils.equals(d.getString("adminorg.number"), lastOrg.getString("number"))
+                    && StringUtils.equals(d.getString(adminStr), lastOrg.getString("number"))).collect(Collectors.toList());
+
+            logger.info("SavePlanOp下级数量=" + detailObjs.size());
+            for (DynamicObject dataObj : detailObjs) {
+                //编制状态
+                String billstatus = dataObj.getString("billstatus");
+                DynamicObject lastAdmin = dataObj.getDynamicObject("adminorg");
+                if (!"I".equals(billstatus)) {
+                    throw new KDBizException("存在未确认下级,无法确认");
+                }
+            }
+        }
+    }
+
+    private String getadminStr(DynamicObject dataEntry, DynamicObject lastOrg, int intHierarchy) {
+        String adminStr = "${ISV_FLAG}_adminorg";
+        for (int i = 1; i <= intHierarchy; i++) {
+            DynamicObject admin = dataEntry.getDynamicObject(adminStr + i);
+            if (admin.getString("number").equals(lastOrg.getString("number"))) {
+                adminStr = adminStr + i + ".number";
+                break;
+            }
+        }
+        return adminStr;
+    }
+}

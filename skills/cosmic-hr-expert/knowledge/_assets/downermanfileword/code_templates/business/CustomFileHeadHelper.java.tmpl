@@ -1,0 +1,195 @@
+package ${ISV_FLAG}.hspm;
+
+import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Lists;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.form.FormShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.metadata.entity.commonfield.ComboItem;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.common.util.HRJSONUtils;
+import kd.sdk.hr.hspm.common.utils.BusinessUtils;
+import kd.sdk.hr.hspm.common.utils.ComboItemUtil;
+import kd.sdk.hr.hspm.common.utils.PropertyHelper;
+
+import java.math.BigDecimal;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class CustomFileHeadHelper {
+
+
+    private static final Log LOGGER = LogFactory.getLog(CustomFileHeadHelper.class);
+    private static final String START_DATE = "startdate";
+    private static final String SUPER_NAME = "supername";
+    private static final String DEP_NAME = "depname";
+    private static final String ORDER_BY = "startdate desc";
+
+
+    public static Map<String, DynamicObject> queryDataFromDb(List<Map<String, Object>> headFieldList, FormShowParameter formShowParameter) {
+        Map<String, DynamicObject> data = new HashMap(headFieldList == null ? 0 : headFieldList.size());
+        if (headFieldList != null && !headFieldList.isEmpty() && formShowParameter != null) {
+            Map<String, List<Map<String, Object>>> groupFields = (Map) headFieldList.stream().filter((val) -> {
+                return val.get("source") != null;
+            }).filter((val) -> {
+                return !"supername".equals(val.get("number")) && !"depname".equals(val.get("number"));
+            }).collect(Collectors.groupingBy((val) -> {
+                return (String) val.get("source");
+            }));
+            putNumberToEntrel(groupFields);
+            Iterator var4 = groupFields.entrySet().iterator();
+
+            while (true) {
+                Map.Entry entry;
+                List selectProps;
+                QFilter qFilter;
+                do {
+                    if (!var4.hasNext()) {
+                        if (Objects.nonNull(data.get("hrpi_empentrel")) && Objects.nonNull(data.get("hrpi_person"))) {
+                            String empNumber = ((DynamicObject) data.get("hrpi_empentrel")).getString("empnumber");
+//                            LOGGER.info("queryDataFromDb#hrpi_empentrel.empnumber={}", empNumber);
+                            ((DynamicObject) data.get("hrpi_person")).set("number", empNumber);
+                        }
+
+                        return data;
+                    }
+
+                    entry = (Map.Entry) var4.next();
+                    List<Map<String, Object>> fieldList = (List<Map<String, Object>>) entry.getValue();
+                    selectProps = fieldList.stream()
+                            .map(val -> (String) val.get("number"))
+                            .collect(Collectors.toList());
+
+                    qFilter = getQFilter((String) entry.getKey(), formShowParameter);
+                } while (qFilter == null);
+
+                qFilter.and("iscurrentversion", "=", Boolean.TRUE);
+                addtionalCondition(qFilter, (String) entry.getKey());
+                HRBaseServiceHelper serviceHelper = new HRBaseServiceHelper((String) entry.getKey());
+                if (serviceHelper.generateEmptyDynamicObject().getDataEntityType().getProperties().containsKey("initstatus")) {
+                    qFilter.and("initstatus", "=", "2");
+                }
+
+                DynamicObject[] dataArray;
+                if (PropertyHelper.existProperty((String) entry.getKey(), "startdate")) {
+                    dataArray = serviceHelper.query(String.join(",", selectProps), new QFilter[]{qFilter}, "startdate desc");
+                } else {
+                    dataArray = serviceHelper.query(String.join(",", selectProps), new QFilter[]{qFilter});
+                }
+
+                if (dataArray != null && dataArray.length > 0) {
+                    data.put((String) entry.getKey(), dataArray[0]);
+                }
+            }
+        } else {
+            return data;
+        }
+    }
+
+    private static void putNumberToEntrel(Map<String, List<Map<String, Object>>> groupFields) {
+        if (!CollectionUtils.isEmpty(groupFields) && groupFields.containsKey("hrpi_person")) {
+            List<Map<String, Object>> fieldList = (List) groupFields.get("hrpi_person");
+            Optional<Map<String, Object>> numberFieldOptional = fieldList.stream().filter((field) -> {
+                return field.get("number").equals("number");
+            }).findFirst();
+            if (numberFieldOptional.isPresent()) {
+                Map<String, Object> numberField = (Map) numberFieldOptional.get();
+                Map<String, Object> newNumberField = new HashMap(numberField);
+                newNumberField.put("number", "empnumber");
+                if (groupFields.containsKey("hrpi_empentrel")) {
+                    List<Map<String, Object>> empEntrelFieldList = (List) groupFields.get("hrpi_empentrel");
+                    empEntrelFieldList.add(newNumberField);
+                } else {
+                    List<Map<String, Object>> empEntrelFieldList = Lists.newArrayListWithExpectedSize(0);
+                    empEntrelFieldList.add(newNumberField);
+                    groupFields.put("hrpi_empentrel", empEntrelFieldList);
+                }
+            }
+        }
+
+    }
+
+    private static void addtionalCondition(QFilter qFilter, String entityName) {
+        if ("hrpi_baselocation".equals(entityName)) {
+            qFilter.and("businessstatus", "=", "1");
+        }
+
+    }
+
+    private static QFilter getQFilter(String pageNumber, FormShowParameter formShowParameter) {
+        if ("hspm_ermanfile".equals(pageNumber)) {
+            Long erId = HRJSONUtils.getLongValOfCustomParam(formShowParameter.getCustomParam("erfileid"));
+            return new QFilter("id", "=", erId);
+        } else {
+            Map<String, Object> values = formShowParameter.getCustomParams();
+            QFilter filter = CustomPersonModelUtil.getQFilterForHeadArea(pageNumber, values);
+            if (filter == null) {
+                LOGGER.warn(MessageFormat.format("filter is null pageNumber:{0} values:{1}", pageNumber, JSON.toJSONString(values)));
+            }
+
+            return filter;
+        }
+    }
+
+    public static String getData(Map<String, DynamicObject> data, Map<String, Object> headField) {
+        String number = (String) headField.get("number");
+        String source = (String) headField.get("source");
+        if (data != null) {
+            DynamicObject dynamicObject = (DynamicObject) data.get(source);
+            if (dynamicObject != null && PropertyHelper.existProperty(dynamicObject, number)) {
+                Object obj = dynamicObject.get(number);
+                if (obj instanceof DynamicObject) {
+                    DynamicObject dy = (DynamicObject) obj;
+                    if (PropertyHelper.existProperty(dy, "name")) {
+                        return dy.getString("name");
+                    }
+
+                    if (PropertyHelper.existProperty(dy, "number")) {
+                        return dy.getString("number");
+                    }
+                }
+
+                if (obj instanceof DynamicObjectCollection) {
+                    String mulBaseData = CustomValueConvertHelper.handleMulBaseData((List) obj);
+                    return "-".equals(mulBaseData) ? "" : mulBaseData;
+                }
+
+                if (obj != null) {
+                    if (obj instanceof String && "hspm_ermanfile".equals(source) && "businessstatus".equals(number)) {
+                        List<ComboItem> values = ComboItemUtil.getComboItem(source, number);
+                        if (!CollectionUtils.isEmpty(values)) {
+                            Iterator var7 = values.iterator();
+
+                            while (var7.hasNext()) {
+                                ComboItem comboItem = (ComboItem) var7.next();
+                                if (obj.toString().equals(comboItem.getValue()) && comboItem.getCaption() != null) {
+                                    return obj.toString() + ":" + comboItem.getCaption().getLocaleValue();
+                                }
+                            }
+                        }
+                    } else if (obj instanceof BigDecimal) {
+                        int scale = BusinessUtils.getFieldScale("hrpi_empentrel", "servicelength");
+                        if ("servicelength".equals(number)) {
+                            return ((BigDecimal) obj).setScale(scale, 1).toString();
+                        }
+
+                        return ((BigDecimal) obj).setScale(scale, 4).toString();
+                    }
+
+                    return obj.toString();
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+
+
+}

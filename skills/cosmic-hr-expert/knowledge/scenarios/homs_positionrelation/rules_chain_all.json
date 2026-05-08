@@ -1,0 +1,41 @@
+{
+  "scene": "homs_positionrelation",
+  "formId": "homs_positionrelation",
+  "description": "rules_chain_all.json · 场景 homs_positionrelation",
+  "opKeys": {
+    "view": {
+      "opKey": "view",
+      "name": "查看岗位关系图",
+      "opType": "custom",
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.homs.formplugin.web.positionrelation.PositionRelationChartPlugin",
+          "description": "岗位关系图插件（图形渲染）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 PositionRelationChartPlugin（岗位关系图插件 · 标品场景专属 · 无 SDK 注解）",
+        "❌ 禁继承 HRDynamicFormBasePlugin（HR 动态表单基础插件 · 禁继承）",
+        "❌ 禁继承 AbstractFormPlugin（苍穹基础 FormPlugin · ISV 应继承 HRDataBaseEdit）"
+      ],
+      "validators": [],
+      "businessRules": []
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

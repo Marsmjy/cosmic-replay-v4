@@ -1,0 +1,158 @@
+# haos_othrole — 其他形态组织-角色 操作清单
+**继承链**: `hbp_bd_originaltpl` → `hbp_bd_originaldlgtpl` → `haos_othrole`  **操作数**: 39
+---
+## 操作总览
+| # | oid | 操作类型 | 操作名称 | Key | 根定义 | 插件数 | 校验器数 |
+|---|-----|---------|---------|-----|--------|--------|--------|
+| 1 | `/9AXL8BLRPMZ` | first | 第一 | first | `hbp_bd_originaltpl` | 0 | 0 |
+| 2 | `/9AXMFLGA=WK` | previous | 前一 | previous | `hbp_bd_originaltpl` | 0 | 0 |
+| 3 | `/9AXNHU=9=4S` | next | 后一 | next | `hbp_bd_originaltpl` | 0 | 0 |
+| 4 | `/9AXONQK5XN9` | last | 最后 | last | `hbp_bd_originaltpl` | 0 | 0 |
+| 5 | `/X9FTE5ABBM6` | save | 保存 | save | `hbp_bd_originaltpl` | 0 | 0 |
+| 6 | `36XNX2J0IYJ/` | importdata_hr | 导入数据 | importdata_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 7 | `36XNYXBDN8US` | show_import_record_hr | 查看导入记录 | show_import_record_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 8 | `36XO+0YA=NQ1` | export_from_list_hr | 按列表导出 | export_from_list_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 9 | `36XO/49Y36PX` | export_from_impttpl_hr | 按导入模板导出 | export_from_impttpl_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 10 | `36XO07P0TYXD` | export_from_expttpl_hr | 按导出模板导出 | export_from_expttpl_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 11 | `36XO16LFA2/E` | show_export_record_hr | 查看导出记录 | show_export_record_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 12 | `b5994054000016ac` | new | 新增 | new | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 13 | `b5994054000017ac` | modify | 修改 | modify | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 14 | `b5994054000018ac` | view | 查看 | view | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 15 | `b599405400001aac` | save | 保存 | save | `hbp_bd_originaldlgtpl` | 1 | 4 |
+| 16 | `b599405400001bac` | delete | 删除 | delete | `hbp_bd_originaldlgtpl` | 1 | 1 |
+| 17 | `b5994054000021ac` | close | 关闭 | close | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 18 | `c54e30e7000010ac` | returndata | 返回数据 | returndata | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 19 | `f381c03f000033ac` | copy | 复制 | copy | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 20 | `f381c03f000034ac` | refresh | 刷新 | refresh | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 21 | `c8d21820000086ac` | option | 选项设置 | option | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 22 | `QQKYA+LT1/4` | saveandnew | 保存并新增 | saveandnew | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 23 | `S=VTOGXYQBY` | first | 第一 | first | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 24 | `S=VUN3Y4R6Q` | previous | 前一 | previous | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 25 | `S=VVFX/B38V` | next | 后一 | next | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 26 | `S=VW0K6WD7R` | last | 最后 | last | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 27 | `VZIV=BOH9KA` | importdata | 引入数据 | importdata | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 28 | `VZIWYQT9HE3` | importdetails | 引入详情 | importdetails | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 29 | `VZIX=AIFOYM` | importtemplatelist | 引入模板列表 | importtemplatelist | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 30 | `10MEU32VZDCP` | exportlist | 引出数据 | exportlist | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 31 | `13NUAIBA368/` | exportlist | 引出-按列表字段引出 | exportlistbyselectfields | `hbp_bd_originaldlgtpl` | 0 | 0 |
+| 32 | `5CS=GRIG/FEV` | donothing | 添加已有角色 | addhasrole | `haos_othrole` | 0 | 0 |
+| 33 | `5EN1TJ5EOQ7H` | save | 变更时新增 | changenew | `haos_othrole` | 1 | 2 |
+| 34 | `5EXOGS1464MO` | save | 移除 | remove | `haos_othrole` | 1 | 1 |
+| 35 | `5F5KAD5RFROV` | save | 修改当前角色 | changecurrent | `haos_othrole` | 1 | 2 |
+| 36 | `5FEYVLZG0Y7=` | donothing | 保存 | changesave | `haos_othrole` | 0 | 0 |
+| 37 | `5FF8+6OH3NCJ` | save | 变更导入 | changeimport | `haos_othrole` | 1 | 1 |
+| 38 | `5FIT8ZM5R/IV` | save | 变更组织 | changeonlyorg | `haos_othrole` | 1 | 1 |
+| 39 | `5GHXTK4KURDS` | save | 导入保存 | importsave | `haos_othrole` | 1 | 3 |
+---
+## 操作详情（仅展示有插件或校验器的操作）
+---
+### 15. 保存（save / Key: save / oid: b599405400001aac）
+> 根定义: `hbp_bd_originaldlgtpl`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleSaveOp` | 保存插件 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | MustInputValidation | `6096194600001fac` | 必录校验 | `hbp_bd_originaldlgtpl` |
+| 2 | ConditionValidation | `1a51dc0a0000a1ac` | 合法性校验 | `hbp_bd_originaldlgtpl` |
+| 3 | DynamicValidation | `5D0D28MCW7HW` | 同组织下角色编码重复校验 | `haos_othrole` |
+| 4 | DynamicValidation | `5ET0U17RCRHF` | 角色库编码重复校验 | `haos_othrole` |
+
+---
+### 16. 删除（delete / Key: delete / oid: b599405400001bac）
+> 根定义: `hbp_bd_originaldlgtpl`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `hbp_bd_originaldlgtpl` | `kd.hr.hbp.opplugin.web.HRDataBaseOp` |  |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | ConditionValidation | `f789ca66000000ac` | 合法性校验 | `hbp_bd_originaldlgtpl` |
+
+---
+### 33. 变更时新增（save / Key: changenew / oid: 5EN1TJ5EOQ7H）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleChangeNewOp` | 角色变更时重新新增角色 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | DynamicValidation | `5EN4X2M29W9F` | 变更后组织下角色编码是否重复校验 | `haos_othrole` |
+| 2 | DynamicValidation | `5ET1+0TC=A=3` | 角色库编码重复校验 | `haos_othrole` |
+
+---
+### 34. 移除（save / Key: remove / oid: 5EXOGS1464MO）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleRemoveOp` | 角色移除插件 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | DynamicValidation | `5EXOE8ECSUH8` | 校验角色状态 | `haos_othrole` |
+
+---
+### 35. 修改当前角色（save / Key: changecurrent / oid: 5F5KAD5RFROV）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleChangeCurrentOp` | 修改当前角色插件 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | DynamicValidation | `5F5K7Q=6OKUF` | 变更后组织下角色编码是否重复校验 | `haos_othrole` |
+| 2 | DynamicValidation | `5F5K92WG0YWX` | 角色库编码重复校验 | `haos_othrole` |
+
+---
+### 37. 变更导入（save / Key: changeimport / oid: 5FF8+6OH3NCJ）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleImportChangeOp` | 变更导入插件 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | DynamicValidation | `5FF7Z5P6ZF/J` | 校验角色是否在其他组织使用 | `haos_othrole` |
+
+---
+### 38. 变更组织（save / Key: changeonlyorg / oid: 5FIT8ZM5R/IV）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleChangeNewOp` | 变更时新增角色 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | DynamicValidation | `5FIT4PJTAQ1A` | 变更后组织下角色编码是否重复校验 | `haos_othrole` |
+
+---
+### 39. 导入保存（save / Key: importsave / oid: 5GHXTK4KURDS）
+> 根定义: `haos_othrole`
+**插件清单**：
+| # | RowKey | 来源层级 | 插件类全路径 | 说明 |
+|---|--------|---------|------------|------|
+| 1 | — | `haos_othrole` | `kd.hr.haos.opplugin.web.otherstruct.othrole.OthRoleSaveOp` | 保存插件 |
+
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | MustInputValidation | `5GHY+3W7DMX1` | 字段值合规性校验 | `haos_othrole` |
+| 2 | DynamicValidation | `5GHY120/8YN0` | 同组织下角色编码重复校验 | `haos_othrole` |
+| 3 | DynamicValidation | `5GHY2=BK/N9=` | 角色库编码重复校验 | `haos_othrole` |
+

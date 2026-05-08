@@ -1,0 +1,1156 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.entity.EntityMetadataCache;
+import ${ISV_FLAG}.odc.homs.common.DateTimeCommon;
+import kd.bos.algo.DataSet;
+import kd.bos.algo.GroupbyDataSet;
+import kd.bos.algo.Row;
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.sdk.hr.haos.business.helper.HAOSServiceHelper;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-01-29  15:02
+ * @Description: 同步在岗人员
+ */
+public class SycnOnPersonOp extends AbstractOperationServicePlugIn {
+
+    private static Log logger = LogFactory.getLog(SycnOnPersonOp.class);
+
+    /**
+     * 任职经历
+     */
+    private final static String HRPI_EMPPOSORGREL = "hrpi_empposorgrel";
+
+    /**
+     * 职业信息
+     */
+    private final static String EMPENTREL = "hrpi_empentrel";
+
+    /**
+     * 个人职级
+     */
+    private final static String PERSON = "hrpi_empjobrel";
+
+
+    /**
+     * 岗位标签数组
+     */
+    private final static String[] JOBLABEL_ARR = new String[]{"1", "2", "3", "4"};
+
+    /**
+     * 任职经历获取字段
+     */
+    private final static String EMP_FILED = "id as empId,employee.id as personId," +
+            "job.id as ${ISV_FLAG}_stdposition," +
+            "job.${ISV_FLAG}_post_aisle.id as ${ISV_FLAG}_post_aisle," +
+            "job.${ISV_FLAG}_jobproperty.id as ${ISV_FLAG}_jobproperty," +
+            "job.${ISV_FLAG}_joblabel.fbasedataid as jobLabelId," +
+//            "position.${ISV_FLAG}_external_dispatch as ${ISV_FLAG}_dispatch," +
+            "position.workplace.id as ${ISV_FLAG}_workplace";
+
+    /**
+     * 工作地点查询字段
+     */
+    private final static String LOCATION_FILED = "${ISV_FLAG}_employee.person.id as personId,${ISV_FLAG}_coresubsidyentity.${ISV_FLAG}_subsilocation.id as subsilocation";
+
+    /**
+     * 编制详情
+     */
+    private static final String PLAN_DETAIL = "${ISV_FLAG}_planyear_detail";
+
+    /**
+     * 查询字段
+     */
+    private static final String FILED = "id,billstatus,${ISV_FLAG}_synctime," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_groupid," +
+            "${ISV_FLAG}_entry.seq," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_laborreltype," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_stdposition," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_personrank," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_post_aisle," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_jobproperty," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_dispatch," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_workplace," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_actual," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_add," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_reduce," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_add_str," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_reduce_str," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_plan," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_control," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg7," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg8," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg9," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg13," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg7," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg8," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg9," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_mulperson," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_average," +
+            "${ISV_FLAG}_planyear.number," +
+            "adminorg.number";
+
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_planyear");
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg1");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg2");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg3");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg4");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg5");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg6");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg1");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg2");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg3");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg4");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg5");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg6");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_stdposition");
+        e.getFieldKeys().add("${ISV_FLAG}_personrank");
+        e.getFieldKeys().add("${ISV_FLAG}_laborreltype");
+        e.getFieldKeys().add("${ISV_FLAG}_post_aisle");
+        e.getFieldKeys().add("${ISV_FLAG}_jobproperty");
+        e.getFieldKeys().add("${ISV_FLAG}_label1");
+        e.getFieldKeys().add("${ISV_FLAG}_label2");
+        e.getFieldKeys().add("${ISV_FLAG}_label3");
+        e.getFieldKeys().add("${ISV_FLAG}_label4");
+        e.getFieldKeys().add("${ISV_FLAG}_dispatch");
+        e.getFieldKeys().add("${ISV_FLAG}_workplace");
+        e.getFieldKeys().add("${ISV_FLAG}_actual");
+        e.getFieldKeys().add("${ISV_FLAG}_groupid");
+        e.getFieldKeys().add("${ISV_FLAG}_mulperson");
+        e.getFieldKeys().add("${ISV_FLAG}_synctime");
+        e.getFieldKeys().add("${ISV_FLAG}_add_str");
+        e.getFieldKeys().add("${ISV_FLAG}_reduce_str");
+
+    }
+
+/*    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        super.beginOperationTransaction(e);
+        DynamicObject[] dataEntities = e.getDataEntities();
+        String algoKey = this.getClass().getName();
+        //同步日期
+        String dgdlDate = this.getOption().getVariableValue("${ISV_FLAG}_date");
+        Date syndate = DateTimeCommon.ConvertToDate(dgdlDate);
+        //查询岗位标签
+        QFilter joblabelFilter = new QFilter("enable", QCP.equals, "1");
+        DataSet joblabelDataSet = QueryServiceHelper.queryDataSet(algoKey, "${ISV_FLAG}_hbss_joblabel", "id,number", joblabelFilter.toArray(), "");
+
+
+        ArrayList<String> planYearNumberList = new ArrayList<>();
+        ArrayList<String> adminOrgNumberList = new ArrayList<>();
+
+        for (DynamicObject d : dataEntities) {
+            DynamicObject planYear = d.getDynamicObject("${ISV_FLAG}_planyear");
+            planYearNumberList.add(planYear.getString("number"));
+            DynamicObject adminOrg = d.getDynamicObject("adminorg");
+            adminOrgNumberList.add(adminOrg.getString("number"));
+        }
+
+        QFilter detailQFilter = new QFilter("${ISV_FLAG}_planyear.number", QCP.in, planYearNumberList)
+                .and("adminorg.number", QCP.in, adminOrgNumberList);
+        Map<String, DynamicObject> planDetailMap = Arrays.stream(BusinessDataServiceHelper.load(PLAN_DETAIL, FILED, detailQFilter.toArray()))
+                .collect(Collectors.toMap(o -> o.getString("${ISV_FLAG}_planyear.number") + o.getString("adminorg.number"), o -> o));
+
+
+        QFilter qFilter = new QFilter("${ISV_FLAG}_planyear.id", QCP.in,
+                Arrays.stream(dataEntities).map(d -> d.getDynamicObject("${ISV_FLAG}_planyear").getPkValue()).collect(Collectors.toList()));
+        Map<Object, List<DynamicObject>> planYearMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail",
+                        "id,${ISV_FLAG}_planyear.id,${ISV_FLAG}_adminorg1,${ISV_FLAG}_adminorg2,${ISV_FLAG}_adminorg3,${ISV_FLAG}_adminorg4,${ISV_FLAG}_adminorg5,${ISV_FLAG}_adminorg6",
+                        qFilter.toArray()))
+                .collect(Collectors.groupingBy(o -> o.get("${ISV_FLAG}_planyear.id")));
+
+
+        ArrayList<DynamicObject> saveList = new ArrayList<>();
+        for (DynamicObject dataEntity : dataEntities) {
+            //年度管理计划
+            DynamicObject planYear = dataEntity.getDynamicObject("${ISV_FLAG}_planyear");
+
+            List<String> jumpFieldList = setJUMPFieldList(planYear);
+            //获取组织层级
+            DynamicObject dgdlAdminorg1 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg1");
+            DynamicObject dgdlAdminorg2 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg2");
+            DynamicObject dgdlAdminorg3 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg3");
+            DynamicObject dgdlAdminorg4 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg4");
+            DynamicObject dgdlAdminorg5 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg5");
+            DynamicObject dgdlAdminorg6 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg6");
+            //开始时间
+            Date dgdlStartmonth = planYear.getDate("${ISV_FLAG}_startmonth");
+            int startMonth = Integer.parseInt(new SimpleDateFormat("MM").format(dgdlStartmonth));
+            //分组字段
+            List<String> groupList = new ArrayList<>();
+            //末端组织
+            DynamicObject lastOrg = dataEntity.getDynamicObject("adminorg");
+            //判断当时是否是最末级组织
+            boolean isLast = this.isLastOrg(dataEntity, planYearMap);
+            List<Long> adminList = new ArrayList<>();
+            if (isLast) {
+                List<Long> allList = this.getAllOrg(lastOrg.getLong("id"));
+                adminList.addAll(allList);
+            } else {
+                adminList.add(lastOrg.getLong("id"));
+            }
+            //获取任职经历查询条件
+            QFilter empFiler = new QFilter("iscurrentdata", QCP.equals, "1")
+                    .and("isdeleted", QCP.equals, "0")
+                    .and("isprimary", QCP.equals, "1")
+                    .and("adminorg.id", QCP.in, adminList)
+                    .and("enddate", QCP.large_equals, syndate).and("startdate", QCP.less_equals, syndate);
+
+            logger.info("同步在岗人员获取任职经历信息条件：" + empFiler);
+            //获取任职经历信息
+            DataSet empData = QueryServiceHelper.queryDataSet(algoKey, HRPI_EMPPOSORGREL, EMP_FILED, empFiler.toArray(), "");
+            //任职经历关联岗位标签
+            empData = empData.leftJoin(joblabelDataSet).on("jobLabelId", "id").select("empId", "personId", "${ISV_FLAG}_stdposition", "${ISV_FLAG}_post_aisle", "${ISV_FLAG}_jobproperty", "${ISV_FLAG}_workplace", "number jobLableNumber").finish();
+            logger.info("PlanPersonFormPlugin任职经历获取长度：" + empData.copy().count("empId", false));
+            //标签维度
+            String labeldimension = planYear.getString("${ISV_FLAG}_labeldimension");
+            //动态添加标签是否有值字段
+            String[] labelArr = labeldimension.split(",");
+            //最终查询字段
+            List<String> fieldList = new ArrayList<>();
+
+            for (String s : labelArr) {
+                if (Arrays.asList(JOBLABEL_ARR).contains(s)) {
+                    String labelNumber = "0" + s;
+                    empData = empData.addField("case when jobLableNumber='" + labelNumber + "' then 1 else 0 end", "${ISV_FLAG}_label" + s);
+                    groupList.add("${ISV_FLAG}_label" + s);
+                    fieldList.add("${ISV_FLAG}_label" + s);
+                }
+            }
+
+            //任职经历分组过滤条件
+            GroupbyDataSet groupbyDataSet = empData.groupBy(new String[]{"empId", "personId", "${ISV_FLAG}_stdposition", "${ISV_FLAG}_post_aisle", "${ISV_FLAG}_jobproperty", "${ISV_FLAG}_workplace"});
+            for (String s : labelArr) {
+                if (Arrays.asList(JOBLABEL_ARR).contains(s)) {
+                    groupbyDataSet = groupbyDataSet.max("${ISV_FLAG}_label" + s);
+                }
+            }
+            empData = groupbyDataSet.finish();
+
+            //职级职等
+            ArrayList<Long> personList = new ArrayList<>();
+            for (Row row : empData.copy()) {
+                personList.add(row.getLong("personId"));
+            }
+            QFilter personQfiler = new QFilter("employee.id", QCP.in, personList);
+            logger.info("PlanPersonFormPlugin个人职级filter=" + personQfiler);
+            DataSet personData = QueryServiceHelper.queryDataSet(algoKey, PERSON, "id,employee.id as person,joblevel.id as ${ISV_FLAG}_personrank", personQfiler.toArray(), "");
+            //添加查询字段
+            fieldList.add("empId");
+            fieldList.add("personId");
+            fieldList.add("${ISV_FLAG}_stdposition");
+            fieldList.add("${ISV_FLAG}_post_aisle");
+            fieldList.add("${ISV_FLAG}_jobproperty");
+//            fieldList.add("${ISV_FLAG}_dispatch");
+            fieldList.add("${ISV_FLAG}_workplace");
+            fieldList.add("${ISV_FLAG}_personrank");
+            empData = empData.leftJoin(personData).on("personId", "person").select(fieldList.toArray(new String[0])).finish();
+
+            //用工关系类型
+            String useworktype = planYear.getString("${ISV_FLAG}_useworktype");
+            if (StringUtils.isNotEmpty(useworktype)) {
+                String[] workType = useworktype.split(",");
+                QFilter empentrelQfiler = new QFilter("iscurrentdata", QCP.equals, "1")
+                        .and("enddate", QCP.large_equals, syndate).and("startdate", QCP.less_equals, syndate)
+                        .and("laborreltype.number", QCP.in, workType);
+                logger.info("PlanPersonFormPlugin职业信息filter=" + empentrelQfiler);
+                //获取职业信息
+                DataSet empentrelData = QueryServiceHelper.queryDataSet(algoKey, EMPENTREL, "id,employee.id as person,laborreltype.id as ${ISV_FLAG}_laborreltype", empentrelQfiler.toArray(), "");
+                //添加查询字段
+                fieldList.add("${ISV_FLAG}_laborreltype");
+                empData = empData.join(empentrelData).on("personId", "person").select(fieldList.toArray(new String[0])).finish();
+                //用工类型分组
+                groupList.add("${ISV_FLAG}_laborreltype");
+            }
+            logger.info("PlanPersonFormPlugin分组之后的长度：" + empData.copy().count("personId", false));
+            if (StringUtils.isNotEmpty(labeldimension)) {
+                //标签选择是否外派，分组条件增加是否外派
+//                if (labeldimension.contains("5")) {
+//                    groupList.add("${ISV_FLAG}_dispatch");
+//                }
+                //标签选择工作地点，分组条件增加工作地点
+//                if (labeldimension.contains("6")) {
+//                    groupList.add("${ISV_FLAG}_workplace");
+//
+//                    //查询岗位标签
+//                    QFilter filter = new QFilter("iscurrentversion", QCP.equals, "1");
+//                    filter.and("${ISV_FLAG}_coresubsidyentity.${ISV_FLAG}_startdate", QCP.less_equals, syndate).and("${ISV_FLAG}_coresubsidyentity.${ISV_FLAG}_enddate", QCP.large_equals, syndate);
+//                    DataSet locationDataSet = QueryServiceHelper.queryDataSet(this.getClass().getName(), "${ISV_FLAG}_hiscoresubsidies", LOCATION_FILED, filter.toArray(), null);
+//                    fieldList.add("subsilocation");
+//                    groupList.add("subsilocation");
+//                    //任职经历关联岗位标签
+//                    empData = empData.leftJoin(locationDataSet).on("personId", "personId").select(fieldList.toArray(new String[0])).finish();
+//                }
+            }
+            //分组字段标准岗位
+            groupList.add("${ISV_FLAG}_stdposition");
+            //分组字段岗位通道
+            groupList.add("${ISV_FLAG}_post_aisle");
+            //分组字段岗位属性
+            groupList.add("${ISV_FLAG}_jobproperty");
+            //分组字段职级属性
+            groupList.add("${ISV_FLAG}_personrank");
+
+            //计划类型
+            String planType = planYear.getString("${ISV_FLAG}_plantype");
+
+            //获取自身数据
+            DynamicObject thisDetail = planDetailMap.get(planYear.getString("number") + lastOrg.getString("number"));
+
+            if (Objects.nonNull(thisDetail)) {
+                //封装分录数据用于比对更新
+                DynamicObjectCollection dgdlEntryCol = thisDetail.getDynamicObjectCollection("${ISV_FLAG}_entry");
+                Map<String, DynamicObject> entryMap = new HashMap<>();
+                for (DynamicObject entryObj : dgdlEntryCol) {
+                    String dgdlGroupid = entryObj.getString("${ISV_FLAG}_groupid");
+                    entryMap.put(dgdlGroupid, entryObj);
+                }
+                //先清空在赋值,删除当前组织的数据
+                Iterator<DynamicObject> iterator = dgdlEntryCol.iterator();
+                while (iterator.hasNext()) {
+                    DynamicObject next = iterator.next();
+                    String entryLastName = next.getDynamicObject("${ISV_FLAG}_detail_adminorg").getString("number");
+                    if (entryLastName.equals(lastOrg.getString("number"))) {
+                        iterator.remove();
+                    }
+                }
+                //存储人员信息
+                Map<Long, String> personMsg = new HashMap<>();
+                DataSet copyEmpData = empData.copy();
+                while (copyEmpData.hasNext()) {
+                    Row row = copyEmpData.next();
+                    //分组唯一值
+                    StringBuilder groupId = new StringBuilder();
+                    for (String s : groupList) {
+                        groupId.append(row.getString(s)).append("-");
+                    }
+                    //拼接组织,避免组织不同其他信息相同的情况
+                    groupId.append(lastOrg.getPkValue());
+                    Long personId = row.getLong("personId");
+                    personMsg.put(personId, String.valueOf(groupId));
+                }
+                logger.info("SycnOnPersonOpMap存储的信息=" + personMsg);
+                //分组后结果集
+                DataSet groupDataSet = empData.groupBy(groupList.toArray(new String[0])).count().finish();
+                List<String> fieldNames = Arrays.asList(groupDataSet.getRowMeta().getFieldNames());
+                logger.info("SycnOnPersonOp即将用来分组的信息=" + groupList);
+
+
+                List<Long> joblevelhrList = new ArrayList<>();
+                for (Row row : groupDataSet.copy()) {
+                    joblevelhrList.add(row.getLong("${ISV_FLAG}_personrank"));
+                }
+                joblevelhrList = joblevelhrList.stream().filter(j -> Objects.nonNull(j) && j != 0).collect(Collectors.toList());
+                Map<Long, DynamicObject> joblevelhrMap = Arrays.stream(BusinessDataServiceHelper.load(joblevelhrList.toArray(),
+                                EntityMetadataCache.getDataEntityType("hbjm_joblevelhr")))
+                        .collect(Collectors.toMap(o -> o.getLong("id"), o -> o));
+
+                //分录赋值
+                int index = 0;
+                while (groupDataSet.hasNext()) {
+                    Row row = groupDataSet.next();
+                    //分组唯一值
+                    StringBuilder groupId = new StringBuilder();
+                    for (String s : groupList) {
+                        groupId.append(row.getString(s)).append("-");
+                    }
+                    groupId.append(lastOrg.getPkValue());
+                    logger.info("SycnOnPersonOp即将存储的groupId=" + groupId);
+                    DynamicObject addNew = new DynamicObject(dgdlEntryCol.getDynamicObjectType());
+                    //组织
+                    addNew.set("${ISV_FLAG}_detail_adminorg1", dgdlAdminorg1);
+                    addNew.set("${ISV_FLAG}_detail_adminorg2", dgdlAdminorg2);
+                    addNew.set("${ISV_FLAG}_detail_adminorg3", dgdlAdminorg3);
+                    addNew.set("${ISV_FLAG}_detail_adminorg4", dgdlAdminorg4);
+                    addNew.set("${ISV_FLAG}_detail_adminorg5", dgdlAdminorg5);
+                    addNew.set("${ISV_FLAG}_detail_adminorg6", dgdlAdminorg6);
+                    //末级组织
+                    addNew.set("${ISV_FLAG}_detail_adminorg", lastOrg);
+                    //用工类型
+                    if (fieldNames.contains("${ISV_FLAG}_laborreltype")) {
+                        DynamicObject hbssLaborreltypeObj = BusinessDataServiceHelper.newDynamicObject("hbss_laborreltype");
+                        hbssLaborreltypeObj.set("id", row.getLong("${ISV_FLAG}_laborreltype"));
+                        addNew.set("${ISV_FLAG}_laborreltype", hbssLaborreltypeObj);
+                    }
+                    //个人职级(HR主实体)
+                    Long dgdlPersonrank = row.getLong("${ISV_FLAG}_personrank");
+                    if (Objects.nonNull(dgdlPersonrank) && dgdlPersonrank != 0) {
+                        DynamicObject jobLevelObj = joblevelhrMap.get(dgdlPersonrank);
+                        addNew.set("${ISV_FLAG}_personrank", jobLevelObj);
+                    }
+
+                    //标准岗位
+                    DynamicObject hbjmJobhrObj = BusinessDataServiceHelper.newDynamicObject("hbjm_jobhr");
+                    hbjmJobhrObj.set("id", row.getLong("${ISV_FLAG}_stdposition"));
+                    addNew.set("${ISV_FLAG}_stdposition", hbjmJobhrObj);
+                    //岗位通道
+                    DynamicObject aisleObj = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_post_aisle");
+                    aisleObj.set("id", row.getLong("${ISV_FLAG}_post_aisle"));
+                    addNew.set("${ISV_FLAG}_post_aisle", aisleObj);
+                    //岗位属性
+                    DynamicObject jobpropertyObj = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_hbss_jobproperty");
+                    jobpropertyObj.set("id", row.getLong("${ISV_FLAG}_jobproperty"));
+                    addNew.set("${ISV_FLAG}_jobproperty", jobpropertyObj);
+                    //岗位标签
+                    if (fieldNames.contains("${ISV_FLAG}_label1")) {
+                        //大雁
+                        addNew.set("${ISV_FLAG}_label1", row.getString("${ISV_FLAG}_label1"));
+                    }
+                    if (fieldNames.contains("${ISV_FLAG}_label2")) {
+                        //新四化
+                        addNew.set("${ISV_FLAG}_label2", row.getString("${ISV_FLAG}_label2"));
+                    }
+                    if (fieldNames.contains("${ISV_FLAG}_label3")) {
+                        //国际化
+                        addNew.set("${ISV_FLAG}_label3", row.getString("${ISV_FLAG}_label3"));
+                    }
+                    if (fieldNames.contains("${ISV_FLAG}_label4")) {
+                        //数字化
+                        addNew.set("${ISV_FLAG}_label4", row.getString("${ISV_FLAG}_label4"));
+                    }
+//                    if (fieldNames.contains("${ISV_FLAG}_dispatch")) {
+//                        logger.info("SycnOnPersonOp:${ISV_FLAG}_dispatch=" + row.getString("${ISV_FLAG}_dispatch"));
+//                        //对外派驻
+//                        addNew.set("${ISV_FLAG}_dispatch", row.getString("${ISV_FLAG}_dispatch"));
+//                    }
+//                    if (fieldNames.contains("subsilocation")) {
+//                        //工作地点
+//                        DynamicObject workplaceObj = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_subsidy_location");
+//                        workplaceObj.set("id", row.getLong("subsilocation"));
+//                        addNew.set("${ISV_FLAG}_workplace", workplaceObj);
+//                    }
+                    //实际人数
+                    addNew.set("${ISV_FLAG}_actual", row.get("count"));
+                    //计划年编制
+                    addNew.set("${ISV_FLAG}_plan", row.get("count"));
+                    //人员明细
+                    DynamicObjectCollection personDetail = addNew.getDynamicObjectCollection("${ISV_FLAG}_mulperson");
+                    logger.info("SycnOnPersonOp清除人员明细");
+                    personDetail.clear();
+                    personMsg.keySet().forEach(
+                            key -> {
+                                if (groupId.toString().equals(personMsg.get(key))) {
+                                    DynamicObject newCurrency = new DynamicObject(personDetail.getDynamicObjectType());
+                                    newCurrency.set("fbasedataid", key);
+                                    personDetail.add(newCurrency);
+                                }
+                            }
+                    );
+                    addNew.set("${ISV_FLAG}_mulperson", personDetail);
+                    //分组唯一ID
+                    addNew.set("${ISV_FLAG}_groupid", groupId);
+                    //原始数据(用于更新编制人数)
+                    DynamicObject oldData = entryMap.get(groupId.toString());
+                    if (Objects.nonNull(oldData)) {
+                        oldData.get("${ISV_FLAG}_add");
+                        //计划新增
+                        addNew.set("${ISV_FLAG}_add", oldData.get("${ISV_FLAG}_add"));
+                        //计划减少
+                        addNew.set("${ISV_FLAG}_reduce", oldData.get("${ISV_FLAG}_reduce"));
+                        //计划年编制
+                        addNew.set("${ISV_FLAG}_plan", oldData.get("${ISV_FLAG}_plan"));
+                        //控编人数
+                        addNew.set("${ISV_FLAG}_control", oldData.get("${ISV_FLAG}_control"));
+                        //人数计算
+                        setCount(addNew, oldData,jumpFieldList);
+                    } else {
+                        //月编制人数默认赋值
+                        setAvg(addNew, (Integer) row.get("count"),jumpFieldList);
+                    }
+                    dgdlEntryCol.add(index, addNew);
+                }
+                for (int i = 0; i < dgdlEntryCol.size(); i++) {
+                    DynamicObject addNew = dgdlEntryCol.get(i);
+                    addNew.set("seq", i);
+                }
+                if (!personMsg.isEmpty()) {
+                    //人员同步时间
+                    thisDetail.set("${ISV_FLAG}_synctime", new Date());
+                    saveList.add(thisDetail);
+                }
+            }
+        }
+
+        if (!saveList.isEmpty()) {
+            OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_planyear_detail", saveList.toArray(new DynamicObject[0]), OperateOption.create());
+        }
+    }*/
+
+
+
+    //修改拆分方法
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        super.beginOperationTransaction(e);
+
+        // 准备基础数据
+        PreparedData preparedData = prepareData(e);
+
+        // 处理数据实体
+        processAndSaveData(e, preparedData);
+    }
+
+    /**
+     * 准备基础数据
+     */
+    private PreparedData prepareData(BeginOperationTransactionArgs e) {
+        DynamicObject[] dataEntities = e.getDataEntities();
+        String algoKey = this.getClass().getName();
+        // 同步日期
+        String dgdlDate = this.getOption().getVariableValue("${ISV_FLAG}_date");
+        Date syndate = DateTimeCommon.ConvertToDate(dgdlDate);
+        // 查询岗位标签
+        QFilter joblabelFilter = new QFilter("enable", QCP.equals, "1");
+        DataSet joblabelDataSet = QueryServiceHelper.queryDataSet(algoKey, "${ISV_FLAG}_hbss_joblabel", "id,number", joblabelFilter.toArray(), "");
+
+        ArrayList<String> planYearNumberList = new ArrayList<>();
+        ArrayList<String> adminOrgNumberList = new ArrayList<>();
+
+        for (DynamicObject d : dataEntities) {
+            DynamicObject planYear = d.getDynamicObject("${ISV_FLAG}_planyear");
+            planYearNumberList.add(planYear.getString("number"));
+            DynamicObject adminOrg = d.getDynamicObject("adminorg");
+            adminOrgNumberList.add(adminOrg.getString("number"));
+        }
+
+        QFilter detailQFilter = new QFilter("${ISV_FLAG}_planyear.number", QCP.in, planYearNumberList)
+                .and("adminorg.number", QCP.in, adminOrgNumberList);
+        Map<String, DynamicObject> planDetailMap = Arrays.stream(BusinessDataServiceHelper.load(PLAN_DETAIL, FILED, detailQFilter.toArray()))
+                .collect(Collectors.toMap(o -> o.getString("${ISV_FLAG}_planyear.number") + o.getString("adminorg.number"), o -> o));
+
+        QFilter qFilter = new QFilter("${ISV_FLAG}_planyear.id", QCP.in,
+                Arrays.stream(dataEntities).map(d -> d.getDynamicObject("${ISV_FLAG}_planyear").getPkValue()).collect(Collectors.toList()));
+        Map<Object, List<DynamicObject>> planYearMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail",
+                        "id,${ISV_FLAG}_planyear.id,${ISV_FLAG}_adminorg1,${ISV_FLAG}_adminorg2,${ISV_FLAG}_adminorg3,${ISV_FLAG}_adminorg4,${ISV_FLAG}_adminorg5,${ISV_FLAG}_adminorg6",
+                        qFilter.toArray()))
+                .collect(Collectors.groupingBy(o -> o.get("${ISV_FLAG}_planyear.id")));
+
+        return new PreparedData(dataEntities, algoKey, syndate, joblabelDataSet, planDetailMap, planYearMap);
+    }
+
+    /**
+     * 处理数据实体并保存
+     */
+    private void processAndSaveData(BeginOperationTransactionArgs e, PreparedData preparedData) {
+        ArrayList<DynamicObject> saveList = new ArrayList<>();
+
+        for (DynamicObject dataEntity : preparedData.dataEntities) {
+            // 处理单个数据实体
+            DynamicObject updatedDetail = processSingleDataEntity(dataEntity, preparedData);
+            if (updatedDetail != null) {
+                saveList.add(updatedDetail);
+            }
+        }
+
+        // 批量保存
+        if (!saveList.isEmpty()) {
+            OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_planyear_detail", saveList.toArray(new DynamicObject[0]), OperateOption.create());
+        }
+    }
+
+    /**
+     * 处理单个数据实体
+     */
+    private DynamicObject processSingleDataEntity(DynamicObject dataEntity, PreparedData preparedData) {
+        // 年度管理计划
+        DynamicObject planYear = dataEntity.getDynamicObject("${ISV_FLAG}_planyear");
+
+        List<String> jumpFieldList = setJUMPFieldList(planYear);
+        // 获取组织层级
+        DynamicObject dgdlAdminorg1 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg1");
+        DynamicObject dgdlAdminorg2 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg2");
+        DynamicObject dgdlAdminorg3 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg3");
+        DynamicObject dgdlAdminorg4 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg4");
+        DynamicObject dgdlAdminorg5 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg5");
+        DynamicObject dgdlAdminorg6 = dataEntity.getDynamicObject("${ISV_FLAG}_adminorg6");
+        // 末端组织
+        DynamicObject lastOrg = dataEntity.getDynamicObject("adminorg");
+        // 判断当时是否是最末级组织
+        boolean isLast = this.isLastOrg(dataEntity, preparedData.planYearMap);
+        List<Long> adminList = new ArrayList<>();
+        if (isLast) {
+            List<Long> allList = this.getAllOrg(lastOrg.getLong("id"));
+            adminList.addAll(allList);
+        } else {
+            adminList.add(lastOrg.getLong("id"));
+        }
+
+        // 准备员工数据
+        EmployeeData employeeData = prepareEmployeeData(planYear, adminList, preparedData);
+
+        // 获取自身数据
+        DynamicObject thisDetail = preparedData.planDetailMap.get(planYear.getString("number") + lastOrg.getString("number"));
+
+        if (Objects.nonNull(thisDetail)) {
+            // 更新计划详情
+            return updatePlanDetail(thisDetail, dataEntity, planYear, employeeData,
+                    lastOrg, dgdlAdminorg1, dgdlAdminorg2, dgdlAdminorg3, dgdlAdminorg4, dgdlAdminorg5, dgdlAdminorg6,
+                    jumpFieldList, preparedData.syndate);
+        }
+
+        return null;
+    }
+
+    /**
+     * 准备员工数据
+     */
+    private EmployeeData prepareEmployeeData(DynamicObject planYear, List<Long> adminList, PreparedData preparedData) {
+        // 获取任职经历查询条件
+        QFilter empFiler = new QFilter("iscurrentdata", QCP.equals, "1")
+                .and("isprimary", QCP.equals, "1")
+                .and("adminorg.id", QCP.in, adminList)
+                .and("enddate", QCP.large_equals, preparedData.syndate).and("startdate", QCP.less_equals, preparedData.syndate);
+
+        logger.info("同步在岗人员获取任职经历信息条件：" + empFiler);
+        // 获取任职经历信息
+        DataSet empData = QueryServiceHelper.queryDataSet(preparedData.algoKey, HRPI_EMPPOSORGREL, EMP_FILED, empFiler.toArray(), "");
+        // 任职经历关联岗位标签
+        empData = empData.leftJoin(preparedData.joblabelDataSet).on("jobLabelId", "id").select("empId", "personId", "${ISV_FLAG}_stdposition", "${ISV_FLAG}_post_aisle", "${ISV_FLAG}_jobproperty", "${ISV_FLAG}_workplace", "number jobLableNumber").finish();
+        logger.info("PlanPersonFormPlugin任职经历获取长度：" + empData.copy().count("empId", false));
+        // 标签维度
+        String labeldimension = planYear.getString("${ISV_FLAG}_labeldimension");
+        // 动态添加标签是否有值字段
+        String[] labelArr = labeldimension.split(",");
+        // 最终查询字段
+        List<String> fieldList = new ArrayList<>();
+
+        for (String s : labelArr) {
+            if (Arrays.asList(JOBLABEL_ARR).contains(s)) {
+                String labelNumber = "0" + s;
+                empData = empData.addField("case when jobLableNumber='" + labelNumber + "' then 1 else 0 end", "${ISV_FLAG}_label" + s);
+                fieldList.add("${ISV_FLAG}_label" + s);
+            }
+        }
+
+        // 任职经历分组过滤条件
+        GroupbyDataSet groupbyDataSet = empData.groupBy(new String[]{"empId", "personId", "${ISV_FLAG}_stdposition", "${ISV_FLAG}_post_aisle", "${ISV_FLAG}_jobproperty", "${ISV_FLAG}_workplace"});
+        for (String s : labelArr) {
+            if (Arrays.asList(JOBLABEL_ARR).contains(s)) {
+                groupbyDataSet = groupbyDataSet.max("${ISV_FLAG}_label" + s);
+            }
+        }
+        empData = groupbyDataSet.finish();
+
+        // 职级职等
+        ArrayList<Long> personList = new ArrayList<>();
+        for (Row row : empData.copy()) {
+            personList.add(row.getLong("personId"));
+        }
+        QFilter personQfiler = new QFilter("employee.id", QCP.in, personList);
+        logger.info("PlanPersonFormPlugin个人职级filter=" + personQfiler);
+        DataSet personData = QueryServiceHelper.queryDataSet(preparedData.algoKey, PERSON, "id,employee.id as person,joblevel.id as ${ISV_FLAG}_personrank", personQfiler.toArray(), "");
+        // 添加查询字段
+        fieldList.add("empId");
+        fieldList.add("personId");
+        fieldList.add("${ISV_FLAG}_stdposition");
+        fieldList.add("${ISV_FLAG}_post_aisle");
+        fieldList.add("${ISV_FLAG}_jobproperty");
+        fieldList.add("${ISV_FLAG}_workplace");
+        fieldList.add("${ISV_FLAG}_personrank");
+        empData = empData.leftJoin(personData).on("personId", "person").select(fieldList.toArray(new String[0])).finish();
+
+        // 用工关系类型
+        String useworktype = planYear.getString("${ISV_FLAG}_useworktype");
+        if (StringUtils.isNotEmpty(useworktype)) {
+            String[] workType = useworktype.split(",");
+            QFilter empentrelQfiler = new QFilter("iscurrentdata", QCP.equals, "1")
+                    .and("enddate", QCP.large_equals, preparedData.syndate).and("startdate", QCP.less_equals, preparedData.syndate)
+                    .and("laborreltype.number", QCP.in, workType);
+            logger.info("PlanPersonFormPlugin职业信息filter=" + empentrelQfiler);
+            // 获取职业信息
+            DataSet empentrelData = QueryServiceHelper.queryDataSet(preparedData.algoKey, EMPENTREL, "id,employee.id as person,laborreltype.id as ${ISV_FLAG}_laborreltype", empentrelQfiler.toArray(), "");
+            // 添加查询字段
+            fieldList.add("${ISV_FLAG}_laborreltype");
+            empData = empData.join(empentrelData).on("personId", "person").select(fieldList.toArray(new String[0])).finish();
+        }
+
+        // 分组字段
+        List<String> groupList = new ArrayList<>();
+        if (StringUtils.isNotEmpty(labeldimension)) {
+            // 动态添加标签分组
+            for (String s : labelArr) {
+                if (Arrays.asList(JOBLABEL_ARR).contains(s)) {
+                    groupList.add("${ISV_FLAG}_label" + s);
+                }
+            }
+        }
+        // 分组字段标准岗位
+        groupList.add("${ISV_FLAG}_stdposition");
+        // 分组字段岗位通道
+        groupList.add("${ISV_FLAG}_post_aisle");
+        // 分组字段岗位属性
+        groupList.add("${ISV_FLAG}_jobproperty");
+        // 分组字段职级属性
+        groupList.add("${ISV_FLAG}_personrank");
+
+        // 用工类型分组
+        if (StringUtils.isNotEmpty(useworktype)) {
+            groupList.add("${ISV_FLAG}_laborreltype");
+        }
+
+        logger.info("PlanPersonFormPlugin分组之后的长度：" + empData.copy().count("personId", false));
+
+        return new EmployeeData(empData, groupList, fieldList);
+    }
+
+    /**
+     * 更新计划详情
+     */
+    private DynamicObject updatePlanDetail(DynamicObject thisDetail, DynamicObject dataEntity, DynamicObject planYear,
+                                           EmployeeData employeeData, DynamicObject lastOrg, DynamicObject dgdlAdminorg1, DynamicObject dgdlAdminorg2,
+                                           DynamicObject dgdlAdminorg3, DynamicObject dgdlAdminorg4, DynamicObject dgdlAdminorg5, DynamicObject dgdlAdminorg6,
+                                           List<String> jumpFieldList, Date syndate) {
+
+        // 封装分录数据用于比对更新
+        DynamicObjectCollection dgdlEntryCol = thisDetail.getDynamicObjectCollection("${ISV_FLAG}_entry");
+        Map<String, DynamicObject> entryMap = new HashMap<>();
+        for (DynamicObject entryObj : dgdlEntryCol) {
+            String dgdlGroupid = entryObj.getString("${ISV_FLAG}_groupid");
+            entryMap.put(dgdlGroupid, entryObj);
+        }
+        // 先清空在赋值,删除当前组织的数据
+        Iterator<DynamicObject> iterator = dgdlEntryCol.iterator();
+        while (iterator.hasNext()) {
+            DynamicObject next = iterator.next();
+            String entryLastName = next.getDynamicObject("${ISV_FLAG}_detail_adminorg").getString("number");
+            if (entryLastName.equals(lastOrg.getString("number"))) {
+                iterator.remove();
+            }
+        }
+        // 存储人员信息
+        Map<Long, String> personMsg = new HashMap<>();
+        DataSet copyEmpData = employeeData.empData.copy();
+        while (copyEmpData.hasNext()) {
+            Row row = copyEmpData.next();
+            // 分组唯一值
+            StringBuilder groupId = new StringBuilder();
+            for (String s : employeeData.groupList) {
+                groupId.append(row.getString(s)).append("-");
+            }
+            // 拼接组织,避免组织不同其他信息相同的情况
+            groupId.append(lastOrg.getPkValue());
+            Long personId = row.getLong("personId");
+            personMsg.put(personId, String.valueOf(groupId));
+        }
+        logger.info("SycnOnPersonOpMap存储的信息=" + personMsg);
+        // 分组后结果集
+        DataSet groupDataSet = employeeData.empData.groupBy(employeeData.groupList.toArray(new String[0])).count().finish();
+        List<String> fieldNames = Arrays.asList(groupDataSet.getRowMeta().getFieldNames());
+        logger.info("SycnOnPersonOp即将用来分组的信息=" + employeeData.groupList);
+
+        List<Long> joblevelhrList = new ArrayList<>();
+        for (Row row : groupDataSet.copy()) {
+            joblevelhrList.add(row.getLong("${ISV_FLAG}_personrank"));
+        }
+        joblevelhrList = joblevelhrList.stream().filter(j -> Objects.nonNull(j) && j != 0).collect(Collectors.toList());
+        Map<Long, DynamicObject> joblevelhrMap = Arrays.stream(BusinessDataServiceHelper.load(joblevelhrList.toArray(),
+                        EntityMetadataCache.getDataEntityType("hbjm_joblevelhr")))
+                .collect(Collectors.toMap(o -> o.getLong("id"), o -> o));
+
+        // 分录赋值
+        int index = 0;
+        while (groupDataSet.hasNext()) {
+            Row row = groupDataSet.next();
+            // 分组唯一值
+            StringBuilder groupId = new StringBuilder();
+            for (String s : employeeData.groupList) {
+                groupId.append(row.getString(s)).append("-");
+            }
+            groupId.append(lastOrg.getPkValue());
+            logger.info("SycnOnPersonOp即将存储的groupId=" + groupId);
+            DynamicObject addNew = new DynamicObject(dgdlEntryCol.getDynamicObjectType());
+            // 组织
+            addNew.set("${ISV_FLAG}_detail_adminorg1", dgdlAdminorg1);
+            addNew.set("${ISV_FLAG}_detail_adminorg2", dgdlAdminorg2);
+            addNew.set("${ISV_FLAG}_detail_adminorg3", dgdlAdminorg3);
+            addNew.set("${ISV_FLAG}_detail_adminorg4", dgdlAdminorg4);
+            addNew.set("${ISV_FLAG}_detail_adminorg5", dgdlAdminorg5);
+            addNew.set("${ISV_FLAG}_detail_adminorg6", dgdlAdminorg6);
+            // 末级组织
+            addNew.set("${ISV_FLAG}_detail_adminorg", lastOrg);
+            // 用工类型
+            if (fieldNames.contains("${ISV_FLAG}_laborreltype")) {
+                DynamicObject hbssLaborreltypeObj = BusinessDataServiceHelper.newDynamicObject("hbss_laborreltype");
+                hbssLaborreltypeObj.set("id", row.getLong("${ISV_FLAG}_laborreltype"));
+                addNew.set("${ISV_FLAG}_laborreltype", hbssLaborreltypeObj);
+            }
+            // 个人职级(HR主实体)
+            Long dgdlPersonrank = row.getLong("${ISV_FLAG}_personrank");
+            if (Objects.nonNull(dgdlPersonrank) && dgdlPersonrank != 0) {
+                DynamicObject jobLevelObj = joblevelhrMap.get(dgdlPersonrank);
+                addNew.set("${ISV_FLAG}_personrank", jobLevelObj);
+            }
+
+            // 标准岗位
+            DynamicObject hbjmJobhrObj = BusinessDataServiceHelper.newDynamicObject("hbjm_jobhr");
+            hbjmJobhrObj.set("id", row.getLong("${ISV_FLAG}_stdposition"));
+            addNew.set("${ISV_FLAG}_stdposition", hbjmJobhrObj);
+            // 岗位通道
+            DynamicObject aisleObj = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_post_aisle");
+            aisleObj.set("id", row.getLong("${ISV_FLAG}_post_aisle"));
+            addNew.set("${ISV_FLAG}_post_aisle", aisleObj);
+            // 岗位属性
+            DynamicObject jobpropertyObj = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_hbss_jobproperty");
+            jobpropertyObj.set("id", row.getLong("${ISV_FLAG}_jobproperty"));
+            addNew.set("${ISV_FLAG}_jobproperty", jobpropertyObj);
+            // 岗位标签
+//            if (fieldNames.contains("${ISV_FLAG}_label1")) {
+                // 大雁
+//                addNew.set("${ISV_FLAG}_label1", row.getString("${ISV_FLAG}_label1"));
+//            }
+            if (fieldNames.contains("${ISV_FLAG}_label2")) {
+                // 新四化
+                addNew.set("${ISV_FLAG}_label2", row.getString("${ISV_FLAG}_label2"));
+            }
+            if (fieldNames.contains("${ISV_FLAG}_label3")) {
+                // 国际化
+                addNew.set("${ISV_FLAG}_label3", row.getString("${ISV_FLAG}_label3"));
+            }
+            if (fieldNames.contains("${ISV_FLAG}_label4")) {
+                // 数字化
+                addNew.set("${ISV_FLAG}_label4", row.getString("${ISV_FLAG}_label4"));
+            }
+            // 实际人数
+            addNew.set("${ISV_FLAG}_actual", row.get("count"));
+            // 计划年编制
+            addNew.set("${ISV_FLAG}_plan", row.get("count"));
+            // 人员明细
+            DynamicObjectCollection personDetail = addNew.getDynamicObjectCollection("${ISV_FLAG}_mulperson");
+            logger.info("SycnOnPersonOp清除人员明细");
+            personDetail.clear();
+            personMsg.keySet().forEach(
+                    key -> {
+                        if (groupId.toString().equals(personMsg.get(key))) {
+                            DynamicObject newCurrency = new DynamicObject(personDetail.getDynamicObjectType());
+                            newCurrency.set("fbasedataid", key);
+                            personDetail.add(newCurrency);
+                        }
+                    }
+            );
+            addNew.set("${ISV_FLAG}_mulperson", personDetail);
+            // 分组唯一ID
+            addNew.set("${ISV_FLAG}_groupid", groupId);
+            // 原始数据(用于更新编制人数)
+            DynamicObject oldData = entryMap.get(groupId.toString());
+            if (Objects.nonNull(oldData)) {
+                oldData.get("${ISV_FLAG}_add");
+                // 计划新增
+                addNew.set("${ISV_FLAG}_add", oldData.get("${ISV_FLAG}_add"));
+                // 计划减少
+                addNew.set("${ISV_FLAG}_reduce", oldData.get("${ISV_FLAG}_reduce"));
+                // 计划年编制
+                addNew.set("${ISV_FLAG}_plan", oldData.get("${ISV_FLAG}_plan"));
+                // 控编人数
+                addNew.set("${ISV_FLAG}_control", oldData.get("${ISV_FLAG}_control"));
+                // 人数计算
+                setCount(addNew, oldData, jumpFieldList);
+            } else {
+                // 月编制人数默认赋值
+                setAvg(addNew, (Integer) row.get("count"), jumpFieldList);
+            }
+            dgdlEntryCol.add(index, addNew);
+        }
+        for (int i = 0; i < dgdlEntryCol.size(); i++) {
+            DynamicObject addNew = dgdlEntryCol.get(i);
+            addNew.set("seq", i);
+        }
+
+        if (!personMsg.isEmpty()) {
+            // 人员同步时间
+            thisDetail.set("${ISV_FLAG}_synctime", new Date());
+            return thisDetail;
+        }
+
+        return null;
+    }
+
+    /**
+     * 准备数据容器类
+     */
+    private static class PreparedData {
+        DynamicObject[] dataEntities;
+        String algoKey;
+        Date syndate;
+        DataSet joblabelDataSet;
+        Map<String, DynamicObject> planDetailMap;
+        Map<Object, List<DynamicObject>> planYearMap;
+
+        public PreparedData(DynamicObject[] dataEntities, String algoKey, Date syndate,
+                            DataSet joblabelDataSet, Map<String, DynamicObject> planDetailMap,
+                            Map<Object, List<DynamicObject>> planYearMap) {
+            this.dataEntities = dataEntities;
+            this.algoKey = algoKey;
+            this.syndate = syndate;
+            this.joblabelDataSet = joblabelDataSet;
+            this.planDetailMap = planDetailMap;
+            this.planYearMap = planYearMap;
+        }
+    }
+
+    /**
+     * 员工数据容器类
+     */
+    private static class EmployeeData {
+        DataSet empData;
+        List<String> groupList;
+        List<String> fieldList;
+
+        public EmployeeData(DataSet empData, List<String> groupList, List<String> fieldList) {
+            this.empData = empData;
+            this.groupList = groupList;
+            this.fieldList = fieldList;
+        }
+    }
+
+
+
+
+    private   List<String>  setJUMPFieldList(DynamicObject dgdlPlanObj) {
+        List<String> fieldlist=new ArrayList<>();
+
+        //隐藏明细页签分录月份字段
+        if (dgdlPlanObj == null) {
+            return fieldlist;
+        }
+        //所属年度
+
+        Date dgdlYear = dgdlPlanObj.getDate("${ISV_FLAG}_year");
+        int year = DateTimeCommon.getYear(dgdlYear);
+        //分录字段重命名
+        //开始月份
+        Date dgdlStartmonth = dgdlPlanObj.getDate("${ISV_FLAG}_startmonth");
+        LocalDate date1 = dgdlStartmonth.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        //结束月份
+        Date dgdlEndmonth = dgdlPlanObj.getDate("${ISV_FLAG}_endmonth");
+        LocalDate date2 = dgdlEndmonth.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        long monthCount = DateTimeCommon.reduceMon(dgdlStartmonth, dgdlEndmonth);
+
+        // 罗列年份和月份
+        List<YearMonth> yearMonths = new ArrayList<>();
+        YearMonth startYearMonth = YearMonth.of(date1.getYear(), date1.getMonth());
+        YearMonth endYearMonth = YearMonth.of(date2.getYear(), date2.getMonth());
+
+        YearMonth current = startYearMonth;
+        while (!current.isAfter(endYearMonth)) {
+            yearMonths.add(current);
+            current = current.plusMonths(1);
+        }
+
+        // 打印结果
+        for (YearMonth ym : yearMonths) {
+            int monthValue = ym.getMonthValue();
+            int ymyear = ym.getYear();
+            if(ymyear==year){
+                String fieldKey1 = "${ISV_FLAG}_chg" + monthValue;
+                String fieldKey2 = "${ISV_FLAG}_avg" + monthValue;
+                fieldlist.add(fieldKey1);
+                fieldlist.add(fieldKey2);
+            }else {
+                String fieldKey1 = "${ISV_FLAG}_prechg" + monthValue;
+                String fieldKey2 = "${ISV_FLAG}_preavg" + monthValue;
+                fieldlist.add(fieldKey1);
+                fieldlist.add(fieldKey2);
+            }
+        }
+
+
+
+        return fieldlist;
+    }
+
+
+    /**
+     * 获取当前组织以及下级组织
+     *
+     * @param orgId
+     * @return
+     */
+    private List<Long> getAllOrg(Long orgId) {
+        List<Long> orgIdList = new ArrayList<>();
+        orgIdList.add(orgId);
+        List<Map<String, Object>> allSubOrg = HAOSServiceHelper.querySubOrgToList(orgIdList, new Date(), null);
+        return allSubOrg.stream().map(t -> (Long) t.get("orgId")).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 判断当前是否是最末级组织
+     *
+     * @param dataEntity
+     * @param planYearMap
+     * @return
+     */
+    private boolean isLastOrg(DynamicObject dataEntity, Map<Object, List<DynamicObject>> planYearMap) {
+        //编制计划
+        DynamicObject planyear = dataEntity.getDynamicObject("${ISV_FLAG}_planyear");
+        //末端组织
+        DynamicObject adminorg = dataEntity.getDynamicObject("adminorg");
+        String lastName = adminorg.getString("number");
+        logger.info("DeletePlanDetailValidator末端组织编码=" + lastName);
+        //组织层级
+        String hierarchy = planyear.getString("${ISV_FLAG}_orghierarchy");
+        int intHierarchy = Integer.parseInt(hierarchy);
+        logger.info("DeletePlanDetailValidator编制计划层级=" + intHierarchy);
+        String adminStr = "${ISV_FLAG}_adminorg";
+        List<String> adminList = new ArrayList<>();
+        for (int i = 1; i <= intHierarchy; i++) {
+            DynamicObject admin = dataEntity.getDynamicObject(adminStr + i);
+            if (Objects.nonNull(admin)) {
+                adminList.add(adminStr + i);
+                if (admin.getString("number").equals(lastName)) {
+                    break;
+                }
+            }
+        }
+        logger.info("DeletePlanDetailValidator要匹配的集合=" + adminList);
+        if(adminList.size()==0){
+            return false;
+        }
+        //上级行政组织
+        String selectName = adminList.get(adminList.size() - 1);
+        logger.info("DeletePlanDetailValidator要匹配的行政组织=" + selectName);
+
+        List<DynamicObject> load = planYearMap.get(planyear.getPkValue());
+        load = load.stream().filter(o -> StringUtils.equals(o.getString(selectName + ".number"), lastName)).collect(Collectors.toList());
+
+        logger.info("DeletePlanDetailValidator查询长度=" + load.size());
+        if (load.size() > 1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+
+    private void setCount(DynamicObject addNew, DynamicObject thisObj, List<String> jumpFieldList) {
+        logger.info("setCount");
+        //        //计划-去年
+//        addNew.set("${ISV_FLAG}_prechg10", thisObj.get("${ISV_FLAG}_prechg10"));
+//        addNew.set("${ISV_FLAG}_prechg11", thisObj.get("${ISV_FLAG}_prechg11"));
+//        addNew.set("${ISV_FLAG}_prechg12", thisObj.get("${ISV_FLAG}_prechg12"));
+//        //计划-今年
+//        addNew.set("${ISV_FLAG}_chg1", thisObj.get("${ISV_FLAG}_chg1"));
+//        addNew.set("${ISV_FLAG}_chg2", thisObj.get("${ISV_FLAG}_chg2"));
+//        addNew.set("${ISV_FLAG}_chg3", thisObj.get("${ISV_FLAG}_chg3"));
+//        addNew.set("${ISV_FLAG}_chg4", thisObj.get("${ISV_FLAG}_chg4"));
+//        addNew.set("${ISV_FLAG}_chg5", thisObj.get("${ISV_FLAG}_chg5"));
+//        addNew.set("${ISV_FLAG}_chg6", thisObj.get("${ISV_FLAG}_chg6"));
+//        addNew.set("${ISV_FLAG}_chg7", thisObj.get("${ISV_FLAG}_chg7"));
+//        addNew.set("${ISV_FLAG}_chg8", thisObj.get("${ISV_FLAG}_chg8"));
+//        addNew.set("${ISV_FLAG}_chg9", thisObj.get("${ISV_FLAG}_chg9"));
+//        addNew.set("${ISV_FLAG}_chg10", thisObj.get("${ISV_FLAG}_chg10"));
+//        addNew.set("${ISV_FLAG}_chg11", thisObj.get("${ISV_FLAG}_chg11"));
+//        addNew.set("${ISV_FLAG}_chg12", thisObj.get("${ISV_FLAG}_chg11"));
+//        //实际-去年
+//        addNew.set("${ISV_FLAG}_preavg10", thisObj.get("${ISV_FLAG}_preavg10"));
+//        addNew.set("${ISV_FLAG}_preavg11", thisObj.get("${ISV_FLAG}_preavg11"));
+//        addNew.set("${ISV_FLAG}_preavg12", thisObj.get("${ISV_FLAG}_preavg12"));
+//        //实际-今年
+//        addNew.set("${ISV_FLAG}_avg1", thisObj.get("${ISV_FLAG}_avg1"));
+//        addNew.set("${ISV_FLAG}_avg2", thisObj.get("${ISV_FLAG}_avg2"));
+//        addNew.set("${ISV_FLAG}_avg3", thisObj.get("${ISV_FLAG}_avg3"));
+//        addNew.set("${ISV_FLAG}_avg4", thisObj.get("${ISV_FLAG}_avg4"));
+//        addNew.set("${ISV_FLAG}_avg5", thisObj.get("${ISV_FLAG}_avg5"));
+//        addNew.set("${ISV_FLAG}_avg6", thisObj.get("${ISV_FLAG}_avg6"));
+//        addNew.set("${ISV_FLAG}_avg7", thisObj.get("${ISV_FLAG}_avg7"));
+//        addNew.set("${ISV_FLAG}_avg8", thisObj.get("${ISV_FLAG}_avg8"));
+//        addNew.set("${ISV_FLAG}_avg9", thisObj.get("${ISV_FLAG}_avg9"));
+//        addNew.set("${ISV_FLAG}_avg10", thisObj.get("${ISV_FLAG}_avg10"));
+//        addNew.set("${ISV_FLAG}_avg11", thisObj.get("${ISV_FLAG}_avg11"));
+//        addNew.set("${ISV_FLAG}_avg12", thisObj.get("${ISV_FLAG}_avg12"));
+        //平均
+        BigDecimal avg=BigDecimal.ZERO;
+        int i=0;
+        for (String field : jumpFieldList) {
+            addNew.set(field, thisObj.get(field));
+            if(field.contains("avg")){
+                avg= avg.add(thisObj.getBigDecimal(field)==null? BigDecimal.ZERO:thisObj.getBigDecimal(field));
+                i++;
+            }
+        }
+        avg=avg.divide(new BigDecimal(i));
+        addNew.set("${ISV_FLAG}_average",avg);
+
+
+    }
+
+    private void setAvg(DynamicObject addNew, int count,List<String> jumpFieldList) {
+        logger.info("setAvg");
+
+        for (String field : jumpFieldList) {
+
+            if (field.contains("avg")) {
+                addNew.set(field, count);
+            }
+        }
+        addNew.set("${ISV_FLAG}_average",count);
+    }
+
+
+}

@@ -1,0 +1,98 @@
+package ${ISV_FLAG}.odc.homs.task;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.exception.KDException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.schedule.executor.AbstractTask;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.util.StringUtils;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author 姚帅
+ * @Date 2024/03/07 13:40
+ * @Version 1.0
+ * 月度计划统计实际人数
+ */
+public class MonthReportExportTask extends AbstractTask {
+
+    private static final Log logger = LogFactory.getLog(MonthReportExportTask.class);
+
+    @Override
+    public void execute(RequestContext requestContext, Map<String, Object> map) throws KDException {
+        feedbackProgress(10, "开始执行任务", null);
+        //执行逻辑
+        dataEncapsulation(map);
+    }
+
+
+    /**
+     * 查询数据进行封装
+     */
+    private void dataEncapsulation(Map<String, Object> map) {
+        Long planId = (Long) map.get("planId");
+        feedbackProgress(20, "开始执行任务", null);
+        //获取管理明细
+        QFilter detailQFilter = new QFilter("${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id", QCP.equals, planId)
+                .and("${ISV_FLAG}_bz_actual", QCP.large_than, 0);
+        DynamicObject[] bzObjs = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz",
+                "id,${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6,adminorg," +
+                        "${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_bz_actual,${ISV_FLAG}_layer", detailQFilter.toArray());
+        logger.info("MonthReportExportTask获取有数据的明细的长度" + bzObjs.length);
+        //获取需要计算的组织信息
+        Set<Long> findOrgList = new HashSet<>();
+        for (DynamicObject bzObj : bzObjs) {
+            //当前组织层级
+            int layer = Integer.parseInt(bzObj.getString("${ISV_FLAG}_layer"));
+            for (int i = 1; i <= layer; i++) {
+                String orgLayer = "${ISV_FLAG}_bz_adminorg" + i;
+                //获取组织
+                DynamicObject org = bzObj.getDynamicObject(orgLayer);
+                if (Objects.nonNull(org)) {
+                    findOrgList.add((Long) org.getPkValue());
+                }
+            }
+        }
+        logger.info("MonthReportExportTask获取组织的长度" + findOrgList.size());
+        QFilter orgQFilter = new QFilter("adminorg.id", QCP.in, findOrgList).and("${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id", QCP.equals, planId);
+        DynamicObject[] orgObjs = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz",
+                "id,${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6,adminorg," +
+                        "${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_bz_actual,${ISV_FLAG}_layer", orgQFilter.toArray());
+        logger.info("MonthReportExportTask过滤之后的长度" + orgObjs.length);
+        for (DynamicObject orgObj : orgObjs) {
+            //当前组织
+            DynamicObject lastOrg = orgObj.getDynamicObject("adminorg");
+            //岗位属性
+            String property = StringUtils.isEmpty(orgObj.getString("${ISV_FLAG}_bz_jobproperty")) ? "" : orgObj.getString("${ISV_FLAG}_bz_jobproperty");
+            //用工关系类型
+            String type = StringUtils.isEmpty(orgObj.getString("${ISV_FLAG}_bz_laborreltype")) ? "" : orgObj.getString("${ISV_FLAG}_bz_laborreltype");
+            //当前组织层级
+            String layer = orgObj.getString("${ISV_FLAG}_layer");
+            String orgLayer = "${ISV_FLAG}_bz_adminorg" + layer;
+            List<DynamicObject> allCollect = Arrays.stream(bzObjs).filter(obj -> Objects.nonNull(obj.getDynamicObject(orgLayer)) &&
+                    obj.getDynamicObject(orgLayer).getPkValue().equals(lastOrg.getPkValue())).collect(Collectors.toList());
+            if (!allCollect.isEmpty()) {
+                int allActual = allCollect.stream()
+                        .filter(obj -> property.equals(obj.getString("${ISV_FLAG}_bz_jobproperty")))
+                        .filter(obj -> type.equals(obj.getString("${ISV_FLAG}_bz_laborreltype")))
+                        .mapToInt(obj -> obj.getInt("${ISV_FLAG}_bz_actual")).sum();
+                orgObj.set("${ISV_FLAG}_bz_actual", allActual);
+            }
+        }
+        SaveServiceHelper.update(orgObjs);
+
+        QFilter bzQFilter = new QFilter("${ISV_FLAG}_planmonth.id", QCP.equals, planId);
+        //编制信息管理
+        DynamicObject bzObj = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_planmonth_bill", "id,${ISV_FLAG}_is_syn", bzQFilter.toArray());
+        bzObj.set("${ISV_FLAG}_is_syn", "01");
+        SaveServiceHelper.update(new DynamicObject[]{bzObj});
+    }
+}

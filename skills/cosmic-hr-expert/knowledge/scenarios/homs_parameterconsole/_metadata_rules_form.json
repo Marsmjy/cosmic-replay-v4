@@ -1,0 +1,205 @@
+{
+  "formId": "homs_parameterconsole",
+  "formName": null,
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "W445GRN8N60",
+  "bizappId": "217WYC/L9U7E",
+  "metaIdTechnical": "2DNHF68ZJ8DX",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "homs_parameterconsole",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/homs_parameterconsole.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·参数控制台 list)"
+  },
+  "entities": [
+    {
+      "name": "homs_parameterconsole",
+      "type": "MainEntity",
+      "title": "参数配置",
+      "physicalTable": null,
+      "fieldCount": 6
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "orgfield": {
+      "fieldId": "d2GjTus5sw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "homs_parameterconsole",
+      "title": "组织",
+      "physicalColumn": "—",
+      "_fieldApId": "d2GjTus5sw"
+    },
+    "subsystem": {
+      "fieldId": "SjCouEuOf0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_parameterconsole",
+      "title": "子系统",
+      "physicalColumn": "—",
+      "_fieldApId": "SjCouEuOf0"
+    },
+    "viewtype": {
+      "fieldId": "2wQqdxNe4O",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_parameterconsole",
+      "title": "职能类型",
+      "physicalColumn": "—",
+      "_fieldApId": "2wQqdxNe4O"
+    },
+    "acctbook": {
+      "fieldId": "UbM05KOBY7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_parameterconsole",
+      "title": "账簿",
+      "physicalColumn": "—",
+      "_fieldApId": "UbM05KOBY7"
+    },
+    "acctingbook": {
+      "fieldId": "67O0ZM7i80",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_parameterconsole",
+      "title": "会计账簿",
+      "physicalColumn": "—",
+      "_fieldApId": "67O0ZM7i80"
+    },
+    "orgfieldlist": {
+      "fieldId": "vCgbZAmo56",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "homs_parameterconsole",
+      "title": "组织",
+      "physicalColumn": "—",
+      "_fieldApId": "vCgbZAmo56"
+    }
+  },
+  "requiredFields": {
+    "homs_parameterconsole": [
+      "orgfieldlist"
+    ]
+  },
+  "invisibleFields": [],
+  "sceneCategory": "derived_view",
+  "jsPlugins": [
+    {
+      "ClassName": "2DNHF68ZJ8DX_tLDzyuCs",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.param.ParameterConsolePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "许可插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.staff.form.OrgParameterconsoleEdit",
+      "Description": "kd.hr.haos.formplugin.web.staff.form.OrgParameterconsoleEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbpm.formplugin.web.position.PositionTplParameterConcoleEdit",
+      "Description": "岗位模板参数配置保存插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 6,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 4
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 6,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 4
+      }
+    }
+  ]
+}

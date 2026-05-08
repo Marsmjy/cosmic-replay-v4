@@ -1,0 +1,26 @@
+{
+  "scene": "core_hr_pfs_chgrecord",
+  "title": "变动记录流水持久化（chgaction 实际执行处）",
+  "cloud": "core_hr",
+  "description": "**chgaction 真正的执行入口**：单据审批通过 → 生成 hpfs_chgrecord 流水 → 标品 ChgRecordEffectOp.beginOperationTransaction 调 IPersonGenericService.deleteBatch + saveBatch 实际改人员底表 → processPersonFlow 写流入流出 → processChargePerson 写部门负责人 → syncEmployeeLicenseCert 同步许可证。**datastatus 状态机**：0=待生效 / 1=已生效 / 2=未来生效定时（effecttime>now 且 future-effect 配置）。异常时 PerChgStatusEnum.SMALLEST_FAIL 写回单据 + 触发 aftereffect op。5 关键 OP：ChgRecordEffectOp / DiscardOp / AfterEffectOp / ChgRollbackOp / ChgRecordEditPlugin。",
+  "entities": [
+    "hpfs_chgrecord",
+    "hpfs_chgrecordentry",
+    "hpfs_changerecord"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · hpfs 是所有人事单据的元配置层 · 改这里影响所有下游业务云",
+  "pluginPattern": "HRBaseDataTplEdit / HRDataBaseOp · ISV 走 hpfs_chgaction + filemapmanager 配置 · 不直接继承 hpfs OP 类",
+  "_decompile_anchors": [
+    "kd.hr.hpfs.opplugin.op.basedata.ChgRecordEffectOp",
+    "kd.hr.hpfs.opplugin.op.basedata.ChgRecordDiscardOp",
+    "kd.hr.hpfs.opplugin.op.chgrecord.ChgRecordAfterEffectOp",
+    "kd.hr.hpfs.opplugin.op.cross.ChgRollbackOp",
+    "kd.hr.hpfs.formplugin.chgrecord.ChgRecordEditPlugin"
+  ],
+  "_meta": {
+    "note": "hpfs 第二波 · 3 个 form · 业务核心 · 详见 docs/CHGACTION_DEEP_TRACE.md",
+    "createdAt": "2026-04-29"
+  }
+}

@@ -1,0 +1,201 @@
+asset:
+  id: sit_socialsecurity
+  name: 社保代缴单
+  english_name: Social Security Payment
+  version: v1.0
+  source_dcs_project: sit-socialsecurity
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/swcgroup/sit-socialsecurity.git
+  source_branch: feature-standard-new
+  source_commit: 1965de2
+  source_doc: null
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: payroll
+  app: sit
+  scenario: 社保管理：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 15 个 java 类（4125 LOC）+ 4 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 社保管理
+  - 五险一金
+  - 社保信息维护
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SinsurfileHelper.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SITEntityConstants.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityFundCommon.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityFundFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityFundListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPaybillListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPayClickNumberPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPayFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPayOperationPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPayValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/SocialSecurityPersonFilterFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/OperateResultCheck.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/PersonOrgUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/StringHelper.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/sit/TypeConvertUtil.java
+  datamodel_files:
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hcsi_sibase_ext.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hcsi_sibase_ext.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_payment_service_type.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_payment_service_type.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_social_security.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_social_security.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_social_security_fund.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_social_security_fund.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - payroll_sit_socialsecurity
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 SinsurfileHelper 行为
+  location: SinsurfileHelper.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SinsurfileHelper 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 SITEntityConstants 行为
+  location: SITEntityConstants.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SITEntityConstants 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 SocialSecurityFundCommon 行为
+  location: SocialSecurityFundCommon.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityFundCommon 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 SocialSecurityFundFormPlugin 行为
+  location: SocialSecurityFundFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityFundFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 SocialSecurityFundListPlugin 行为
+  location: SocialSecurityFundListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityFundListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-06
+  name: 改 SocialSecurityPaybillListPlugin 行为
+  location: SocialSecurityPaybillListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPaybillListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-07
+  name: 改 SocialSecurityPayClickNumberPlugin 行为
+  location: SocialSecurityPayClickNumberPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPayClickNumberPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-08
+  name: 改 SocialSecurityPayFormPlugin 行为
+  location: SocialSecurityPayFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPayFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-09
+  name: 改 SocialSecurityPayOperationPlugin 行为
+  location: SocialSecurityPayOperationPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPayOperationPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-10
+  name: 改 SocialSecurityPayValidator 行为
+  location: SocialSecurityPayValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPayValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-11
+  name: 改 SocialSecurityPersonFilterFormPlugin 行为
+  location: SocialSecurityPersonFilterFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SocialSecurityPersonFilterFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-12
+  name: 改 OperateResultCheck 行为
+  location: OperateResultCheck.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: OperateResultCheck 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-13
+  name: 改 PersonOrgUtil 行为
+  location: PersonOrgUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PersonOrgUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-14
+  name: 改 StringHelper 行为
+  location: StringHelper.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: StringHelper 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-15
+  name: 改 TypeConvertUtil 行为
+  location: TypeConvertUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: TypeConvertUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: swc/sit
+  multi_module: false
+  primary_module: sit_socialsecurity
+  biz_app_modules:
+  - module_id: sit_socialsecurity
+    datamodel_app_dir: tdkw_sit_socialsecurity/1.5.0/main
+    is_primary: true

@@ -1,0 +1,691 @@
+package ${ISV_FLAG}.swc.sit.other.hsbs_triggercolla;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.exception.KDBizException;
+import kd.bos.id.ID;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.service.operation.OperationServiceImpl;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.coderule.CodeRuleServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import ${ISV_FLAG}.swc.sit.common.util.OperateResultCheck;
+import ${ISV_FLAG}.swc.sit.common.util.TypeConvertUtil;
+
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * 员工社保档案和社保基数维护工具类  杨剑
+ * 员工代缴申请单调用
+ * 员工入转调离的协作操作插件调用
+ */
+public class SinsurfileHelper {
+
+    private static final Log log = LogFactory.getLog(SinsurfileHelper.class.getName());
+
+    // 险种的【编码-ID】映射关系
+    protected HashMap<String, Long> welfaretypeHashMap;
+
+
+    private static HashMap<String, BigDecimal> getsocialBaseValueMap() {
+        HashMap<String, BigDecimal> socialBaseValueMap = new HashMap<>();
+        //初始化险种目的值，用于判断是否将档案的险种停缴纳，值为0，不进行停缴
+        socialBaseValueMap.put("1010_S", BigDecimal.ZERO); //养老保险
+        socialBaseValueMap.put("1020_S", BigDecimal.ZERO); //医疗保险
+        socialBaseValueMap.put("1030_S", BigDecimal.ZERO); //失业保险
+        socialBaseValueMap.put("1040_S", BigDecimal.ZERO); //工伤保险
+        socialBaseValueMap.put("1050_S", BigDecimal.ZERO); //生育保险
+        socialBaseValueMap.put("1070_S", BigDecimal.ZERO); //补充医疗保险
+        socialBaseValueMap.put("1060_S", BigDecimal.ZERO); //住房公积金
+        return socialBaseValueMap;
+    }
+
+    private static HashMap<String, HashMap<String, Object[]>> getInsuranceConfigs() {
+        HashMap<String, HashMap<String, Object[]>> insuranceConfigs = new HashMap<>();
+        // 社保、公积金的配置
+        insuranceConfigs.put("A", getSocialConfigs());
+        insuranceConfigs.put("B", getFundConfigs());
+        return insuranceConfigs;
+    }
+
+    private static HashMap<String, Object[]> getFundConfigs() {
+        HashMap<String, Object[]> fundConfigs = new HashMap<>();
+        // 配置公积金【新增/修改/停用】的保险项目，以及该项目在【代缴申请单】上的新增时/变更时对应的基数字段名称
+        fundConfigs.put("1060_S", new Object[]{"${ISV_FLAG}_housing_e", "${ISV_FLAG}_base_housing_e1"}); //住房公积金
+        return fundConfigs;
+    }
+
+
+    private static HashMap<String, Object[]> getSocialConfigs() {
+        // 配置社保【新增/修改/停用】的保险项目，以及该项目在【代缴申请单】上的新增时/变更时对应的基数字段名称
+        HashMap<String, Object[]> socialConfigs = new HashMap<>();
+        socialConfigs.put("1010_S", new Object[]{"${ISV_FLAG}_endowment_e", "${ISV_FLAG}_base_endowment_e1"}); //养老保险
+        socialConfigs.put("1020_S", new Object[]{"${ISV_FLAG}_medical_e", "${ISV_FLAG}_base_medical_e1"}); //医疗保险
+        socialConfigs.put("1030_S", new Object[]{"${ISV_FLAG}_unemployment_e", "${ISV_FLAG}_unemployment_e1"}); //失业保险
+        socialConfigs.put("1040_S", new Object[]{"${ISV_FLAG}_industrial_injury_e", "${ISV_FLAG}_base_injury_e1"}); //工伤保险
+        socialConfigs.put("1050_S", new Object[]{"${ISV_FLAG}_maternity_e", "${ISV_FLAG}_base_maternity_e1"}); //生育保险
+        socialConfigs.put("1070_S", new Object[]{"${ISV_FLAG}_supply_medica_e", "${ISV_FLAG}_base_medica_e1"}); //补充医疗保险
+        return socialConfigs;
+    }
+
+
+    // 代缴申请单业务处理
+    public Long doSinsurAgnetPay(DynamicObject bill, HashMap<String, Long> insuranceProp) {
+        long sinsurfileid = bill.getLong("${ISV_FLAG}_person.id");                        //社保档案id
+        Date effectiveDate = bill.getDate("${ISV_FLAG}_effective_date");                  //生效日期
+        String insuranceType = bill.getString("${ISV_FLAG}_payment_insurance");           //业务类型：A-社保，B-公积金
+        DynamicObject serviceType = (DynamicObject) bill.get("${ISV_FLAG}_payment_service_type");       //代缴业务类型
+        String serviceTypeName = serviceType.getString("number");
+        if ("001".equals(serviceTypeName)) {
+            //新增代缴处理
+            //原档案处理
+            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+            HashMap<String, BigDecimal> socialBaseValueMap = getsocialBaseValueMap();
+            for (DynamicObject entry : entryentity) {
+                String insuranceTypeEntry = entry.getString("${ISV_FLAG}_payment_insurance_e");
+                if ("A".equals(insuranceTypeEntry)) {
+                    //社保
+                    BigDecimal endowmentE = entry.getBigDecimal("${ISV_FLAG}_endowment_e");
+                    BigDecimal medicalE = entry.getBigDecimal("${ISV_FLAG}_medical_e");
+                    BigDecimal unemploymentE = entry.getBigDecimal("${ISV_FLAG}_unemployment_e");
+                    BigDecimal industrialInjuryE = entry.getBigDecimal("${ISV_FLAG}_industrial_injury_e");
+                    BigDecimal maternityE = entry.getBigDecimal("${ISV_FLAG}_maternity_e");
+                    BigDecimal supplyMedicaE = entry.getBigDecimal("${ISV_FLAG}_supply_medica_e");
+
+                    socialBaseValueMap.put("1010_S", endowmentE); //养老保险
+                    socialBaseValueMap.put("1020_S", medicalE); //医疗保险
+                    socialBaseValueMap.put("1030_S", unemploymentE); //失业保险
+                    socialBaseValueMap.put("1040_S", industrialInjuryE); //工伤保险
+                    socialBaseValueMap.put("1050_S", maternityE); //生育保险
+                    socialBaseValueMap.put("1070_S", supplyMedicaE); //补充医疗保险
+                }
+
+                if ("B".equals(insuranceTypeEntry)) {
+                    //公积金
+                    BigDecimal housingE = entry.getBigDecimal("${ISV_FLAG}_housing_e");
+                    socialBaseValueMap.put("1060_S", housingE); //住房公积金
+                }
+            }
+            stopSocialFileByValue(sinsurfileid, effectiveDate, insuranceType, bill, socialBaseValueMap);
+            //新增档案
+            DynamicObject[] newAddResults = addNewFile(bill);
+            DynamicObject newFile = newAddResults[0];
+            //社保基数设置
+            addNewFileBase(bill, newFile, UUID.randomUUID().toString(), insuranceProp);
+            // 提交和审核社保档案
+            OperationServiceImpl operationService = new OperationServiceImpl();
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue("ishasright", "true");
+            operateOption.setVariableValue("skipCheckDataPermission", "true");
+            operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+            OperationResult saveResult = operationService.localInvokeOperation("submit", "hcsi_sinsurfile", new Object[]{newFile.get("id")}, operateOption);
+            OperateResultCheck.check(saveResult, "提交人员社保档案");
+            operateOption = OperateOption.create();
+            operateOption.setVariableValue("ishasright", "true");
+            operateOption.setVariableValue("skipCheckDataPermission", "true");
+            operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+            saveResult = operationService.localInvokeOperation("audit", "hcsi_sinsurfile", new Object[]{newFile.get("id")}, operateOption);
+            OperateResultCheck.check(saveResult, "审核人员社保档案");
+            return newFile.getLong("id");
+        } else if ("002".equals(serviceTypeName)) {
+            //停止代缴处理
+            stopSocialFile(sinsurfileid, effectiveDate, insuranceType, insuranceProp);
+        } else if ("003".equals(serviceTypeName)) {
+            //基数调整处理
+            alterSocialFileBase(bill, insuranceProp);
+        }
+        return sinsurfileid;
+    }
+
+
+    /**
+     * 社保档案停缴_代缴使用，只停缴代缴单中险种有值的基数设置
+     * sinsurfileid：社保档案id
+     * effectiveDate：生效日期
+     * insuranceType：业务类型：A-社保，B-公积金，A,B-社保＋公积金
+     */
+    public void stopSocialFileByValue(long sinsurfileid, Date effectiveDate, String insuranceType, DynamicObject bill, HashMap<String, BigDecimal> socialBaseValueMap) {
+        DynamicObject sinsurfile = BusinessDataServiceHelper.loadSingle(sinsurfileid, "hcsi_sinsurfile");
+        String status = sinsurfile.getString("status");                 //数据状态
+        String sinsurStatus = sinsurfile.getString("sinsurstatus");     //参保状态
+        // 如果社保档案是暂存状态，那么改为废弃状态
+        if ("A".equals(status)) {
+            sinsurfile.set("status", "E");
+            OperationServiceImpl opImpl = new OperationServiceImpl();
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue("ishasright", "true");
+            operateOption.setVariableValue("skipCheckDataPermission", "true");
+            operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+            OperationResult operationResult = opImpl.localInvokeOperation("save", new DynamicObject[]{sinsurfile}, operateOption);
+            OperateResultCheck.check(operationResult, "保存社保档案");
+        }
+        //  若“数据状态”为“已废弃”，那么档案不做处理
+        else if ("E".equals(status)) {
+        } else {
+            // 获取社保人员的已参保的基数设置，然后进行停止代缴
+            QFilter sinsurBase = new QFilter("sinsurfile", QCP.equals, sinsurfileid);
+            sinsurBase.and(new QFilter("insured", QCP.equals, "1"));
+            DynamicObject[] hcsiSinsurbases = BusinessDataServiceHelper.load("hcsi_sibase", "id,insured,welfaretype.name,welfaretype.number,startdate,paybaseofemployee,paybaseofcompany,enddate,sinsurfile,${ISV_FLAG}_radix_table,description", sinsurBase.toArray());
+            for (DynamicObject item : hcsiSinsurbases) {
+                String welfaretype_number = item.getString("welfaretype.number");
+                if (insuranceType.contains("A") && getSocialConfigs().containsKey(welfaretype_number) // 公积金判断
+                        || insuranceType.contains("B") && getFundConfigs().containsKey(welfaretype_number)) // 社保判断
+                {
+                    //只停缴值为不为0的险种
+                    BigDecimal welfareValue = socialBaseValueMap.get(welfaretype_number);
+                    if (welfareValue != null && welfareValue.compareTo(BigDecimal.ZERO) > 0) {
+                        //场将原档案内社保险种的“是否参保”改成“否”，对应“生效日期”改为代缴单内【代缴信息】的“生效日期”
+                        item.set("insured", "0");        //是否参保
+                        item.set("startdate", effectiveDate);//生效日期改为代缴单的生效日期
+                        item.set("paybaseofemployee", BigDecimal.ZERO);
+                        item.set("paybaseofcompany", BigDecimal.ZERO);
+                    }
+                }
+            }
+            SaveServiceHelper.save(hcsiSinsurbases);
+            // 若原档案内所有险种的“是否参保”均为否，那么将原档案“参保状态”改为“停止缴纳”, 停止缴纳日期为代缴单内【代缴信息】的“生效日期”。
+            boolean isAllStoped = true;
+            for (DynamicObject hcsiSinsurbase : hcsiSinsurbases) {
+                isAllStoped = isAllStoped && !hcsiSinsurbase.getBoolean("insured");
+            }
+            // 如果全部险种停缴，并且社保状态不是停缴，那么停止社保档案
+            if (isAllStoped && !"seal".equals(sinsurStatus)) {
+                sinsurfile.set("sinsurstatus", "seal");
+                sinsurfile.set("bsed", effectiveDate); //生效日期改为代缴单的生效日期
+                //更新人员社保档案
+                OperationServiceImpl opImpl = new OperationServiceImpl();
+                OperateOption operateOption = OperateOption.create();
+                operateOption.setVariableValue("ishasright", "true");
+                operateOption.setVariableValue("skipCheckDataPermission", "true");
+                operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+                OperationResult operationResult = opImpl.localInvokeOperation("save", new DynamicObject[]{sinsurfile}, operateOption);
+                OperateResultCheck.check(operationResult, "更新人员社保档案");
+            }
+        }
+    }
+
+
+    /**
+     * 社保档案停缴
+     * sinsurfileid：社保档案id
+     * effectiveDate：生效日期
+     * insuranceType：业务类型：A-社保，B-公积金，A,B-社保＋公积金
+     */
+    public void stopSocialFile(long sinsurfileid, Date effectiveDate, String insuranceType, HashMap<String, Long> insuranceProp) {
+        DynamicObject sinsurfile = BusinessDataServiceHelper.loadSingle(sinsurfileid, "hcsi_sinsurfile");
+        String status = sinsurfile.getString("status");                 //数据状态
+        String sinsurStatus = sinsurfile.getString("sinsurstatus");     //参保状态
+        // 如果社保档案是暂存状态，那么改为废弃状态
+        if ("A".equals(status)) {
+            sinsurfile.set("status", "E");
+            OperationServiceImpl opImpl = new OperationServiceImpl();
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue("ishasright", "true");
+            operateOption.setVariableValue("skipCheckDataPermission", "true");
+            operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+            OperationResult operationResult = opImpl.localInvokeOperation("save", new DynamicObject[]{sinsurfile}, operateOption);
+            OperateResultCheck.check(operationResult, "保存社保档案");
+        }
+        //  若“数据状态”为“已废弃”，那么档案不做处理
+        else if ("E".equals(status)) {
+        } else {
+            // 获取社保人员的已参保的基数设置，然后进行停止代缴
+            QFilter sinsurBase = new QFilter("sinsurfile", QCP.equals, sinsurfileid);
+            sinsurBase.and(new QFilter("insured", QCP.equals, "1"));
+            DynamicObject[] hcsiSinsurbases = BusinessDataServiceHelper.load("hcsi_sibase", "id,insured,welfaretype.name,welfaretype.number,startdate,paybaseofemployee,paybaseofcompany,enddate,sinsurfile,${ISV_FLAG}_radix_table,description", sinsurBase.toArray());
+            for (DynamicObject item : hcsiSinsurbases) {
+                String welfaretype_number = item.getString("welfaretype.number");
+                if (insuranceType.contains("A") && getSocialConfigs().containsKey(welfaretype_number) // 公积金判断
+                        || insuranceType.contains("B") && getFundConfigs().containsKey(welfaretype_number)) // 社保判断
+                {
+                    //场将原档案内社保险种的“是否参保”改成“否”，对应“生效日期”改为代缴单内【代缴信息】的“生效日期”
+                    item.set("insured", "0");        //是否参保
+                    item.set("startdate", effectiveDate);//生效日期改为代缴单的生效日期
+                    item.set("paybaseofemployee", BigDecimal.ZERO);
+                    item.set("paybaseofcompany", BigDecimal.ZERO);
+                }
+            }
+            SaveServiceHelper.save(hcsiSinsurbases);
+            // 若原档案内所有险种的“是否参保”均为否，那么将原档案“参保状态”改为“停止缴纳”, 停止缴纳日期为代缴单内【代缴信息】的“生效日期”。
+            boolean isAllStoped = true;
+            for (DynamicObject hcsiSinsurbase : hcsiSinsurbases) {
+                isAllStoped = isAllStoped && !hcsiSinsurbase.getBoolean("insured");
+            }
+            // 如果全部险种停缴，并且社保状态不是停缴，那么停止社保档案
+            if (isAllStoped && !"seal".equals(sinsurStatus)) {
+                sinsurfile.set("sinsurstatus", "seal");
+                sinsurfile.set("bsed", effectiveDate); //生效日期改为代缴单的生效日期
+                //更新人员社保档案
+                OperationServiceImpl opImpl = new OperationServiceImpl();
+                OperateOption operateOption = OperateOption.create();
+                operateOption.setVariableValue("ishasright", "true");
+                operateOption.setVariableValue("skipCheckDataPermission", "true");
+                operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+                OperationResult operationResult = opImpl.localInvokeOperation("save", new DynamicObject[]{sinsurfile}, operateOption);
+                OperateResultCheck.check(operationResult, "更新人员社保档案");
+            }
+        }
+    }
+
+
+    // 根据带角度，调用接口更新社保基数设置
+    public void alterSocialFileBase(DynamicObject bill, HashMap<String, Long> insuranceProp) {
+        long sinsurfileid = bill.getLong("${ISV_FLAG}_person.id");           //社保档案
+        DynamicObject payCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");
+        // 根据代缴公司获取参保标准的参保标准生效日期
+        Date effectDate = bill.getDate("${ISV_FLAG}_effective_date");
+
+        // 根据代缴公司获取参保标准的参保标准
+        Long sinSurstdandarId = getSinSurstdandarId(bill);
+        if (effectDate == null || sinSurstdandarId.equals(0L))
+            throw new KDBizException("公司【" + payCompany.getString("name") + "】没有设置参保标准");
+
+        DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_base_entryentity");
+        //如果参保标准没有对应险种，则不进行处理
+        ArrayList<String> insurTypeList = this.getSinsurstd(sinSurstdandarId);
+        //查找险种
+        HashMap<String, Long> welfareTypes = getWelfaretypeMap();
+
+        QFilter sinsurBase = new QFilter("sinsurfile", QCP.equals, sinsurfileid);
+        sinsurBase.and(new QFilter("insured", QCP.equals, "1"));
+        DynamicObject[] hcSiSinSurBases = BusinessDataServiceHelper.load("hcsi_sibase", "id,insured,welfaretype.name,welfaretype.number,startdate,paybaseofemployee,paybaseofcompany,enddate,sinsurfile,${ISV_FLAG}_radix_table,description", sinsurBase.toArray());
+        HashMap<Long, DynamicObject> sinSurFileMap = new HashMap<>();
+        for (DynamicObject hcSiSinSurBase : hcSiSinSurBases) {
+            sinSurFileMap.put(hcSiSinSurBase.getLong("welfaretype.id"), hcSiSinSurBase);
+        }
+
+        for (DynamicObject entry : entryentity) {
+            // 业务类型：A-社保，B-公积金
+            String insuranceType = entry.getString("${ISV_FLAG}_base_insurance_e");
+            HashMap<String, Object[]> insuranceConfig = getInsuranceConfigs().get(insuranceType);
+            if (insuranceConfig == null)
+                continue;
+            // 遍历 社保或公积金 的险种配置，构建变更所需的数据包
+            for (String insurancekey : insuranceConfig.keySet()) {
+                //如果参保标准没有对应险种，则不进行处理
+                if (!insurTypeList.contains(insurancekey)) {
+                    continue;
+                }
+                // 根据配置，获取变更单据的基数字段名，并获取变更的基数字段数据
+                Object[] insuranceData = insuranceConfig.get(insurancekey);
+                if (insuranceData == null)
+                    continue;
+                Object value = entry.get((String) insuranceData[1]);
+                long welfaretypeid = welfareTypes.get(insurancekey);
+                BigDecimal amount = TypeConvertUtil.objToBigDecimal(value);
+                if (!sinSurFileMap.isEmpty() && sinSurFileMap.containsKey(welfaretypeid)) {
+                    DynamicObject sinSurFileBase = sinSurFileMap.get(welfaretypeid);
+                    sinSurFileBase.set("paybaseofemployee", amount);
+                    sinSurFileBase.set("paybaseofcompany", amount);
+//                    sinSurFileBase.set("${ISV_FLAG}_radix_table",bill.getLong("${ISV_FLAG}_radix_table.id"));
+                    sinSurFileBase.set("startdate", effectDate);
+                    sinSurFileBase.set("insured", "1");
+                }
+            }
+        }
+        SaveServiceHelper.save(hcSiSinSurBases);
+    }
+
+
+    /**
+     * 新增人员社保档案
+     *
+     * @param bill 代缴申请单
+     */
+    private DynamicObject[] addNewFile(DynamicObject bill) {
+        long sinsurfileid = bill.getLong("${ISV_FLAG}_person.id");                         //社保档案id
+        DynamicObject sinsurfile = BusinessDataServiceHelper.loadSingle(sinsurfileid, "hcsi_sinsurfile");
+        Date effectiveDate = bill.getDate("${ISV_FLAG}_effective_date");                   //生效日期
+        DynamicObject payCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");    //实际参保单位，代缴单内“代缴公司”
+        //1.人员社保档案基本信息
+        HRBaseServiceHelper serviceHelper = new HRBaseServiceHelper(SITEntityConstants.HCSI_SINSURFILE);
+        DynamicObject newFile = serviceHelper.generateEmptyDynamicObject();
+        newFile.set("id", ID.genLongId());
+        newFile.set("isescrowstaff", Boolean.TRUE);                  //设置是否代管员工
+        newFile.set("welfarepayertheory", bill.getDynamicObject("${ISV_FLAG}_insured_company"));   //理论参保单位,取代缴单上的理论参保单位
+        newFile.set("sinsurstatus", "normal");                      //设置参保状态 normal-正常缴纳  seal-停止缴纳
+        newFile.set("bsed", effectiveDate);                          //设置生效日期
+        newFile.set("comment", bill.get("${ISV_FLAG}_description"));        //备注代缴单内“描述”
+        newFile.set("employee", sinsurfile.get("employee"));          //设置企业人
+        newFile.set("empposorgrel", sinsurfile.getDynamicObject("empposorgrel"));                //设置自然人
+        newFile.set("sinsurstd", sinsurfile.getDynamicObject("sinsurstd"));
+        newFile.set("assignment", sinsurfile.getDynamicObject("assignment"));
+        newFile.set("creator", RequestContext.get().getCurrUserId());       //创建人
+        //调用编码规则生成档案编码
+        String number = CodeRuleServiceHelper.getNumber(SITEntityConstants.HCSI_SINSURFILE, newFile, null);
+        newFile.set("number", number);                               //设置编码
+        //设置社保公积金管理组织，代缴单内“代缴公司”所属的社保公积金管理组织
+        newFile.set("org", payCompany.get("org"));
+        newFile.set("manageregion", payCompany.get("country"));     //社保管理属地，默认中国
+        newFile.set("empgroup", sinsurfile.get("empgroup"));        //设置社保人员组,默认“默认社保人员组”
+        newFile.set("welfarepayer", payCompany);                    //设置实际参保单位，代缴单内“代缴公司”
+        //3.调用接口，保存社保人员档案
+        OperationServiceImpl operationService = new OperationServiceImpl();
+        OperateOption operateOption = OperateOption.create();
+        operateOption.setVariableValue("ishasright", "true");
+        operateOption.setVariableValue("skipCheckDataPermission", "true");
+        operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+        OperationResult saveResult = operationService.localInvokeOperation("save", new DynamicObject[]{newFile}, operateOption);
+        OperateResultCheck.check(saveResult, "保存人员社保档案");
+        return new DynamicObject[]{newFile};
+    }
+
+
+    /**
+     * 调用微服务接口，新增社保基数设置
+     *
+     * @param bill       代缴单
+     * @param newFile    新增的社保档案
+     * @param uniqueCode 唯一识别码
+     */
+    protected void addNewFileBase(DynamicObject bill, DynamicObject newFile, String uniqueCode, HashMap<String, Long> insuranceProp) {
+        Long sinSurFileId = bill.getLong("${ISV_FLAG}_person.id");
+        DynamicObject payCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");
+        // 根据代缴公司获取参保标准的参保标准
+        Long sinSurstdandarId = getSinSurstdandarId(bill);
+        Date effectDate = bill.getDate("${ISV_FLAG}_effective_date");
+        if (effectDate == null || sinSurstdandarId.equals(0L))
+            throw new KDBizException("公司【" + payCompany.getString("name") + "】没有设置参保标准");
+
+        //如果参保标准没有对应险种，则不进行处理
+        ArrayList<String> insurTypeList = this.getSinsurstd(sinSurstdandarId);
+        //查找险种
+        HashMap<String, Long> welfareTypes = getWelfaretypeMap();
+
+        DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+        List<DynamicObject> insertSiBase = new ArrayList<>();
+        for (DynamicObject entry : entryentity) {
+            // 业务类型：A-社保，B-公积金
+            String insuranceType = entry.getString("${ISV_FLAG}_payment_insurance_e");
+            HashMap<String, Object[]> insuranceConfig = getInsuranceConfigs().get(insuranceType);
+            if (insuranceConfig == null)
+                continue;
+            // 遍历 社保或公积金 的险种配置，构建变更所需的数据包
+            for (String insurancekey : insuranceConfig.keySet()) {
+                //如果参保标准没有对应险种，则不进行处理
+                if (!insurTypeList.contains(insurancekey)) {
+                    continue;
+                }
+                // 根据配置，获取变更单据的基数字段名，并获取变更的基数字段数据
+                Object[] insuranceData = insuranceConfig.get(insurancekey);
+                if (insuranceData == null)
+                    continue;
+                Object value = entry.get((String) insuranceData[0]);
+                long welfareTypeId = welfareTypes.get(insurancekey);
+                BigDecimal amount = TypeConvertUtil.objToBigDecimal(value);
+                DynamicObject siBase = BusinessDataServiceHelper.newDynamicObject("hcsi_sibase");
+                siBase.set("sinsurfile", newFile.getLong("id"));
+                siBase.set("welfaretype", welfareTypeId);
+                siBase.set("paybaseofemployee", amount);
+                siBase.set("iscurrentdata", true);
+                siBase.set("paybaseofcompany", amount);
+                siBase.set("startdate", effectDate);
+                siBase.set("insured", "1");
+                siBase.set("${ISV_FLAG}_radix_table", bill.getLong("${ISV_FLAG}_radix_table.id"));
+                try {
+                    siBase.set("enddate", new SimpleDateFormat("yyyy-MM-dd").parse("2999-12-31"));
+                } catch (ParseException e) {
+//                    e.printStackTrace();
+                }
+                insertSiBase.add(siBase);
+            }
+        }
+        SaveServiceHelper.save(insertSiBase.toArray(new DynamicObject[0]));
+    }
+
+    /**
+     * 在参保单位中获取参保标准
+     *
+     * @param bill
+     * @return
+     */
+    private Long getSinSurstdandarId(DynamicObject bill) {
+        Long sinSurstdandarId = 0L;
+        DynamicObject payCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");
+        if (Objects.nonNull(payCompany)) {
+            DynamicObjectCollection mulSinSurStd = payCompany.getDynamicObjectCollection("mulsinsurstd");
+            if (kd.bos.util.CollectionUtils.isNotEmpty(mulSinSurStd)) {
+                sinSurstdandarId = mulSinSurStd.get(0).getLong("fbasedataid.id");
+            }
+        }
+        return sinSurstdandarId;
+    }
+
+
+    /**
+     * 构建员工社保的单个险种的【变更、停缴】数据包：生效日期、是否参保
+     * sinsurfileid：社保档案id
+     * welfareTypeId：险种id
+     * effectDate：生效日期
+     * amounts：缴费基数，如果是停缴可为空
+     * isInsured：是否参保
+     * uniqueCode：唯一标识
+     */
+    private HashMap<String, Object> createAlterDataMap(long sinsurfileid, long welfareTypeId,
+                                                       Date effectDate, BigDecimal amount, Boolean isInsured, String description, String uniqueCode, HashMap<String, Long> insuranceProp) {
+        HashMap<String, Object> dataMap = new HashMap<>();
+        dataMap.put("uniqueCode", uniqueCode);                //唯一标识
+        // 构建险种的变更数据包
+        HashMap<String, Object> baseData = createBaseDataMap(welfareTypeId, effectDate, amount, isInsured, description, insuranceProp);
+        baseData.put("sinSurFileId", sinsurfileid);       //社保档案id
+        dataMap.put("sinSurFileBase", baseData);
+        return dataMap;
+    }
+
+
+    /**
+     * 构建员工社保的单个险种的接口数据包：生效日期、是否参保
+     * welfareTypeId：险种id
+     * effectDate：生效日期
+     * amounts：缴费基数，如果是停缴可为空
+     * isInsured：是否参保
+     */
+    public HashMap<String, Object> createBaseDataMap(long welfareTypeId,
+                                                     Date effectDate, BigDecimal amount, Boolean isInsured, String description, HashMap<String, Long> insuranceProp) {
+        // 构建险种的变更数据
+        HashMap<String, Object> baseData = new HashMap<>();
+        baseData.put("welfareTypeId", welfareTypeId);     //险种ID
+        baseData.put("bsed", effectDate);                 //生效日期
+        baseData.put("insured", isInsured);               //是否参保
+        baseData.put("description", description);          //备注说明
+        // 构建险种属性的变更数据
+        ArrayList<Map> insuranceItemList = new ArrayList<>(); //险种项目信息
+        baseData.put("insuranceItem", insuranceItemList); //险种项目信息
+        //6.1设置个人缴费基数
+        HashMap<String, Object> itemData = new HashMap<>();
+        itemData.put("insurancePropId", insuranceProp.get("1001_S"));       //险种属性ID
+        itemData.put("insurancePropValue", amount == null ? BigDecimal.ZERO : amount);
+        insuranceItemList.add(itemData);
+        //6.2设置单位缴费基数
+        itemData = new HashMap<>();
+        itemData.put("insurancePropId", insuranceProp.get("1002_S"));       //险种属性ID
+        itemData.put("insurancePropValue", amount == null ? BigDecimal.ZERO : amount);
+        insuranceItemList.add(itemData);
+        return baseData;
+    }
+
+
+    // 获取所有险种的【编码-ID】映射表
+    protected HashMap<String, Long> getWelfaretypeMap() {
+        if (welfaretypeHashMap == null) {
+            welfaretypeHashMap = new HashMap<>();
+            QFilter insurancePropFilter = new QFilter("status", QCP.equals, "C");
+            insurancePropFilter.and("enable", QCP.equals, "1");
+            DynamicObjectCollection insuranceProp = QueryServiceHelper.query("sitbs_welfaretype",
+                    "id,number,name", insurancePropFilter.toArray());
+            for (DynamicObject item : insuranceProp) {
+                welfaretypeHashMap.put(item.getString("number"), item.getLong("id"));
+            }
+        }
+        return welfaretypeHashMap;
+    }
+
+
+    // 获取所有险种属性的【编码-ID】映射表
+    public static HashMap<String, Long> getInsuranceProp() {
+        HashMap<String, Long> insurancePropHashMap = new HashMap<>();
+        QFilter insurancePropFilter = new QFilter("status", QCP.equals, "C");
+        insurancePropFilter.and("enable", QCP.equals, "1");
+        DynamicObjectCollection insuranceProp = QueryServiceHelper.query("sitbs_insuranceprop",
+                "id,number", insurancePropFilter.toArray());
+        for (DynamicObject item : insuranceProp) {
+            insurancePropHashMap.put(item.getString("number"), item.getLong("id"));
+        }
+        return insurancePropHashMap;
+    }
+
+
+    // 检查社保接口返回结果，如果有异常则抛出
+    protected void checkServiceResult(Map<String, Object> serviceResult) {
+        JSONArray resultData = (JSONArray) serviceResult.get("data");
+        if (resultData.size() > 0) {
+            JSONObject oneResultData = resultData.getJSONObject(0);
+            throw new KDBizException("设置社保基数出现异常（" + oneResultData.getString("errorCode") + oneResultData.getString("message") + "），请前往人员社保档案手动修改");
+        }
+    }
+
+    //新增代缴时，发现在其代缴公司已有档案，则根据档案id进行更新代缴档案，而不是新增代缴档案
+    //社保代缴调整-若遇到实际代缴单位已存在档案：
+    // 1、首先禁用理论参保单位档案或者对应代缴险种，然后更新代缴单位档案；
+    // 2、更新代缴单位档案时，同时打开按钮“代管员工”，赋值“理论参保单位”为代缴单的“理论参保单位”
+    public void addSocialFileBase(Long sinsurfileid, DynamicObject bill, HashMap<String, Long> insuranceProp) {
+        //原档案处理
+        DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+        HashMap<String, BigDecimal> socialBaseValueMap = getsocialBaseValueMap();
+        for (DynamicObject entry : entryentity) {
+            String insuranceTypeEntry = entry.getString("${ISV_FLAG}_payment_insurance_e");
+            if ("A".equals(insuranceTypeEntry)) {
+                //社保
+                BigDecimal endowmentE = entry.getBigDecimal("${ISV_FLAG}_endowment_e");
+                BigDecimal medicalE = entry.getBigDecimal("${ISV_FLAG}_medical_e");
+                BigDecimal unemploymentE = entry.getBigDecimal("${ISV_FLAG}_unemployment_e");
+                BigDecimal industrialInjuryE = entry.getBigDecimal("${ISV_FLAG}_industrial_injury_e");
+                BigDecimal maternityE = entry.getBigDecimal("${ISV_FLAG}_maternity_e");
+                BigDecimal supplyMedicaE = entry.getBigDecimal("${ISV_FLAG}_supply_medica_e");
+
+                socialBaseValueMap.put("1010_S", endowmentE); //养老保险
+                socialBaseValueMap.put("1020_S", medicalE); //医疗保险
+                socialBaseValueMap.put("1030_S", unemploymentE); //失业保险
+                socialBaseValueMap.put("1040_S", industrialInjuryE); //工伤保险
+                socialBaseValueMap.put("1050_S", maternityE); //生育保险
+                socialBaseValueMap.put("1070_S", supplyMedicaE); //补充医疗保险
+            }
+
+            if ("B".equals(insuranceTypeEntry)) {
+                //公积金
+                BigDecimal housingE = entry.getBigDecimal("${ISV_FLAG}_housing_e");
+                socialBaseValueMap.put("1060_S", housingE); //住房公积金
+            }
+        }
+        long oldSinsurFileId = bill.getLong("${ISV_FLAG}_person.id");                        //原社保档案id
+        Date effectiveDate = bill.getDate("${ISV_FLAG}_effective_date");                  //生效日期
+        String oldInsuranceType = bill.getString("${ISV_FLAG}_payment_insurance");           //业务类型：A-社保，B-公积金
+        stopSocialFileByValue(oldSinsurFileId, effectiveDate, oldInsuranceType, bill, socialBaseValueMap);
+
+        //将已有的档案处理为代缴档案
+        DynamicObject payCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");
+        // 根据代缴公司获取参保标准的参保标准
+        Long sinSurstdandarId = getSinSurstdandarId(bill);
+        Date effectDate = bill.getDate("${ISV_FLAG}_effective_date");
+        if (effectDate == null || sinSurstdandarId.equals(0L))
+            throw new KDBizException("公司【" + payCompany.getString("name") + "】没有设置参保标准");
+
+        ArrayList<String> insurTypeList = this.getSinsurstd(sinSurstdandarId);
+        //查找险种
+        HashMap<String, Long> welfareTypes = getWelfaretypeMap();
+        List<DynamicObject> insertSiBase = new ArrayList<>();
+        for (DynamicObject entry : entryentity) {
+            // 业务类型：A-社保，B-公积金
+            String insuranceType = entry.getString("${ISV_FLAG}_payment_insurance_e");
+            HashMap<String, Object[]> insuranceConfig = getInsuranceConfigs().get(insuranceType);
+            if (insuranceConfig == null)
+                continue;
+            // 遍历 社保或公积金 的险种配置，构建变更所需的数据包
+            for (String insurancekey : insuranceConfig.keySet()) {
+                //如果参保标准没有对应险种，则不进行处理
+                if (!insurTypeList.contains(insurancekey)) {
+                    continue;
+                }
+                // 根据配置，获取变更单据的基数字段名，并获取变更的基数字段数据
+                Object[] insuranceData = insuranceConfig.get(insurancekey);
+                if (insuranceData == null)
+                    continue;
+                Object value = entry.get((String) insuranceData[0]);
+                long welfaretypeid = welfareTypes.get(insurancekey);
+                BigDecimal amount = TypeConvertUtil.objToBigDecimal(value);
+                DynamicObject siBase = BusinessDataServiceHelper.newDynamicObject("hcsi_sibase");
+                siBase.set("sinsurfile", sinsurfileid);
+                siBase.set("welfaretype", welfaretypeid);
+                siBase.set("paybaseofemployee", amount);
+                siBase.set("iscurrentdata", true);
+                siBase.set("paybaseofcompany", amount);
+                siBase.set("startdate", effectDate);
+                siBase.set("insured", "1");
+                siBase.set("${ISV_FLAG}_radix_table", bill.getLong("${ISV_FLAG}_radix_table.id"));
+                try {
+                    siBase.set("enddate", new SimpleDateFormat("yyyy-MM-dd").parse("2999-12-31"));
+                } catch (ParseException e) {
+//                    e.printStackTrace();
+                }
+                insertSiBase.add(siBase);
+            }
+        }
+        SaveServiceHelper.save(insertSiBase.toArray(new DynamicObject[0]));
+
+        //根据档案id查询其代缴档案，如果为参保状态为正常缴纳，则不做处理，如果为停止缴纳，修改为正常缴纳
+        DynamicObject sinsurfile = BusinessDataServiceHelper.loadSingle(sinsurfileid, "hcsi_sinsurfile");
+        if (sinsurfile != null) {
+            String sinsurstatus = sinsurfile.getString("sinsurstatus");
+            if ("seal".equals(sinsurstatus)) {
+                sinsurfile.set("sinsurstatus", "normal");
+                sinsurfile.set("sinsurstatus", "normal");//正常缴纳
+                sinsurfile.set("bsed", effectiveDate); //生效日期改为代缴单的生效日期
+                sinsurfile.set("isescrowstaff", "1"); //代管员工
+                sinsurfile.set("welfarepayertheory", bill.getDynamicObject("${ISV_FLAG}_insured_company"));//理论参保单位
+                //更新人员社保档案
+                OperationServiceImpl operationService = new OperationServiceImpl();
+                OperateOption operateOption = OperateOption.create();
+                operateOption.setVariableValue("ishasright", "true");
+                operateOption.setVariableValue("skipCheckDataPermission", "true");
+                operateOption.setVariableValue("skipCheckSpecialDataPermission", "true");
+                OperationResult saveResult = operationService.localInvokeOperation("save", new DynamicObject[]{sinsurfile}, operateOption);
+                OperateResultCheck.check(saveResult, "新增代缴时,更新人员社保档案");
+            }
+        }
+    }
+
+    /**
+     * 根据参保标准id,查询险种编码
+     */
+    public ArrayList<String> getSinsurstd(Long sinSurstdandarId) {
+        //根据参保标准查询险种
+        ArrayList<String> insurTypeList = new ArrayList<>();
+        DynamicObject sitbsSinsurstd = BusinessDataServiceHelper.loadSingle(sinSurstdandarId, "sitbs_sinsurstd");
+        DynamicObjectCollection stdentryentity = sitbsSinsurstd.getDynamicObjectCollection("stdentryentity");
+        for (DynamicObject entry : stdentryentity) {
+            String insurTypeNumber = entry.getString("insurtype.number");
+            insurTypeList.add(insurTypeNumber);
+        }
+        return insurTypeList;
+    }
+}
+

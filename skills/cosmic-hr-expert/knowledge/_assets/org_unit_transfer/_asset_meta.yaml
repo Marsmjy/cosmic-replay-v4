@@ -1,0 +1,212 @@
+# 资产元数据 · 成建制划转 (Org Unit Transfer)
+# 用于 cosmic-mcp + assemble_asset.py 工具识别 + 装配
+
+asset:
+  id: org_unit_transfer
+  name: 成建制划转
+  english_name: Org Unit Transfer
+  version: v1.0
+  source_dcs_project: hr-hdm-orgtransfer
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/orghrgroup/hr-hdm-orgtransfer.git
+  source_branch: feature-standard
+  source_commit: cf299a0
+  source_doc: 文档/成建制划转复用说明书.docx
+  source_doc_version: v1.0
+  source_doc_date: 2025-08-04
+  source_doc_authors: [梅小雪, 宁杰]
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-case-run K2 v2.1 / case_001 反哺
+
+# ───────────────────────────────────────────
+# 业务定位
+# ───────────────────────────────────────────
+business:
+  cloud: HR 核心人力
+  app: hdm 调配管理
+  scenario: 调度任务批量处理"组织/岗位变更"·写入标品调动单 hdm_transferbatch
+  trigger: 调度计划 hdm_orgtransfer_plan_SKDP_S 每日定时跑 3 子任务
+
+  scope:
+    in_scope:
+      - 组织上级调整后批量给"组织 + 子组织"下人员写任职经历变动
+      - 组织更名后批量刷新人员任职经历的历史组织字段
+      - 岗位更名后批量给"岗位"下人员写任职经历变动
+    out_of_scope:
+      - 单人调动（标品 hdm_transferbatch 自带·不需要本资产）
+      - 跨公司转移（业务流程不同·参见 docx §1.3）
+      - 人事档案直接私改（本资产严格不私改 hrpi_* 底表）
+
+# ───────────────────────────────────────────
+# 触发意图（cosmic-mcp recommend_solutions 命中关键字）
+# ───────────────────────────────────────────
+intents:
+  primary:
+    - 成建制划转
+    - 批量调动
+    - 组织调整后批量改任职
+    - 组织上级调整 + 批量任职更新
+  secondary:
+    - 组织更名同步任职经历
+    - 岗位更名同步任职经历
+    - 调度任务消费组织变更记录
+
+# ───────────────────────────────────────────
+# 模板变量（assemble_asset.py 替换占位符）
+# ───────────────────────────────────────────
+template_variables:
+  required:
+    - name: ISV_FLAG
+      desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+      example: bjss
+      validation: '^[a-z][a-z0-9]{1,15}$'
+
+    - name: BIZ_APP
+      desc: ISV 应用包编码·替代 tdkw_hdm_ext
+      example: bjss_hdm_ext
+      validation: '^[a-z][a-z0-9_]{3,30}$'
+
+    - name: BIZ_APP_ID
+      desc: 苍穹环境的 BizappId 真值（部署时从环境拿·非客户决策）
+      example: '46XU=YL75E1+'
+      hint: 部署时跑 cosmic-env list_apps 拿真值
+
+  optional:
+    - name: SCHEDULE_PLAN_NUMBER
+      desc: 调度计划编码·默认 hdm_orgtransfer_plan_SKDP_S·一般不改
+      default: hdm_orgtransfer_plan_SKDP_S
+
+    - name: ISV_INTERMEDIATE_TABLE
+      desc: ISV 中间表名·默认 ${ISV_FLAG}_orguntitransfer
+      default_template: '${ISV_FLAG}_orguntitransfer'
+
+# ───────────────────────────────────────────
+# 资产产物清单（assemble 后的目标文件）
+# ───────────────────────────────────────────
+artifacts:
+  java_files:
+    - target: code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/AbstractCommonTask.java
+      template: code_templates/business/AbstractCommonTask.java.tmpl
+      loc: 454
+    - target: code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/OrgTransferHelper.java
+      template: code_templates/business/OrgTransferHelper.java.tmpl
+      loc: 508
+    - target: code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/OrgParentChgTask.java
+      template: code_templates/business/OrgParentChgTask.java.tmpl
+      loc: 123
+    - target: code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/OrgRenameChgTask.java
+      template: code_templates/business/OrgRenameChgTask.java.tmpl
+      loc: 128
+    - target: code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/PostRenameChgTask.java
+      template: code_templates/business/PostRenameChgTask.java.tmpl
+      loc: 141
+
+  datamodel_files:
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+      template: datamodel_templates/biz_app.app.tmpl
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+      template: datamodel_templates/biz_app.zh_CN.appx.tmpl
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+      template: datamodel_templates/biz_app.xml.tmpl
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/metadata/${ISV_FLAG}_orguntitransfer.dym
+      template: datamodel_templates/orguntitransfer.dym.tmpl
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/metadata/${ISV_FLAG}_orguntitransfer.zh_CN.dymx
+      template: datamodel_templates/orguntitransfer.zh_CN.dymx.tmpl
+    - target: datamodel/hdm_ext/1.5.0/main/${BIZ_APP}/metadata/schedule_hdm_orgtransfer_plan_SKDP_S.schdata
+      template: datamodel_templates/schedule.schdata.tmpl
+    - target: datamodel/datamodel.xml
+      template: datamodel_templates/datamodel.xml.tmpl
+
+  build_files:
+    - target: build.gradle
+      template: build_templates/build.gradle.tmpl
+    - target: settings.gradle
+      template: build_templates/settings.gradle.tmpl
+    - target: cosmic.json
+      template: build_templates/cosmic.json.tmpl
+
+  doc_files:
+    - target: README.md
+      template: build_templates/README.md.tmpl
+    - target: 文档/成建制划转复用说明书.docx
+      copy_from: source_doc
+
+# ───────────────────────────────────────────
+# 部署 SOP（按 docx §4.1.2 + 实际经验固化）
+# ───────────────────────────────────────────
+deploy:
+  prerequisite:
+    - 苍穹环境已部署（HR 核心人力 + hdm 调配管理）
+    - 客户已选定开发商标识 (ISV_FLAG)
+    - mservice 可访问 / dm 包可手工导入
+
+  steps_overview:
+    - 1. 跑 assemble_asset.py 生成完整工程
+    - 2. 检查目标 BizappId 是否被现场扩展过
+    - 3. 替换 BizappId 真值（dym 内 <BizappId> 标签）
+    - 4. 通过 MC 升级补丁包导入 dm 元数据
+    - 5. 添加 mservice 环境变量 CUSLIBS=hdm-orgtransfer (6.0) 或 libs=hdm-orgtransfer.lib (7.0 domain)
+    - 6. 重启 mservice
+    - 7. 配置调度计划 → 启用
+
+  detail_doc: deploy_sop.md
+
+# ───────────────────────────────────────────
+# 业务规则锚点（cosmic-mcp 推荐时引用）
+# ───────────────────────────────────────────
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples:
+    - rule: changeType A/B/C 变动类型 → 对应 3 个调度任务类
+      anchors: ['OrgParentChgTask.java:30', 'OrgRenameChgTask.java:35', 'PostRenameChgTask.java:30']
+    - rule: A/B 数据源 homs_orgchgrecord / C 数据源 hbpm_chgrecordevt
+      anchors: ['OrgTransferHelper.java:48', 'OrgTransferHelper.java:82']
+    - rule: 写入标品 hdm_transferbatch 调动单 (save + submiteffect)
+      anchors: ['AbstractCommonTask.java:279', 'AbstractCommonTask.java:293']
+    - rule: 不私改 hrpi_* 底表·标品 submiteffect 自动协同
+      anchor: 设计原则·见 customization_points.md
+
+# ───────────────────────────────────────────
+# 关联 v3 知识库场景（assemble 不需要·但 cosmic-mcp 检索时给读者上下文）
+# ───────────────────────────────────────────
+related_v3_scenes:
+  primary:
+    - core_hr_org_unit_transfer  # ⚡ 主场景·11md + 35件套
+  consumed_forms:
+    - haos_changescene           # 变动场景编码（1020_S/1030_S/1080_S）来源
+    - homs_orgchgrecord          # A/B 数据源
+    - haos_adminorgdetail        # 行政组织详情
+    - hbpm_positionhr            # 岗位历史版本
+    - hbpm_chgrecordevt          # C 数据源（场景未建·进 backlog）
+    - hbpm_chgrecorddetail       # C 子表（未建·进 backlog）
+    - hrpi_empposorgrel          # 任职经历（未建·进 backlog 高优）
+    - hrpi_assignment            # 派工（未建·进 backlog）
+    - hrpi_empentrel             # 雇佣关系（未建·进 backlog）
+    - hdm_transferbatch          # 调动单（未建·进 backlog 最高优）
+    - hdm_transferbatchentry     # 调动单分录（随主表）
+
+# ───────────────────────────────────────────
+# 扩展点（customization_points.md 详）
+# ───────────────────────────────────────────
+extension_points:
+  - id: EP-01
+    name: 改变动场景编码集
+    location: '${ISV_FLAG}/hr/hdm/orgtransfer/business/<TaskClass>.java'
+    fields: ['CHANGE_SCENE_ORG_PARENT_NUMBER', 'CHANGE_SCENE_ORG_RENAME_NUMBER', 'CHANGE_SCENE_POS_NUMBER_SET']
+    docx_ref: §3.2 常见扩展点
+
+  - id: EP-02
+    name: 改调度执行天数
+    location: 'AbstractCommonTask.java:48'
+    fields: ['EXECUTE_DAYS']
+    default: 1
+
+  - id: EP-03
+    name: 加 ISV 中间表自定义字段
+    location: 'datamodel/.../${ISV_FLAG}_orguntitransfer.dym'
+    note: '加字段需配合 OrgTransferHelper.java:357 的 BusinessDataServiceHelper.load 字段列表'
+
+quality_gates:
+  - GATE-01: assemble 后所有文件 grep tdkw_ = 0 / grep tdkw\. = 0
+  - GATE-02: java 包路径与 schdata TaskClassName 一致
+  - GATE-03: dym BizappId 与 cosmic 环境真值一致
+  - GATE-04: deploy_sop.md 必须引用 docx 原文 §4.1.2

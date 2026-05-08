@@ -1,0 +1,305 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_import;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.BasedataItem;
+import kd.bos.entity.datamodel.events.BeforeImportEntryEventArgs;
+import kd.bos.entity.datamodel.events.QueryImportBasedataEventArgs;
+import kd.bos.entity.plugin.ImportLogger;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.plugin.importentry.resolving.ImportEntryData;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.QueryServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Date: 2025/6/17 9:31
+ * FileName: BounsImportBillPlugin
+ * Description: 发放记录批量导入
+ */
+public class BounsImportBillPlugin extends AbstractBillPlugIn{
+    @Override
+    public void queryImportBasedata(QueryImportBasedataEventArgs e) {
+        Map<BasedataItem, List<Object>> searchResult = e.getSearchResult();
+        for (Map.Entry<BasedataItem, List<Object>> baseDataItemListEntry : searchResult.entrySet()) {
+            BasedataItem basedataItem = baseDataItemListEntry.getKey();
+            if (basedataItem.getFieldKey().equals("${ISV_FLAG}_salary_ccount_group") || basedataItem.getFieldKey().equals("${ISV_FLAG}_payment_company") || basedataItem.getFieldKey().equals("${ISV_FLAG}_pay_period") || basedataItem.getFieldKey().equals("${ISV_FLAG}_person")) {
+                for (int i = 0;i < baseDataItemListEntry.getValue().size();i++){
+                    baseDataItemListEntry.setValue(Collections.singletonList(baseDataItemListEntry.getValue().get(i)));//设置物料id
+                }
+            }
+        }
+    }
+
+    /**
+     * 分录导入数据处理，寻找匹配的发放人员
+     * @param e
+     */
+    @Override
+    public void beforeImportEntry(BeforeImportEntryEventArgs e) {
+        super.beforeImportEntry(e);
+        Map<String, List<ImportEntryData>> source = (Map) e.getSource();
+        Set<String> keySet = source.keySet();
+        DynamicObject bill = this.getModel().getDataEntity();
+        String billstatus = bill.getString("billstatus");
+
+        if (keySet.contains("entryentity") && "A".equals(billstatus)){
+            List<ImportEntryData> entryEntity = source.get("entryentity");
+            if (!CollectionUtils.isEmpty(entryEntity)) {
+                // 导入数据
+                Map<String, List<Object>> map = e.getEntryDataMap();
+                ImportLogger importLogger = (ImportLogger) map.get("entryentity").get(0);
+                this.validateEntry(entryEntity, importLogger);
+            }
+        }else {
+            throw new KDBizException("导入的分录不在规定范围内或单据不为暂存状态，请调整后重试。");
+        }
+    }
+
+    /**
+     * 分录导入处理
+     */
+    private void validateEntry(List<ImportEntryData> entryList, ImportLogger importLogger) {
+        // 查询准备
+        // 收集核定单号，根据核定单号查询核定单
+        Set<String> checkNumberSet = entryList.stream().map(item -> item.getData().getString("${ISV_FLAG}_check_number")).collect(Collectors.toSet());
+        DynamicObjectCollection bonusApprovalCollection = QueryServiceHelper.query("${ISV_FLAG}_bonus_approval_2nd","id,billno" ,new QFilter[]{new QFilter("billno", QCP.in, checkNumberSet)});
+        Map<String, List<DynamicObject>> bonusApprovalMap = bonusApprovalCollection.stream().collect(Collectors.groupingBy(item -> item.getString("billno")));
+
+        // 查询行政组织
+        Set<String> companyNumbers = entryList.stream().map(item -> BounsImportBillPlugin.getFieldStringValue(item.getData(),"${ISV_FLAG}_payment_company","number")).collect(Collectors.toSet());
+        QFilter companyFilter = new QFilter("number", QCP.in, companyNumbers)
+                .and("iscurrentversion", QCP.equals, "1")
+                .and("datastatus", QCP.equals, "1");
+        DynamicObjectCollection companyCollection = QueryServiceHelper.query("haos_adminorg", "id,number", companyFilter.toArray());
+        Map<String, List<DynamicObject>> companyMap = companyCollection.stream().collect(Collectors.groupingBy(item -> item.getString("number")));
+
+        // 查询hr人员
+        Set<String> personNumbers = entryList.stream().map(item -> BounsImportBillPlugin.getFieldStringValue(item.getData(),"${ISV_FLAG}_person","number")).collect(Collectors.toSet());
+        QFilter personFilter = new QFilter("number", QCP.in, personNumbers)
+                .and("iscurrentversion", QCP.equals, "1")
+                .and("datastatus", QCP.equals, "1");
+        DynamicObjectCollection personCollection = QueryServiceHelper.query("hrpi_person", "id,number", personFilter.toArray());
+        Map<String, List<DynamicObject>> personMap = personCollection.stream().collect(Collectors.groupingBy(item -> item.getString("number")));
+
+        // 查询薪资核算组
+        Set<String> payRollGroupNumbers = entryList.stream().map(item -> BounsImportBillPlugin.getFieldStringValue(item.getData(),"${ISV_FLAG}_salary_ccount_group","number")).collect(Collectors.toSet());
+        QFilter payRollGroupFilter = new QFilter("number", QCP.in, payRollGroupNumbers)
+                .and("iscurrentversion", QCP.equals, "1")
+                .and("datastatus", QCP.equals, "1");
+        DynamicObjectCollection payRollGroupCollection = QueryServiceHelper.query("hsas_payrollgrp", "id,number", payRollGroupFilter.toArray());
+        Map<String, List<DynamicObject>> payRollGroupMap = payRollGroupCollection.stream().collect(Collectors.groupingBy(item -> item.getString("number")));
+
+        // 查询期间类型，根据期间类型id分组
+        DynamicObjectCollection calperiodtypeQuery = QueryServiceHelper.query("hsbs_calperiodtype", "id,entryentity.id,entryentity.periodnumber", new QFilter[]{new QFilter("1","=","1")});
+        Map<Long, List<DynamicObject>> calperiodtypeMap = calperiodtypeQuery.stream().collect(Collectors.groupingBy(item -> item.getLong("id")));
+
+        // 确定薪资核算组 Map<薪资核算组编码,期间类型id集合>，只取工资计算
+        QFilter filter = new QFilter("payrollsceneentry.payrollscene.${ISV_FLAG}_sencetype",QCP.equals,"1");
+        filter.and("number", QCP.in, payRollGroupNumbers);
+        filter.and("iscurrentversion", QCP.equals, "1");
+        filter.and("datastatus", QCP.equals, "1");
+        DynamicObjectCollection payrollgrpCollection = QueryServiceHelper.query("hsas_payrollgrp", "number,payrollsceneentry.payrollscene.periodtype.id", filter.toArray());
+        Map<String, List<DynamicObject>> payrollgrpMap = payrollgrpCollection.stream().collect(Collectors.groupingBy(item -> item.getString("number")));
+
+        // 查询奖金发放数据，根据核定单号+发放公司编码+工号分组
+        QFilter bonusPaymentFilter = new QFilter("${ISV_FLAG}_check_number", QCP.in, checkNumberSet);
+        bonusPaymentFilter.and("${ISV_FLAG}_payment_company.number",QCP.in,companyNumbers);
+        bonusPaymentFilter.and("${ISV_FLAG}_person.number",QCP.in,personNumbers);
+        DynamicObjectCollection bonusPaymentQuery = QueryServiceHelper.query("${ISV_FLAG}_bonus_payment", "id,${ISV_FLAG}_check_number,${ISV_FLAG}_payment_company.number,${ISV_FLAG}_person.number,${ISV_FLAG}_amount,${ISV_FLAG}_redeem_amount", bonusPaymentFilter.toArray());
+        Map<String, List<DynamicObject>> bonusPaymentMap = bonusPaymentQuery.stream().collect(Collectors.groupingBy(item -> item.getString("${ISV_FLAG}_check_number") +"&"+ item.getString("${ISV_FLAG}_payment_company.number") +"&"+ item.getString("${ISV_FLAG}_person.number")));
+
+        // 对查询的奖金数据进行校验
+        HashMap<Long, List<String>> BounsPaymentValidatorMap = BounsPaymentUtils.bounsPaymentvalidtorExtB(bonusPaymentQuery.stream().map(item -> item.getLong("id")).collect(Collectors.toList()));
+
+        // 数据处理
+        Iterator<ImportEntryData> iterator = entryList.iterator();
+        Set<Long> matchIdSet = new HashSet<>();
+        while (iterator.hasNext()) {
+            ImportEntryData next = iterator.next();
+            JSONObject data = next.getData();
+            Integer rowNum = data.getInteger("rowNum");
+            Boolean flag = Boolean.FALSE;
+            List<String> errorMsg = new ArrayList<>();
+
+            // 发放公司处理
+            String companyNumber = BounsImportBillPlugin.getFieldStringValue(data, "${ISV_FLAG}_payment_company", "number");
+            List<DynamicObject> companyValues = companyMap.get(companyNumber);
+            if (CollectionUtils.isEmpty(companyValues) || companyValues.size() > 1){
+                errorMsg.add("发放公司不存在或编码对应的发放公司存在多个，请检查数据");
+                flag = Boolean.TRUE;
+            }else {
+                BounsImportBillPlugin.setFieldValue(data,"${ISV_FLAG}_payment_company","id",companyValues.get(0).getLong("id"));
+            }
+
+            // 核定单号检查
+            String checkNumber = data.getString("${ISV_FLAG}_check_number");
+            List<DynamicObject> checkNumberValues = bonusApprovalMap.get(checkNumber);
+            if (CollectionUtils.isEmpty(checkNumberValues) || checkNumberValues.size() > 1){
+                errorMsg.add("核定单号不存在或核定单号匹配到多个，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            // 工号
+            String personNumber = BounsImportBillPlugin.getFieldStringValue(data, "${ISV_FLAG}_person", "number");
+            List<DynamicObject> personValues = personMap.get(personNumber);
+            if (CollectionUtils.isEmpty(personValues)){
+                errorMsg.add("工号无匹配的人员，请检查数据");
+                flag = Boolean.TRUE;
+            }else {
+                BounsImportBillPlugin.setFieldValue(data,"${ISV_FLAG}_person","id",personValues.get(0).getLong("id"));
+            }
+
+            // 分配总额
+            BigDecimal amount = data.getBigDecimal("${ISV_FLAG}_amount");
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0){
+                errorMsg.add("分配总额不能等于0或为空，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            // 本次兑现金额
+            BigDecimal currentAmount = data.getBigDecimal("${ISV_FLAG}_current_amount");
+            if (currentAmount == null || currentAmount.compareTo(BigDecimal.ZERO) == 0){
+                errorMsg.add("本次兑现金额不能等于0或为空，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            // 分配总额与本次兑现金额对比
+//            if (currentAmount != null && amount != null && amount.abs().compareTo(currentAmount.abs()) < 0){
+//                errorMsg.add("本次兑现金额需在分配总额范围内，请检查数据");
+//                flag = Boolean.TRUE;
+//            }
+
+            // 薪资核算组
+            String salaryGroupNumber = BounsImportBillPlugin.getFieldStringValue(data, "${ISV_FLAG}_salary_ccount_group", "number");
+            List<DynamicObject> salaryGroupValues = payRollGroupMap.get(salaryGroupNumber);
+            if (CollectionUtils.isEmpty(salaryGroupValues) || salaryGroupValues.size() > 1){
+                errorMsg.add("薪资核算组不存在或编码对应的薪资核算组存在多个，请检查数据");
+                flag = Boolean.TRUE;
+            }else {
+                // 设置薪资核算组
+                BounsImportBillPlugin.setFieldValue(data,"${ISV_FLAG}_salary_ccount_group","id",salaryGroupValues.get(0).getLong("id"));
+                // 设置期间
+                List<DynamicObject> periodtypeValues = payrollgrpMap.get(salaryGroupNumber);
+                if (CollectionUtils.isEmpty(periodtypeValues)){
+                    errorMsg.add("薪资核算无匹配的期间类型，无法确定发放期间，请检查数据");
+                    flag = Boolean.TRUE;
+                }else {
+                    long periodtypeId = periodtypeValues.get(0).getLong("payrollsceneentry.payrollscene.periodtype.id");
+                    List<DynamicObject> periodValues = calperiodtypeMap.get(periodtypeId);
+                    if (CollectionUtils.isEmpty(periodValues)){
+                        errorMsg.add("薪资核算匹配的期间类型无期间数据，无法确定发放期间，请检查数据");
+                        flag = Boolean.TRUE;
+                    }else {
+                        Map<String, List<DynamicObject>> periodMap = periodValues.stream().collect(Collectors.groupingBy(item -> item.getString("entryentity.periodnumber")));
+                        String payperiodNumber = BounsImportBillPlugin.getFieldStringValue(data, "${ISV_FLAG}_pay_period", "number");
+                        List<DynamicObject> periodVlaues = periodMap.get(payperiodNumber);
+                        if (CollectionUtils.isEmpty(periodVlaues) || periodVlaues.size() > 1){
+                            errorMsg.add("发放期间编码无匹配数据或发放期间编码匹配的数据有多个，请检查数据");
+                            flag = Boolean.TRUE;
+                        }else {
+                            BounsImportBillPlugin.setFieldValue(data,"${ISV_FLAG}_pay_period","id",periodVlaues.get(0).getLong("entryentity.id"));
+                        }
+                    }
+                }
+            }
+
+            // 匹配对应奖金发放数据
+            String groupKey = checkNumber + "&" + companyNumber + "&" + personNumber;
+            List<DynamicObject> bonusPaymentValues = bonusPaymentMap.get(groupKey);
+            int matchCount = 0;
+            Long matchId = null;
+            BigDecimal matchRedeemAmount = null;
+            if (CollectionUtils.isEmpty(bonusPaymentValues)){
+                errorMsg.add("无匹配的奖金发放数据，请检查数据");
+                flag = Boolean.TRUE;
+            }else {
+                for (DynamicObject bonusPaymentValue : bonusPaymentValues) {
+                    BigDecimal paymentAmount = bonusPaymentValue.getBigDecimal("${ISV_FLAG}_amount");
+                    if (amount != null && amount.compareTo(paymentAmount) == 0){
+                        matchId = bonusPaymentValue.getLong("id");
+                        matchCount ++;
+                        matchRedeemAmount = bonusPaymentValue.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                    }
+                }
+            }
+
+            if (matchCount == 0){
+                errorMsg.add("无匹配的奖金发放数据，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            if (matchCount > 1){
+                errorMsg.add("匹配的奖金发放数据有多条，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            if (matchCount == 1){
+//                if (currentAmount != null && matchRedeemAmount.compareTo(currentAmount) < 0){
+//                    errorMsg.add("本次兑换总额大于匹配的奖金发放的可兑换总额无法导入，请检查数据");
+//                    flag = Boolean.TRUE;
+//                }else {
+                    List<String> validatorList = BounsPaymentValidatorMap.get(matchId);
+                    if (CollectionUtils.isEmpty(validatorList)){
+                        data.put("${ISV_FLAG}_bonus_payment_id",matchId);
+                    }else {
+                        errorMsg.addAll(validatorList);
+                        flag = Boolean.TRUE;
+                    }
+//                }
+            }
+
+            if (matchIdSet.contains(matchId)){
+                errorMsg.add("匹配的奖金发放id已经匹配成功无法再次匹配，请检查数据");
+                flag = Boolean.TRUE;
+            }
+
+            if (flag){
+                importLogger.log(rowNum, String.join("、",errorMsg)).fail();
+                importLogger.setTotal(importLogger.getTotal() + 1);
+                iterator.remove();
+            }
+            matchIdSet.add(matchId);
+        }
+    }
+
+
+    public static String getFieldStringValue(JSONObject data, String mainDataKey, String fieldName) {
+        String value = "";
+        if(data != null){
+            if(data.getJSONObject(mainDataKey) != null){
+                value = data.getJSONObject(mainDataKey).get(fieldName).toString();
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 设置json中的属性值
+     * @param data json对象
+     * @param mainDataKey 主属性
+     * @param fieldName 从属性
+     * @param fieldValue 从属性值
+     */
+    public static void setFieldValue(JSONObject data,String mainDataKey, String fieldName,Object fieldValue){
+        Map<String,Object> map = new HashMap<>();
+        map.put(fieldName,fieldValue);
+        data.getInnerMap().put(mainDataKey,map);
+    }
+}

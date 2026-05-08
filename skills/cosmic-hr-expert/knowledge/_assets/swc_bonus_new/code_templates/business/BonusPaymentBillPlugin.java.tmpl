@@ -1,0 +1,66 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.IFormView;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.EntryGrid;
+import kd.bos.form.control.events.CellClickEvent;
+import kd.bos.form.control.events.CellClickListener;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.util.EventObject;
+
+/**
+ * Author: wanghansheng
+ * Date: 发放详情
+ */
+public class BonusPaymentBillPlugin extends AbstractBillPlugIn implements CellClickListener {
+    @Override
+    public void registerListener(EventObject e) {
+        EntryGrid entryGrid = this.getControl("entryentity");
+        entryGrid.addCellClickListener(this);
+    }
+
+    @Override
+    public void cellClick(CellClickEvent cellClickEvent) {
+        IDataModel model = this.getModel();
+        IFormView view = this.getView();
+
+        int row =  cellClickEvent.getRow();
+        String fieldKey = cellClickEvent.getFieldKey();
+        if(fieldKey.equalsIgnoreCase("${ISV_FLAG}_pay_number")) {//判断点击的字段
+            DynamicObjectCollection entryentity = model.getEntryEntity("entryentity");
+            DynamicObject dynamicObject = entryentity.get(row);
+            String payNumber = dynamicObject.getString("${ISV_FLAG}_pay_number");
+            if (StringUtils.isEmpty(payNumber)) {
+                throw new KDBizException("关联发放记录不存在，请联系相关人员核查。");
+            }
+            DynamicObjectCollection query = QueryServiceHelper.query("${ISV_FLAG}_bouns_record", "id", new QFilter[]{new QFilter("billno", QCP.equals, payNumber)});
+            if (CollectionUtils.isEmpty(query) || query.size() > 1){
+                throw new KDBizException("关联发放记录不存在或有多条，请联系相关人员核查。");
+            }
+            OperationStatus operationStatus = OperationStatus.VIEW;
+            BillShowParameter formShowParameter = new BillShowParameter();
+            formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+            formShowParameter.setStatus(operationStatus);
+            formShowParameter.setFormId("${ISV_FLAG}_bouns_record");
+            formShowParameter.setPkId(query.get(0).getLong("id"));
+            view.showForm(formShowParameter);
+        }
+    }
+
+    @Override
+    public void cellDoubleClick(CellClickEvent cellClickEvent) {
+
+    }
+}

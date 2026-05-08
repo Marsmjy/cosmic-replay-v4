@@ -32,6 +32,7 @@ class CaseResult:
     step_count: int = 0
     duration_s: float = 0.0
     error: str = ""
+    error_category: str = ""  # business / technical / environment / framework / ""(无错误)
     phases: list[dict] = field(default_factory=list)  # 执行阶段详情
     
     def to_dict(self) -> dict:
@@ -43,6 +44,7 @@ class CaseResult:
             "step_count": self.step_count,
             "duration_s": self.duration_s,
             "error": self.error,
+            "error_category": self.error_category,
             "phases": self.phases[:5] if self.phases else [],  # 只保留前5个关键阶段
         }
 
@@ -54,6 +56,7 @@ class ExecutionTask:
     name: str = ""
     case_names: list[str] = field(default_factory=list)
     env_id: str = "sit"
+    concurrency: int = 3  # 并发执行数
     status: str = "pending"  # pending | running | completed | cancelled
     created_at: str = ""
     started_at: str = ""
@@ -94,6 +97,7 @@ class ExecutionTask:
             "name": self.name,
             "case_names": self.case_names,
             "env_id": self.env_id,
+            "concurrency": self.concurrency,
             "status": self.status,
             "created_at": self.created_at,
             "started_at": self.started_at,
@@ -133,6 +137,14 @@ class ExecutionReport:
     # 错误汇总
     errors: list[dict] = field(default_factory=list)
     
+    # 错误分类统计
+    error_breakdown: dict = field(default_factory=dict)  # {"business": 2, "technical": 1, ...}
+    
+    # 性能指标
+    avg_step_duration_s: float = 0.0
+    slowest_cases: list = field(default_factory=list)  # [{"name": "xxx", "duration_s": 13.9}, ...]
+    fastest_cases: list = field(default_factory=list)   # [{"name": "xxx", "duration_s": 1.2}, ...]
+    
     def __post_init__(self):
         if not self.report_id:
             self.report_id = f"rpt_{int(time.time()*1000)}"
@@ -155,10 +167,16 @@ class ExecutionReport:
                 "passed_steps": self.passed_steps,
                 "failed_steps": self.failed_steps,
                 "total_duration_s": round(self.total_duration_s, 2),
-                "pass_rate": round(self.pass_rate, 1),
+                "pass_rate": round(self.pass_rate, 4),
             },
             "case_results": self.case_results,
             "errors": self.errors,
+            "error_breakdown": self.error_breakdown,
+            "performance": {
+                "avg_step_duration_s": self.avg_step_duration_s,
+                "slowest_cases": self.slowest_cases,
+                "fastest_cases": self.fastest_cases,
+            },
         }
 
 
@@ -245,7 +263,7 @@ class TaskManager:
         report.passed_steps = sum(r.step_ok for r in task.results)
         report.failed_steps = report.total_steps - report.passed_steps
         report.total_duration_s = sum(r.duration_s for r in task.results)
-        report.pass_rate = (report.passed_cases / report.total_cases * 100) if report.total_cases > 0 else 0
+        report.pass_rate = (report.passed_cases / report.total_cases) if report.total_cases > 0 else 0
         
         # 用例详情
         report.case_results = [r.to_dict() for r in task.results]
@@ -259,6 +277,33 @@ class TaskManager:
                     "step_count": r.step_count,
                     "step_ok": r.step_ok,
                 })
+        
+        # 错误分类
+        error_breakdown: dict[str, int] = {}
+        for r in task.results:
+            if not r.passed and r.error:
+                err_lower = r.error.lower()
+                if any(kw in err_lower for kw in ("assertion", "断言", "assert")):
+                    category = "business"
+                elif any(kw in err_lower for kw in ("connection", "connect", "login", "登录", "timeout", "refused")):
+                    category = "environment"
+                elif any(kw in err_lower for kw in ("4xx", "5xx", "http", "status", "500", "404", "403")):
+                    category = "technical"
+                elif any(kw in err_lower for kw in ("parse", "config", "解析", "配置", "key", "field")):
+                    category = "framework"
+                else:
+                    category = "technical"
+                r.error_category = category
+                error_breakdown[category] = error_breakdown.get(category, 0) + 1
+        report.error_breakdown = error_breakdown
+        
+        # 性能指标
+        if report.total_steps > 0:
+            report.avg_step_duration_s = round(report.total_duration_s / report.total_steps, 3)
+        
+        sorted_by_duration = sorted(task.results, key=lambda r: r.duration_s, reverse=True)
+        report.slowest_cases = [{"name": r.name, "duration_s": r.duration_s} for r in sorted_by_duration[:3]]
+        report.fastest_cases = [{"name": r.name, "duration_s": r.duration_s} for r in sorted_by_duration[-3:]]
         
         # 保存报告
         with self._lock:

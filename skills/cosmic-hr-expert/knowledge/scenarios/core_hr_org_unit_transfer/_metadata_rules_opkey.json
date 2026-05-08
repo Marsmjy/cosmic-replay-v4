@@ -1,0 +1,67 @@
+{
+  "scene": "core_hr_org_unit_transfer",
+  "scene_type": "schedule_task_asset",
+  "note": "本场景非表单场景·无 opKey 概念。核心是 3 个 Schedule Task 类的 execute() 入口·见 task_classes 字段",
+  "task_classes": [
+    {
+      "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgParentChgTask",
+      "extends": "AbstractCommonTask",
+      "kd_ancestor": "kd.bos.schedule.executor.AbstractTask",
+      "changeType": "A",
+      "scenes": ["1020_S"],
+      "execute_signature": "public void execute(RequestContext requestContext, Map<String, Object> map)",
+      "owner_type": "ISV"
+    },
+    {
+      "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgRenameChgTask",
+      "extends": "AbstractCommonTask",
+      "kd_ancestor": "kd.bos.schedule.executor.AbstractTask",
+      "changeType": "B",
+      "scenes": ["1030_S"],
+      "execute_signature": "public void execute(RequestContext requestContext, Map<String, Object> map)",
+      "owner_type": "ISV"
+    },
+    {
+      "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.PostRenameChgTask",
+      "extends": "AbstractCommonTask",
+      "kd_ancestor": "kd.bos.schedule.executor.AbstractTask",
+      "changeType": "C",
+      "scenes": ["1020_S", "1080_S"],
+      "execute_signature": "public void execute(RequestContext requestContext, Map<String, Object> map) throws KDException",
+      "owner_type": "ISV"
+    }
+  ],
+  "abstract_class": {
+    "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.AbstractCommonTask",
+    "extends": "kd.bos.schedule.executor.AbstractTask",
+    "loc": 454,
+    "shared_methods": [
+      {"name": "buildBatchTranBill", "signature": "(DynamicObject[] empPosOrgRelArr, Long orgId, Date changeDate, String changeType) -> DynamicObject", "line": 61, "purpose": "构造 hdm_transferbatch 调动单"},
+      {"name": "saveAndEffectBatchBill", "signature": "(DynamicObject orgTran, DynamicObject batchTranBill, String currentName, String currentTypeName) -> void", "line": 270, "purpose": "SAVE + SUBMITEFFECT op 调用"},
+      {"name": "changeEmpPosOrgRelHisDataByOrg", "signature": "(Set<Long> orgSet, Date effectDate) -> void", "line": 336, "purpose": "A/B 流程·按组织维度刷新历史任职"},
+      {"name": "changeEmpPosOrgRelHisDataByPos", "signature": "(Set<Long> posSet, Date effectDate) -> void", "line": 387, "purpose": "C 流程·按岗位维度刷新"},
+      {"name": "getTaskDays", "signature": "(Map<String, Object> map) -> Map<String, Object>", "line": 438, "purpose": "计算调度日期范围"}
+    ]
+  },
+  "helper_class": {
+    "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgTransferHelper",
+    "type": "utility (全 public static)",
+    "loc": 508,
+    "method_count": 19,
+    "categories": {
+      "message_query": ["queryHAOSChangeMsg:32", "queryPosChangeMsg:67"],
+      "his_version_query": ["queryOrgHisDataByIdAndEffectDate:92", "queryPosHisDataByIdAndEffectDate:108", "queryPosInfo:125", "queryPosChangeNameDetailData:139"],
+      "transfer_dy_assemble": ["getOrgTransferDyList:155", "getPosTransferDyList:212", "getInEffectDateEmpPosOrgRelArrByOrgIdSet:245", "getAfterEffectDateEmpPosOrgRelArrByOrgIdSet:263", "getAfterEffectDateEmpPosOrgRelArrByPosIdSet:276", "getEmpPosOrgRelArrByPosId:289", "excludHisDataDyList:309"],
+      "auxiliary_query": ["queryAssignmentByIdSet:323", "queryTransferBatchBill:336", "queryOrgTranMappingIdSet:346", "queryOrgTranArr:354", "queryByEmployeeId:363", "convertOrgTransfer:376"]
+    }
+  },
+  "platform_op_dependency": {
+    "form": "hdm_transferbatch",
+    "ops_called": ["HRBaseConstants.SAVE", "HRBaseConstants.SUBMITEFFECT"],
+    "note": "本资产不实现新 op·只调用标品 hdm_transferbatch 的 SAVE 和 SUBMITEFFECT 触发标品自动协同"
+  },
+  "metadata": {
+    "evidence_source": "deep_scan_class_tree.md (case_001 真扫)",
+    "built_at": "2026-05-06"
+  }
+}

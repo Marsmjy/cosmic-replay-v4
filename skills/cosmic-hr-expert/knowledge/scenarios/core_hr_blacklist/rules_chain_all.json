@@ -1,0 +1,1294 @@
+{
+  "scene": "core_hr_blacklist",
+  "formId": "hrpi_blacklist",
+  "description": "rules_chain_all.json · 场景 core_hr_blacklist",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类 · ISV 不允许继承）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承）",
+        "❌ 禁继承 AbsOrgBaseOp（非 HR 通用推荐 · 用 HRDataBaseOp 代替）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "newentry": {
+      "opKey": "newentry",
+      "name": "增行",
+      "opType": "newentry",
+      "overview": {
+        "scene": "增行（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "deleteentry": {
+      "opKey": "deleteentry",
+      "name": "删行",
+      "opType": "deleteentry",
+      "overview": {
+        "scene": "删行（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "rmblacklist": {
+      "opKey": "rmblacklist",
+      "name": "移除",
+      "opType": "donothing",
+      "overview": {
+        "scene": "移除（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "edit": {
+      "opKey": "edit",
+      "name": "修改",
+      "opType": "edit",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "showlog": {
+      "opKey": "showlog",
+      "name": "查看日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看日志（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "新增（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdata": {
+      "opKey": "importdata",
+      "name": "引入数据",
+      "opType": "importdata",
+      "overview": {
+        "scene": "引入数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "addsysperson": {
+      "opKey": "addsysperson",
+      "name": "添加离职员工",
+      "opType": "donothing",
+      "overview": {
+        "scene": "添加离职员工（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "importdata"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "first",
+        "previous",
+        "next",
+        "last",
+        "save",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr",
+        "newentry",
+        "deleteentry",
+        "modify",
+        "rmblacklist",
+        "edit",
+        "showlog",
+        "new",
+        "importdata",
+        "addsysperson"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

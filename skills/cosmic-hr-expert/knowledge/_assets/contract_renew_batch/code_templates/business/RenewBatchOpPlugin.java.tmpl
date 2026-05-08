@@ -1,0 +1,374 @@
+package ${ISV_FLAG}.hr.hlcmext.plugin;
+
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.db.tx.TX;
+import kd.bos.db.tx.TXHandle;
+import kd.bos.entity.operate.OperateOptionConst;
+import kd.bos.entity.operate.result.IOperateInfo;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.AfterOperationArgs;
+import kd.bos.entity.plugin.args.BeforeOperationArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.service.operation.OperationServiceImpl;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * 批量劳动合同续签OP插件
+ */
+public class RenewBatchOpPlugin extends AbstractOperationServicePlugIn {
+
+    private static Log logger = LogFactory.getLog(RenewBatchOpPlugin.class);
+
+    public void onPreparePropertys(PreparePropertysEventArgs args) {
+        List<String> fieldKeys = args.getFieldKeys();
+        fieldKeys.add("${ISV_FLAG}_itemids_tag");
+        fieldKeys.add("${ISV_FLAG}_affiliationord");
+    }
+
+    @Override
+    public void beforeExecuteOperationTransaction(BeforeOperationArgs e) {
+        super.beforeExecuteOperationTransaction(e);
+        String operationKey = e.getOperationKey();
+        DynamicObject[] dynamicObjects = e.getDataEntities();
+        if ("audit".equals(operationKey)) {
+            //审批通过
+            auditItems(dynamicObjects, e);
+        }else if ("save".equals(operationKey) || "submit".equals(operationKey)){
+            checkDocumentOrg(dynamicObjects, e);
+        }
+    }
+
+
+    public void checkDocumentOrg(DynamicObject[] dynamicObjects, BeforeOperationArgs e){
+//        for (DynamicObject dataEntity:dynamicObjects){
+//            String structNumber = dataEntity.getString("${ISV_FLAG}_affiliationord.structnumber");
+//            //查询所属组织所有下属组织
+//            List<Long> hrOrgIdList = AdminOrgHrUtils.getLowerOrgIds(Arrays.asList(structNumber));
+//            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+//
+//            if (StringUtils.isNotEmpty(itemIds)){
+//                Object[] pkIds = Arrays.stream(itemIds.split(",")).map(n->Long.valueOf(n)).toArray();
+//                DynamicObject[] items = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+//                        "curcompany,empnumber",
+//                        new QFilter("id", QCP.in, pkIds).toArray());
+//                List<String> notCheckNumber = new ArrayList<>();
+//                Arrays.stream(items).forEach(n->{
+//                    long curCompany = n.getLong("curcompany.id");
+//                    if (!hrOrgIdList.contains(curCompany)){
+//                        notCheckNumber.add(n.getString("empnumber"));
+//                    }
+//                });
+//                if (notCheckNumber.size() > 0){
+//                    e.setCancel(true);
+//                    e.setCancelMessage(String.format("工号：%s,不属于该所属组织,请核对数据后重新发起。", StringUtils.join(notCheckNumber.toArray(), ",")));
+//                    return;
+//                }
+//            }else{
+//                e.setCancel(true);
+//                e.setCancelMessage(String.format("单号：%s,至少存在一条分录数据。", dataEntity.getString("billno")));
+//                return;
+//            }
+//        }
+        //jl-修改
+        //1.收集数据
+        HashSet<Long> allPkIds = new HashSet<>();
+        for (DynamicObject dataEntity : dynamicObjects) {
+            String structNumber = dataEntity.getString("${ISV_FLAG}_affiliationord.structnumber");
+            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+            if (StringUtils.isNotEmpty(itemIds)) {
+                Set<Long> pkIds = Arrays.stream(itemIds.split(",")).map(n -> Long.valueOf(n)).collect(Collectors.toSet());
+                allPkIds.addAll(pkIds);
+            } else {
+                e.setCancel(true);
+                e.setCancelMessage(String.format("单号：%s,至少存在一条分录数据。", dataEntity.getString("billno")));
+                return;
+            }
+        }
+        if (allPkIds.size() == 0) {
+            return;
+        }
+        DynamicObject[] allitems = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+                "curcompany,empnumber",
+                new QFilter("id", QCP.in, allPkIds).toArray());
+
+        //2.执行
+        for (DynamicObject dataEntity : dynamicObjects) {
+            String structNumber = dataEntity.getString("${ISV_FLAG}_affiliationord.structnumber");
+            //查询所属组织所有下属组织
+            List<Long> hrOrgIdList = AdminOrgHrUtils.getLowerOrgIds(Arrays.asList(structNumber));
+            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+            if (StringUtils.isNotEmpty(itemIds)){
+                Set<Long> pkIds = Arrays.stream(itemIds.split(",")).map(n -> Long.valueOf(n)).collect(Collectors.toSet());
+                List<DynamicObject> items = Arrays.stream(allitems).filter(a -> pkIds.contains(a.getLong("id"))).collect(Collectors.toList());
+                List<String> notCheckNumber = new ArrayList<>();
+                items.stream().forEach(n->{
+                    long curCompany = n.getLong("curcompany.id");
+                    if (!hrOrgIdList.contains(curCompany)){
+                        notCheckNumber.add(n.getString("empnumber"));
+                    }
+                });
+                if (notCheckNumber.size() > 0){
+                    e.setCancel(true);
+                    e.setCancelMessage(String.format("工号：%s,不属于该所属组织,请核对数据后重新发起。", StringUtils.join(notCheckNumber.toArray(), ",")));
+                    return;
+                }
+            }
+        }
+
+    }
+
+    @Override
+    public void afterExecuteOperationTransaction(AfterOperationArgs e) {
+        super.afterExecuteOperationTransaction(e);
+        String operationKey = e.getOperationKey();
+        DynamicObject[] dynamicObjects = e.getDataEntities();
+        if ("save".equals(operationKey)  || "submit".equals(operationKey)){
+            //保存
+            changeStatus(dynamicObjects);
+        }else if ("wfauditing".equals(operationKey)) {
+            //审批中
+            changeStatus(dynamicObjects, "D");
+        }else if ("wfauditnotpass".equals(operationKey) || "invalid".equals(operationKey) || "delete".equals(operationKey)) {
+            //审批不通过 or  作废
+            changeStatus(dynamicObjects, "F");
+        }
+    }
+
+    private void auditItems(DynamicObject[] dynamicObjects,BeforeOperationArgs args) {
+        try (TXHandle h1 = TX.requiresNew("tdkwRenewBatchOpPlugin_auditItems")) {
+            try {
+                Arrays.stream(dynamicObjects).forEach(n -> {
+//                    logger.info("单据号：{}，审批通过操作开始。", n.getString("billno")); //jl-修改
+                    String itemIds = n.getString("${ISV_FLAG}_itemids_tag");
+                    if (StringUtils.isNotEmpty(itemIds)) {
+                        Object[] ids = Arrays.stream(itemIds.split(",")).map(id -> Long.valueOf(id)).toArray();
+                        OperationServiceImpl opImpl = new OperationServiceImpl();
+                        OperateOption operateOption = OperateOption.create();
+                        operateOption.setVariableValue(OperateOptionConst.SKIPCHECKPERMISSION, Boolean.TRUE.toString());
+                        operateOption.setVariableValue(OperateOptionConst.ISHASRIGHT, Boolean.TRUE.toString());
+                        OperationResult operationResult = opImpl.localInvokeOperation("submiteffect",
+                                "hlcm_contractapplyrenew",
+                                ids, operateOption);
+                        if (operationResult.isSuccess()) {
+                            h1.commit();
+//                            logger.info("单据号：{}，审批通过操作完成。", n.getString("billno")); //jl-修改
+                        }else {
+                            List<IOperateInfo> errorInfos = operationResult.getAllErrorOrValidateInfo();
+                            String error = StringUtils.join(errorInfos.stream().map(i -> i.getMessage()).collect(Collectors.toList()));
+                            String content = String.format("单据号：%s，子单据审批异常:%s",n.getString("billno"), error);
+                            h1.markRollback();
+//                            logger.error(content);//jl-修改
+                            args.setCancel(true);
+                            args.setCancelMessage(content);
+                        }
+                    }
+                });
+            }catch (Throwable e){
+                h1.markRollback();
+                logger.error("批量劳动合同审批通过子单据执行异常:", e);
+//                e.printStackTrace();  jl-修改
+            }
+        }
+    }
+
+    private void changeStatus(DynamicObject[] dynamicObjects){
+//        Arrays.stream(dynamicObjects).forEach(n->{
+//            String itemIds = n.getString("${ISV_FLAG}_itemids_tag");
+//            long pkId = n.getLong("id");
+//            List<DynamicObject> updateList = new ArrayList<>();
+//            List ids = new ArrayList();
+//            //绑定新增的子单
+//            if (StringUtils.isNotEmpty(itemIds)){
+//                ids.addAll(Arrays.stream(itemIds.split(",")).mapToLong(id->Long.valueOf(id)).boxed().collect(Collectors.toList()));
+//                DynamicObject[] items = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+//                        "billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+//                        new QFilter("id", QCP.in, ids).toArray());
+//                Arrays.stream(items).forEach(item->{
+//                    item.set("billstatus", "B");
+//                    item.set("handlestatus", "2");
+//                    item.set("auditstatus", "B");
+//                    item.set("${ISV_FLAG}_renewbatch", pkId);
+//                    updateList.add(item);
+//                });
+//            }
+//            //解绑删除的子单
+//            DynamicObject[] itemsOld = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+//                    "billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+//                    new QFilter("${ISV_FLAG}_renewbatch.id", QCP.equals, pkId).toArray());
+//            Arrays.stream(itemsOld).filter(i-> !ids.contains(i.getLong("id")))
+//                    .forEach(item->{
+//                        item.set("billstatus", "A");
+//                        item.set("handlestatus", "1");
+//                        item.set("auditstatus", "A");
+//                        item.set("${ISV_FLAG}_renewbatch", null);
+//                        updateList.add(item);
+//                    });
+//            SaveServiceHelper.update(updateList.toArray(new DynamicObject[updateList.size()]));
+//        });
+        //jl-修改  todo 不确定dynamicObjects数组中itemIds字段的是否存在交集
+        // 收集所有需要的数据
+        List<Long> allPkIds = new ArrayList<>();//所有主单
+        Set<Long> allItemIds = new HashSet<>();//所有子单据id
+        Map<Long, List<Long>> pkIdToItemIdsMap = new HashMap<>();//key：主id value：子id集合
+
+        // 第一步：收集所有需要的数据
+        Arrays.stream(dynamicObjects).forEach(n -> {
+            long pkId = n.getLong("id");
+            allPkIds.add(pkId);
+
+            String itemIds = n.getString("${ISV_FLAG}_itemids_tag");
+            List<Long> currentItemIds = new ArrayList<>();
+
+            if (StringUtils.isNotEmpty(itemIds)) {
+                currentItemIds = Arrays.stream(itemIds.split(","))
+                        .map(Long::valueOf)
+                        .collect(Collectors.toList());
+                allItemIds.addAll(currentItemIds);
+            }
+
+            pkIdToItemIdsMap.put(pkId, currentItemIds);
+        });
+
+      // 批量查询需要绑定的子单
+        DynamicObject[] bindItems = new DynamicObject[0];
+        if (!allItemIds.isEmpty()) {
+            bindItems = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+                    "id,billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+                    new QFilter("id", QCP.in, allItemIds.toArray()).toArray());
+        }
+
+        // 批量查询需要解绑的子单
+        DynamicObject[] unbindItems = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+                "id,billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+                new QFilter("${ISV_FLAG}_renewbatch.id", QCP.in, allPkIds.toArray()).toArray());
+
+         // 创建更新列表
+        List<DynamicObject> updateList = new ArrayList<>();
+
+        // 处理绑定逻辑
+        Map<Long, DynamicObject> bindItemsMap = Arrays.stream(bindItems)
+                .collect(Collectors.toMap(item -> item.getLong("id"), item -> item));
+        // 处理解绑逻辑
+        Map<Long, DynamicObject> unbindItemsMap = Arrays.stream(unbindItems)
+                .collect(Collectors.toMap(item -> item.getLong("id"), item -> item));
+
+        // 根据业务规则更新记录
+        for (Map.Entry<Long, List<Long>> entry : pkIdToItemIdsMap.entrySet()) {
+            Long pkId = entry.getKey();//主id
+            List<Long> itemIds = entry.getValue();//子id
+
+            // 绑定新增的子单
+            for (Long itemId : itemIds) {
+                DynamicObject item = bindItemsMap.get(itemId);
+                if (item != null) {
+                    item.set("billstatus", "B");
+                    item.set("handlestatus", "2");
+                    item.set("auditstatus", "B");
+                    item.set("${ISV_FLAG}_renewbatch", pkId);
+                    updateList.add(item);
+                }
+            }
+
+            // 解绑删除的子单
+            for (DynamicObject item : unbindItems) {
+                if (pkId.equals(item.getLong("${ISV_FLAG}_renewbatch.id")) &&
+                        !itemIds.contains(item.getLong("id"))) {
+                    item.set("billstatus", "A");
+                    item.set("handlestatus", "1");
+                    item.set("auditstatus", "A");
+                    item.set("${ISV_FLAG}_renewbatch", null);
+                    updateList.add(item);
+                }
+            }
+        }
+
+        // 最后-批量保存所有更新
+        if (!updateList.isEmpty()) {
+            // 去重，避免同一记录被多次更新
+            Map<Long, DynamicObject> distinctUpdateMap = updateList.stream()
+                    .collect(Collectors.toMap(
+                            item -> item.getLong("id"),
+                            item -> item,
+                            (existing, replacement) -> existing // 如果有重复，保留已存在的
+                    ));
+            SaveServiceHelper.update(distinctUpdateMap.values().toArray(new DynamicObject[0]));
+        }
+    }
+
+    private void changeStatus(DynamicObject[] dynamicObjects,String status){
+//        Arrays.stream(dynamicObjects).forEach(n->{
+//            long pkId = n.getLong("id");
+//            DynamicObject[] items = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+//                    "billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+//                    new QFilter("${ISV_FLAG}_renewbatch.id", QCP.equals, pkId).toArray());
+//            Arrays.stream(items).forEach(item->{
+//                switch (status){
+//                    case "D":
+//                        item.set("billstatus", "D");
+//                        break;
+//                    case "F":
+//                        item.set("billstatus", "A");
+//                        item.set("handlestatus", "1");
+//                        item.set("auditstatus", "A");
+//                        item.set("${ISV_FLAG}_renewbatch", null);
+//                }
+//            });
+//            SaveServiceHelper.update(items);
+//        });
+        //jl-修改
+        // 收集所有需要查询的pkId
+        List<Long> pkIds = Arrays.stream(dynamicObjects)
+                .map(n -> n.getLong("id"))
+                .collect(Collectors.toList());
+         // 如果pkIds为空，直接返回
+        if (pkIds.isEmpty()) {
+            return;
+        }
+        // 批量查询所有需要更新的记录
+        DynamicObject[] items = BusinessDataServiceHelper.load(
+                "hlcm_contractapplyrenew",
+                "billstatus,handlestatus,auditstatus,${ISV_FLAG}_renewbatch",
+                new QFilter("${ISV_FLAG}_renewbatch.id", QCP.in, pkIds.toArray()).toArray()
+        );
+
+        // 批量更新所有记录
+        List<DynamicObject> itemsToUpdate = new ArrayList<>();
+        for (DynamicObject item : items) {
+            switch (status) {
+                case "D":
+                    item.set("billstatus", "D");
+                    itemsToUpdate.add(item);
+                    break;
+                case "F":
+                    item.set("billstatus", "A");
+                    item.set("handlestatus", "1");
+                    item.set("auditstatus", "A");
+                    item.set("${ISV_FLAG}_renewbatch", null);
+                    itemsToUpdate.add(item);
+                    break;
+                // 可以根据需要添加其他case
+            }
+        }
+        // 批量保存所有更新
+        if (!itemsToUpdate.isEmpty()) {
+            SaveServiceHelper.update(itemsToUpdate.toArray(new DynamicObject[0]));
+        }
+    }
+}

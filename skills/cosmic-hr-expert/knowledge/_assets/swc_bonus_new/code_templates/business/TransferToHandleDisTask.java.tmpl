@@ -1,0 +1,51 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribution.second;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.form.IPageCache;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.util.EventObject;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/5/22 14:33
+ * FileName: TransferToHandleTask
+ * Description: 单据分配审批流页面监听转交按钮选择人员的事件v2
+ */
+public class TransferToHandleDisTask extends AbstractFormPlugin {
+
+    @Override
+    public void registerListener(EventObject e) {
+        this.addClickListeners("confirmbtn");
+    }
+
+    @Override
+    public void click(EventObject evt) {
+        DynamicObject dataEntity = this.getModel().getDataEntity();
+        DynamicObject bosUserTransFerTo = dataEntity.getDynamicObject("transferto");
+        // 标品的校验 --- 必须选择人员
+        if(bosUserTransFerTo == null ){
+            return;
+        }
+        // 从父页面的缓存中获取工作流传递过来的参数
+        IPageCache parentCache = this.getView().getParentView().getPageCache();
+        String bonusId = parentCache.get("workFlowBonusIdFromSecondVersion");
+        // 使用完成后删除缓存
+        parentCache.remove("workFlowBonusIdFromSecondVersion");
+        // 工作流中有传递参数过来
+        if(bonusId != null){
+//            String number = bosUserTransFerTo.getString("number");
+//            // 转换bosUser为HR人员
+//            DynamicObject HRPerson = BusinessDataServiceHelper.loadSingle("hrpi_person", new QFilter("number", QCP.equals, number).toArray());
+            // 去查询奖金分配单的DynamicObject
+            DynamicObject bonusDistribution = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_dis_detail", new QFilter("id", QCP.equals, Long.parseLong(bonusId)).toArray());
+            bonusDistribution.set("${ISV_FLAG}_handler",bosUserTransFerTo); // 设置奖金分配单中的分配处理人的字段
+            // 同步更新奖金分配单的字段
+            SaveServiceHelper.update(bonusDistribution);
+        }
+    }
+}

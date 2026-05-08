@@ -1,0 +1,2876 @@
+{
+  "scene": "hbpm_position_maintenance",
+  "formId": "hbpm_positionhr",
+  "description": "岗位信息维护 · 7 opKey 的完整执行链（OpPlugin + FormPlugin 前置/后置），全部基于 cfr 反编译实证",
+  "auditedAt": "2026-04-21",
+  "dataSource": "L2 反编译 · _shared + _sdk_audit/scenarios/position",
+  "decompiledClasses": [
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrCommonOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp",
+    "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+    "kd.hrmp.hbpm.opplugin.web.position.validate.PositionImptRuleNumberValidator",
+    "kd.hrmp.hbpm.opplugin.web.position.validate.JobLevelGradeRangeImportValidator",
+    "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisLoopValidator",
+    "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisValidator",
+    "kd.hrmp.hbpm.opplugin.web.position.validate.PositionValidatorServiceHelper",
+    "kd.hrmp.hbpm.formplugin.web.position.PositionEdit",
+    "kd.hrmp.hbpm.formplugin.web.position.PositionList",
+    "kd.hrmp.hbpm.formplugin.web.position.PositionPageRightDynamicPlugin",
+    "kd.hrmp.hbpm.business.domain.position.service.impl.ChangeMsgServiceImpl",
+    "kd.hrmp.hbpm.business.domain.position.service.impl.PositionCodeRuleHelper",
+    "kd.hrmp.hbpm.business.application.service.IPositionHrServiceApplication",
+    "kd.hrmp.hbpm.business.application.service.IPositionRelationServiceApplication",
+    "kd.hrmp.hbpm.business.domain.position.service.IBosPositionService",
+    "_shared/hbp_common/HRDataBaseOp",
+    "_shared/hbp_common/HRBaseDataStatusOp",
+    "_shared/hbp_common/HRBaseDataEnableOp",
+    "_shared/hbp_common/HRBaseDataLogOp",
+    "_shared/hbp_common/HRBaseOriginalOp",
+    "_shared/hbp_common/HisModelOPCommonPlugin",
+    "_shared/hbp_common/HisUniqueValidateOp",
+    "_shared/hbp_common/HisModelFormCommonPlugin",
+    "_shared/hbp_common/HisGrpFieldsUniqueValidator",
+    "_shared/hbp_common/HisModelOPCommonValidator",
+    "_shared/hbp_common/HisModelChangeOPValidator",
+    "_shared/hbp_common/HisModelImportOPValidator",
+    "_shared/hbp_common/HisModelDisableOpValidator",
+    "_shared/hbp_common/HRDataBaseConfigValidator",
+    "_shared/bos_common/CodeRuleOp",
+    "_shared/bos_common/AbstractCodeRuleOp",
+    "_shared/bos_common/BdVersionSaveServicePlugin",
+    "_shared/bos_common/CodeRuleNumberValidator"
+  ],
+  "opKeys": {
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（9 个插件 · 1 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 6,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        },
+        {
+          "order": 8,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "时态模型唯一性校验（同一 boid 同一时间段唯一）"
+        },
+        {
+          "order": 9,
+          "plugin": "PositionHrSaveOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "role": "重写 3 个方法：onAddValidators（注册校验器）, beforeExecuteOperationTransaction（事务前预处理）, beginOperationTransaction（事务中主业务）",
+          "definition": "在 save opKey 场景下，对岗位信息（hbpm_positionhr）执行保存流程。包括三个环节：① 导入时增加岗位编码唯一性校验；② 执行前处理单位-岗位映射、组织关系继承、岗位父子关系修正；③ 事务内保存系统关系 / 协作关系，并关联岗位变更事件（变更描述、变更类型、变更操作、变更场景）供历史追溯。业务意图是确保岗位与组织结构映射准确、岗位关系链完整、变更事件可溯。",
+          "algorithm": "1) onAddValidators：若 isImport()=true 则调 args.addValidator(PositionImptRuleNumberValidator) 在链中注入导入岗位编码重复校验；2) beforeExecuteOperationTransaction：① 从 getOption 读取 unitPositionMap；② 对每个 pos 设置 org=adminorg.org（组织继承）；③ 若 pos.number 在 unitPositionMap 中则覆写 id；④ 第二轮遍历，对每个 pos 的 parent.number 如在 newPositionDyMap 中则设置 parent 指向新 id；3) beginOperationTransaction：① 调 IPositionRelationServiceApplication.saveSysRelation 和 saveCooperationRelation 保存系统关系链；② 构建 boToDynMap 和 afterVersionids；③ 从 PositionQueryRepository 查询 afterVersions；④ 从 PositionChangeEventQueryRepository 查询 changeType/changeOperationDy/changeSceneDy（三者都以 1010L 为查询 key）；⑤ 对每条 afterVersion 回填 changedesc / changedescription（从 curData 取值）和 changetype / changeoperate / changescene（常量赋值）；⑥ 调 IPositionHrServiceApplication.afterSavePosition(afterVersions) 触发后置处理。",
+          "triggerCondition": "operateKey='save' 且 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "id",
+            "parent",
+            "changedesc",
+            "changedescription",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrSaveOp.java",
+          "notes": "无 @SdkInternal / @Deprecated / TODO 标注。实际错误处理由 PositionImptRuleNumberValidator / IPositionRelationServiceApplication / IPositionHrServiceApplication 内部完成。岗位变更事件 changeType / changeOperationDy / changeSceneDy 的 key 固定为 1010L（可能对应某个业务常数或配置）。",
+          "name": "岗位信息保存操作",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_PositionHrSaveOp_1",
+          "name": "PositionImptRuleNumberValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 PositionImptRuleNumberValidator",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp#onAddValidators",
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "extensible": false,
+          "confidence": "distilled",
+          "algorithm": "1) onAddValidators：若 isImport()=true 则调 args.addValidator(PositionImptRuleNumberValidator) 在链中注入导入岗位编码重复校验；2) beforeExecuteOperationTransaction：① 从 getOption 读取 unitPositionMap；② 对每个 pos 设置 org=adminorg.org（组织继承）；③ 若 pos.number 在 unitPositionMap 中则覆写 id；④ 第二轮遍历，对每个 pos 的 parent.number 如在 newPositionDyMap 中则设置 parent 指向新 id；3) beginOperationTransaction：① 调 IPositionRelationServiceApplication.saveSysRelation 和 saveCooperationRelation 保存系统关系链；② 构建 boToDynMap 和 afterVersionids；③ 从 PositionQueryRepository 查询 afterVersions；④ 从 PositionChangeEventQueryRepository 查询 changeType/changeOperationDy/changeSceneDy（三者都以 1010L 为查询 key）；⑤ 对每条 afterVersion 回填 changedesc / changedescription（从 curData 取值）和 changetype / changeoperate / changescene（常量赋值）；⑥ 调 IPositionHrServiceApplication.afterSavePosition(afterVersions) 触发后置处理。",
+          "triggerCondition": "operateKey='save' 且 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "id",
+            "parent",
+            "changedesc",
+            "changedescription",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrSaveOp.java",
+          "notes": "无 @SdkInternal / @Deprecated / TODO 标注。实际错误处理由 PositionImptRuleNumberValidator / IPositionRelationServiceApplication / IPositionHrServiceApplication 内部完成。岗位变更事件 changeType / changeOperationDy / changeSceneDy 的 key 固定为 1010L（可能对应某个业务常数或配置）。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_PositionHrSaveOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "在 save opKey 场景下，对岗位信息（hbpm_positionhr）执行保存流程。包括三个环节：① 导入时增加岗位编码唯一性校验；② 执行前处理单位-岗位映射、组织关系继承、岗位父子关系修正；③ 事务内保存系统关系 / 协作关系，并关联岗位变更事件（变更描述、变更类型、变更操作、变更场景）供历史追溯。业务意图是确保岗位与组织结构映射准确、岗位关系链完整、变更事件可溯。",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp#onAddValidators",
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L44-L49",
+          "confidence": "distilled",
+          "algorithm": "1) onAddValidators：若 isImport()=true 则调 args.addValidator(PositionImptRuleNumberValidator) 在链中注入导入岗位编码重复校验；2) beforeExecuteOperationTransaction：① 从 getOption 读取 unitPositionMap；② 对每个 pos 设置 org=adminorg.org（组织继承）；③ 若 pos.number 在 unitPositionMap 中则覆写 id；④ 第二轮遍历，对每个 pos 的 parent.number 如在 newPositionDyMap 中则设置 parent 指向新 id；3) beginOperationTransaction：① 调 IPositionRelationServiceApplication.saveSysRelation 和 saveCooperationRelation 保存系统关系链；② 构建 boToDynMap 和 afterVersionids；③ 从 PositionQueryRepository 查询 afterVersions；④ 从 PositionChangeEventQueryRepository 查询 changeType/changeOperationDy/changeSceneDy（三者都以 1010L 为查询 key）；⑤ 对每条 afterVersion 回填 changedesc / changedescription（从 curData 取值）和 changetype / changeoperate / changescene（常量赋值）；⑥ 调 IPositionHrServiceApplication.afterSavePosition(afterVersions) 触发后置处理。",
+          "triggerCondition": "operateKey='save' 且 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "id",
+            "parent",
+            "changedesc",
+            "changedescription",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrSaveOp.java",
+          "notes": "无 @SdkInternal / @Deprecated / TODO 标注。实际错误处理由 PositionImptRuleNumberValidator / IPositionRelationServiceApplication / IPositionHrServiceApplication 内部完成。岗位变更事件 changeType / changeOperationDy / changeSceneDy 的 key 固定为 1010L（可能对应某个业务常数或配置）。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_PositionHrSaveOp_2",
+          "order": 2,
+          "name": "beforeExecuteOperationTransaction 方法的业务逻辑",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "在 save opKey 场景下，对岗位信息（hbpm_positionhr）执行保存流程。包括三个环节：① 导入时增加岗位编码唯一性校验；② 执行前处理单位-岗位映射、组织关系继承、岗位父子关系修正；③ 事务内保存系统关系 / 协作关系，并关联岗位变更事件（变更描述、变更类型、变更操作、变更场景）供历史追溯。业务意图是确保岗位与组织结构映射准确、岗位关系链完整、变更事件可溯。",
+          "phase": "beforeExecuteOperationTransaction（事务前预处理）",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "writeFields": [
+            "id",
+            "org",
+            "parent"
+          ],
+          "readFields": [
+            "adminorg.org",
+            "number",
+            "parent.number"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L51-L73",
+          "confidence": "distilled",
+          "algorithm": "1) onAddValidators：若 isImport()=true 则调 args.addValidator(PositionImptRuleNumberValidator) 在链中注入导入岗位编码重复校验；2) beforeExecuteOperationTransaction：① 从 getOption 读取 unitPositionMap；② 对每个 pos 设置 org=adminorg.org（组织继承）；③ 若 pos.number 在 unitPositionMap 中则覆写 id；④ 第二轮遍历，对每个 pos 的 parent.number 如在 newPositionDyMap 中则设置 parent 指向新 id；3) beginOperationTransaction：① 调 IPositionRelationServiceApplication.saveSysRelation 和 saveCooperationRelation 保存系统关系链；② 构建 boToDynMap 和 afterVersionids；③ 从 PositionQueryRepository 查询 afterVersions；④ 从 PositionChangeEventQueryRepository 查询 changeType/changeOperationDy/changeSceneDy（三者都以 1010L 为查询 key）；⑤ 对每条 afterVersion 回填 changedesc / changedescription（从 curData 取值）和 changetype / changeoperate / changescene（常量赋值）；⑥ 调 IPositionHrServiceApplication.afterSavePosition(afterVersions) 触发后置处理。",
+          "triggerCondition": "operateKey='save' 且 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "id",
+            "parent",
+            "changedesc",
+            "changedescription",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrSaveOp.java",
+          "notes": "无 @SdkInternal / @Deprecated / TODO 标注。实际错误处理由 PositionImptRuleNumberValidator / IPositionRelationServiceApplication / IPositionHrServiceApplication 内部完成。岗位变更事件 changeType / changeOperationDy / changeSceneDy 的 key 固定为 1010L（可能对应某个业务常数或配置）。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_PositionHrSaveOp_3",
+          "order": 3,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "调用 IPositionHrServiceApplication.afterSavePosition、IPositionRelationServiceApplication.saveCooperationRelation、IPositionRelationServiceApplication.saveSysRelation、PositionChangeEventQueryRepository.getInstance 等 · 写 5 个字段 · 读 2 个字段",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "writeFields": [
+            "changedesc",
+            "changedescription",
+            "changeoperate",
+            "changescene",
+            "changetype"
+          ],
+          "readFields": [
+            "boid",
+            "sourcevid"
+          ],
+          "serviceCalls": [
+            "IPositionHrServiceApplication.afterSavePosition",
+            "IPositionRelationServiceApplication.saveCooperationRelation",
+            "IPositionRelationServiceApplication.saveSysRelation",
+            "PositionChangeEventQueryRepository.getInstance",
+            "PositionQueryRepository.queryPositionsById"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L75-L101",
+          "confidence": "distilled",
+          "algorithm": "1) onAddValidators：若 isImport()=true 则调 args.addValidator(PositionImptRuleNumberValidator) 在链中注入导入岗位编码重复校验；2) beforeExecuteOperationTransaction：① 从 getOption 读取 unitPositionMap；② 对每个 pos 设置 org=adminorg.org（组织继承）；③ 若 pos.number 在 unitPositionMap 中则覆写 id；④ 第二轮遍历，对每个 pos 的 parent.number 如在 newPositionDyMap 中则设置 parent 指向新 id；3) beginOperationTransaction：① 调 IPositionRelationServiceApplication.saveSysRelation 和 saveCooperationRelation 保存系统关系链；② 构建 boToDynMap 和 afterVersionids；③ 从 PositionQueryRepository 查询 afterVersions；④ 从 PositionChangeEventQueryRepository 查询 changeType/changeOperationDy/changeSceneDy（三者都以 1010L 为查询 key）；⑤ 对每条 afterVersion 回填 changedesc / changedescription（从 curData 取值）和 changetype / changeoperate / changescene（常量赋值）；⑥ 调 IPositionHrServiceApplication.afterSavePosition(afterVersions) 触发后置处理。",
+          "triggerCondition": "operateKey='save' 且 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "id",
+            "parent",
+            "changedesc",
+            "changedescription",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrSaveOp.java",
+          "notes": "无 @SdkInternal / @Deprecated / TODO 标注。实际错误处理由 PositionImptRuleNumberValidator / IPositionRelationServiceApplication / IPositionHrServiceApplication 内部完成。岗位变更事件 changeType / changeOperationDy / changeSceneDy 的 key 固定为 1010L（可能对应某个业务常数或配置）。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "changedesc",
+        "changedescription",
+        "changeoperate",
+        "changescene",
+        "changetype",
+        "id",
+        "org",
+        "parent"
+      ],
+      "readFields": [
+        "adminorg.org",
+        "boid",
+        "number",
+        "parent.number",
+        "sourcevid"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {
+        "permissionItemId": null,
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "6096194600001fac",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "errorMessage": "字段值合规性校验",
+            "levelId": null
+          }
+        ]
+      },
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "1/9",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "停用岗位：写变更事件（changetype=1040/禁用）+ bos 平台岗位禁用",
+        "frequency": "中",
+        "stateTransition": "enable=1（启用）→ enable=10（禁用）",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 0,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型通用 OP：禁用时走 HisModelDisableOpValidator 分支，beginOperationTransaction 调 handler.disable",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 1,
+          "plugin": "PositionHrDisableOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "role": "岗位禁用主业务：1) onPreparePropertys 扩字段 {adminorg, changeoperate, changescene, changetype}；2) onAddValidators 空实现（不追加校验）；3) beforeExec 查 boid→latestHisId 映射备用；4) beginTrans 查 sourcevid 对应版本，写 changetype/changeoperate/changescene=1040/1030/1040（对应禁用事件），sourcevid 回填为最新历史 id；调 IPositionHrServiceApplication.afterSavePosition 继续下游；5) afterExec 调 ChangeMsgServiceImpl.sendMsg + IBosPositionService.disablePositions(boids) 同步平台岗位禁用",
+          "definition": "岗位停用操作链中的核心处理器。disable operateKey 触发时，先将停用前的岗位版本ID回填到停用后版本的sourcevid，再加载标准变更类型/变更操作/变更场景元数据，最后委托IPositionHrServiceApplication执行after-save处理、调用IBosPositionService.disablePositions进行业务禁用。",
+          "algorithm": "1) beforeExecuteOperationTransaction：按 boid 列表查 PositionQueryRepository 获取停用前最新历史版本 id 映射（boToBeforeIdMap）；2) beginOperationTransaction：按 sourcevid 查出停用后版本对象数组，逐条设置 sourcevid（回填停用前id）、changetype（查询 id=1040）、changeoperate（查询 id=1030）、changescene（查询 id=1040），调用 IPositionHrServiceApplication.afterSavePosition(afterVersions)；3) afterExecuteOperationTransaction：发送变更消息、调 IBosPositionService.disablePositions(boIdList) 最终禁用岗位。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrDisableOp.java",
+          "notes": "跨服务协作：实际disable逻辑在IBosPositionService.disablePositions；变更消息发送在ChangeMsgServiceImpl。线性版本一致性通过sourcevid→history-id映射保证。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "name": "岗位停用操作处理器",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_disable_1",
+          "name": "HR 基础资料状态校验",
+          "type": "HRDataBaseConfig",
+          "phase": "onAddValidators",
+          "definition": "HRDataBaseConfigValidator 仅对 save/delete 生效；disable 不拦",
+          "impl": "kd.hr.hbp.opplugin.validator.HRDataBaseConfigValidator",
+          "extensible": "config",
+          "implClass": "kd.hr.hbp.opplugin.validator.HRDataBaseConfigValidator"
+        },
+        {
+          "id": "V_disable_2",
+          "name": "历史模型禁用校验（First 优先级）",
+          "type": "HisModelDisable",
+          "phase": "onAddValidators（HisModelOPCommonPlugin 注入）",
+          "definition": "HisModelDisableOpValidator；禁用当前版本时 disable=10 即不允许 'enable=1 → 10'（配置为 isBaseDataCtrl=false 时不拦）",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelDisableOpValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelDisableOpValidator",
+          "source_evidence": "_shared/hbp_common/HisModelDisableOpValidator.java"
+        },
+        {
+          "id": "V_disable_3",
+          "name": "历史模型通用校验",
+          "type": "HisModelCommon",
+          "phase": "onAddValidators",
+          "definition": "HisModelOPCommonValidator.switch(disable)：non-line 模型走 Common.validateDisable；line 走 Line.validateDisableDate",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "source_evidence": "_shared/hbp_common/HisModelOPCommonValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_disable_1",
+          "order": 1,
+          "name": "扩展字段读取",
+          "type": "数据准备",
+          "definition": "PositionHrDisableOp.onPreparePropertys 追加 {adminorg, changeoperate, changescene, changetype} 到读字段，确保后置逻辑能读到",
+          "phase": "onPreparePropertys",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp#onPreparePropertys",
+          "writeFields": [],
+          "readFields": [
+            "adminorg",
+            "changeoperate",
+            "changescene",
+            "changetype"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：按 boid 列表查 PositionQueryRepository 获取停用前最新历史版本 id 映射（boToBeforeIdMap）；2) beginOperationTransaction：按 sourcevid 查出停用后版本对象数组，逐条设置 sourcevid（回填停用前id）、changetype（查询 id=1040）、changeoperate（查询 id=1030）、changescene（查询 id=1040），调用 IPositionHrServiceApplication.afterSavePosition(afterVersions)；3) afterExecuteOperationTransaction：发送变更消息、调 IBosPositionService.disablePositions(boIdList) 最终禁用岗位。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrDisableOp.java",
+          "notes": "跨服务协作：实际disable逻辑在IBosPositionService.disablePositions；变更消息发送在ChangeMsgServiceImpl。线性版本一致性通过sourcevid→history-id映射保证。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_disable_2",
+          "order": 2,
+          "name": "查最新历史版本 id",
+          "type": "数据准备",
+          "definition": "beforeExec：PositionQueryRepository.getInstance().getBoToLatestHisIdMap(boIdList) 为 beginTrans 的 sourcevid 回填做准备",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp#beforeExecuteOperationTransaction",
+          "writeFields": [],
+          "readFields": [
+            "boid"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：按 boid 列表查 PositionQueryRepository 获取停用前最新历史版本 id 映射（boToBeforeIdMap）；2) beginOperationTransaction：按 sourcevid 查出停用后版本对象数组，逐条设置 sourcevid（回填停用前id）、changetype（查询 id=1040）、changeoperate（查询 id=1030）、changescene（查询 id=1040），调用 IPositionHrServiceApplication.afterSavePosition(afterVersions)；3) afterExecuteOperationTransaction：发送变更消息、调 IBosPositionService.disablePositions(boIdList) 最终禁用岗位。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrDisableOp.java",
+          "notes": "跨服务协作：实际disable逻辑在IBosPositionService.disablePositions；变更消息发送在ChangeMsgServiceImpl。线性版本一致性通过sourcevid→history-id映射保证。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_disable_3",
+          "order": 3,
+          "name": "写禁用变更事件 + sourcevid 回填",
+          "type": "字段计算",
+          "definition": "beginTrans：查 sourcevid 版本，PositionChangeEventQueryRepository 查 changeType(1040)/changeOperate(1030)/changeScene(1040) 写入后置版本；sourcevid 回填为最新历史 id",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp#beginOperationTransaction",
+          "writeFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "readFields": [
+            "boid",
+            "sourcevid"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：按 boid 列表查 PositionQueryRepository 获取停用前最新历史版本 id 映射（boToBeforeIdMap）；2) beginOperationTransaction：按 sourcevid 查出停用后版本对象数组，逐条设置 sourcevid（回填停用前id）、changetype（查询 id=1040）、changeoperate（查询 id=1030）、changescene（查询 id=1040），调用 IPositionHrServiceApplication.afterSavePosition(afterVersions)；3) afterExecuteOperationTransaction：发送变更消息、调 IBosPositionService.disablePositions(boIdList) 最终禁用岗位。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrDisableOp.java",
+          "notes": "跨服务协作：实际disable逻辑在IBosPositionService.disablePositions；变更消息发送在ChangeMsgServiceImpl。线性版本一致性通过sourcevid→history-id映射保证。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_disable_4",
+          "order": 4,
+          "name": "岗位禁用消息 + 平台岗位禁用同步",
+          "type": "事件/外部调用",
+          "definition": "afterExec：new ChangeMsgServiceImpl().sendMsg() 触发调度任务异步发消息；IBosPositionService.disablePositions(boids) 让 bos 平台岗位同步禁用",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp#afterExecuteOperationTransaction",
+          "writeFields": [
+            "bos_position.enable",
+            "hbpm_position_msgdetail"
+          ],
+          "readFields": [
+            "boid"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：按 boid 列表查 PositionQueryRepository 获取停用前最新历史版本 id 映射（boToBeforeIdMap）；2) beginOperationTransaction：按 sourcevid 查出停用后版本对象数组，逐条设置 sourcevid（回填停用前id）、changetype（查询 id=1040）、changeoperate（查询 id=1030）、changescene（查询 id=1040），调用 IPositionHrServiceApplication.afterSavePosition(afterVersions)；3) afterExecuteOperationTransaction：发送变更消息、调 IBosPositionService.disablePositions(boIdList) 最终禁用岗位。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrDisableOp.java",
+          "notes": "跨服务协作：实际disable逻辑在IBosPositionService.disablePositions；变更消息发送在ChangeMsgServiceImpl。线性版本一致性通过sourcevid→history-id映射保证。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable",
+        "sourcevid",
+        "changetype",
+        "changeoperate",
+        "changescene",
+        "bos_position.enable",
+        "hbpm_position_msgdetail"
+      ],
+      "readFields": [
+        "boid",
+        "adminorg"
+      ],
+      "events": [
+        "ChangeMsgServiceImpl.sendMsg 调度异步 5/2/X9QCCFNS"
+      ],
+      "mines": [
+        "⚠ PositionHrDisableOp 直接 extends AbstractOperationServicePlugIn（不是 HRDataBaseOp），没有 isImport() 跳过 - 导入场景下依然会 sendMsg + disablePositions",
+        "❌ 禁继承 PositionHrDisableOp"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "Value": "0",
+          "StatusFieldId": "ac5Y5Dax1q"
+        },
+        "permissionItemId": "47160c2b000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用已禁用岗位 + 汇报关系成环校验",
+        "frequency": "中",
+        "stateTransition": "enable=10 → enable=1",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 0,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型通用 OP：enable 分支走 HisModelOPCommonValidator.validateEnable",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 1,
+          "plugin": "PositionHrEnableOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+          "role": "岗位启用主业务：1) onPreparePropertys 把 billEntityType 的全量字段（排除 multilanguagetext / _id 结尾）都加进读字段（为汇报关系成环校验服务）；2) onAddValidators 空实现；3) beforeExec 查 boid→latestHisId 映射；4) beginTrans 查 sourcevid 对应版本，写 changetype/changeoperate/changeScene=1070/1070/1070（启用事件），sourcevid 回填；调 IPositionHrServiceApplication.afterSavePosition；5) afterExec 调 ChangeMsgServiceImpl.sendMsg + IBosPositionService.commonSyncPositions() 全量同步",
+          "definition": "岗位启用场景主控：operateKey='enable' 时保存启用前的历史版本映射，记录变更类型/变更操作/变更场景元数据，完成启用操作后触发后置链（消息发送 + 同步岗位数据）。",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 提取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 缓存启用前的最新历史版本 id；2) beginOperationTransaction：按 sourcevid 查询启用后的岗位版本快照，依次填入 sourcevid（启用前版本）、changetype/changeoperate/changescene（变更元数据），调 IPositionHrServiceApplication.afterSavePosition 触发保存后钩子；3) afterExecuteOperationTransaction：创建 ChangeMsgServiceImpl 发送变更消息，调 IBosPositionService.commonSyncPositions 同步整体岗位数据。",
+          "triggerCondition": "operateKey = 'enable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrEnableOp.java",
+          "notes": "extends AbstractOperationServicePlugIn。实际启用前版本查询在 PositionQueryRepository.getBoToLatestHisIdMap；变更类型常数 1070L 对应启用操作。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "name": "岗位启用主控处理器",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_enable_1",
+          "name": "历史模型通用校验-启用分支",
+          "type": "HisModelCommon",
+          "phase": "onAddValidators",
+          "definition": "HisModelOPCommonValidator.switch(enable) → validateEnable",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "source_evidence": "_shared/hbp_common/HisModelOPCommonValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_enable_1",
+          "order": 1,
+          "name": "全量字段预加载",
+          "type": "数据准备",
+          "definition": "PositionHrEnableOp.onPreparePropertys：先加 parent/adminorg，然后清空重建字段列表，把 billEntityType 所有 property（排除 multilanguagetext 与 _id 结尾的）都读出来，为后续可能的成环校验 / 关系同步提供完整数据",
+          "phase": "onPreparePropertys",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp#onPreparePropertys",
+          "writeFields": [],
+          "readFields": [
+            "* (排除 multilanguagetext / _id)"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 提取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 缓存启用前的最新历史版本 id；2) beginOperationTransaction：按 sourcevid 查询启用后的岗位版本快照，依次填入 sourcevid（启用前版本）、changetype/changeoperate/changescene（变更元数据），调 IPositionHrServiceApplication.afterSavePosition 触发保存后钩子；3) afterExecuteOperationTransaction：创建 ChangeMsgServiceImpl 发送变更消息，调 IBosPositionService.commonSyncPositions 同步整体岗位数据。",
+          "triggerCondition": "operateKey = 'enable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrEnableOp.java",
+          "notes": "extends AbstractOperationServicePlugIn。实际启用前版本查询在 PositionQueryRepository.getBoToLatestHisIdMap；变更类型常数 1070L 对应启用操作。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_enable_2",
+          "order": 2,
+          "name": "写启用变更事件 + sourcevid 回填",
+          "type": "字段计算",
+          "definition": "beginTrans：查 sourcevid 版本，PositionChangeEventQueryRepository 查 changeType/changeOperate/changeScene id=1070 写入；sourcevid 回填为最新历史 id；调 IPositionHrServiceApplication.afterSavePosition",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp#beginOperationTransaction",
+          "writeFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "readFields": [
+            "boid",
+            "sourcevid"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 提取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 缓存启用前的最新历史版本 id；2) beginOperationTransaction：按 sourcevid 查询启用后的岗位版本快照，依次填入 sourcevid（启用前版本）、changetype/changeoperate/changescene（变更元数据），调 IPositionHrServiceApplication.afterSavePosition 触发保存后钩子；3) afterExecuteOperationTransaction：创建 ChangeMsgServiceImpl 发送变更消息，调 IBosPositionService.commonSyncPositions 同步整体岗位数据。",
+          "triggerCondition": "operateKey = 'enable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrEnableOp.java",
+          "notes": "extends AbstractOperationServicePlugIn。实际启用前版本查询在 PositionQueryRepository.getBoToLatestHisIdMap；变更类型常数 1070L 对应启用操作。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_enable_3",
+          "order": 3,
+          "name": "岗位启用消息 + 平台岗位全量同步",
+          "type": "事件/外部调用",
+          "definition": "afterExec：new ChangeMsgServiceImpl().sendMsg() 触发调度任务；IBosPositionService.commonSyncPositions() 不是按 boid 增量，而是全量同步",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp#afterExecuteOperationTransaction",
+          "writeFields": [
+            "bos_position",
+            "hbpm_position_msgdetail"
+          ],
+          "readFields": [],
+          "edgeCase": "commonSyncPositions 内部逻辑按是否 isDisableSyncPlatformPosition 判定，整体是比 disable 更重的同步",
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 提取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 缓存启用前的最新历史版本 id；2) beginOperationTransaction：按 sourcevid 查询启用后的岗位版本快照，依次填入 sourcevid（启用前版本）、changetype/changeoperate/changescene（变更元数据），调 IPositionHrServiceApplication.afterSavePosition 触发保存后钩子；3) afterExecuteOperationTransaction：创建 ChangeMsgServiceImpl 发送变更消息，调 IBosPositionService.commonSyncPositions 同步整体岗位数据。",
+          "triggerCondition": "operateKey = 'enable'",
+          "impactedFields": [
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrEnableOp.java",
+          "notes": "extends AbstractOperationServicePlugIn。实际启用前版本查询在 PositionQueryRepository.getBoToLatestHisIdMap；变更类型常数 1070L 对应启用操作。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_enable_1",
+          "source": "PositionList.afterDoOperation",
+          "when": "opKey=enable & success & successPkIds.size>0",
+          "logic": "ListView.refresh() 刷新列表",
+          "impl": "kd.hrmp.hbpm.formplugin.web.position.PositionList",
+          "implClass": "kd.hrmp.hbpm.formplugin.web.position.PositionList"
+        }
+      ],
+      "writeFields": [
+        "enable",
+        "sourcevid",
+        "changetype",
+        "changeoperate",
+        "changescene",
+        "bos_position",
+        "hbpm_position_msgdetail"
+      ],
+      "readFields": [
+        "boid",
+        "parent",
+        "adminorg",
+        "* (排除 multilanguagetext / _id)"
+      ],
+      "events": [
+        "ChangeMsgServiceImpl.sendMsg 调度异步 5/2/X9QCCFNS"
+      ],
+      "mines": [
+        "⚠ onPreparePropertys 先加 parent/adminorg 再清空重建 —— 这两行加进去再被 clear 掉了（疑似代码冗余，实际不起作用），真正生效的是 billEntityType.getProperties 那段",
+        "⚠ PositionHrEnableOp 直接 extends AbstractOperationServicePlugIn，没有 isImport 逻辑",
+        "⚠ commonSyncPositions 是全量同步，比 disable 的 disablePositions(boids) 重很多",
+        "❌ 禁继承 PositionHrEnableOp"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "Value": "1",
+          "StatusFieldId": "ac5Y5Dax1q"
+        },
+        "permissionItemId": "4730fc5d000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "新增岗位后立即清空并继续新增 —— 0 插件，只有两条元数据校验",
+        "frequency": "低",
+        "stateTransition": "无状态变更（本身只是把录入动作分两次触发）",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "PositionHrSaveOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "PositionHrDisableOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "PositionHrEnableOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "PositionHrChangeOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 11,
+          "plugin": "PositionHrRelationChangeOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 12,
+          "plugin": "PositionHisSaveOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_submitandnew_1",
+          "name": "组合字段唯一性校验",
+          "type": "GroupFieldUnique",
+          "phase": "元数据规则",
+          "definition": "表单规则 id=2f5773ca0001b5ac，元数据里配置的组合字段唯一（通常是 number + adminorg 组合）",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_submitandnew_2",
+          "name": "合法性校验",
+          "type": "FormValidate",
+          "phase": "元数据规则",
+          "definition": "表单规则 id=2f5773ca0001b6ac，元数据 FormValidate 规则",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 本 opKey 没有任何 OpPlugin，业务能力完全依赖元数据两条规则 + 页面 submitandnew 默认行为",
+        "⚠ 若有 ISV 想在 submitandnew 加业务，应加到 save 而非 submitandnew —— save 才是真正落库链路"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "Value": "B",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "804f6478000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "2f5773ca0001b5ac",
+            "ruleType": "GroupFieldUnique",
+            "_type": "GrpfieldsuniqueValidation",
+            "enabled": true,
+            "description": "组合字段唯一性校验",
+            "errorMessage": "组合字段唯一性校验",
+            "levelId": null
+          },
+          {
+            "id": "2f5773ca0001b6ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "errorMessage": "合法性校验",
+            "levelId": null
+          }
+        ]
+      }
+    },
+    "confirmchange": {
+      "opKey": "confirmchange",
+      "name": "确认变更",
+      "opType": "save",
+      "overview": {
+        "scene": "岗位变更页（变更生效日期 bsed 在未来）确认写入新版本",
+        "frequency": "中",
+        "stateTransition": "iscurrentversion 留 false（待生效）；status=A 待审核 或 C 已审核",
+        "extValue": 3
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_confirmchange_1",
+          "source": "PositionEdit.beforeDoOperation",
+          "when": "opKey=confirmchange",
+          "logic": "与 save 同分支：写 initdatasource='0' / option.isFromPage='1' / option.appId / option.bsed (yyyy-MM-dd)",
+          "impl": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit",
+          "implClass": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit"
+        },
+        {
+          "id": "FB_confirmchange_2",
+          "source": "HisModelFormCommonPlugin.beforeDoOperation",
+          "when": "opKey=confirmchange",
+          "logic": "CHANGE_PAGE 分支：走 HisModelValidateProcessor.validateForConfirmChange 并把 CodeRuleProcessor 生成的 number 和 hisOpParam.setBoChange(true) 写进 opOption",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 0,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型通用 OP：confirmchange 走 HisModelChangeOPValidator.copyVersionForChangeOption 分支（initNewEffectVersion/initNewNonLineVersion），beginTrans 调 handler.save 写新版本",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "历史版本感知唯一性：onAddValidators 替换 CompositePKValidator 为 HisGrpFieldsUniqueValidator",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 2,
+          "plugin": "PositionHrChangeOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp",
+          "role": "岗位变更主业务：1) onAddValidators 调 super（HRDataBaseOp 空实现）；2) beforeExec 查 boid→latestHisId；3) beginTrans 过滤 iscurrentversion=false 的新版本行，写 changetype/changeoperate/changeScene id=1020（变更事件），sourcevid 回填；调 IPositionRelationServiceApplication.saveSysRelation (新版本)；option.importtype 存在时再调 changeCooperationRelation；调 IPositionHrServiceApplication.afterSavePosition",
+          "definition": "confirmchange 场景下的操作主控。触发真正的版本切换：过滤非当前版本（iscurrentversion=false）的数据，查询变更类型/操作/场景配置，回填 sourcevid/changetype/changeoperate/changescene 四个字段到新版本数据，并通过关系服务保存关联关系和协作关系，最后触发岗位后置业务处理。",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 抽取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 查询最新历史版本 ID 映射存入 boToBeforeIdMap；2) beginOperationTransaction：过滤非当前版本的 afterVersions，分别从 PositionChangeEventQueryRepository 查询 changeType/changeOperation/changeScene（resId 均为 1020L），批量回填 sourcevid/changetype/changeoperate/changescene 四字段；3) 调 IPositionRelationServiceApplication.saveSysRelation 保存版本关联关系；4) 若 option 包含 importtype 变量则调 changeCooperationRelation 更新协作关系；5) 调 IPositionHrServiceApplication.afterSavePosition 执行岗位后置处理。",
+          "triggerCondition": "operateKey = 'confirmchange' 且 dataEntities 中存在 iscurrentversion=false 的版本",
+          "impactedFields": [
+            "iscurrentversion",
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene",
+            "boid"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrChangeOp.java",
+          "notes": "无 ResManager.loadKDString 调用。changetype/changeoperate/changescene 三个字段通过 ChangeEventQueryRepository 查询而非直接输入。继承 PositionHrCommonOp，共享 isImport() 逻辑。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "name": "岗位确认变更操作处理",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_confirmchange_1",
+          "name": "字段必填合规性校验",
+          "type": "MustInput",
+          "phase": "元数据规则",
+          "definition": "表单规则 id=4UXPTMTC=NCR",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_confirmchange_2",
+          "name": "历史模型变更校验",
+          "type": "HisModelChange",
+          "phase": "onAddValidators",
+          "definition": "HisModelChangeOPValidator setValidatePriority(First)；confirmchange 按 ModelType 走 initNewEffectVersion 或 initNewNonLineVersion，按 today 起效",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelChangeOPValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelChangeOPValidator",
+          "source_evidence": "_shared/hbp_common/HisModelChangeOPValidator.java"
+        },
+        {
+          "id": "V_confirmchange_3",
+          "name": "历史模型通用校验-confirmchange 分支",
+          "type": "HisModelCommon",
+          "phase": "onAddValidators",
+          "definition": "HisModelOPCommonValidator.switch(confirmchange) → validateConfirmChange + validateDate",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "source_evidence": "_shared/hbp_common/HisModelOPCommonValidator.java"
+        },
+        {
+          "id": "V_confirmchange_4",
+          "name": "历史版本组合字段唯一性",
+          "type": "UniqueValidate",
+          "phase": "onAddValidators",
+          "definition": "HisGrpFieldsUniqueValidator；按 boid/hisversion 分组做唯一性",
+          "impl": "kd.hr.hbp.opplugin.web.history.uniquevolidator.HisGrpFieldsUniqueValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.uniquevolidator.HisGrpFieldsUniqueValidator"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_confirmchange_1",
+          "order": 1,
+          "name": "变更历史版本生成",
+          "type": "数据持久化",
+          "definition": "HisModelOPCommonPlugin.beginOperationTransaction 调 handler.save；依赖 hisOpParam.boChange=true 让 HisModelChangeOPValidator 先拷贝当前版本为暂存后置",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#beginOperationTransaction",
+          "writeFields": [
+            "boid",
+            "iscurrentversion",
+            "bsed",
+            "bsled",
+            "sourcevid",
+            "datastatus",
+            "status"
+          ],
+          "readFields": [
+            "hisOpParam.boChange"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        },
+        {
+          "id": "B_confirmchange_2",
+          "order": 2,
+          "name": "写变更事件 + 汇报关系重建",
+          "type": "数据持久化",
+          "definition": "PositionHrChangeOp.beginTrans：过滤 iscurrentversion=false 的新版本，写 changetype/changeoperate/changescene id=1020；调 IPositionRelationServiceApplication.saveSysRelation(新版本) 重建汇报关系；option.importtype 存在时再 changeCooperationRelation(全部 positions)；最后 afterSavePosition",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp#beginOperationTransaction",
+          "writeFields": [
+            "changetype",
+            "changeoperate",
+            "changescene",
+            "sourcevid",
+            "hbpm_reportingrelation"
+          ],
+          "readFields": [
+            "iscurrentversion",
+            "boid",
+            "sourcevid",
+            "option.importtype"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp",
+          "algorithm": "1) beforeExecuteOperationTransaction：从 dataEntities 抽取 boid 列表，调 PositionQueryRepository.getBoToLatestHisIdMap 查询最新历史版本 ID 映射存入 boToBeforeIdMap；2) beginOperationTransaction：过滤非当前版本的 afterVersions，分别从 PositionChangeEventQueryRepository 查询 changeType/changeOperation/changeScene（resId 均为 1020L），批量回填 sourcevid/changetype/changeoperate/changescene 四字段；3) 调 IPositionRelationServiceApplication.saveSysRelation 保存版本关联关系；4) 若 option 包含 importtype 变量则调 changeCooperationRelation 更新协作关系；5) 调 IPositionHrServiceApplication.afterSavePosition 执行岗位后置处理。",
+          "triggerCondition": "operateKey = 'confirmchange' 且 dataEntities 中存在 iscurrentversion=false 的版本",
+          "impactedFields": [
+            "iscurrentversion",
+            "sourcevid",
+            "changetype",
+            "changeoperate",
+            "changescene",
+            "boid"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrChangeOp.java",
+          "notes": "无 ResManager.loadKDString 调用。changetype/changeoperate/changescene 三个字段通过 ChangeEventQueryRepository 查询而非直接输入。继承 PositionHrCommonOp，共享 isImport() 逻辑。 TODO: 核对变更类型元数据表 (hbpm_changetype/changeoperation/changescene) 确认 1020/1030/1040/1070 各代表哪种业务变更。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_confirmchange_3",
+          "order": 3,
+          "name": "变更消息 + 平台同步（继承自 Common）",
+          "type": "事件/外部调用",
+          "definition": "PositionHrCommonOp.afterExecuteOperationTransaction：非 import 时 ChangeMsgServiceImpl.sendMsg；IBosPositionService.addOrUpdatePositions(boids)",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrCommonOp#afterExecuteOperationTransaction",
+          "writeFields": [
+            "bos_position",
+            "hbpm_position_msgdetail"
+          ],
+          "readFields": [
+            "boid",
+            "option.importtype"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrCommonOp"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_confirmchange_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey=confirmchange & success",
+          "logic": "CHANGE_PAGE 时 invokeOperation('refresh')；否则 resetHisPageForHisOp",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        },
+        {
+          "id": "FA_confirmchange_2",
+          "source": "PositionEdit.afterDoOperation",
+          "when": "opKey=confirmchange & success",
+          "logic": "与 save 相同逻辑：从 option.bsed 解析，若 bsed 在未来 showFutureViewPage + close，否则 invokeOperation('refresh')",
+          "impl": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit",
+          "implClass": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit"
+        }
+      ],
+      "writeFields": [
+        "changetype",
+        "changeoperate",
+        "changescene",
+        "sourcevid",
+        "boid",
+        "iscurrentversion",
+        "bsed",
+        "bsled",
+        "datastatus",
+        "status",
+        "hbpm_reportingrelation",
+        "bos_position",
+        "hbpm_position_msgdetail"
+      ],
+      "readFields": [
+        "iscurrentversion",
+        "boid",
+        "sourcevid",
+        "option.importtype",
+        "option.bsed"
+      ],
+      "events": [
+        "ChangeMsgServiceImpl.sendMsg 调度异步 5/2/X9QCCFNS"
+      ],
+      "mines": [
+        "⚠ confirmchange 是 opType=save（同 save 一条链但 hisOpParam.boChange=true），ISV 扩展要同时兼容两种 opKey",
+        "⚠ PositionHrChangeOp 的 saveCooperationRelation 只有 importtype 场景会调；非导入变更只重建 saveSysRelation",
+        "❌ 禁继承 PositionHrChangeOp"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "2DNXSYJWDART",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "4UXPTMTC=NCR",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "errorMessage": "字段值合规性校验",
+            "levelId": null
+          }
+        ]
+      }
+    },
+    "dochangerelation": {
+      "opKey": "dochangerelation",
+      "name": "汇报关系确认变更",
+      "opType": "donothing",
+      "overview": {
+        "scene": "岗位独有 · 汇报关系变更页上点'确认'按钮 —— 只重建协作关系，不走历史版本（opType=donothing 不会进 HisModel 链）",
+        "frequency": "中",
+        "stateTransition": "无历史版本变更；改协作关系 + 写 changetype=1030 变更事件",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 0,
+          "plugin": "PositionHrRelationChangeOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp",
+          "role": "岗位独有的汇报关系变更：1) onAddValidators 空实现；2) beginOperationTransaction 直接调 IPositionRelationServiceApplication.changeCooperationRelation(positions) 重建协作关系；然后查 changeType/changeOperate/changeScene id=1030/1020/1030（协作变更事件）写每个 position；最后 IPositionHrServiceApplication.afterSavePosition（注意没调 saveSysRelation，说明只改协作不改汇报）",
+          "definition": "岗位关系变更操作主控器。在 operateKey='dochangerelation' 时，通过调用 IPositionRelationServiceApplication 改变岗位的协作关系，然后查询并填充变更类型、变更操作、变更场景三个元数据字段，最后触发 afterSavePosition 的后续业务逻辑（如组织关系维护）。",
+          "algorithm": "1) beginOperationTransaction：获取本次操作的 dataEntities（岗位数组）；2) changeCooperationRelation：委托 IPositionRelationServiceApplication 修改协作关系链（跨岗位的协作关系维护）；3) queryChangeType/queryChangeOperation/queryChangeScene：从 PositionChangeEventQueryRepository 查询标准的变更元数据（changeType=1030、changeOperate=1020、changeScene=1030）；4) 批量回填：遍历 positions 数组，对每个岗位 set('changetype' / 'changeoperate' / 'changescene' / 对应查询结果)；5) afterSavePosition：调用 IPositionHrServiceApplication 完成后置处理（通常包含组织关系、部门关联的二阶变更）。",
+          "triggerCondition": "operateKey='dochangerelation' 且 dataEntities 非空",
+          "impactedFields": [
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrRelationChangeOp.java",
+          "notes": "跨服务协作：核心关系变更逻辑在 IPositionRelationServiceApplication.changeCooperationRelation 中实现；组织同步逻辑在 IPositionHrServiceApplication.afterSavePosition 中实现。变更元数据（changeType/changeOperate/changeScene）是硬编码的 BO 配置值，与标品岗位变更事件追踪体系相关。",
+          "name": "岗位协作关系变更处理",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_dochangerelation_1",
+          "name": "字段必填合规性校验",
+          "type": "MustInput",
+          "phase": "元数据规则",
+          "definition": "表单规则 id=4T7SDY=13RY6",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_dochangerelation_1",
+          "order": 1,
+          "name": "协作关系重建",
+          "type": "数据持久化",
+          "definition": "IPositionRelationServiceApplication.changeCooperationRelation(Arrays.asList(positions))：按 entryentity.reporttype + entryentity.targetpos 重建 hbpm_reportingrelation 表的协作关系（不动 systype=1010 的行政汇报）",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.business.application.service.IPositionRelationServiceApplication#changeCooperationRelation",
+          "writeFields": [
+            "hbpm_reportingrelation (协作 systype!=1010)"
+          ],
+          "readFields": [
+            "entryentity.reporttype",
+            "entryentity.targetpos"
+          ],
+          "implClass": "kd.hrmp.hbpm.business.application.service.IPositionRelationServiceApplication"
+        },
+        {
+          "id": "B_dochangerelation_2",
+          "order": 2,
+          "name": "写协作变更事件",
+          "type": "字段计算",
+          "definition": "PositionHrRelationChangeOp.beginTrans：PositionChangeEventQueryRepository 查 changeType/changeOperate/changeScene id=1030/1020/1030，写每个 position",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp#beginOperationTransaction",
+          "writeFields": [
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "readFields": [],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp",
+          "algorithm": "1) beginOperationTransaction：获取本次操作的 dataEntities（岗位数组）；2) changeCooperationRelation：委托 IPositionRelationServiceApplication 修改协作关系链（跨岗位的协作关系维护）；3) queryChangeType/queryChangeOperation/queryChangeScene：从 PositionChangeEventQueryRepository 查询标准的变更元数据（changeType=1030、changeOperate=1020、changeScene=1030）；4) 批量回填：遍历 positions 数组，对每个岗位 set('changetype' / 'changeoperate' / 'changescene' / 对应查询结果)；5) afterSavePosition：调用 IPositionHrServiceApplication 完成后置处理（通常包含组织关系、部门关联的二阶变更）。",
+          "triggerCondition": "operateKey='dochangerelation' 且 dataEntities 非空",
+          "impactedFields": [
+            "changetype",
+            "changeoperate",
+            "changescene"
+          ],
+          "errorMessages": [],
+          "source_evidence": "d:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHrRelationChangeOp.java",
+          "notes": "跨服务协作：核心关系变更逻辑在 IPositionRelationServiceApplication.changeCooperationRelation 中实现；组织同步逻辑在 IPositionHrServiceApplication.afterSavePosition 中实现。变更元数据（changeType/changeOperate/changeScene）是硬编码的 BO 配置值，与标品岗位变更事件追踪体系相关。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_dochangerelation_3",
+          "order": 3,
+          "name": "下游链路同步",
+          "type": "外部调用",
+          "definition": "afterSavePosition(positions) 同 save 的下游链路，但不过 afterExecuteOperationTransaction（父类 HRDataBaseOp 没 sendMsg 钩子）",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.business.application.service.IPositionHrServiceApplication#afterSavePosition",
+          "writeFields": [],
+          "readFields": [],
+          "implClass": "kd.hrmp.hbpm.business.application.service.IPositionHrServiceApplication"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_dochangerelation_1",
+          "source": "PositionEdit.afterDoOperation",
+          "when": "opKey=dochangerelation & success",
+          "logic": "调 afterDochangerelation：隐藏 confirmrelation/CHANGEINFO_FLEXPANELAP；恢复显示 baseinfoflexpanelap/attachmentpanel/jobinfoflexpanelap/dutyinfoflexpanelap/qualinfoflexpanelap/roleflexpanelap/anchor_controlap；setDataChanged(true)；invokeOperation('refresh')",
+          "impl": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit",
+          "implClass": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit"
+        }
+      ],
+      "writeFields": [
+        "hbpm_reportingrelation (协作)",
+        "changetype",
+        "changeoperate",
+        "changescene"
+      ],
+      "readFields": [
+        "entryentity.reporttype",
+        "entryentity.targetpos"
+      ],
+      "events": [],
+      "mines": [
+        "🚨 岗位独有 opKey —— admin_org 没有协作关系概念，所以无对应物",
+        "⚠ opType=donothing 所以不进 HisModel 链，不产历史版本 —— 改协作关系不生成新 version",
+        "⚠ 该 Op 的 afterExecuteOperationTransaction 没有同步下游（没调 sendMsg / 平台同步），全部逻辑集中在 beginOperationTransaction",
+        "❌ 禁继承 PositionHrRelationChangeOp"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "AfterOperation": ""
+        },
+        "permissionItemId": null,
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "4T7SDY=13RY6",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "errorMessage": "字段值合规性校验",
+            "levelId": null
+          }
+        ]
+      }
+    },
+    "his_save": {
+      "opKey": "his_save",
+      "name": "历史保存",
+      "opType": "donothing",
+      "overview": {
+        "scene": "岗位独有 · 一次性迁入多条历史版本（用于数据初始化 / 从旧系统搬历史）",
+        "frequency": "低（仅初始化场景）",
+        "stateTransition": "批量写历史版本，不改当前版本的业务状态",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 0,
+          "plugin": "PositionHisSaveOp",
+          "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+          "role": "岗位历史迁移：1) onAddValidators 依次追加 JobLevelGradeRangeImportValidator(true) + PositionHisLoopValidator.checkHis() + PositionHisValidator；2) beforeExec 按 (boid,bsed) 排序，setDefaultValue（写 org=adminorg.org，补 establishmentdate=母 bo 的 establishmentdate）、calcBsledByNextBsed（相邻版本 bsled=下一个 bsed-1 天，保证连续）；3) beginTrans 构造 HisCreateVersionParam(entityNumber='hbpm_positionhr'+数据列表)，调 HisModelServiceHelper.createDataVersions 批量生成历史版本；把 iscurrentversion=false 的版本传 saveSysRelation 重建历史汇报关系",
+          "definition": "岗位历史版本补录场景主控。save 触发时：对传入的历史版本数组按 boid/bsed 排序，填充默认值（org、estbablishmentdate）；计算相邻版本间的 bsled；通过 HisModelServiceHelper.createDataVersions 创建非当前版本的数据版本；最后委托 IPositionRelationServiceApplication 保存关系数据。",
+          "algorithm": "1) onAddValidators：注册三个校验器（JobLevelGradeRangeImportValidator / PositionHisLoopValidator / PositionHisValidator）；2) beforeExecuteOperationTransaction：对 positionHisArray 按 boid、bsed 排序；调 setDefaultValue 填 org、establishmentdate；调 calcBsledByNextBsed 计算 bsled；3) setDefaultValue：从 positionBoArray 获取 establishmentdate，若 pos.establishmentdate 为空则补齐；4) calcBsledByNextBsed：逐对比对相邻记录，若 current.bsled 为空且 next.boid == current.boid，则 current.bsled = nextBsed - 1天；5) beginOperationTransaction：构造 HisCreateVersionParam、调 HisModelServiceHelper.createDataVersions 创建版本、过滤出 iscurrentversion=false 的数据、调 IPositionRelationServiceApplication.saveSysRelation 保存关系。",
+          "triggerCondition": "operateKey='his_save' 且传入岗位历史版本数组 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "establishmentdate",
+            "bsled"
+          ],
+          "readFields": [
+            "boid",
+            "bsed",
+            "iscurrentversion"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHisSaveOp.java",
+          "notes": "三个字段（boid、bsed、iscurrentversion）是间接引用，在比对逻辑中用 get/getLong/getDate 读取但不 set，故归入 impactedFields。无 ResManager.loadKDString 调用 —— 错误消息由三个 validator 类返回。",
+          "name": "岗位历史版本补录主控",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_his_save_1",
+          "name": "职级职等关联校验",
+          "type": "JobLevelGradeRange",
+          "phase": "onAddValidators",
+          "definition": "JobLevelGradeRangeImportValidator(isExistMustRelateJobParam=true)：若 '岗位必须关联职位' 参数=true 且 job=null 则报错；jobscm.id=0 且 job.jobscm 多候选时要求填 jobscm；不是 isFromPage 时还要校验 job 必须在 jobscm 内、joblevelrange/jobgraderange 必须在职级/职等体系内",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.JobLevelGradeRangeImportValidator",
+          "sdkAnnotation": null,
+          "extensible": false,
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.validate.JobLevelGradeRangeImportValidator",
+          "errorMessages": [
+            "请填写职位，如果无需填写职位，需要修改参数“岗位是否必须关联职位信息”，路径为：组织发展云>组织管理>参数配置。(JobLevelGradeRangeCheck_0)",
+            "请先填写职位。(JobLevelGradeRangeCheck_1)",
+            "请填写职位体系方案。(JobLevelGradeRangeCheck_3)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/position/JobLevelGradeRangeImportValidator.java"
+        },
+        {
+          "id": "V_his_save_2",
+          "name": "岗位汇报关系成环校验（历史+协作）",
+          "type": "PositionHisLoop",
+          "phase": "onAddValidators",
+          "definition": "PositionHisLoopValidator.checkHis()：checkSysRel=true；按时间段分组查 hbpm_reportingrelation 历史有效数据，结合内存待入数据做 DFS 检测成环；通过 chekParentLoop 判断 boid→parent 是否构成环",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisLoopValidator",
+          "sdkAnnotation": null,
+          "extensible": false,
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisLoopValidator",
+          "errorMessages": [
+            "上级岗位不能选当前岗位“%1$s(%2$s)”。(PositionHisLoopValidator_0)",
+            "“%s”行政汇报关系成环，请修改上级岗位信息。(PositionHisLoopValidator_1)",
+            "“{0}”协作关系成环，请修改“{0}”的“协作岗位”。(PositionHisLoopValidator_2)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/position/PositionHisLoopValidator.java"
+        },
+        {
+          "id": "V_his_save_3",
+          "name": "岗位历史迁移综合校验",
+          "type": "PositionHis",
+          "phase": "onAddValidators",
+          "definition": "PositionHisValidator.validate：1) boid 不能为 0（岗位在系统中不存在）；2) 首版本 bsed 不早于 positionBo.firstbsed；3) 最末版本 bsled 必填；4) 历史版本行政组织要与当前版本一致；5) bsed 不晚于 bsled；6) validateEstablishLessParentFirstBsed（bsed 不早于上级岗位 firstBsed）；7) bsed 不早于所在组织 firstBsed；8) bsed 不晚于当前日期；9) 相邻版本 bsled 必须等于下一个 bsed-1 天（连续不重叠）；10) 错误再做汇总：同 boid 下其他版本也标为连带失败",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisValidator",
+          "sdkAnnotation": null,
+          "extensible": false,
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisValidator",
+          "errorMessages": [
+            "岗位历史的迁移对象字段\"历史版本数据\"未勾选为是，无法迁移历史。(PositionHisValidator_3)",
+            "编码为%1$s的岗位在系统中不存在，请先导入当前版本岗位数据。(PositionHisValidator_5)",
+            "历史版本数据行政组织需要与当前版本数据一致。(PositionHisValidator_4)",
+            "生效日期不能晚于失效日期。(PositionHisValidator_6)",
+            "最后一个版本失效日期必填。(PositionHisValidator_2)",
+            "当前版本的生效日期(%1$s)与上一个历史版本的失效日期(%2$s)不连续，请调整生效日期。(PositionHisValidator_7)",
+            "有其他版本校验失败(编码：%1$s,日期：%2$s)。(PositionHisValidator_1)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/position/PositionHisValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_his_save_1",
+          "order": 1,
+          "name": "数据预处理：排序 + 补默认值 + 自动算 bsled",
+          "type": "数据准备",
+          "definition": "PositionHisSaveOp.beforeExec：按 (boid,bsed) 升序排序；setDefaultValue：每行 org=adminorg.org，如果 establishmentdate 空且母 bo 有 establishmentdate 就补上；calcBsledByNextBsed：若某行 bsled 为空且下一行同 boid 则 bsled=下一行 bsed-1 天",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp#beforeExecuteOperationTransaction",
+          "writeFields": [
+            "org",
+            "establishmentdate",
+            "bsled"
+          ],
+          "readFields": [
+            "boid",
+            "bsed",
+            "iscurrentversion"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+          "algorithm": "1) onAddValidators：注册三个校验器（JobLevelGradeRangeImportValidator / PositionHisLoopValidator / PositionHisValidator）；2) beforeExecuteOperationTransaction：对 positionHisArray 按 boid、bsed 排序；调 setDefaultValue 填 org、establishmentdate；调 calcBsledByNextBsed 计算 bsled；3) setDefaultValue：从 positionBoArray 获取 establishmentdate，若 pos.establishmentdate 为空则补齐；4) calcBsledByNextBsed：逐对比对相邻记录，若 current.bsled 为空且 next.boid == current.boid，则 current.bsled = nextBsed - 1天；5) beginOperationTransaction：构造 HisCreateVersionParam、调 HisModelServiceHelper.createDataVersions 创建版本、过滤出 iscurrentversion=false 的数据、调 IPositionRelationServiceApplication.saveSysRelation 保存关系。",
+          "triggerCondition": "operateKey='his_save' 且传入岗位历史版本数组 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "establishmentdate",
+            "bsled"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHisSaveOp.java",
+          "notes": "三个字段（boid、bsed、iscurrentversion）是间接引用，在比对逻辑中用 get/getLong/getDate 读取但不 set，故归入 impactedFields。无 ResManager.loadKDString 调用 —— 错误消息由三个 validator 类返回。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        },
+        {
+          "id": "B_his_save_2",
+          "order": 2,
+          "name": "批量生成历史版本",
+          "type": "数据持久化",
+          "definition": "beginTrans：HisCreateVersionParam(entityNumber='hbpm_positionhr', dataList=positionHisList)，调 HisModelServiceHelper.createDataVersions；返回数据里 iscurrentversion=false 的部分送 IPositionRelationServiceApplication.saveSysRelation 重建历史汇报关系",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp#beginOperationTransaction",
+          "writeFields": [
+            "hbpm_positionhr (历史版本)",
+            "hbpm_reportingrelation"
+          ],
+          "readFields": [
+            "boid",
+            "bsed",
+            "iscurrentversion"
+          ],
+          "implClass": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+          "algorithm": "1) onAddValidators：注册三个校验器（JobLevelGradeRangeImportValidator / PositionHisLoopValidator / PositionHisValidator）；2) beforeExecuteOperationTransaction：对 positionHisArray 按 boid、bsed 排序；调 setDefaultValue 填 org、establishmentdate；调 calcBsledByNextBsed 计算 bsled；3) setDefaultValue：从 positionBoArray 获取 establishmentdate，若 pos.establishmentdate 为空则补齐；4) calcBsledByNextBsed：逐对比对相邻记录，若 current.bsled 为空且 next.boid == current.boid，则 current.bsled = nextBsed - 1天；5) beginOperationTransaction：构造 HisCreateVersionParam、调 HisModelServiceHelper.createDataVersions 创建版本、过滤出 iscurrentversion=false 的数据、调 IPositionRelationServiceApplication.saveSysRelation 保存关系。",
+          "triggerCondition": "operateKey='his_save' 且传入岗位历史版本数组 dataEntities 非空",
+          "impactedFields": [
+            "org",
+            "establishmentdate",
+            "bsled"
+          ],
+          "errorMessages": [],
+          "source_evidence": "knowledge/_sdk_audit/_decompiled/scenarios/position/PositionHisSaveOp.java",
+          "notes": "三个字段（boid、bsed、iscurrentversion）是间接引用，在比对逻辑中用 get/getLong/getDate 读取但不 set，故归入 impactedFields。无 ResManager.loadKDString 调用 —— 错误消息由三个 validator 类返回。",
+          "_meta": {
+            "ruleDetailsEnriched": true,
+            "confidence": "distilled-agent"
+          }
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "hbpm_positionhr (历史版本)",
+        "org",
+        "establishmentdate",
+        "bsled",
+        "hbpm_reportingrelation"
+      ],
+      "readFields": [
+        "boid",
+        "bsed",
+        "adminorg.org",
+        "establishmentdate",
+        "parent"
+      ],
+      "events": [],
+      "mines": [
+        "🚨 岗位独有 opKey —— 专门用于历史数据迁移，admin_org 无对应物",
+        "⚠ opType=donothing 所以走外部 HisModelServiceHelper.createDataVersions 主动创版本，不走主链 HisModelOPCommonPlugin",
+        "⚠ 所有版本 boid 必须存在（通过'历史版本数据'=true 的当前版本；不存在则 PositionHisValidator 会拦）",
+        "⚠ 不经过 HRDataBaseOp 的 afterExecuteOperationTransaction sendMsg —— 历史迁移不会触发变更消息",
+        "❌ 禁继承 PositionHisSaveOp"
+      ],
+      "metadataConfig": {
+        "parameter": null,
+        "permissionItemId": "501BTJ6744BE",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "HR 实体导入（HIES-Pro 标准按钮 · Excel 模板驱动 · 核心业务类：PositionHRImportPlugin）",
+        "frequency": "高频 · 几乎所有 HR 列表都有此按钮",
+        "stateTransition": "未导入 → 解析 → 校验 → 入库 → 完成",
+        "extValue": 5,
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": "hismodel_importstart"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "afterLoadStartPage",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "启动页加载后 · 设置导入上下文默认值 · 挂扩展参数",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 2,
+          "plugin": "afterInitContext",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "上下文就绪 · 配置唯一值字段 / 并发参数",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 3,
+          "plugin": "beforeCreateHeaderColumn",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "生成表头列 · 按 importType 隐藏/展示列",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 4,
+          "plugin": "afterParseBillData",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "Excel 解析后 · 清理互斥字段",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 5,
+          "plugin": "beforeValidate",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "主校验前 · 行级数据预处理",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 6,
+          "plugin": "beforeInitValidator",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "注册自定义校验器 (AbstractValidateHandler · ValidatorOrderEnum.AFTER)",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 7,
+          "plugin": "beforeQueryRefBd",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "F7 引用基础资料查询前 · 修改 QFilter",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 8,
+          "plugin": "beforeLoadEntity",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "加载存量实体前 · 修改实体查询条件",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 9,
+          "plugin": "afterConvertDynamicObjects",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "转成 DynamicObject 后 · 二次分组",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 10,
+          "plugin": "beforeTempStoreInstore",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "临时存储入库前 · 批量跨行业务校验",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 11,
+          "plugin": "beforeCallOperation",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "调 save OP 前 · 最后改写实体",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        },
+        {
+          "order": 12,
+          "plugin": "afterImportComplete",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "role": "导入完成后 · 清理缓存 / 发消息",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin"
+          ]
+        }
+      ],
+      "validators": [
+        {
+          "name": "HIES-Pro 框架校验链",
+          "role": "按 ValidatorOrderEnum 顺序执行 · BEFORE / REPLACE / AFTER（自定义通常 AFTER）",
+          "definition": "自定义跨行/跨表校验必须注册为 Validator · 不能写在 beforeValidate · 见 R3/R4/R5",
+          "id": "V_importdata_hr_1"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_importdata_hr_R1",
+          "order": 1,
+          "name": "必须调 super 方法保留框架默认行为",
+          "type": "HR导入开发规范",
+          "definition": "HRImportPlugin 是接口 default 方法 · 重写时第一行必须显式调 super · 否则框架默认的参数装箱 / 字段映射逻辑会被跳过 · 导致后续 args.getBillDatas() 拿到的不是规范结构",
+          "edgeCase": "忘记调 super → 后续 args.getXxx() 返回 null 或错位",
+          "phase": "(any lifecycle method)",
+          "whenToUse": "只要重写任意生命周期方法",
+          "impact": "忘记调 super → 后续 args.getXxx() 返回 null 或错位",
+          "confidence": "authoritative",
+          "sourcePattern": "HRImportPlugin.super.xxx(args)",
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:37 (beforeValidate)",
+            "QuotaDetailAddHRImportPlugin.java:62 (beforeInitValidator)",
+            "OTBillHRImportPlugin.java:85,99,104,142,150 (所有生命周期方法)",
+            "PersonRosterHRImportPlugin.java:45 (beforeLoadEntity)"
+          ],
+          "occurrenceRate": "19/19 · 所有 HRImportPlugin demo 都遵守",
+          "_originalId": "hies-import-R1"
+        },
+        {
+          "id": "B_importdata_hr_R2",
+          "order": 2,
+          "name": "beforeValidate 里遍历 BillDatas 用于行级预处理",
+          "type": "HR导入开发规范",
+          "definition": "beforeValidate 阶段 Excel 已解析成 JSON · 每行是一个 ImportBillData · getData() 返回的 JSONObject 的顶层 key 是 mainEntityId · 取数据前必做 null 检查（billData.getData()、mainEntityId、entryentity 三层）",
+          "edgeCase": "不做 null 检查会 NPE；不走 super 会丢框架装箱",
+          "phase": "beforeValidate",
+          "whenToUse": "需要在进入校验器前对数据做预处理（如补充 F7 引用、规整日期、按主数据查询补外键）",
+          "impact": "不做 null 检查会 NPE；不走 super 会丢框架装箱",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:38-57",
+            "AttFileScheduleImportPlusPlugin.java:85-120",
+            "AttFileInfoImportPlusPlugin.java:45-73"
+          ],
+          "occurrenceRate": "14/19 导入插件重写了 beforeValidate",
+          "_originalId": "hies-import-R2"
+        },
+        {
+          "id": "B_importdata_hr_R3",
+          "order": 3,
+          "name": "beforeInitValidator 注册自定义校验器（匿名 AbstractValidateHandler）",
+          "type": "HR导入开发规范",
+          "definition": "自定义跨行 / 跨表校验应当注册为 Validator · 而不是写在 beforeValidate 里。Validator 有三种角色：BEFORE（在框架校验前）、AFTER（框架校验后 · 最常用）、REPLACE（替换框架）。ValidatorEnum 还有 CONTROLLED_BD_PERM_VALIDATOR 等专用类型",
+          "edgeCase": "没按规范注册 → 校验不在框架错误日志链路里 · 用户看不到报错行",
+          "phase": "beforeInitValidator",
+          "whenToUse": "有业务级校验（如工号必须在档案里存在、入职日期不能晚于今天）",
+          "impact": "没按规范注册 → 校验不在框架错误日志链路里 · 用户看不到报错行",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:61-99",
+            "OTBillHRImportPlugin.java:149-189",
+            "AttFileImportUpdatePlugin.java:106-118 (用 CONTROLLED_BD_PERM_VALIDATOR 专用枚举)"
+          ],
+          "occurrenceRate": "17/19 导入插件都注册了自定义 Validator",
+          "_originalId": "hies-import-R3"
+        },
+        {
+          "id": "B_importdata_hr_R4",
+          "order": 4,
+          "name": "Validator 里按行号已错过的跳过",
+          "type": "HR导入开发规范",
+          "definition": "框架校验失败的行会进 importLog · 自定义 Validator 再跑一遍时要跳过这些行 · 否则用户同一行看到两种错误（来自不同校验器）· UX 混乱",
+          "edgeCase": "不跳过会产生重复错误日志 · 也会做无效的昂贵查询",
+          "phase": "beforeInitValidator.validate",
+          "whenToUse": "你的自定义 Validator 跟框架校验有潜在重叠（一般都有）",
+          "impact": "不跳过会产生重复错误日志 · 也会做无效的昂贵查询",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:71-77"
+          ],
+          "occurrenceRate": "出现在需要跨行查询的 Validator（约 5/19）",
+          "_originalId": "hies-import-R4"
+        },
+        {
+          "id": "B_importdata_hr_R5",
+          "order": 5,
+          "name": "错误通过 importLog.writeRowLog 写回 · 不要 throw",
+          "type": "HR导入开发规范",
+          "definition": "校验失败不能抛异常 · 要用 importLog 按行累积错误 · 框架会把日志汇总成可读报告 · 抛异常会让整个 Excel 导入中止",
+          "edgeCase": "throw 会中止所有导入 · 用户要手工删掉错误行再重试",
+          "phase": "beforeInitValidator.validate",
+          "whenToUse": "在 Validator 内部发现业务错误时",
+          "impact": "throw 会中止所有导入 · 用户要手工删掉错误行再重试",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:91",
+            "BillUnifyKDStringHelper.attErrorByPersonNum(...) 是标品封装好的错误文案工厂"
+          ],
+          "occurrenceRate": "所有注册了自定义 Validator 的 demo 都这么写",
+          "_originalId": "hies-import-R5"
+        },
+        {
+          "id": "B_importdata_hr_R6",
+          "order": 6,
+          "name": "按 importType 分支（new/update/overwrite）处理不同导入类型",
+          "type": "HR导入开发规范",
+          "definition": "标品框架对同一个 HRImportPlugin 支持多种导入类型（新增 / 更新 / 覆盖）· 不同类型的字段必填 / 查重 / 列可见性都不一样 · 必须从 args.getContext().getImporttype() 分支",
+          "edgeCase": "不分支 → update 模式会被当新增校验主键冲突",
+          "phase": "beforeValidate / beforeCreateHeaderColumn / afterLoadStartPage",
+          "whenToUse": "一个插件需要支持多种导入类型（标品都这么做）",
+          "impact": "不分支 → update 模式会被当新增校验主键冲突",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "AttFileImportUpdatePlugin.java:121-125",
+            "AttFileImportUpdatePlugin.java:358-360 (beforeCreateHeaderColumn)",
+            "AttFileImportUpdatePlugin.java:368-370 (afterLoadStartPage)"
+          ],
+          "occurrenceRate": "7/19 涉及多导入类型的插件都用这个模式",
+          "_originalId": "hies-import-R6"
+        },
+        {
+          "id": "B_importdata_hr_R7",
+          "order": 7,
+          "name": "国际化错误文案必走 ResManager.loadKDString",
+          "type": "HR导入开发规范",
+          "definition": "所有面向用户的中文字符串必须走 ResManager · 第 1 参数是默认中文 · 第 2 参数是唯一 ResId（类名_序号）· 第 3 参数是项目常量（如 WTC_WTTE_FORMPLUGIN）· 硬编码中文会导致多语言环境错乱",
+          "edgeCase": "硬编码 → 英文/繁体环境看不到翻译；code review 会被打回",
+          "phase": "(any)",
+          "whenToUse": "产出任何面向用户的文案（字段标签 / 错误信息 / 对话框）",
+          "impact": "硬编码 → 英文/繁体环境看不到翻译；code review 会被打回",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:55,84",
+            "AttFileImportUpdatePlugin.java (多处)"
+          ],
+          "occurrenceRate": "全部 demo · 零硬编码",
+          "_originalId": "hies-import-R7"
+        },
+        {
+          "id": "B_importdata_hr_R8",
+          "order": 8,
+          "name": "afterParseBillData 按业务类型清理掉互斥字段",
+          "type": "HR导入开发规范",
+          "definition": "Excel 一张表可能承载多业务类型（如加班单的调休/付薪二选一）· 解析完后要根据类型 remove 掉不属于该类型的字段 · 否则后续校验会把空字段当成错误",
+          "edgeCase": "不清理 → 校验报 '不应有值' 错误 · 用户困惑",
+          "phase": "afterParseBillData",
+          "whenToUse": "一个导入模板对应多个业务枚举（如 OT_SD / OT_SC）",
+          "impact": "不清理 → 校验报 '不应有值' 错误 · 用户困惑",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "OTBillHRImportPlugin.java:103-119",
+            "AttFileScheduleImportPlusPlugin.java:190-194"
+          ],
+          "occurrenceRate": "4/19 涉及多业务类型模板的插件",
+          "_originalId": "hies-import-R8"
+        },
+        {
+          "id": "B_importdata_hr_R9",
+          "order": 9,
+          "name": "beforeCallOperation 是最后改写实体的唯一时机",
+          "type": "HR导入开发规范",
+          "definition": "beforeCallOperation 是 save 操作的最后一道门 · 此时 DynamicObject 已就绪 · 可以改任何字段 · 但必须改完才能继续 · 改了不生效 = 对象已被序列化",
+          "edgeCase": "改晚了（如在 afterCallOperation）对象已保存 · 要再 update 一次",
+          "phase": "beforeCallOperation",
+          "whenToUse": "需要设置审计字段（如 importSource = 'HR导入导出Pro')、回填派生字段",
+          "impact": "改晚了（如在 afterCallOperation）对象已保存 · 要再 update 一次",
+          "confidence": "likely",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "OTBillHRImportPlugin.java:190-241",
+            "AttFileImportUpdatePlugin.java:305-331",
+            "QuotaDetailMdfyHRImportPlugin.java:89-120"
+          ],
+          "occurrenceRate": "12/19 导入插件都在这里做尾处理",
+          "_originalId": "hies-import-R9"
+        },
+        {
+          "id": "B_importdata_hr_R10",
+          "order": 10,
+          "name": "F7 引用基础资料用 BillImportMatchAttFileService（标品封装 · 不要自己查表）",
+          "type": "HR导入开发规范",
+          "definition": "考勤 / 假勤 / 加班类导入几乎都要按 员工工号 + 日期 匹配考勤档案（attfilebase）· 标品已封装 BillImportMatchAttFileService 做这件事 · 内部处理了档案版本 / 启用范围 / 权限 · 自己 QueryServiceHelper 会错",
+          "edgeCase": "自己写 SQL → 会漏掉档案未生效 / 已停用 / 无权限场景",
+          "phase": "beforeValidate / beforeInitValidator.validate",
+          "whenToUse": "WTC（考勤）类导入 · 需要从工号反查 attfilebase F7",
+          "impact": "自己写 SQL → 会漏掉档案未生效 / 已停用 / 无权限场景",
+          "confidence": "likely",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:54,83",
+            "OTBillHRImportPlugin.java:144-145,163",
+            "QuotaDetailMdfyHRImportPlugin.java (多处)"
+          ],
+          "occurrenceRate": "8/19 考勤/假勤类插件 · 其它域（人员档案/花名册）有自己的 Service",
+          "_originalId": "hies-import-R10"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "(按业务插件实现决定)"
+      ],
+      "readFields": [
+        "(从 Excel 解析 · 动态字段)"
+      ],
+      "events": [
+        "afterLoadStartPage",
+        "afterInitContext",
+        "beforeCreateHeaderColumn",
+        "afterParseBillData",
+        "beforeValidate",
+        "beforeInitValidator",
+        "beforeQueryRefBd",
+        "beforeLoadEntity",
+        "afterConvertDynamicObjects",
+        "beforeTempStoreInstore",
+        "beforeCallOperation",
+        "afterImportComplete"
+      ],
+      "mines": [
+        "⚠ 忘记调 super.beforeXxx(args) → 框架装箱失效 (R1)",
+        "⚠ 校验在 beforeValidate 里抛异常 → 整个导入中止 (R5)",
+        "⚠ 不跳过已错行 → 同一行报两种错误 (R4)",
+        "⚠ 在 afterCallOperation 改字段 → 对象已保存改动不生效 (R9)",
+        "⚠ 自己写 QueryServiceHelper 查 attfile → 漏启用范围/权限 (R10)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": "hismodel_importstart",
+        "plugins": [
+          {
+            "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+            "description": "岗位中台导入插件",
+            "enabled": true,
+            "bizAppId": ""
+          },
+          {
+            "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin",
+            "description": "岗位编码规则控制导入插件",
+            "enabled": true,
+            "bizAppId": ""
+          }
+        ],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI listOperations + getOperation"
+      },
+      "_synthesized": {
+        "from": "probe_opkey_registry.py + curated_rules",
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导入记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN+52WYF1Y"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN+52WYF1Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按列表导出 · 核心类：(未挂业务插件)）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "(平台内建)",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "(平台内建)",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_list_hr_hr",
+          "order": 1,
+          "name": "按列表导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 0 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_list_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按导入模板导出 · 核心类：PositionHRExportPlugin）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin"
+          ]
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin"
+          ]
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_impttpl_hr_hr",
+          "order": 1,
+          "name": "按导入模板导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 1 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_impttpl_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [
+          {
+            "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+            "description": "岗位按导入模板导出插件",
+            "enabled": true,
+            "bizAppId": ""
+          }
+        ],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按导出模板导出 · 核心类：PositionHRExportPlugin）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin"
+          ]
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": [
+            "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin"
+          ]
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_expttpl_hr_hr",
+          "order": 1,
+          "name": "按导出模板导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 1 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_expttpl_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [
+          {
+            "className": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+            "description": "协作关系导出",
+            "enabled": true,
+            "bizAppId": ""
+          }
+        ],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导出记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN590J0H1R"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN590J0H1R",
+        "permissionItemId": "4730fc9f000004ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    }
+  },
+  "commonPlugins": [
+    {
+      "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+      "role": "7 个 opKey 中除 submitandnew/his_save 外都挂它；历史模型核心控制器",
+      "sdkAnnotation": "@SdkInternal"
+    },
+    {
+      "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+      "role": "save/confirmchange 都挂；替换 CompositePKValidator 为 HisGrpFieldsUniqueValidator",
+      "sdkAnnotation": "@SdkInternal"
+    },
+    {
+      "className": "kd.hrmp.hbpm.opplugin.web.position.PositionHrCommonOp",
+      "role": "PositionHrSaveOp / PositionHrChangeOp 的父类，afterExec 统一 sendMsg + addOrUpdatePositions(boids) （非 import 时）"
+    },
+    {
+      "className": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+      "role": "表单历史模型通用：save/confirmchange 的 before+after 都接管；CodeRuleProcessor 生成 number 注入 opOption",
+      "sdkAnnotation": "@SdkInternal"
+    },
+    {
+      "className": "kd.hrmp.hbpm.formplugin.web.position.PositionEdit",
+      "role": "岗位表单插件：7 opKey 都经过它的 before/after；专管 UI 状态切换 + bsed 回传给 Op + 成功后打开未来视图"
+    },
+    {
+      "className": "kd.hrmp.hbpm.formplugin.web.position.PositionList",
+      "role": "岗位列表插件：beforeDoOperation 仅处理 hisversion_view；afterDoOperation 仅 enable 成功后 refresh"
+    }
+  ],
+  "globalExtensionSuggestions": [
+    {
+      "scene": "岗位新增/保存后 推送到外部系统",
+      "approach": "写 ISV Op 挂 save/confirmchange/enable/disable 之后（rowKey 比 PositionHrSaveOp 大），用 afterExecuteOperationTransaction 读 afterVersions/args.getDataEntities 再调外部 API；注意 importtype 场景跳过"
+    },
+    {
+      "scene": "岗位编码规则扩展",
+      "approach": "看苍穹编码规则配置面板（CodeRule），不要改 PositionCodeRuleHelper.getCode / recycleNumber"
+    },
+    {
+      "scene": "禁用/启用前加强校验",
+      "approach": "写 ISV OpPlugin 挂 disable/enable，override onAddValidators 追加 AbstractValidator；不要 extends PositionHrDisableOp/EnableOp"
+    },
+    {
+      "scene": "汇报关系变更后通知",
+      "approach": "dochangerelation 没有 afterExec 链路 —— 想加监听要挂 ISV Op 的 afterExecuteOperationTransaction（该 opKey 上新增）"
+    },
+    {
+      "scene": "历史数据导入后做数据补全",
+      "approach": "his_save 只调 HisModelServiceHelper.createDataVersions，不走 HisModelOPCommonPlugin；ISV 插件可挂 his_save 之后读 successPkIds 做后处理"
+    },
+    {
+      "scene": "新增字段（如组织类型、定岗人数）",
+      "approach": "建 ISV 扩展元数据挂 hbpm_positionhr；新字段的赋值在 ISV FormPlugin 里写，不要在 PositionEdit 上 patch"
+    }
+  ],
+  "allOperationsMetadata": {
+    "_meta": {
+      "description": "Agent C 产出：opKey 元数据配置（parameter / permissionItemId / logEnable / validations 详情）。数据源：_auto_operations.md（getOperation 深度）。待与 Agent A 的 rules_chain_all.json.opKeys[*].metadataConfig 合并。",
+      "formId": "hbpm_positionhr",
+      "formName": "岗位信息维护",
+      "isv": "kingdee",
+      "source": "_auto_operations.md (getOperation 每个 opKey)",
+      "opKeyCount": 57,
+      "generatedAt": "2026-04-21",
+      "note": "XML 层只有 Invisible/Lock；MustInput/ruleDetail 由 validations 记录。ruleType 级别校验详情（字段级）苍穹 OpenAPI 不暴露（仅 id/ruleType/enabled/description）"
+    },
+    "new": {
+      "parameter": null,
+      "permissionItemId": "47156aff000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "modify": {
+      "parameter": null,
+      "permissionItemId": "4715a0df000000ac",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "view": {
+      "parameter": null,
+      "permissionItemId": "47150e89000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "save": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "AfterOperation": "default",
+        "StatusFieldId": "AkId5S4yTs"
+      },
+      "permissionItemId": null,
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": [
+        {
+          "id": "6096194600001fac",
+          "ruleType": "MustInput",
+          "_type": "MustInputValidation",
+          "enabled": true,
+          "description": "字段值合规性校验",
+          "errorMessage": "字段值合规性校验",
+          "levelId": null
+        }
+      ]
+    },
+    "disable": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "Value": "0",
+        "StatusFieldId": "ac5Y5Dax1q"
+      },
+      "permissionItemId": "47160c2b000000ac",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "enable": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "Value": "1",
+        "StatusFieldId": "ac5Y5Dax1q"
+      },
+      "permissionItemId": "4730fc5d000000ac",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "close": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "returndata": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "copy": {
+      "parameter": null,
+      "permissionItemId": "47156aff000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "refresh": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "option": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "submitandnew": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "AfterOperation": "default",
+        "Value": "B",
+        "StatusFieldId": "AkId5S4yTs"
+      },
+      "permissionItemId": "804f6478000000ac",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": [
+        {
+          "id": "2f5773ca0001b5ac",
+          "ruleType": "GroupFieldUnique",
+          "_type": "GrpfieldsuniqueValidation",
+          "enabled": true,
+          "description": "组合字段唯一性校验",
+          "errorMessage": "组合字段唯一性校验",
+          "levelId": null
+        },
+        {
+          "id": "2f5773ca0001b6ac",
+          "ruleType": "FormValidate",
+          "_type": "ConditionValidation",
+          "enabled": true,
+          "description": "合法性校验",
+          "errorMessage": "合法性校验",
+          "levelId": null
+        }
+      ]
+    },
+    "saveandnew": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "AfterOperation": "default",
+        "Value": "A",
+        "StatusFieldId": "AkId5S4yTs"
+      },
+      "permissionItemId": null,
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "first": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "previous": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "next": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "last": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "importdata": {
+      "parameter": {
+        "_Type_": "ImportParameter",
+        "Plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"岗位导入启动页插件\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin\",\"DisplayName\":\"kd.hr.hbp.formplugin.web.newhismodel.impt.HisBatchImportPlugin\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "importdetails": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "importtemplatelist": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "exportlist": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "exportlistbyselectfields": {
+      "parameter": {
+        "_Type_": "ExportParameter",
+        "ByList": true
+      },
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "exportlist_expt": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "exportdetails": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "importexport_userset": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "mobtoolbarselect": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "mobtoolbarcancel": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "namehistory": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "namehistoryview": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "logview": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "CanNoData": true
+      },
+      "permissionItemId": "2DA5R551WK78",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "viewonelog": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "importdata_hr": {
+      "parameter": {
+        "_Type_": "CustOperationParameter",
+        "Parameter": "{\"cusstartpage\":\"hismodel_importstart\",\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位中台导入插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false},{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位编码规则控制导入插件\\\",\\\"RowKey\\\":1,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+      },
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "show_import_record_hr": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "export_from_list_hr": {
+      "parameter": {
+        "_Type_": "CustOperationParameter",
+        "Parameter": "{\"replaceentityname\":\"\",\"plugins\":\"\"}"
+      },
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "export_from_impttpl_hr": {
+      "parameter": {
+        "_Type_": "CustOperationParameter",
+        "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位按导入模板导出插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+      },
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "export_from_expttpl_hr": {
+      "parameter": {
+        "_Type_": "CustOperationParameter",
+        "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"协作关系导出\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+      },
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "show_export_record_hr": {
+      "parameter": null,
+      "permissionItemId": "4730fc9f000004ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "hiscopy": {
+      "parameter": null,
+      "permissionItemId": "4715a0df000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "newhisversion": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "CanNoData": true
+      },
+      "permissionItemId": "4715a0df000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "revise": {
+      "parameter": null,
+      "permissionItemId": "4715a0df000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "reviserecord": {
+      "parameter": null,
+      "permissionItemId": "47150e89000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "versionchangecompare": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "CanNoData": true
+      },
+      "permissionItemId": "47150e89000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "showallversion": {
+      "parameter": null,
+      "permissionItemId": "47150e89000000ac",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "confirmchange": {
+      "parameter": {
+        "_Type_": "SaveParameter",
+        "AfterOperation": "default",
+        "StatusFieldId": "AkId5S4yTs"
+      },
+      "permissionItemId": "2DNXSYJWDART",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": [
+        {
+          "id": "4UXPTMTC=NCR",
+          "ruleType": "MustInput",
+          "_type": "MustInputValidation",
+          "enabled": true,
+          "description": "字段值合规性校验",
+          "errorMessage": "字段值合规性校验",
+          "levelId": null
+        }
+      ]
+    },
+    "hisversion_view": {
+      "parameter": null,
+      "permissionItemId": "43FE7VX8=P2C",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "relationimport": {
+      "parameter": {
+        "_Type_": "ImportParameter",
+        "Plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"协作关系导入插件\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionRelationImportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "reviseimport": {
+      "parameter": {
+        "_Type_": "ImportParameter",
+        "Plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"修订导入数据\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionReviseImportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "permissionItemId": "4730fc9f000003ae",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "reportchange": {
+      "parameter": null,
+      "permissionItemId": "2DNXU/27ZSXL",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "newentry": {
+      "parameter": {
+        "_Type_": "NewEntryParameter",
+        "EntryId": "37vqW7g8w5nh2fSXuh"
+      },
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "deleteentry": {
+      "parameter": {
+        "_Type_": "EntryOpParameter",
+        "EntryId": "37vqW7g8w5nh2fSXuh"
+      },
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "dochangerelation": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "AfterOperation": ""
+      },
+      "permissionItemId": null,
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": [
+        {
+          "id": "4T7SDY=13RY6",
+          "ruleType": "MustInput",
+          "_type": "MustInputValidation",
+          "enabled": true,
+          "description": "字段值合规性校验",
+          "errorMessage": "字段值合规性校验",
+          "levelId": null
+        }
+      ]
+    },
+    "change": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "CanNoData": true
+      },
+      "permissionItemId": "2DNXSYJWDART",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "do_close": {
+      "parameter": null,
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "import_positiondetailrevise": {
+      "parameter": {
+        "_Type_": "CustOperationParameter",
+        "Parameter": "{\"cusstartpage\":\"\",\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位修订导入插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionReviseHRImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+      },
+      "permissionItemId": null,
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "his_save": {
+      "parameter": null,
+      "permissionItemId": "501BTJ6744BE",
+      "logEnable": false,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "selecttplprint": {
+      "parameter": null,
+      "permissionItemId": "2PYK5I1A00N+",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    },
+    "sort": {
+      "parameter": {
+        "_Type_": "DoNothingParameter",
+        "AfterOperation": "close",
+        "CanNoData": true
+      },
+      "permissionItemId": "5JWVFJE9SXSJ",
+      "logEnable": true,
+      "saveAndSubmit": false,
+      "validations": []
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "importdata",
+        "importdetails",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "save"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

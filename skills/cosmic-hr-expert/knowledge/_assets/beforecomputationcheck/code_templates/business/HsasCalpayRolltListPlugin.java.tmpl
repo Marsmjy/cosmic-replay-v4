@@ -1,0 +1,104 @@
+package ${ISV_FLAG}.af73s.swc.hsasext.plugin.form;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.ShowType;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.list.IListView;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.swc.hsbp.business.servicehelper.SWCPermissionServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: liyixuan
+ * Date: 2024/2/1 17:21
+ * FileName: ${ISV_FLAG}_hsascalpayrollt
+ * Description: 薪资核算列表插件
+ */
+public class HsasCalpayRolltListPlugin extends AbstractListPlugin {
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        FormOperate formOperate = (FormOperate) args.getSource();
+        //判断 数据校验操作
+        if ("datacheckbtn".equals(formOperate.getOperateKey())) {
+            if (this.getSelectedRows().size() > 1) {
+                //多选时提示
+                this.getView().showTipNotification("请勾选单条薪资核算任务进行数据校验。");
+                args.setCancel(true);
+            }
+        }
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+        super.afterDoOperation(args);
+        FormOperate formOperate = (FormOperate) args.getSource();
+        //数据校验
+        if ("datacheckbtn".equals(formOperate.getOperateKey()) && args.getOperationResult().isSuccess()) {
+            //获取所选择行的   期间  值
+            IListView listView = (IListView) this.getView();
+            Long calTaskId = Long.valueOf(String.valueOf(listView.getFocusRowPkId()));
+            DynamicObject calTask = BusinessDataServiceHelper.loadSingleFromCache(calTaskId, "hsas_calpayrolltask", "id, period");
+            //获取期间数据，
+            DynamicObject period = calTask.getDynamicObject("period");
+            if (period == null) {
+                this.getView().showErrorNotification("您选择的核算任务单未录入期间数据。");
+                return;
+            }
+
+            //1. 根据当前选中的核算任务，获取到核算人员的名单
+            List<QFilter> qFilters = new ArrayList<>();
+            List<QFilter> authorizedDataRuleQFilter = SWCPermissionServiceHelper.getAuthorizedDataRuleQFilter("/UHMBBGZQ65X", "hsas_calperson", "47150e89000000ac");
+            QFilter qFilter = new QFilter("caltask.id", "=", calTaskId);
+            qFilters.add(qFilter);
+            if (authorizedDataRuleQFilter != null) {
+                qFilters.addAll(authorizedDataRuleQFilter);
+            } else {
+                qFilters.add(new QFilter("1", "!=", 1));
+            }
+            //2. 查询HR人员的工号、组织分配，即核算人员名单
+            DynamicObjectCollection calPersons = QueryServiceHelper.query("hsas_calperson", "id, assignment.id, name", qFilters.toArray(new QFilter[0]));
+            List<Object> assignmentIds = calPersons.stream().map(dyo -> dyo.getLong("assignment.id")).collect(Collectors.toList());
+
+
+            //3. 根据期间查询提报数据单
+            long periodId = (long) period.getPkValue();
+            //期间过滤+审批状态过滤（暂存，已提交，待重新提交，审批中）
+            QFilter[] bizDataBillFilters = new QFilter[]{new QFilter("calperiod", QCP.equals, periodId), new QFilter("billstatus", QCP.in, Arrays.asList("A", "B", "G", "D")),};
+            List<Object> bizDataBillIds = QueryServiceHelper.queryPrimaryKeys("hpdi_bizdatabill", bizDataBillFilters, null, -1);
+            if (!bizDataBillIds.isEmpty()) {
+                //根据数据提报单id与员工信息组合查询数据提报明细
+                // 组织分配过滤
+                QFilter[] bizDataEntFilters = new QFilter[]{new QFilter("bizdatabillid", QCP.in, bizDataBillIds), new QFilter("empposorgrel.assignment", QCP.in, assignmentIds),};
+                DynamicObjectCollection bizDataBillEnts = QueryServiceHelper.query("hpdi_bizdatabillent", "bizdatabillid", bizDataEntFilters);
+                //过滤出符合条件的提报单
+                if (!bizDataBillEnts.isEmpty()) {
+                    Set<Object> needPushBillIds = bizDataBillEnts.stream().map(dyo -> dyo.getLong("bizdatabillid")).collect(Collectors.toSet());
+                    //打开催办表单界面
+                    FormShowParameter showParameter = new FormShowParameter();
+                    showParameter.setFormId("${ISV_FLAG}_calpaypush");
+                    showParameter.getOpenStyle().setShowType(ShowType.Modal);
+                    showParameter.setCustomParam("needPushBillIds", needPushBillIds);
+                    getView().showForm(showParameter);
+                    return;
+                }
+            }
+            this.getView().showMessage("提报单状态校验已完成，暂无需要催办的提报数据。");
+        }
+    }
+
+}

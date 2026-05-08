@@ -1,0 +1,2333 @@
+{
+  "scene": "hrcs_datarule",
+  "formId": "hrcs_datarule",
+  "description": "数据规则操作链（42 opKey · 8 核心富化 · 34 stub 含 mines）。confidence 规则：distilled=反编译实证 · platform=平台标品 · recommended=ISV 建议加。",
+  "_meta": {
+    "auditedAt": "2026-04-28",
+    "decompiledRoot": "cosmic_hr_knowledge_explorer/knowledge/_sdk_audit/_decompiled/scenarios/hrcs_datarule/",
+    "totalOpKeys": 42,
+    "coreOpKeys": [
+      "save",
+      "delete",
+      "audit",
+      "unaudit",
+      "disable",
+      "enable",
+      "submit",
+      "unsubmit"
+    ],
+    "becMode": "标品 0 处发布 BEC（grep 验证 hrmp-hrcs-formplugin/opplugin 反编译 0 命中 triggerEventSubscribe / IEventService / EventServiceHelper）",
+    "hisModelMode": "强相关（PR-008/PR-009 适用）· HRDataRuleEditPlugin#beforeF7Select 用 HisModelServiceHelper.isInheritHisModelTemplate + iscurrentversion=1 过滤"
+  },
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "标品 HR 导入·入口"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "新增 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRDataRuleEditPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "role": "FormPlugin afterCreateNewData · entitynum 预填 + 锁定逻辑"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "修改 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRDataRuleEditPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "role": "FormPlugin afterLoadData · entitynum 锁字段 + 视图态隐藏添加按钮"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "查看 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRDataRuleEditPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "role": "FormPlugin afterLoadData · view 态隐藏 FilterGrid 添加按钮"
+        },
+        {
+          "order": 2,
+          "plugin": "HRAdminStrictPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminStrictPlugin",
+          "role": "FormPlugin preOpenForm · HR 领域管理员准入校验"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "数据规则保存（核心 opKey · FilterGrid 状态 → rule 字段 JSON 持久化 + 写日志 + 异步通知权限缓存）",
+        "frequency": "高频",
+        "stateTransition": "draft → saved",
+        "extValue": 5
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "标品 · 编码规则未填时根据规则模板生成 number"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "标品 · 基础资料版本控制（hrcs_datarule 是标品基础资料）"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · status 字段（draft/audit/disable）合法性 + onAddValidators 注册状态校验"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 操作日志写入"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 标品 · enable 字段维护"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 标品 · 出厂数据原始值记录（orinumber/oriname/oristatus）"
+        },
+        {
+          "order": 7,
+          "plugin": "HRDataRuleSaveOp",
+          "className": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "role": "hrcs 数据规则专属 · onAddValidators 注册 HRDataRuleSaveValidator + beforeExecute 抓变更 + afterExecute 调 PermNotifyService.notifyByDataRule + 清缓存 + 写 DataRuleLog"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_SAVE_1",
+          "order": 1,
+          "name": "HRDataRuleSaveValidator 业务校验（hrcs 场景专属）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hrcs.opplugin.validator.HRDataRuleSaveValidator#validate",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "definition": "HRDataRuleSaveOp.onAddValidators 注册（args.addValidator(new HRDataRuleSaveValidator()))",
+          "edgeCase": "标品业务校验 · 详细规则待 hrmp-hrcs-opplugin 反编译 HRDataRuleSaveValidator",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L48"
+        },
+        {
+          "id": "V_SAVE_2",
+          "order": 2,
+          "name": "HRBaseDataStatusOp 单据状态校验",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "标品基础资料 status 字段合法性校验",
+          "edgeCase": "status 取值不在 draft/audit/disable 枚举内 → 抛错",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp.onAddValidators"
+        },
+        {
+          "id": "V_SAVE_3",
+          "order": 3,
+          "name": "FilterGrid 非空校验（FormPlugin doSave 阻断）",
+          "phase": "FormPlugin beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#doSave",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "definition": "if FilterCondition.filterRow 为空 · args.setCancel(true) + 抛'请配置规则。'",
+          "edgeCase": "用户进入新建态没配条件直接 save · 直接阻断在 FormPlugin 阶段（不到 OP）",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L138-L153"
+        },
+        {
+          "id": "V_SAVE_4",
+          "order": 4,
+          "name": "FilterBuilder 字段合法性校验（FormPlugin doSave）",
+          "phase": "FormPlugin beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#doSave",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "definition": "new FilterBuilder(dataEntityType, fc).buildFilter()",
+          "edgeCase": "FilterCondition 引用了 entitynum 业务对象不存在的字段 / 类型不兼容 · buildFilter 抛异常",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L142-L145"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_SAVE_1",
+          "order": 1,
+          "name": "FormPlugin beforeDoOperation · save 走 doSave",
+          "type": "beforeDoOperation",
+          "definition": "if (HRStringUtils.equals(\"save\", operateKey)) doSave(args)",
+          "phase": "FormPlugin beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L123-L131"
+        },
+        {
+          "id": "B_SAVE_2",
+          "order": 2,
+          "name": "doSave · FilterCondition.toJsonString 灌 rule 字段",
+          "type": "beforeDoOperation",
+          "definition": "String ruleStr = SerializationUtils.toJsonString(fc); this.getModel().setValue(\"rule\", ruleStr);",
+          "phase": "FormPlugin beforeDoOperation · setValue",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#doSave",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L138-L146"
+        },
+        {
+          "id": "B_SAVE_3",
+          "order": 3,
+          "name": "OP beforeExecute · 抓 rule 字段变更（diff）",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "compareFilterCondition(dataRuleId, item.getString(\"rule\")) → 用 HRBaseServiceHelper queryOne 查老 rule · DataRuleLogServiceHelper.compareFilterControls 比较前后",
+          "phase": "OP beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L51-L65"
+        },
+        {
+          "id": "B_SAVE_4",
+          "order": 4,
+          "name": "OP beforeExecute · 用 OperationOption 暂存变更标志（变更后才需要清缓存 + 写日志）",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "this.getOption().setVariableValue(\"operate_\" + dataRuleId, \"1\"); this.getOption().setVariableValue(\"originalRule_\" + dataRuleId, beforeRuleStr); this.getOption().setVariableValue(\"beforeData_\" + dataRuleId, SerializationUtils.toJsonString(dataRuleLogModel));",
+          "phase": "OP beforeExecuteOperationTransaction · OperationOption",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L60-L63"
+        },
+        {
+          "id": "B_SAVE_5",
+          "order": 5,
+          "name": "OP afterExecute · 变更后调 PermNotifyService.notifyByDataRule 通知权限链",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "if (isChange && !originalRule.equals(item.getString(\"rule\"))) PermNotifyService.notifyByDataRule(dataRuleId);",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L74-L75"
+        },
+        {
+          "id": "B_SAVE_6",
+          "order": 6,
+          "name": "OP afterExecute · 变更后清 BS_HR_PERM_DATA_RULE / BS_HR_PERM_BD_DATA_RULE 缓存",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "String[] keys = new String[]{HRPermCacheMgr.getTypeByPrefix(\"BS_HR_PERM_DATA_RULE\"), HRPermCacheMgr.getTypeByPrefix(\"BS_HR_PERM_BD_DATA_RULE\")}; HRPermCacheMgr.clearCache(keys);",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L76-L78"
+        },
+        {
+          "id": "B_SAVE_7",
+          "order": 7,
+          "name": "OP afterExecute · 写 DataRuleLog 操作日志（modify 模式）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogModel dataRuleLogModel = DataRuleLogServiceHelper.getDataRuleLogModel(dataRuleId, false); dataRuleLogModel.setBeforeDataRuleModel(beforeData); DataRuleLogServiceHelper.dataRuleLogInit(\"modify\", dataRuleLogModel);",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.HRDataRuleSaveOp",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleSaveOp.java L79-L84"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "FilterCondition → rule 字段 JSON 化 + 空校验 + FilterBuilder 校验 + 设 tag_of_view 变量"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "rule"
+      ],
+      "readFields": [
+        "entitynum",
+        "rule",
+        "id"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ rule 字段是 TextField · 存 FilterCondition.toJsonString · 直接 set 字符串会绕过 FilterBuilder 校验 · 必须走 FilterGrid 控件",
+        "⚠ FilterCondition 引用的字段必须在 entitynum 业务对象内 · 否则 FilterBuilder.buildFilter 抛异常",
+        "⚠ rule 变更后异步清缓存 · ISV 不要假设 save 后缓存立即一致（PR-010 · afterExecute 阶段）",
+        "⚠ DataRuleLog 写日志依赖 OperationOption.beforeData_<id> · ISV 自建 OP 不要清掉这个变量",
+        "⚠ BS_HR_PERM_DATA_RULE / BS_HR_PERM_BD_DATA_RULE 是 hrcs 权限链的 2 个内置 cache key · ISV 不要 clearCache 同样 key（会跟标品争）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveValidator（hrcs 场景专属 Validator · 应继承 AbstractValidator）",
+        "❌ 禁继承 HRAdminStrictPlugin（11 表单已共用 · 复用即可）",
+        "❌ 禁继承 AbsOrgBaseOp（组织域专属 · hrcs 不适用）",
+        "❌ 禁继承 HisUniqueValidateOp / HisModelOPCommonPlugin（@SdkInternal · 时序内部类）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_SAVE_1",
+            "name": "FilterGrid 非空",
+            "ruleDetail": "FilterCondition.filterRow 必须非空",
+            "errorMessage": "请配置规则。",
+            "enabled": true
+          },
+          {
+            "id": "MC_SAVE_2",
+            "name": "FilterBuilder 校验",
+            "ruleDetail": "FilterCondition 字段必须存在于 entitynum",
+            "errorMessage": "规则字段非法 · FilterBuilder 校验失败",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "数据规则删除 · 标品基础资料 delete + HR 状态校验",
+        "frequency": "低频",
+        "stateTransition": "saved → deleted",
+        "extValue": 3
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "标品 · 释放编码规则号段（如有）"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "标品 · 版本基础资料 delete"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · status 字段校验（必须不在 audit 状态才能删）+ onAddValidators 注册"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 删除日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DELETE_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp 状态校验（不能删 audit/enable 数据）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "audit/enable 状态的数据规则不能直接删 · 要先 disable / unaudit",
+          "edgeCase": "已审核数据规则 → 抛'请先反审核再删除'",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp"
+        },
+        {
+          "id": "V_DELETE_2",
+          "order": 2,
+          "name": "系统预置（issyspreset=true）数据规则禁删（标品默认 · PR-007）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "issyspreset=true 时 · 标品禁删",
+          "edgeCase": "删预置数据规则 → 抛'系统预置数据不可删除'",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp"
+        },
+        {
+          "id": "V_DELETE_3",
+          "order": 3,
+          "name": "下游引用校验（建议 ISV 加 · 标品未实证）",
+          "phase": "onAddValidators",
+          "impl": "（待 ISV 自建 RefCheckValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "check hrcs_dynascheme.permfilter / hrcs_role 是否引用了本规则",
+          "edgeCase": "规则被授权方案引用时 · 不允许直接删（建议 ISV CS-04）",
+          "confidence": "recommended",
+          "sourceLine": "待 CS-04 实现"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_DELETE_1",
+          "order": 1,
+          "name": "标品 BdVersionSaveServicePlugin · 删除主表 + _l 表",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "标品基础资料 delete 流程",
+          "phase": "OP beforeExecuteOperationTransaction",
+          "impl": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "implClass": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_DELETE_2",
+          "order": 2,
+          "name": "标品 HRBaseDataLogOp · 删除日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "日志记录 delete",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_DELETE_3",
+          "order": 3,
+          "name": "DataRuleLog 删除日志（建议 ISV 加 · 标品 SaveOp 只处理 modify）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"delete\", model)",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "（建议 ISV 自建 DeleteOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp 的 modify 写法"
+        },
+        {
+          "id": "B_DELETE_4",
+          "order": 4,
+          "name": "删除后清 BS_HR_PERM_DATA_RULE 缓存（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRPermCacheMgr.clearCache(keys)",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "（建议 ISV 自建 DeleteOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        },
+        {
+          "id": "B_DELETE_5",
+          "order": 5,
+          "name": "通知权限链（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "PermNotifyService.notifyByDataRule(id)",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "（建议 ISV 自建 DeleteOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        }
+      ],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "id",
+        "number",
+        "status",
+        "issyspreset"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 删除前必须查下游引用 · hrcs_dynascheme 的规则配置可能引用本规则",
+        "⚠ 标品默认拦 audit/enable 状态删除 · 业务先 disable + unaudit 才能删",
+        "⚠ issyspreset=true 系统预置规则不可删（PR-007）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）",
+        "❌ 禁继承 HRAdminStrictPlugin（已挂 · 不要重复）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_DEL_1",
+            "name": "状态校验",
+            "ruleDetail": "非 audit/enable 状态才能删",
+            "errorMessage": "请先反审核/禁用再删除",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "数据规则审核 · 把 status 从 draft 提到 audit · 写日志 · 异步通知权限链",
+        "frequency": "中频",
+        "stateTransition": "draft/saved → audit",
+        "extValue": 3
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · status 字段写 audit + onAddValidators 注册状态校验"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 操作日志"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 标品 · 出厂数据原始值记录"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_AUDIT_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp 状态合法性（必须从 draft/saved 进 audit）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "标品 status 字段的状态机校验",
+          "edgeCase": "已 audit 数据再 audit → 标品报错",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp"
+        },
+        {
+          "id": "V_AUDIT_2",
+          "order": 2,
+          "name": "必填字段非空（rule + entitynum）",
+          "phase": "onAddValidators / 元数据",
+          "impl": "元数据 validations",
+          "implClass": "元数据",
+          "definition": "标品 audit 前校验 entitynum 必填 + rule 不为空",
+          "edgeCase": "用户在草稿态没填 rule 直接 audit → 标品报错",
+          "confidence": "distilled",
+          "sourceLine": "hrcs_datarule 元数据 mustInput"
+        },
+        {
+          "id": "V_AUDIT_3",
+          "order": 3,
+          "name": "FilterBuilder 二次校验（建议 ISV 加）",
+          "phase": "onAddValidators",
+          "impl": "（建议 ISV 自建 AuditValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "重新构建 FilterBuilder · 防止 entitynum 字段被改名后规则失效",
+          "edgeCase": "业务对象元数据被改名后 · 规则 rule JSON 里引用了消失字段",
+          "confidence": "recommended",
+          "sourceLine": "参考 HRDataRuleEditPlugin#doSave 同 builder 逻辑"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_AUDIT_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp · status=audit",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"status\", \"C\") (audit 标品状态码)",
+          "phase": "OP beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_AUDIT_2",
+          "order": 2,
+          "name": "HRBaseDataLogOp · audit 日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "标品操作日志",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_AUDIT_3",
+          "order": 3,
+          "name": "DataRuleLog audit 日志（建议 ISV 加）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"audit\", model)",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "（建议 ISV 自建 AuditOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp 同 helper"
+        },
+        {
+          "id": "B_AUDIT_4",
+          "order": 4,
+          "name": "audit 后清缓存 · 通知权限链（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRPermCacheMgr.clearCache + PermNotifyService.notifyByDataRule",
+          "phase": "OP afterExecuteOperationTransaction",
+          "impl": "（建议 ISV 自建 AuditOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        },
+        {
+          "id": "B_AUDIT_5",
+          "order": 5,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view 变量（不针对 audit 特殊逻辑 · 通用）"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [
+        "id",
+        "status",
+        "entitynum",
+        "rule"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 标品 status 状态码字符串值（draft=A · saved=B · audit=C）· 不要硬编码英文",
+        "⚠ audit 后规则才生效进入权限链 · 草稿态规则不参与权限计算",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_AUD_1",
+            "name": "状态合法",
+            "ruleDetail": "必须从 draft/saved 进 audit",
+            "errorMessage": "已审核单据不能再次审核",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "数据规则反审核 · status 从 audit 退到 saved · 检查下游是否依赖",
+        "frequency": "低频",
+        "stateTransition": "audit → saved",
+        "extValue": 2
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · status 字段退回 saved + onAddValidators 注册"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 反审核日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_UNAUDIT_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp 状态校验（必须从 audit 退）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "标品 unaudit 状态机校验",
+          "edgeCase": "非 audit 状态 unaudit → 标品报错",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp"
+        },
+        {
+          "id": "V_UNAUDIT_2",
+          "order": 2,
+          "name": "下游引用校验（建议 ISV 加）",
+          "phase": "onAddValidators",
+          "impl": "（建议 ISV 自建 UnauditValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "check hrcs_dynascheme.permfilter / hrcs_role 是否仍引用",
+          "edgeCase": "被授权方案引用时 · 反审核会让在用规则失效",
+          "confidence": "recommended",
+          "sourceLine": "参考 CS-04"
+        },
+        {
+          "id": "V_UNAUDIT_3",
+          "order": 3,
+          "name": "issyspreset 不可反审核（PR-007）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "系统预置数据规则不能反审核",
+          "edgeCase": "标品 issyspreset=true 时拦截",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataStatusOp · PR-007"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_UNAUDIT_1",
+          "order": 1,
+          "name": "标品 status 退回 saved",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"status\", \"B\")",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_UNAUDIT_2",
+          "order": 2,
+          "name": "反审核后通知权限链 · 让该规则在权限计算中失效（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "PermNotifyService.notifyByDataRule + HRPermCacheMgr.clearCache",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 UnauditOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        },
+        {
+          "id": "B_UNAUDIT_3",
+          "order": 3,
+          "name": "DataRuleLog unaudit 日志（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"unaudit\", model)",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 UnauditOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp 写法"
+        },
+        {
+          "id": "B_UNAUDIT_4",
+          "order": 4,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        },
+        {
+          "id": "B_UNAUDIT_5",
+          "order": 5,
+          "name": "标品日志写入",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRBaseDataLogOp 标品方法",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [
+        "id",
+        "status",
+        "issyspreset"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 反审核会让规则在权限链失效 · 调用方业务方案应用方需立即感知（建议异步通知）",
+        "⚠ 系统预置规则禁反审核（PR-007）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_UNAUD_1",
+            "name": "状态",
+            "ruleDetail": "必须从 audit 退",
+            "errorMessage": "非已审核单据不能反审核",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "数据规则禁用 · enable 字段=0 · 禁用人/时间维护 · 通知权限链",
+        "frequency": "低频",
+        "stateTransition": "enable=1 → enable=0",
+        "extValue": 2
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 标品 · enable=0 + 写 disabler/disabledate"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · disable 日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DIS_1",
+          "order": 1,
+          "name": "HRBaseDataEnableOp 状态校验（必须当前 enable=1 才能禁）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "definition": "标品 enable 状态机",
+          "edgeCase": "已禁用规则再禁 → 报错",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataEnableOp"
+        },
+        {
+          "id": "V_DIS_2",
+          "order": 2,
+          "name": "下游引用校验（建议 ISV 加）",
+          "phase": "onAddValidators",
+          "impl": "（建议 ISV 自建 DisableValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "check hrcs_dynascheme 是否仍在用",
+          "edgeCase": "被在用方案引用时禁用会让权限失效",
+          "confidence": "recommended",
+          "sourceLine": "参考 CS-04"
+        },
+        {
+          "id": "V_DIS_3",
+          "order": 3,
+          "name": "issyspreset 禁用限制（PR-007）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "definition": "系统预置可禁用 · 但不能删 · 业务侧需提示",
+          "edgeCase": "PR-007 边界",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataEnableOp"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_DIS_1",
+          "order": 1,
+          "name": "enable=0 + 写 disabler/disabledate",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"enable\",\"0\"); item.set(\"disabler\", uid); item.set(\"disabledate\", now)",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_DIS_2",
+          "order": 2,
+          "name": "通知权限链 · 让规则失效（建议 ISV 加）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "PermNotifyService.notifyByDataRule + HRPermCacheMgr.clearCache",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 DisableOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        },
+        {
+          "id": "B_DIS_3",
+          "order": 3,
+          "name": "DataRuleLog disable 日志（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"disable\", model)",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 DisableOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp 写法"
+        },
+        {
+          "id": "B_DIS_4",
+          "order": 4,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        },
+        {
+          "id": "B_DIS_5",
+          "order": 5,
+          "name": "标品日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRBaseDataLogOp",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable",
+        "disabler",
+        "disabledate"
+      ],
+      "readFields": [
+        "id",
+        "enable",
+        "status"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 禁用是软删除 · enable=0 · 不会真删数据 · 但权限链会忽略",
+        "⚠ disabler/disabledate 是平台 L0 字段 · ISV 不要手填 · 标品 OP 自动填",
+        "⚠ 禁用前最好查下游引用（CS-04）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）",
+        "❌ 禁继承 HRAdminStrictPlugin（已挂）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_DIS_1",
+            "name": "启用态",
+            "ruleDetail": "当前 enable=1 才能禁",
+            "errorMessage": "已禁用单据不能再次禁用",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "数据规则启用 · enable=1 · 通知权限链 · 重新生效",
+        "frequency": "低频",
+        "stateTransition": "enable=0 → enable=1",
+        "extValue": 2
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 标品 · enable=1 + 清空 disabler/disabledate"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 启用日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_EN_1",
+          "order": 1,
+          "name": "HRBaseDataEnableOp 状态校验（必须当前 enable=0）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "definition": "标品 enable 状态机",
+          "edgeCase": "已启用再启用报错",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar HRBaseDataEnableOp"
+        },
+        {
+          "id": "V_EN_2",
+          "order": 2,
+          "name": "FilterBuilder 二次校验（建议 ISV 加）",
+          "phase": "onAddValidators",
+          "impl": "（建议 ISV 自建 EnableValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "启用前重新构建 FilterBuilder · 防止 entitynum 元数据被改动后规则失效",
+          "edgeCase": "业务对象字段被删除后启用",
+          "confidence": "recommended",
+          "sourceLine": "参考 HRDataRuleEditPlugin#doSave 同 builder"
+        },
+        {
+          "id": "V_EN_3",
+          "order": 3,
+          "name": "必填字段非空",
+          "phase": "元数据",
+          "impl": "元数据 validations",
+          "implClass": "元数据",
+          "definition": "启用前 entitynum + rule 必须有值",
+          "edgeCase": "草稿规则没填 rule 直接启用",
+          "confidence": "distilled",
+          "sourceLine": "hrcs_datarule 元数据 mustInput"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_EN_1",
+          "order": 1,
+          "name": "enable=1 + 清空 disabler/disabledate",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"enable\",\"1\"); item.set(\"disabler\", null); item.set(\"disabledate\", null)",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_EN_2",
+          "order": 2,
+          "name": "通知权限链 · 让规则重新生效（建议 ISV 加）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "PermNotifyService.notifyByDataRule + HRPermCacheMgr.clearCache",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 EnableOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        },
+        {
+          "id": "B_EN_3",
+          "order": 3,
+          "name": "DataRuleLog enable 日志（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"enable\", model)",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 EnableOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp 写法"
+        },
+        {
+          "id": "B_EN_4",
+          "order": 4,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        },
+        {
+          "id": "B_EN_5",
+          "order": 5,
+          "name": "标品日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRBaseDataLogOp",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable",
+        "disabler",
+        "disabledate"
+      ],
+      "readFields": [
+        "id",
+        "enable",
+        "entitynum",
+        "rule"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 启用前最好做 FilterBuilder 二次校验 · 否则启用后真用规则才发现失效",
+        "⚠ 草稿态 + audit 后才允许启用 · 否则失效规则进权限链",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）",
+        "❌ 禁继承 HRAdminStrictPlugin（已挂）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_EN_1",
+            "name": "启用态",
+            "ruleDetail": "当前 enable=0 才能启用",
+            "errorMessage": "已启用单据不能再次启用",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataCommonEdit",
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataCommonEdit",
+          "role": "FormPlugin beforeClosed · 标品基础资料关闭确认"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "返回数据 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "数据规则提交 · 标品基础资料提交流程",
+        "frequency": "低频",
+        "stateTransition": "draft → submitted",
+        "extValue": 2
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · submit 状态写入"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 提交日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_SUB_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp 状态校验",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "submit 状态机校验",
+          "edgeCase": "非 draft 单据 submit",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "V_SUB_2",
+          "order": 2,
+          "name": "必填校验",
+          "phase": "元数据",
+          "impl": "元数据 validations",
+          "implClass": "元数据",
+          "definition": "entitynum + rule 必填",
+          "edgeCase": "草稿态空 rule 提交",
+          "confidence": "distilled",
+          "sourceLine": "元数据 mustInput"
+        },
+        {
+          "id": "V_SUB_3",
+          "order": 3,
+          "name": "FilterBuilder 校验（FormPlugin doSave 已校 · OP 阶段不再校）",
+          "phase": "FormPlugin beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#doSave",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "definition": "submit 也走 doSave 序列化路径",
+          "edgeCase": "submit 等于 save+提交 · 共享 FormPlugin doSave",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L123-L153"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_SUB_1",
+          "order": 1,
+          "name": "FormPlugin · submit 也走 doSave 路径序列化 rule",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "代码只对 save 走 doSave · submit 不走 · 但 submit 通常先经过 save · 所以 rule 已序列化（实证）",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L126"
+        },
+        {
+          "id": "B_SUB_2",
+          "order": 2,
+          "name": "标品 status 字段 submit 状态",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"status\", \"D\") (submitted 标品状态码)",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_SUB_3",
+          "order": 3,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        },
+        {
+          "id": "B_SUB_4",
+          "order": 4,
+          "name": "标品日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRBaseDataLogOp 写日志",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_SUB_5",
+          "order": 5,
+          "name": "DataRuleLog submit 日志（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"submit\", model)",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 SubmitOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [
+        "id",
+        "status",
+        "entitynum",
+        "rule"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ submit 不会触发 FormPlugin doSave · 因此 submit 时 FilterCondition 不会重新序列化进 rule · 必须先 save 再 submit",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_SUB_1",
+            "name": "必填",
+            "ruleDetail": "entitynum + rule",
+            "errorMessage": "请配置规则",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "数据规则撤销 · 从 submitted 退回 draft",
+        "frequency": "低频",
+        "stateTransition": "submitted → draft",
+        "extValue": 2
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 标品 · status 退回 draft + onAddValidators 注册"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 标品 · 撤销日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_UNSUB_1",
+          "order": 1,
+          "name": "HRBaseDataStatusOp 状态校验",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "非 submitted 状态 unsubmit 报错",
+          "edgeCase": "audit/draft 单据撤销",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "V_UNSUB_2",
+          "order": 2,
+          "name": "creator 校验（建议 · 仅 creator 自己撤销）",
+          "phase": "onAddValidators",
+          "impl": "（建议 ISV 自建 UnsubmitValidator）",
+          "implClass": "（待 ISV 自建）",
+          "definition": "非 creator 不能 unsubmit",
+          "edgeCase": "业务自定义",
+          "confidence": "recommended",
+          "sourceLine": "对照 RequestContext.get().getCurrUserId()"
+        },
+        {
+          "id": "V_UNSUB_3",
+          "order": 3,
+          "name": "issyspreset 不可撤销（PR-007）",
+          "phase": "onAddValidators",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "definition": "系统预置 issyspreset=true 时禁",
+          "edgeCase": "PR-007",
+          "confidence": "distilled",
+          "sourceLine": "标品 jar"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_UNSUB_1",
+          "order": 1,
+          "name": "标品 status 退回 draft",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "item.set(\"status\", \"A\")",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_UNSUB_2",
+          "order": 2,
+          "name": "标品日志",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "HRBaseDataLogOp",
+          "phase": "OP",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "confidence": "platform",
+          "sourceLine": "标品 jar"
+        },
+        {
+          "id": "B_UNSUB_3",
+          "order": 3,
+          "name": "DataRuleLog unsubmit 日志（建议）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "DataRuleLogServiceHelper.dataRuleLogInit(\"unsubmit\", model)",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 UnsubmitOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp"
+        },
+        {
+          "id": "B_UNSUB_4",
+          "order": 4,
+          "name": "FormPlugin tag_of_view 设值",
+          "type": "FormPlugin beforeDoOperation",
+          "definition": "FormOperate.getOption().setVariableValue(\"tag_of_view\", \"true\")",
+          "phase": "FormPlugin",
+          "impl": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "confidence": "distilled",
+          "sourceLine": "HRDataRuleEditPlugin.java L129-L131"
+        },
+        {
+          "id": "B_UNSUB_5",
+          "order": 5,
+          "name": "撤销后通知权限链（建议 · 如果之前权限链已包含）",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "PermNotifyService.notifyByDataRule + HRPermCacheMgr.clearCache",
+          "phase": "OP",
+          "impl": "（建议 ISV 自建 UnsubmitOp）",
+          "implClass": "（待 ISV 自建）",
+          "confidence": "recommended",
+          "sourceLine": "对照 HRDataRuleSaveOp.afterExecute"
+        }
+      ],
+      "formPluginBefore": [
+        {
+          "plugin": "HRDataRuleEditPlugin",
+          "method": "beforeDoOperation",
+          "role": "设 tag_of_view"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [
+        "id",
+        "status",
+        "creator",
+        "issyspreset"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ submitted 状态才能 unsubmit · audit 必须先 unaudit",
+        "⚠ 系统预置规则禁撤销（PR-007）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属）",
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属）",
+        "❌ 禁继承 AbsOrgBaseOp（不适用）"
+      ],
+      "metadataConfig": {
+        "validations": [
+          {
+            "id": "MC_UNSUB_1",
+            "name": "状态",
+            "ruleDetail": "必须从 submitted 退",
+            "errorMessage": "非已提交单据不能撤销",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    "copy": {
+      "opKey": "copy",
+      "name": "复制",
+      "opType": "copy",
+      "overview": {
+        "scene": "复制 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "标品 · 复制基础资料 · 不带 boid（重生成）"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRDataRuleEditPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "role": "FormPlugin afterBindData · refreshFilterGrid 重建过滤列"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "submit 后清空当前 view + 进入新建态"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "saveandnew": {
+      "opKey": "saveandnew",
+      "name": "保存并新增",
+      "opType": "saveandnew",
+      "overview": {
+        "scene": "保存并新增 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRDataRuleEditPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.datarule.HRDataRuleEditPlugin",
+          "role": "FormPlugin doSave 同 save · save 完成后 new"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "importdata": {
+      "opKey": "importdata",
+      "name": "导入数据",
+      "opType": "importdata",
+      "overview": {
+        "scene": "导入数据 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "importdetails": {
+      "opKey": "importdetails",
+      "name": "查看导入结果",
+      "opType": "importdetails",
+      "overview": {
+        "scene": "查看导入结果 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "importtemplatelist": {
+      "opKey": "importtemplatelist",
+      "name": "管理模板",
+      "opType": "importtemplatelist",
+      "overview": {
+        "scene": "管理模板 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "exportlist": {
+      "opKey": "exportlist",
+      "name": "导出数据（按导入模板）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据（按导入模板） · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataCommonList",
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataCommonList",
+          "role": "标品 HR 列表·导出入口"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据（按列表）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据（按列表） · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "中频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "exportlist_expt": {
+      "opKey": "exportlist_expt",
+      "name": "导出数据（按导出模板）",
+      "opType": "exportlist_expt",
+      "overview": {
+        "scene": "导出数据（按导出模板） · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出结果 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "importexport_userset": {
+      "opKey": "importexport_userset",
+      "name": "导入导出个性化设置",
+      "opType": "importexport_userset",
+      "overview": {
+        "scene": "导入导出个性化设置 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "mobtoolbarselect": {
+      "opKey": "mobtoolbarselect",
+      "name": "选择",
+      "opType": "mobtoolbarselect",
+      "overview": {
+        "scene": "选择 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "mobtoolbarcancel": {
+      "opKey": "mobtoolbarcancel",
+      "name": "取消",
+      "opType": "mobtoolbarcancel",
+      "overview": {
+        "scene": "取消 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "namehistory": {
+      "opKey": "namehistory",
+      "name": "改名",
+      "opType": "donothing",
+      "overview": {
+        "scene": "改名 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "namehistoryview": {
+      "opKey": "namehistoryview",
+      "name": "名称历史查询",
+      "opType": "donothing",
+      "overview": {
+        "scene": "名称历史查询 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "viewonelog": {
+      "opKey": "viewonelog",
+      "name": "查看日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看日志 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    },
+    "logview": {
+      "opKey": "logview",
+      "name": "查看全部日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看全部日志 · 标品基础资料通用操作 · hrcs_datarule 复用平台模板",
+        "frequency": "低频",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "executionChain": [],
+      "validators": [],
+      "businessRules": [],
+      "formPluginBefore": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "❌ 禁继承 HRDataRuleEditPlugin（hrcs 场景专属 FormPlugin · 标品改签名后 ISV 必跟 · 应并列挂 HRDataBaseEdit）",
+        "❌ 禁继承 HRDataRuleSaveOp（hrcs 场景专属 OP · 应并列挂 HRDataBaseOp）",
+        "❌ 禁继承 HRAdminStrictPlugin（hrcs 11 表单已挂 · 重复挂会重复校验报错 · 复用即可）"
+      ],
+      "metadataConfig": {}
+    }
+  }
+}

@@ -1,0 +1,470 @@
+{
+  "formId": "wtpm_checkcard",
+  "formName": null,
+  "sceneId": "wtpm_checkcard",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1EJ2BFSE71/I",
+  "bizappId": "1O9FSW4YM0ZO",
+  "metaIdTechnical": "2HVHRA7J2ORE",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtpm_checkcard",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtpm_checkcard.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtpm_checkcard",
+      "type": "BaseEntity",
+      "title": "校验卡记录",
+      "physicalTable": null,
+      "fieldCount": 9
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 17
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "creator": {
+      "fieldId": "3X816otBRR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtpm_checkcard",
+      "title": "创建人",
+      "physicalColumn": "t_wtpm_checkcard.fcreatorid",
+      "_fieldApId": "3X816otBRR"
+    },
+    "createtime": {
+      "fieldId": "lCmI2nVrvR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtpm_checkcard",
+      "title": "创建时间",
+      "physicalColumn": "t_wtpm_checkcard.fcreatetime",
+      "_fieldApId": "lCmI2nVrvR"
+    },
+    "modifier": {
+      "fieldId": "zfe0nVqnP7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wtpm_checkcard",
+      "title": "修改人",
+      "physicalColumn": "t_wtpm_checkcard.fmodifierid",
+      "_fieldApId": "zfe0nVqnP7"
+    },
+    "modifytime": {
+      "fieldId": "1h2H10Ktua",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wtpm_checkcard",
+      "title": "修改时间",
+      "physicalColumn": "t_wtpm_checkcard.fmodifytime",
+      "_fieldApId": "1h2H10Ktua"
+    },
+    "initdatasource": {
+      "fieldId": "ssudmMLrFI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtpm_checkcard",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "ssudmMLrFI"
+    },
+    "org": {
+      "fieldId": "UO7blvbIoz",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtpm_checkcard",
+      "title": "考勤管理组织",
+      "physicalColumn": "t_wtpm_checkcard.forgid",
+      "_fieldApId": "UO7blvbIoz"
+    },
+    "attcard": {
+      "fieldId": "n34XYNkjV7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtpm_checkcard",
+      "title": "考勤卡号",
+      "physicalColumn": "t_wtpm_checkcard.fattcard",
+      "_fieldApId": "n34XYNkjV7"
+    },
+    "shiftdate": {
+      "fieldId": "b1v1tkBEQ7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtpm_checkcard",
+      "title": "班次日期",
+      "physicalColumn": "t_wtpm_checkcard.fshiftdate",
+      "_fieldApId": "b1v1tkBEQ7"
+    },
+    "shift": {
+      "fieldId": "84h2U4y7tq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_shift",
+      "entity": "wtpm_checkcard",
+      "title": "班次",
+      "physicalColumn": "t_wtpm_checkcard.fshiftid",
+      "_fieldApId": "84h2U4y7tq"
+    },
+    "checkpoint": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "校验卡点",
+      "physicalColumn": "t_wtpm_checkcardentry.fcheckpoint"
+    },
+    "source": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_signsource",
+      "entity": "entryentity",
+      "title": "打卡来源",
+      "physicalColumn": "t_wtpm_checkcardentry.fsourceid"
+    },
+    "pointdesc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_shiftperiod",
+      "entity": "entryentity",
+      "title": "校验卡取卡范围",
+      "physicalColumn": "t_wtpm_checkcardentry.fpointdescid"
+    },
+    "accesstag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "进出卡",
+      "physicalColumn": "t_wtpm_checkcardentry.faccesstag"
+    },
+    "pointtag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "卡点标识",
+      "physicalColumn": "t_wtpm_checkcardentry.fpointtag"
+    },
+    "checkpointutc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "0时区校验卡点",
+      "physicalColumn": "t_wtpm_checkcardentry.fcheckpointutc"
+    },
+    "timezone": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "inte_timezone",
+      "entity": "entryentity",
+      "title": "时区",
+      "physicalColumn": "t_wtpm_checkcardentry.ftimezoneid"
+    },
+    "device": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtpm_punchcardequip",
+      "entity": "entryentity",
+      "title": "打卡设备",
+      "physicalColumn": "t_wtpm_checkcardentry.fdeviceid"
+    },
+    "matchdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "班次日期",
+      "physicalColumn": "t_wtpm_checkcardentry.fmatchdate"
+    },
+    "employeeid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "员工ID",
+      "physicalColumn": "t_wtpm_checkcardentry.femployeeid"
+    },
+    "presetbiz1": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "预留业务字段1",
+      "physicalColumn": "t_wtpm_checkcardentry.fpresetbiz1"
+    },
+    "presetbiz2": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "预留业务字段2",
+      "physicalColumn": "t_wtpm_checkcardentry.fpresetbiz2"
+    },
+    "attfile": {
+      "fieldId": "q7H1XTNCha",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attfilebase",
+      "entity": "entryentity",
+      "title": "考勤档案版本",
+      "physicalColumn": "t_wtpm_checkcard.fattfileid",
+      "_fieldApId": "q7H1XTNCha"
+    },
+    "attfilebo": {
+      "fieldId": "780vIe43Gx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attfilebase",
+      "entity": "entryentity",
+      "title": "考勤档案",
+      "physicalColumn": "t_wtpm_checkcard.fattfileboid",
+      "_fieldApId": "780vIe43Gx"
+    },
+    "week": {
+      "fieldId": "E5Bs0tDj8J",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "星期",
+      "physicalColumn": "t_wtpm_checkcard.fweek",
+      "_fieldApId": "E5Bs0tDj8J"
+    },
+    "datetype": {
+      "fieldId": "3aEiAGiv4y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_datetype",
+      "entity": "entryentity",
+      "title": "日期类型",
+      "physicalColumn": "t_wtpm_checkcard.fdatetypeid",
+      "_fieldApId": "3aEiAGiv4y"
+    },
+    "employee": {
+      "fieldId": "XbFSnW2zUc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrpi_employee",
+      "entity": "entryentity",
+      "title": "员工",
+      "physicalColumn": "t_wtpm_checkcardentry.femployeeid",
+      "_fieldApId": "XbFSnW2zUc"
+    }
+  },
+  "requiredFields": {
+    "wtpm_checkcard": [],
+    "entryentity": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0NKB12K4VH2O_4ZMOdMlW",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_XEUgcbXJ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2HVHRA7J2ORE_PkbGXIPE",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0NKB12K4VH2O_list_vGsmSsP2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_list_bsYnUZEm",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.prompt.WTCTipsPlugin",
+      "Description": "提示语插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtpm.formplugin.cardmatch.ValidCardListTipsPlugin",
+      "Description": "提示语插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtpm.formplugin.cardmatch.CheckCardList",
+      "Description": "校验卡列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:51",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 14,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 5,
+        "formPlugins_count": 9
+      }
+    }
+  ]
+}

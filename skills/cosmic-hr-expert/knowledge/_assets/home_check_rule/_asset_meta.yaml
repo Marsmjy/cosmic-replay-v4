@@ -1,0 +1,104 @@
+asset:
+  id: home_check_rule
+  name: 信息采集校验配置工具
+  english_name: HR Info Collect Check Rule
+  version: v1.0
+  source_dcs_project: hr-hom-checkrule
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/orghrgroup/hr-hom-checkrule.git
+  source_branch: feature-standard
+  source_commit: 7f82adb
+  source_doc: null
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: core_hr
+  app: hom
+  scenario: 首页规则校验：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 2 个 java 类（1595 LOC）+ 1 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 首页规则校验
+  - 工作台规则
+  - 首页校验规则
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hom/formplugin/CollectInfoRuleMobFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hom/formplugin/CollectInfoRuleUtil.java
+  datamodel_files:
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_check_rule_basedata.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_check_rule_basedata.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - core_hr_home_check_rule
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 CollectInfoRuleMobFormPlugin 行为
+  location: CollectInfoRuleMobFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CollectInfoRuleMobFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 CollectInfoRuleUtil 行为
+  location: CollectInfoRuleUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CollectInfoRuleUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: hr/hom/formplugin
+  multi_module: false
+  primary_module: hom_ext
+  biz_app_modules:
+  - module_id: hom_ext
+    datamodel_app_dir: hr/1.5.0/main
+    is_primary: true

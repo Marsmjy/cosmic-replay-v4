@@ -1,0 +1,35 @@
+{
+  "scene": "core_hr_transfer",
+  "title": "调配管理 - 调动（hdm · transferapply 等 10 单据）",
+  "cloud": "core_hr",
+  "description": "调动管理多单据聚合 · chgaction 大类 = INFO_TRANSFER。实证：TransferEffectOp:318 newEmpJobRel.set('chgaction', transferBill.get('affaction')) — **调动单据 affaction 字段直接传给新职级职等记录的 chgaction 字段**。字段命名规则实证：a_ = after (目标态) / b_ = before (原态) / ba_a_tid (调后 assignment) / bb_a_tid (调前 assignment) / arealitycompany (调后实际公司) / ajobclass / ajoblevel / ajobgrade (调后职位类/级/等) / b_effectivedate (生效日期)。关键 OP：TransferSaveOp / TransferEffectOp / TransferAfterEffectOp / TransferConfirmOp。标品定时任务：hdm_transfereffect_plan_SKDP_S。ISV 扩展点：IStaffTransferExtPlugin (跳过占编)。",
+  "entities": [
+    "hdm_transferapply",
+    "hdm_transferbatch"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (BasedataField → hpfs_chgaction)",
+    "chgEvent": "INFO_TRANSFER",
+    "createsHrpi": [
+      "hrpi_assignment (终结旧段 + 创建新段)",
+      "hrpi_empposorgrel (终结旧段 + 创建新段)",
+      "hrpi_empjobrel (新职级职等 · chgaction 字段直接落)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hdm.business.extpoint.transfer.IStaffTransferExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hdm.opplugin.transfer.TransferSaveOp",
+    "kd.hr.hdm.opplugin.transfer.TransferEffectOp",
+    "kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 2 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

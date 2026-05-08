@@ -1,0 +1,570 @@
+package ${ISV_FLAG}.odc.homs.task;
+
+import com.alibaba.dubbo.common.utils.StringUtils;
+import kd.bos.algo.DataSet;
+import kd.bos.algo.Row;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.exception.KDException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.schedule.executor.AbstractTask;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @Description:月度编制计划实际人数同步
+ * @Author: zhangjun
+ * @Since: 2024/3/20
+ **/
+public class PlanMonthBillCreateTask extends AbstractTask {
+    private static final Log logger = LogFactory.getLog(PlanMonthBillCreateTask.class);
+
+
+    /**
+     * 任职经历获取字段
+     */
+    private final static String EMP_FILED = "id as empId,employee.id as personId," +
+            "adminorg.structnumber as structnumber," +
+            "adminorg.structlongnumber as structlongnumber," +
+            "job.${ISV_FLAG}_jobproperty.id as jobpropertyId," +
+            "job.${ISV_FLAG}_joblabel.fbasedataid as jobLabelBasedataid";
+
+    /**
+     * 岗位i属性
+     */
+    private final static String[] PROPERTY_ARR = new String[]{"job1", "job2"};
+
+
+    /**
+     * 用工关系类型
+     * 1030_S   实习（在职）
+     * 1040_S   劳务派遣（在职）
+     * 1050_S   退休返聘（在职）
+     * 1200_S   正式工（在职）
+     * 1220_S   合作伙伴（在职）
+     */
+    private final static String[] FILE_TYPE = new String[]{"1030_S", "1040_S", "1050_S", "1200_S", "1220_S"};
+
+    /**
+     * 档案业务类型
+     */
+    private final static String[] ERM_TYPE = new String[]{"1010_S", "1070_S", "1110_S", "1150_S", "1190_S"};
+
+
+    /**
+     * @param requestContext
+     * @param requestMap
+     * @throws KDException
+     * @description
+     */
+    @Override
+    public void execute(RequestContext requestContext, Map<String, Object> requestMap) throws KDException {
+        // 获取启用中的月度计划
+        DynamicObject[] planMonths = getPlanMonths(requestMap);
+        if (planMonths.length == 0) {
+            logger.info("未找到启用中的月度计划");
+            return;
+        }
+
+        List<Long> allId = Arrays.stream(planMonths).map(plan -> plan.getLong("id")).collect(Collectors.toList());
+        logger.info("PlanMonthBillCreateTask启用中的编制计划=" + allId);
+
+        // 获取编制信息管理对象
+        DynamicObject[] bzBillObjs = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bill", "id,billno,${ISV_FLAG}_planmonth",
+                new QFilter("${ISV_FLAG}_planmonth.id", QCP.in, allId).toArray());
+
+        // 准备批量查询的数据
+        BatchData batchData = prepareBatchData(bzBillObjs);
+
+        // 处理编制信息管理对象
+        ArrayList<DynamicObject> resultList = processBillObjects(bzBillObjs, batchData);
+
+        // 批量更新结果
+        if (!resultList.isEmpty()) {
+            SaveServiceHelper.update(resultList.toArray(new DynamicObject[]{}));
+        }
+    }
+
+    /**
+     * 获取启用中的月度计划
+     */
+    private DynamicObject[] getPlanMonths(Map<String, Object> requestMap) {
+        QFilter planQFilter = new QFilter("enable", QCP.equals, "1").and("iscurrentversion", QCP.equals, "1");
+        Object plannumber = requestMap.get("plannumber");
+        if (plannumber != null && !plannumber.toString().isEmpty()) {
+            planQFilter.and("number", QCP.equals, plannumber);
+        }
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth", "id,number", planQFilter.toArray());
+    }
+
+    /**
+     * 批量查询数据
+     */
+    private BatchData prepareBatchData(DynamicObject[] bzBillObjs) {
+        // 查询月度编制信息管理编制明细
+        Set<Object> ${ISV_FLAG}_planmonthSet = Arrays.stream(bzBillObjs)
+                .map(b -> b.getDynamicObject("${ISV_FLAG}_planmonth").getPkValue())
+                .collect(Collectors.toSet());
+
+        DynamicObject[] ${ISV_FLAG}_planmonth_bzArray = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz",
+                "adminorg.structnumber,${ISV_FLAG}_key,${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_layer,${ISV_FLAG}_bz_actual," +
+                        "${ISV_FLAG}_bz_adminorg1.structnumber,${ISV_FLAG}_bz_adminorg2.structnumber,${ISV_FLAG}_bz_adminorg3.structnumber," +
+                        "${ISV_FLAG}_bz_adminorg4.structnumber,${ISV_FLAG}_bz_adminorg5.structnumber,${ISV_FLAG}_bz_adminorg6.structnumber," +
+                        "${ISV_FLAG}_mulperson,${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id",
+                new QFilter("${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id", QCP.in, ${ISV_FLAG}_planmonthSet).toArray());
+
+        Map<Object, List<DynamicObject>> groupByPlanMonthMap = Arrays.stream(${ISV_FLAG}_planmonth_bzArray)
+                .collect(Collectors.groupingBy(o -> o.get("${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id")));
+
+        // 批量查询组织
+        Set<String> bzBillObjsSet = Arrays.stream(bzBillObjs)
+                .map(b -> b.getDynamicObject("${ISV_FLAG}_planmonth").getDynamicObject("${ISV_FLAG}_org").getString("number"))
+                .collect(Collectors.toSet());
+        Map<String, List<Long>> orgListMap = getOrgList(bzBillObjsSet);
+
+        // 批量查询行政组织
+        Map<String, List<DynamicObject>> adminByOrgMap = getAdminByOrg(bzBillObjsSet);
+
+        return new BatchData(groupByPlanMonthMap, orgListMap, adminByOrgMap);
+    }
+
+    /**
+     * 处理编制信息管理对象
+     */
+    private ArrayList<DynamicObject> processBillObjects(DynamicObject[] bzBillObjs, BatchData batchData) {
+        ArrayList<DynamicObject> resultList = new ArrayList<>();
+
+        for (DynamicObject bzBillObj : bzBillObjs) {
+            // 编制计划
+            DynamicObject planMonth = bzBillObj.getDynamicObject("${ISV_FLAG}_planmonth");
+
+            // 获取层级和组织信息
+            String hierarchy = planMonth.getString("${ISV_FLAG}_orghierarchy");
+            DynamicObject dgdlOrg = planMonth.getDynamicObject("${ISV_FLAG}_org");
+            String sonNumber = dgdlOrg.getString("number");
+
+            // 获取组织管理体系的所有行政组织
+            List<DynamicObject> adminOrgList = batchData.adminByOrgMap.get(sonNumber);
+            Map<String, DynamicObject> hierarchyMap = adminOrgList.stream()
+                    .filter(o -> o.getDynamicObject("adminorglayer") != null)
+                    .filter(o -> Integer.parseInt(o.getString("adminorglayer.number")) <= (Integer.parseInt(hierarchy) + 1))
+                    .collect(Collectors.toMap(o -> o.getString("structnumber"), o -> o));
+
+            Set<String> orgStructNumbers = hierarchyMap.keySet();
+            List<Long> orgList = batchData.orgListMap.get(sonNumber);
+
+            // 计算员工人数
+            Map<String, Integer> countMap = calculateEmployeeCount(planMonth, orgList, orgStructNumbers);
+
+            // 当前计划下所有编制详情
+            List<DynamicObject> bzObjs = batchData.groupByPlanMonthMap.get(planMonth.getPkValue());
+            if (bzObjs == null) {
+                continue;
+            }
+
+            // 向上级组织汇总人数
+            aggregateToParentOrgs(bzObjs, countMap, hierarchy);
+
+            // 更新编制对象的实际人数
+            updateBillActualCount(bzObjs, countMap);
+
+            resultList.addAll(bzObjs);
+        }
+
+        return resultList;
+    }
+
+    /**
+     * 计算员工人数
+     */
+    private Map<String, Integer> calculateEmployeeCount(DynamicObject planMonth, List<Long> orgList, Set<String> orgStructNumbers) {
+        // 获取任职经历查询条件 [行政组织] = 上面查询的组织
+        QFilter empFiler = new QFilter("iscurrentdata", QCP.equals, "1")
+                .and("isprimary", QCP.equals, "1")
+                .and("adminorg.id", QCP.in, orgList);
+
+        // 获取任职经历信息
+        DataSet empData = QueryServiceHelper.queryDataSet(this.getClass().getName(), "hrpi_empposorgrel", EMP_FILED, empFiler.toArray(), "");
+
+        // 标签维度
+        String labeldimension = planMonth.getString("${ISV_FLAG}_labeldimension");
+
+        // 存储人数信息
+        Map<String, Integer> countMap = new HashMap<>();
+
+        // 人员明细
+        Map<String, Set<Long>> personDetail = new HashMap<>();
+
+        // 1=用工关系类型:${ISV_FLAG}_bz_laborreltype,2=一线非一线:${ISV_FLAG}_bz_jobproperty
+        int i = 0;
+        if (StringUtils.isNotEmpty(labeldimension)) {
+            if (labeldimension.contains("1") && labeldimension.contains("2")) {
+                i = 3;
+            } else if (labeldimension.contains("1")) {
+                i = 1;
+            } else if (labeldimension.contains("2")) {
+                i = 2;
+            }
+
+            // 查询岗位属性
+            QFilter jobpropertyFilter = new QFilter("enable", QCP.equals, "1").and("number", QCP.in, PROPERTY_ARR);
+            DataSet jobpropertyDataSet = QueryServiceHelper.queryDataSet(this.getClass().getName(), "${ISV_FLAG}_hbss_jobproperty", "id,number,name", jobpropertyFilter.toArray(), "");
+
+            // 查询岗位标签
+//            QFilter joblabelFilter = new QFilter("enable", QCP.equals, "1").and("number", QCP.equals, "01");
+//            DataSet joblabelDataSet = QueryServiceHelper.queryDataSet(this.getClass().getName(), "${ISV_FLAG}_hbss_joblabel", "id,number jobNumber", joblabelFilter.toArray(), "");
+
+            // 查询人事业务档案类型
+            QFilter[] empentrelFiler = new QFilter[]{new QFilter("iscurrentdata", QCP.equals, "1"),
+                    new QFilter("laborreltype.laborreltypecls.id", QCP.equals, 1010L)
+            };
+            DataSet empentrelData = QueryServiceHelper.queryDataSet(this.getClass().getName(), "hrpi_empentrel", "id,employee.id personId,laborreltype.number", empentrelFiler, "");
+
+            // 试用中属于正式工
+//            empentrelData = empentrelData.addField("case when laborreltype.laborreltypecls.number = '1010_S'  then '1200_S' else laborreltype.laborreltypecls.number end", "laborrelstatusNum");
+            empentrelData = empentrelData.select("personId", "laborreltype.number typeNumber");
+
+            // 用工关系类型映射
+//            Map<String, String> typeNumberMap = new HashMap<>();
+//            typeNumberMap.put("1220_S", "helpmate");
+//            typeNumberMap.put("1030_S", "interns_reserve_personnel");
+//            typeNumberMap.put("1040_S", "labor_dispatch");
+//            typeNumberMap.put("1200_S", "regular_workers");
+//            typeNumberMap.put("1050_S", "rehired_after_retirement");
+//            typeNumberMap.put("dayan", "dayan");
+
+            if (i == 3) {
+                // 任职经历关联岗位属性(一线非一线)
+                empData = empData.leftJoin(jobpropertyDataSet).on("jobpropertyId", "id")
+                        .select("empId", "personId", "structnumber", "structlongnumber", "jobLabelBasedataid", "number propertyNumber").finish();
+
+                empData = empData.addField("case when propertyNumber='job1' then 0 " +
+                        "when propertyNumber='job2' then 0 " +
+                        "else 1 end", "${ISV_FLAG}_property");
+
+                // 关联人事业务档案类型
+                empData = empData.join(empentrelData).on("personId", "personId")
+                        .select("personId", "structnumber", "structlongnumber", "typeNumber", "jobLabelBasedataid", "${ISV_FLAG}_property").finish();
+//                empData = empData.leftJoin(joblabelDataSet).on("jobLabelBasedataid", "id")
+//                        .select("personId", "structnumber", "structlongnumber", "typeNumber", "jobNumber", "${ISV_FLAG}_property").finish();
+//                empData = empData.addField("case when typeNumber = '1200_S'  and jobNumber = '01' then 1 else 0 end", "${ISV_FLAG}_label");
+
+                // 岗位标签分组
+//                empData = empData.addField("case when typeNumber= '1200_S' then jobNumber " +
+//                        " when typeNumber= '1030_S' then '1030' " +
+//                        " when typeNumber= '1040_S' then '1040' " +
+//                        " when typeNumber= '1050_S' then '1050' " +
+//                        " when typeNumber= '1220_S' then '1220' " +
+//                        " else '0' end", "joblabel");
+
+                // 人员明细统计
+                DataSet copyEmpData = empData.copy();
+                while (copyEmpData.hasNext()) {
+                    Row row = copyEmpData.next();
+                    // 组织
+                    String structNumber = getClosestOrgStructNumber(row.getString("structnumber"), row.getString("structlongnumber"), orgStructNumbers);
+
+                    // 用工关系类型
+                    String typeNumber = row.getString("typeNumber");
+//                    if ("1200_S".equals(typeNumber)) {
+//                        // 大雁
+//                        if ("1".equals(row.getString("${ISV_FLAG}_label"))) {
+//                            typeNumber = "dayan";
+//                        }
+//                    }
+                    // 岗位
+                    String property = row.getString("${ISV_FLAG}_property");
+                    // 明细
+                    Set<Long> detailList = personDetail.get(structNumber + typeNumber + property);
+                    // 人员
+                    Long personId = row.getLong("personId");
+                    if (detailList == null) {
+                        detailList = new HashSet<>();
+                    }
+                    detailList.add(personId);
+                    personDetail.put(structNumber + typeNumber + property, detailList);
+                }
+
+                // 分组后结果集
+                DataSet groupDataSet = empData.groupBy(new String[]{"structnumber", "structlongnumber","typeNumber", "${ISV_FLAG}_property"}).count().finish();
+                while (groupDataSet.hasNext()) {
+                    Row next = groupDataSet.next();
+                    // 组织
+                    String structNumber = getClosestOrgStructNumber(next.getString("structNumber"), next.getString("structlongnumber"), orgStructNumbers);
+
+                    // 岗位属性
+                    String property = next.getString("${ISV_FLAG}_property");
+                    // 用工关系类型
+                    String typeNumber = next.getString("typeNumber");
+//                    if ("1200_S".equals(typeNumber)) {
+//                        // 大雁
+//                        if ("1".equals(next.getString("${ISV_FLAG}_label"))) {
+//                            typeNumber = "dayan";
+//                        }
+//                    }
+                    // 人员明细
+                    Set<Long> details = personDetail.get(structNumber + typeNumber + property);
+                    // 总人数
+                    countMap.put(structNumber + "-3-" + typeNumber + property, details.size());
+                }
+            } else {
+                if (i == 1) {
+                    // 关联人事业务档案类型
+                    empData = empData.join(empentrelData).on("personId", "personId")
+                            .select("personId", "structnumber", "structlongnumber", "typeNumber", "jobLabelBasedataid").finish();
+                    // 关联岗位标签
+//                    empData = empData.leftJoin(joblabelDataSet).on("jobLabelBasedataid", "id")
+//                            .select("personId", "structnumber", "structlongnumber", "typeNumber", "jobNumber").finish();
+//                    empData = empData.addField("case when typeNumber = '1200_S'  and jobNumber = '01' then 1 else 0 end", "${ISV_FLAG}_label");
+
+                    // 岗位标签分组
+//                    empData = empData.addField("case when typeNumber= '1200_S' then jobNumber " +
+//                            " when typeNumber= '1070_S' then '1070' " +
+//                            " when typeNumber= '1110_S' then '1110' " +
+//                            " when typeNumber= '1150_S' then '1150' " +
+//                            " when typeNumber= '1190_S' then '1190' " +
+//                            " else '0' end", "joblabel");
+
+                    DataSet copyEmpData = empData.copy();
+                    while (copyEmpData.hasNext()) {
+                        Row row = copyEmpData.next();
+                        // 组织
+                        String structNumber = getClosestOrgStructNumber(row.getString("structnumber"), row.getString("structlongnumber"), orgStructNumbers);
+
+                        // 用工关系类型
+                        String typeNumber = row.getString("typeNumber");
+//                        if ("1200_S".equals(typeNumber)) {
+//                            // 大雁
+//                            if ("1".equals(row.getString("${ISV_FLAG}_label"))) {
+//                                typeNumber = "dayan";
+//                            }
+//                        }
+                        // 明细
+                        Set<Long> detailList = personDetail.get(structNumber + typeNumber);
+                        // 人员
+                        Long personId = row.getLong("personId");
+                        if (detailList == null) {
+                            detailList = new HashSet<>();
+                        }
+                        detailList.add(personId);
+                        personDetail.put(structNumber + typeNumber, detailList);
+                    }
+
+                    // 分组后结果集
+                    DataSet groupDataSet = empData.groupBy(new String[]{"structnumber", "structlongnumber","typeNumber"}).count().finish();
+                    while (groupDataSet.hasNext()) {
+                        Row next = groupDataSet.next();
+                        // 组织
+                        String structNumber = getClosestOrgStructNumber(next.getString("structNumber"), next.getString("structlongnumber"), orgStructNumbers);
+
+                        // 用工关系类型
+                        String typeNumber = next.getString("typeNumber");
+//                        if ("1200_S".equals(typeNumber)) {
+//                            // 大雁
+//                            if ("1".equals(next.getString("${ISV_FLAG}_label"))) {
+//                                typeNumber = "dayan";
+//                            }
+//                        }
+                        // 人员明细
+                        Set<Long> details = personDetail.get(structNumber + typeNumber);
+                        // 总人数
+                        countMap.put(structNumber + "-1-" + typeNumber, details.size());
+                    }
+                } else if (i == 2) {
+                    // 任职经历关联岗位属性
+                    empData = empData.leftJoin(jobpropertyDataSet).on("jobpropertyId", "id")
+                            .select("empId", "personId", "structnumber", "structlongnumber", "number propertyNumber").finish();
+                    empData = empData.addField("case when propertyNumber='job1' then 0 " +
+                            "when propertyNumber='job2' then 0 " +
+                            "else 1 end", "${ISV_FLAG}_property");
+
+                    DataSet copyEmpData = empData.copy();
+                    while (copyEmpData.hasNext()) {
+                        Row row = copyEmpData.next();
+                        // 组织
+                        String structNumber = getClosestOrgStructNumber(row.getString("structnumber"), row.getString("structlongnumber"), orgStructNumbers);
+
+                        // 岗位
+                        String property = row.getString("${ISV_FLAG}_property");
+                        // 明细
+                        Set<Long> detailList = personDetail.get(structNumber + property);
+                        // 人员
+                        Long personId = row.getLong("personId");
+                        if (detailList == null) {
+                            detailList = new HashSet<>();
+                        }
+                        detailList.add(personId);
+                        personDetail.put(structNumber + property, detailList);
+                    }
+
+                    // 任职经历分组过滤条件
+                    // 分组后结果集
+                    DataSet groupDataSet = empData.groupBy(new String[]{"structnumber", "structlongnumber", "${ISV_FLAG}_property"}).count().finish();
+                    while (groupDataSet.hasNext()) {
+                        Row next = groupDataSet.next();
+                        // 组织
+                        String structNumber = getClosestOrgStructNumber(next.getString("structNumber"), next.getString("structlongnumber"), orgStructNumbers);
+
+                        // 岗位
+                        String property = next.getString("${ISV_FLAG}_property");
+                        // 人员明细
+                        Set<Long> details = personDetail.get(structNumber + property);
+                        // 总人数
+                        countMap.put(structNumber + "-2-" + next.getString("${ISV_FLAG}_property"), details.size());
+                    }
+                }
+            }
+        }
+
+        return countMap;
+    }
+
+    /**
+     * 获取最近的组织结构编号
+     */
+    private String getClosestOrgStructNumber(String structNumber, String structlongnumber, Set<String> orgStructNumbers) {
+        if (!orgStructNumbers.contains(structNumber)) {
+            String[] split = structlongnumber.split("!");
+
+            for (int j = split.length - 1; j > 0; j--) {
+                if (orgStructNumbers.contains(split[j])) {
+                    structNumber = split[j];
+                    break;
+                }
+            }
+        }
+        return structNumber;
+    }
+
+    /**
+     * 向上级组织汇总人数
+     */
+    private void aggregateToParentOrgs(List<DynamicObject> bzObjs, Map<String, Integer> countMap, String hierarchy) {
+        int level = Integer.valueOf(hierarchy);
+        Map<String, List<DynamicObject>> objlevelMap = new HashMap<>();
+
+        for (DynamicObject bzObj : bzObjs) {
+            String levelstr = bzObj.getString("${ISV_FLAG}_layer");
+            if (levelstr != null && !levelstr.isEmpty()) {
+                List<DynamicObject> bzlist = new ArrayList<>();
+                if (objlevelMap.containsKey(levelstr)) {
+                    bzlist = objlevelMap.get(levelstr);
+                }
+                bzlist.add(bzObj);
+                objlevelMap.put(levelstr, bzlist);
+            }
+        }
+
+        for (int j = level; j > 1; j--) {
+            List<DynamicObject> bzlist = objlevelMap.get(String.valueOf(j));
+            if (bzlist == null || bzlist.size() == 0) {
+                continue;
+            }
+            for (DynamicObject bz : bzlist) {
+                String key = bz.getString("${ISV_FLAG}_key");
+                // jl-修改
+                DynamicObject bz_adminorg = bz.getDynamicObject("${ISV_FLAG}_bz_adminorg" + (j - 1));
+                if (bz_adminorg == null) {
+                    continue;
+                }
+                String parentornstruct = bz_adminorg.getString("structnumber");
+                String adminorgstruct = bz.getDynamicObject("adminorg").getString("structnumber");
+
+                String parentkey = key.replace(adminorgstruct, parentornstruct);
+                Integer detailsize = countMap.get(key);
+                Integer parentydetailsize = countMap.get(parentkey);
+                if (parentydetailsize == null) {
+                    parentydetailsize = 0;
+                }
+                if (detailsize == null) {
+                    detailsize = 0;
+                }
+                parentydetailsize = parentydetailsize + detailsize;
+                countMap.put(parentkey, parentydetailsize);
+            }
+        }
+    }
+
+    /**
+     * 更新编制对象的实际人数
+     */
+    private void updateBillActualCount(List<DynamicObject> bzObjs, Map<String, Integer> countMap) {
+        for (DynamicObject bzObj : bzObjs) {
+            // 末级组织
+            String key = bzObj.getString("${ISV_FLAG}_key");
+            // 岗位属性
+            String property = kd.bos.util.StringUtils.isEmpty(bzObj.getString("${ISV_FLAG}_bz_jobproperty")) ? "" : bzObj.getString("${ISV_FLAG}_bz_jobproperty");
+            // 用工关系类型
+            String type = kd.bos.util.StringUtils.isEmpty(bzObj.getString("${ISV_FLAG}_bz_laborreltype")) ? "" : bzObj.getString("${ISV_FLAG}_bz_laborreltype");
+            Integer detailsize = countMap.get(key);
+
+            // 实际人数
+            if (detailsize == null) {
+                bzObj.set("${ISV_FLAG}_bz_actual", 0);
+            } else {
+                // 人员明细
+                bzObj.set("${ISV_FLAG}_bz_actual", detailsize);
+            }
+        }
+    }
+
+    /**
+     * 批量数据容器类
+     */
+    private static class BatchData {
+        Map<Object, List<DynamicObject>> groupByPlanMonthMap;
+        Map<String, List<Long>> orgListMap;
+        Map<String, List<DynamicObject>> adminByOrgMap;
+
+        public BatchData(Map<Object, List<DynamicObject>> groupByPlanMonthMap,
+                         Map<String, List<Long>> orgListMap,
+                         Map<String, List<DynamicObject>> adminByOrgMap) {
+            this.groupByPlanMonthMap = groupByPlanMonthMap;
+            this.orgListMap = orgListMap;
+            this.adminByOrgMap = adminByOrgMap;
+        }
+    }
+
+
+
+    /**
+     *
+     * @param orgNumberList  月度编制计划中【编制规划单位】编码集合
+     * @return
+     */
+    private Map<String, List<Long>>  getOrgList(Set<String> orgNumberList) {
+        //获取当前子集团下所选层级的行政组织
+        QFilter orgQFilter = new QFilter("datastatus", QCP.equals, "1")
+                .and("org.number", QCP.in, orgNumberList)
+                .and("enable", QCP.equals, "1")
+                .and("iscurrentversion", QCP.equals, "1");
+
+        return Arrays.stream(BusinessDataServiceHelper.load("haos_adminorg",
+                        "id,org.number",
+                        orgQFilter.toArray()))
+                .collect(Collectors.groupingBy(o -> o.getString("org.number"),
+                        Collectors.mapping(o -> o.getLong("id"),
+                                Collectors.toList())));
+    }
+
+
+    private Map<String, List<DynamicObject>> getAdminByOrg(Set<String> orgNumberList) {
+        //获取当前子集团下所选层级的行政组织
+        QFilter orgQFilter = new QFilter("datastatus", QCP.equals, "1")
+                .and("org.number", QCP.in, orgNumberList)
+//                .and("adminorglayer.number", QCP.in, orghierarchyList)
+                .and("iscurrentversion", QCP.equals, "1");
+
+
+        return Arrays.stream(BusinessDataServiceHelper.load("haos_adminorg",
+                        "id,org.number,number,parent.number,structlongnumber,structnumber,adminorglayer.number",
+                        orgQFilter.toArray()))
+                .collect(Collectors.groupingBy(o -> o.getString("org.number")));
+    }
+}

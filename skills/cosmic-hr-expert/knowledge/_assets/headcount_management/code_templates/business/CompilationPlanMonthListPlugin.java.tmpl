@@ -1,0 +1,70 @@
+package ${ISV_FLAG}.odc.homs.listPlugin;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DataEntityBase;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.list.IListView;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author lzf
+ * @date 2023/9/8 10:40
+ * @description 月度编制计划 启用后开放链接
+ */
+public class CompilationPlanMonthListPlugin extends AbstractBillPlugIn {
+    private static Log logger = LogFactory.getLog(CompilationPlanListPlugin.class);
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        logger.info("进入月度编制计划启用后开放链接事件");
+        super.beforeDoOperation(args);
+        try {
+            IDataModel model = this.getModel();
+            //获取操作标识
+            FormOperate operate = (FormOperate) args.getSource();
+            String operateKey = operate.getOperateKey();
+            if ("compilationplan".equals(operateKey)) {
+                //获取选中行数据
+                ListSelectedRowCollection selectedRows = ((IListView)this.getView()).getSelectedRows();
+                if (selectedRows == null || selectedRows.isEmpty()){
+                    this.getView().showTipNotification("请至少选择一行！");
+                    return;
+                }
+
+                Map<Object, DynamicObject> comMap = Arrays.stream(BusinessDataServiceHelper.load(selectedRows.stream().map(s -> Long.parseLong(s.getPrimaryKeyValue().toString())).toArray(),
+                                EntityMetadataCache.getDataEntityType("${ISV_FLAG}_compilationplanmonth")))
+                        .collect(Collectors.toMap(DataEntityBase::getPkValue, o -> o));
+
+                for (ListSelectedRow selectedRow : selectedRows) {
+                    //获取数据id
+                    long id = Long.parseLong(selectedRow.getPrimaryKeyValue().toString());
+                    DynamicObject object = comMap.get(id);
+                    //获取使用状态
+                    String enable = object.getString("enable");
+                    if ("0".equals(enable)){
+                        this.getView().showErrorNotification("禁用状态数据无法点击");
+                        args.setCancel(true);
+                    }else if("1".equals(enable)){
+                        this.getView().showTipNotification("进入链接");
+                        //todo  写链接
+                    }
+
+                }
+            }
+        } catch (Exception e) {
+            logger.error("月度编制计划启用后开放链接事件异常"+e);
+        }
+    }
+}

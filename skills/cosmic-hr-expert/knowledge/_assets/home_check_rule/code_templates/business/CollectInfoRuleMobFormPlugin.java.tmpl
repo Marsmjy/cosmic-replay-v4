@@ -1,0 +1,1065 @@
+package ${ISV_FLAG}.hr.hom.formplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.OrmLocaleValue;
+import kd.bos.dataentity.metadata.dynamicobject.DynamicObjectType;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.form.IPageCache;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.field.FieldEdit;
+import kd.bos.form.operate.AbstractOperate;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import org.json.JSONArray;
+import ${ISV_FLAG}.hr.hom.formplugin.utils.CollectInfoRuleUtil;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+/**
+ * @ClassName CollectInfoMobFormPlugin
+ * @Author zb
+ * @Description 目前用于入职信息采集，元数据${ISV_FLAG}_hom_collectinfod_ext，动态控制移动端界面字段规则
+ * @Date 2024/7/21 11:24
+ **/
+public class CollectInfoRuleMobFormPlugin extends AbstractFormPlugin {
+
+
+    //日志
+    private static final Log log = LogFactory.getLog(CollectInfoRuleMobFormPlugin.class);
+
+    /**
+     * 字段值-设置默认值类型-不设置
+     **/
+    private final static String FIELD_DEFAULT_VAL_TYPE_NULL = "defaultValNull";
+
+    /**
+     * 字段值-设置默认值类型-文本或下拉项
+     **/
+    private final static String FIELD_DEFAULT_VAL_TYPE_TEXT = "defaultValTypeText";
+
+    /**
+     * 字段值-设置默认值类型-不设置-基础资料
+     **/
+    private final static String FIELD_DEFAULT_VAL_TYPE_BASEDATA = "defaultValTypeBasedata";
+
+
+    /**
+     * 设置数值范围、精度等
+     **/
+    private final static String CHECK_RULE_DECIMAL = "decimal";
+
+
+    /**
+     * 设置文本长度
+     **/
+    private final static String CHECK_RULE_TEXT = "text";
+
+    /**
+     * 设置加减计算
+     **/
+    private final static String CHECK_RULE_CALCULATE = "calculate";
+
+    /**
+     * 设置checkbox
+     **/
+    private final static String CHECK_RULE_CHECKBOX = "checkbox";
+
+    /**
+     * 设置日期比较
+     **/
+    private final static String CHECK_RULE_DATE_COMPARE = "dateCompare";
+
+    /**
+     * 设置根据字段设值另一字段值
+     **/
+    private final static String CHECK_RULE_FIELD_EFFECT_SET_VAL = "fieldEffectSetVal";
+
+    /**
+     * 复制当前字段值到目标字段
+     **/
+    private final static String CHECK_RULE_COPY_TO_TARGET_FIELD = "copyToTargetField";
+
+    /**
+     * 根据字段的值设置目标字段属性
+     **/
+    private final static String CHECK_RULE_MATCH_VAL_EFFECT_FIELD = "matchValEffectField";
+
+
+    /**
+     * 计算日期-年
+     **/
+    private final static String CHECK_RULE_CALCULATE_DATE_YEAR = "calculateDateYear";
+
+    /**
+     * 计算年龄-不四舍五入
+     **/
+    private final static String CHECK_RULE_CALCULATE_AGE = "calculateAge";
+
+
+    /**
+     * 当前时间
+     **/
+    private final static String NOW_DATE = "now";
+
+
+    /**
+     * checkbox选中影响的字段filedid-checkbox影响的字段操作
+     **/
+    private final static String CHECK_RULE_CHECKBOX_OPERATE_HIDE_AND_NULL = "hideAndNull";
+
+
+    /**
+     * 字段值-日期比较方式-大于
+     **/
+    private final static String CHECK_RULE_DATE_COMPARE_TYPE_GREATER_THAN = "greaterThan";
+
+    /**
+     * 字段值-日期比较方式-小于
+     **/
+    private final static String CHECK_RULE_DATE_COMPARE_TYPE_LESS_THAN = "lessThan";
+
+    /**
+     * 字段值-赋值对象类型
+     **/
+    private final static String CHECK_RULE_FD_EFT_FD_TYPE_BASEDATA = "basedata";
+
+    /**
+     * 字段值-赋值对象类型
+     **/
+    private final static String CHECK_RULE_FD_EFT_FD_TYPE_MULBASEDATA = "mulbasedata";
+
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配值类型:文本
+     **/
+    private final static String CHECK_RULE_MATCH_VAL_TYPE_TEXT = "match_val_type_text";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配值类型:文本
+     **/
+    private final static String CHECK_RULE_MATCH_VAL_TYPE_CHECKBOX = "match_val_type_checkbox";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配值类型:基础资料-名称
+     **/
+    private final static String CHECK_RULE_MATCH_VAL_TYPE_BASE_NAME = "match_val_type_base_name";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配值类型:基础资料-编码
+     **/
+    private final static String CHECK_RULE_MATCH_VAL_TYPE_BASE_NUMBER = "match_val_type_base_number";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配条件-等于
+     **/
+    private final static String CHECK_RULE_MATCH_CONDITION_EQUAL = "equal";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配条件-包含
+     **/
+    private final static String CHECK_RULE_MATCH_CONDITION_CONTAIN = "contain";
+
+    /**
+     * 字段值-根据字段的值设置目标字段属性-匹配条件-不等于
+     **/
+    private final static String CHECK_RULE_MATCH_CONDITION_NOT_EQUAL = "notEqual";
+
+    /**
+     * 页面字段必填缓存
+     **/
+    private final String PAGE_CACHE_MUST_INPUT = "mustInput";
+
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+
+        log.info("进入CollectInfoMobFormPlugin方法");
+//        String entityName = this.getModel().getDataEntityType().getName();
+        String entityName = this.getView().getFormShowParameter().getFormId();
+        log.info("实体名称：" + entityName);
+
+        //获取要设置界面规则的参数配置
+        DynamicObject[] ruleDynamicObjectCollection = CollectInfoRuleUtil.getViewCheckedData(entityName, null);
+
+        if (ObjectUtils.isEmpty(ruleDynamicObjectCollection)) return;
+
+        log.info("afterBindData-ruleDynamicObjectCollection不为空");
+        // 生成单次循环的uuid-唯一值，用于界面规则使用
+        UUID cacheUniqueId = UUID.randomUUID();
+        // 如果需要字符串形式的唯一标识符-用于多次循环使用
+        String cacheUniqueIdStr = cacheUniqueId.toString();
+
+        for (DynamicObject dynamicObject : ruleDynamicObjectCollection) {
+            //获取标识
+            String symbol = dynamicObject.getString(CollectInfoRuleUtil.Field.FILD_SYMBOL);
+            log.info("symbol--" + symbol);
+            //如果页面不存在该标识，停止执行插件
+            boolean existSymbol = this.getModel().getDataEntityType().getProperties().containsKey(symbol);
+            if (!existSymbol) {
+                log.info("不存在该symbol--" + symbol);
+                continue;
+            }
+
+            log.info("存在该symbol--" + symbol);
+
+            //通用属性-字段锁定校验
+            boolean fieldLock = dynamicObject.getBoolean(CollectInfoRuleUtil.Field.FIELD_LOCK);
+            if (fieldLock) {
+                this.getView().setEnable(false, symbol);
+            }
+            //通用属性-必填性
+            boolean fieldMustInput = dynamicObject.getBoolean(CollectInfoRuleUtil.Field.FIELD_MUST_INPUT);
+            if (fieldMustInput) {
+                FieldEdit fieldEdit = this.getView().getControl(symbol);
+                fieldEdit.setMustInput(true);
+                //加入必填校验缓存
+                addMustInputPageCache(symbol);
+            }
+
+            //默认值类型
+            String defaultType = dynamicObject.getString(CollectInfoRuleUtil.Field.FIELD_DEFAULT_VAL_TYPE);
+            if (defaultType != null) {
+                switch (defaultType) {
+                    //设置文本或下拉项默认值
+                    case FIELD_DEFAULT_VAL_TYPE_TEXT:
+                        this.getModel().setValue(symbol, dynamicObject.getString(CollectInfoRuleUtil.Field.FIELD_DEFAULT_VALUE));
+                        break;
+                    //设置基础资料默认值
+                    case FIELD_DEFAULT_VAL_TYPE_BASEDATA:
+                        this.getModel().setItemValueByNumber(symbol, dynamicObject.getString(CollectInfoRuleUtil.Field.FIELD_DEFAULT_VALUE));
+                        break;
+                }
+
+            }
+
+            //获取规则类型
+            String ruleType = dynamicObject.getString(CollectInfoRuleUtil.Field.FILD_RULE_TYPE);
+            //为小数类型时候-设置长度、小数位、最小值、最大值
+            switch (ruleType) {
+                case CHECK_RULE_DECIMAL:
+                    //长度--从参数中获取--需判断是否为空
+                    Integer decimalPrecision = dynamicObject.getInt(CollectInfoRuleUtil.Field.DECIMAL_PRECISION);
+                    Integer decimalScale = dynamicObject.getInt(CollectInfoRuleUtil.Field.DECIMAL_SCALE);
+                    Integer minValue = dynamicObject.getInt(CollectInfoRuleUtil.Field.MIN_VALUE);
+                    Integer maxValue = dynamicObject.getInt(CollectInfoRuleUtil.Field.MAX_VALUE);
+                    //设置一个缺省值
+                    //                    this.getModel().setValue(symbol,minValue);
+                    log.info("CHECK_RULE_DECIMAL--params-decimalScale:" + decimalPrecision + ",decimalScale:" + decimalScale + ",minValue:" + minValue + ",maxValue" + maxValue);
+                    //更新界面规则
+                    this.getView().updateControlMetadata(symbol, CollectInfoRuleUtil.getDecimalRuleItemMap(decimalPrecision, decimalScale, minValue, maxValue));
+                    break;
+                case CHECK_RULE_TEXT:
+
+                    //获取设置的字段最小长度
+                    Integer textMinLength = dynamicObject.getInt(CollectInfoRuleUtil.Field.TEXT_MIN_LENGTH);
+                    //获取设置的字段最大长度
+                    Integer textMaxLength = dynamicObject.getInt(CollectInfoRuleUtil.Field.TEXT_MAX_LENGTH);
+
+                    log.info("CHECK_RULE_DECIMAL--params-textMinLength:" + textMinLength + ",textMaxLength:" + textMaxLength);
+
+                    //更新界面规则
+                    this.getView().updateControlMetadata(symbol, CollectInfoRuleUtil.getTextRuleItemMap(textMinLength, textMaxLength));
+
+                    break;
+                case CHECK_RULE_MATCH_VAL_EFFECT_FIELD:
+                    //规则为：根据字段的值设置目标字段属性--z在在显示数据界面需要实现    当前字段和目标字段存在前提
+                    if (null != this.getModel().getValue(symbol)) {
+                        this.getView().updateControlMetadata(symbol, CollectInfoRuleUtil.getFireUpdEvtMap());
+                        viewRuleCheckRuleMatchValEffectField(symbol, dynamicObject, cacheUniqueIdStr);
+                    }
+                    break;
+                default:
+                    //其他界面规则的情形，需要给相关设置规则的字段动态设置即时触发值更新
+                    this.getView().updateControlMetadata(symbol, CollectInfoRuleUtil.getFireUpdEvtMap());
+                    break;
+            }
+            this.updateShowView(symbol);
+        }
+
+    }
+
+    private void updateShowView(String symbol){
+        this.getView().updateView(symbol);
+    }
+
+    /**
+     * @Author zb
+     * @Description 属性变化事件
+     * @Date 15:44 2024/7/21
+     * @Param [e]
+     **/
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+
+        log.info("进入propertyChanged");
+        //改变的值
+        String fieldKey = e.getProperty().getName();
+        String entityName = this.getModel().getDataEntityType().getName();
+
+        log.info("实体名称：" + entityName);
+        log.info("改变的值：" + fieldKey);
+
+        //获取所有业务规则配置集合
+        DynamicObject[] buRuleDynamicObjectCollection = CollectInfoRuleUtil.getBusinessCheckedData(entityName, fieldKey);
+        if (buRuleDynamicObjectCollection != null && buRuleDynamicObjectCollection.length > 0) {
+            log.info("propertyChanged-buRuleDynamicObjectCollection不为空");
+            for (DynamicObject dynamicObject : buRuleDynamicObjectCollection) {
+                //获取标识
+                String symbol = dynamicObject.getString(CollectInfoRuleUtil.Field.FILD_SYMBOL);
+                String ruleType = dynamicObject.getString(CollectInfoRuleUtil.Field.FILD_RULE_TYPE);
+                log.info("symbol=fieldKey--" + symbol);
+                //对使用该规则的字段 设置及时触发值更新
+                this.getView().updateControlMetadata(symbol, CollectInfoRuleUtil.getFireUpdEvtMap());
+                switch (ruleType) {
+                    case CHECK_RULE_CALCULATE:
+                        //业务规则-根据字段进行计算设值
+                        busRuleCalculate(fieldKey, dynamicObject);
+                        break;
+                    case CHECK_RULE_FIELD_EFFECT_SET_VAL:
+                        //条件：根据字段设值另一字段值
+                        busRuleFieldEffectSetVal(fieldKey, dynamicObject);
+                        break;
+                    case CHECK_RULE_COPY_TO_TARGET_FIELD:
+                        //条件：复制当前字段值到目标字段
+                        busRuleCopyToTargetField(fieldKey, dynamicObject);
+                        break;
+                }
+            }
+        }
+
+        DynamicObject[] viewRuleDynamicObjectCollection = CollectInfoRuleUtil.getViewCheckedData(entityName, fieldKey);
+
+        if (viewRuleDynamicObjectCollection != null && viewRuleDynamicObjectCollection.length > 0) {
+            log.info("propertyChanged-viewRuleDynamicObjectCollection不为空");
+
+            // 生成单次循环的uuid-唯一值，用于界面规则使用
+            UUID cacheUniqueId = UUID.randomUUID();
+            // 如果需要字符串形式的唯一标识符-用于多次循环使用
+            String cacheUniqueIdStr = cacheUniqueId.toString();
+
+            for (DynamicObject dynamicObject : viewRuleDynamicObjectCollection) {
+                String ruleType = dynamicObject.getString(CollectInfoRuleUtil.Field.FILD_RULE_TYPE);
+                //为小数类型时候-设置长度、小数位、最小值、最大值
+                switch (ruleType) {
+                    case CHECK_RULE_DECIMAL:
+                        //规则为:数值型界面规则检查
+                        viewRuleCheckRuleDecimal(fieldKey, dynamicObject);
+                        break;
+                    case CHECK_RULE_TEXT:
+                        //规则为:文本界面规则检查
+                        viewRuleCheckRuleText(e, dynamicObject);
+                        break;
+                    case CHECK_RULE_CHECKBOX:
+                        //规则为:checkbox的情况下-checkbox选中影响的字段filedid
+                        viewRuleCheckRuleCheckbox(fieldKey, dynamicObject);
+                        break;
+                    case CHECK_RULE_DATE_COMPARE:
+                        //规则为：日期比较是否满足-界面提示
+                        viewRuleCheckRuleDateCompare(fieldKey, dynamicObject);
+                        break;
+                    case CHECK_RULE_MATCH_VAL_EFFECT_FIELD:
+                        //规则为：根据字段的值设置目标字段属性
+                        viewRuleCheckRuleMatchValEffectField(fieldKey, dynamicObject, cacheUniqueIdStr);
+
+                        break;
+                }
+            }
+        }
+
+    }
+
+
+    /**
+     * @Author zb
+     * @Description 操作前校验
+     * @Date 14:33 2024/8/22
+     * @Param [args]
+     **/
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+
+        super.beforeDoOperation(args);
+        AbstractOperate operate = (AbstractOperate) args.getSource();
+        String lblKey = operate.getOperateKey();
+        if (!"save".equals(lblKey)) {  //只监听save事件
+            return;
+        }
+        //校验必填
+        IPageCache iPageCache = this.getPageCache();
+        List<String> fieldList = new ArrayList<>();
+        //获取已经存储在缓存中的必填数据--以JSON字符串存储
+        if (null != iPageCache.get(PAGE_CACHE_MUST_INPUT)) {
+            String fieldListJson = (iPageCache.get(PAGE_CACHE_MUST_INPUT));
+            //Json转List
+            JSONArray fieldJsonArray = new JSONArray(fieldListJson);
+            for (int i = 0; i < fieldJsonArray.length(); i++) {
+                fieldList.add(fieldJsonArray.getString(i));
+                log.info("beforeDoOperation-field:" + fieldJsonArray.getString(i));
+                //设置必填
+                //前端加星号，前端不一定会校验
+                FieldEdit fieldEdit = this.getControl(fieldJsonArray.getString(i));
+                fieldEdit.setMustInput(true);
+
+//                String classTypeName = this.getControl(fieldJsonArray.getString(i)).getClass().getName();
+
+
+//                if("kd.bos.form.field.TextEdit".equals(classTypeName)){
+//                    TextProp fieldProp = (TextProp) fieldEdit.getProperty();
+//                    fieldProp.setMustInput(true);
+//                }else if("kd.bos.form.field.BasedataEdit".equals(classTypeName)){
+//                    //不执行操作
+//                }
+
+
+                //后端加校验-基础资料报错
+//                FieldProp fieldProp = (FieldProp) fieldEdit.getProperty();
+//                fieldProp.setMustInput(true);
+                log.info("beforeDoOperation-field的值-" + fieldJsonArray.getString(i) + " : ---" + this.getModel().getValue(fieldJsonArray.getString(i)));
+
+                //如果当前的值为空-则禁止提交
+                if (null == this.getModel().getValue(fieldJsonArray.getString(i))
+                        || ObjectUtils.isEmpty(this.getModel().getValue(fieldJsonArray.getString(i)))) {
+                    this.getView().showTipNotification(this.getModel().getProperty(fieldJsonArray.getString(i)).getDisplayName() + " 字段未填写，无法提交！");
+                    args.setCancel(true);
+                } else {
+                    //字段属性
+                    String fieldTypeName = this.getModel().getValue(fieldJsonArray.getString(i)).getClass().getName();
+                    //多语言文本单独判断
+                    if (fieldTypeName.equals("kd.bos.dataentity.entity.OrmLocaleValue")) {
+                        OrmLocaleValue ormLocaleValue = (OrmLocaleValue) this.getModel().getValue(fieldJsonArray.getString(i));
+                        //如果当前的值为空-则禁止提交
+                        if (ormLocaleValue.isEmpty()) {
+                            this.getView().showTipNotification(this.getModel().getProperty(fieldJsonArray.getString(i)).getDisplayName() + " 字段未填写，无法提交！");
+                            args.setCancel(true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @Author zb
+     * @Description 业务规则-根据字段进行计算设值
+     * @Date 9:48 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void busRuleCalculate(String fieldKey, DynamicObject ruleDynamicObject) {
+
+        //改变的值
+//        String fieldKey = e.getProperty().getName();
+        //获取计算类型
+        String calculateType = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CALCULATE_TYPE);
+        log.info("calculateType--" + calculateType);
+
+
+        //减数和被减数的标识
+        String startValueSymbol = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_CALCULATE_START_VALUE_SYMBOL);
+        String endValueSymbol = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_CALCULATE_END_VALUE_SYMBOL);
+        String targetField = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_CALCULATE_TARGET_FIELD);
+
+        //匹配值改变事件的字段
+        if (StringUtils.equals(startValueSymbol, fieldKey) || StringUtils.equals(endValueSymbol, fieldKey)) {
+            log.info("匹配到对应的值改变标识---startValueSymbol：" + startValueSymbol + ",endValueSymbol:" + endValueSymbol);
+            //所需计算的数据都不为空情况下
+            if ((null != this.getModel().getValue(startValueSymbol) && this.getModel().getDataEntity().containsProperty(endValueSymbol) && null != this.getModel().getValue(endValueSymbol))
+                    || (null != this.getModel().getValue(startValueSymbol) && endValueSymbol.equals(NOW_DATE))) {
+
+
+                //规则为根据两个字段计算日期差时-单位为年---带小数的
+                if (calculateType.equals(CHECK_RULE_CALCULATE_DATE_YEAR)) {
+                    //获取对应标识的数据-由于此处计算为日期类型，按日期获取值
+                    //获取开始日期
+                    Date startValue = (Date) this.getModel().getValue(startValueSymbol);
+
+                    Date endValue;
+                    if (endValueSymbol.equals(NOW_DATE)) {
+                        //当前日期
+                        endValue = new Date();
+                    } else {
+                        //获取结束日期  2024-06-12 00:00:00.0
+                        endValue = (Date) this.getModel().getValue(endValueSymbol);
+                    }
+
+                    //计算相差的年
+                    double yearsBetween = CollectInfoRuleUtil.calculateDateByYear(startValue, endValue);
+                    log.info("计算结果---yearsBetween：" + yearsBetween);
+                    //设置计算结果
+                    this.getModel().setValue(targetField, yearsBetween);
+                    this.getView().updateView(targetField);
+                } else if (calculateType.equals(CHECK_RULE_CALCULATE_AGE)) {
+                    //获取对应标识的数据-由于此处计算为日期类型，按日期获取值
+                    //获取开始日期
+                    Date startValue = (Date) this.getModel().getValue(startValueSymbol);
+                    Date currentValue;
+                    if (endValueSymbol.equals(NOW_DATE)) {
+                        //当前日期
+                        currentValue = new Date();
+                    } else {
+                        //获取日期  2024-06-12 00:00:00.0
+                        currentValue = (Date) this.getModel().getValue(endValueSymbol);
+                    }
+                    //计算年龄
+                    int age = CollectInfoRuleUtil.calculateAge(startValue, currentValue);
+                    log.info("计算结果---年龄：" + age);
+                    //设置计算结果
+                    this.getModel().setValue(targetField, age);
+                    this.getView().updateView(targetField);
+                }
+            }
+        }
+
+    }
+
+    /**
+     * @Author zb
+     * @Description 值改变-业务规则-根据字段设值另一字段值
+     * @Date 9:46 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void busRuleFieldEffectSetVal(String fieldKey, DynamicObject ruleDynamicObject) {
+        //改变的值
+//        String fieldKey = e.getProperty().getName();
+        //条件：根据字段设值另一字段值
+        String effectField = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_FIELD_EFFECT_FIELD);
+        String effectObject = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_FIELD_EFFECT_OBJECT);
+        String eftObjectSymbol = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_FD_EFT_OBJECT_SYMBOL);
+        String effectSetVal = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_FD_EFT_FD_SET_VAL);
+
+        String effectFieldType = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_FD_EFT_FD_TYPE);
+
+
+        //获取改变的字段的id值
+        DynamicObject dynamicObjectFieldKey = (DynamicObject) this.getModel().getValue(fieldKey);
+        long fieldKeyId = (long) dynamicObjectFieldKey.getPkValue();
+
+        //改变的字段的id值作为查询条件
+        QFilter qFieldKeyId = new QFilter(eftObjectSymbol, QCP.equals, fieldKeyId);
+        //获取关联查询的数据
+        DynamicObject eftObject = BusinessDataServiceHelper.loadSingleFromCache(effectObject, effectSetVal, new QFilter[]{qFieldKeyId});
+
+
+        //需自动填入的字段为多选基础资料时
+        if (effectFieldType.equals(CHECK_RULE_FD_EFT_FD_TYPE_MULBASEDATA)) {
+            //获取需要设值的数据集合
+            DynamicObjectCollection effectSetValObjectCollection = eftObject.getDynamicObjectCollection(effectSetVal);
+
+//                        String[] effectSetValIds = new String[effectSetValObjectCollection.size()];
+//                        for (int i = 0 ; i < effectSetValObjectCollection.size(); i++) {
+//                            effectSetValIds[i] = ((DynamicObject)effectSetValObjectCollection.get(i)).getPkValue().toString();
+//                        }
+//                        this.getModel().setValue(effectField,effectSetValIds);
+//                        this.getView().updateView(effectField);
+
+
+            DynamicObjectCollection activityToolManDy = this.getModel().getDataEntity().getDynamicObjectCollection(effectField);
+            DynamicObjectType type = activityToolManDy.getDynamicObjectType();
+            DynamicObjectCollection newCu = new DynamicObjectCollection();
+            for (DynamicObject effectSetValObject : effectSetValObjectCollection) {
+                DynamicObject cu = effectSetValObject.getDynamicObject("fbasedataid");
+                DynamicObject obj = new DynamicObject(type);
+                obj.set("fbasedataid", cu);
+                newCu.add(obj);
+            }
+            if (!newCu.isEmpty()) {
+                this.getModel().setValue(effectField, newCu);
+            } else {
+                this.getModel().initValue(effectField, null);
+            }
+            this.getView().updateView(effectField);
+        } else if (effectFieldType.equals(CHECK_RULE_FD_EFT_FD_TYPE_BASEDATA)) {
+            DynamicObject effectSetValObject = eftObject.getDynamicObject(effectSetVal);
+            //设置相关值到对象模型上
+            this.getModel().setValue(effectField, effectSetValObject);
+            this.getView().updateView(effectField);
+        }
+    }
+
+    /**
+     * @Author zb
+     * @Description 值改变-业务规则复制当前字段值到目标字段
+     * @Date 9:43 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void busRuleCopyToTargetField(String fieldKey, DynamicObject ruleDynamicObject) {
+        //改变的值
+//        String fieldKey = e.getProperty().getName();
+        //条件：复制当前字段值到目标字段
+        String copyTargetField = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_COPY_TARGET_FIELD);
+        this.getModel().setValue(copyTargetField, this.getModel().getValue(fieldKey));
+        this.getView().updateView(copyTargetField);
+    }
+
+
+    /**
+     * @return void
+     * @Author zb
+     * @Description 值改变-数值型界面规则检查
+     * @Date 9:22 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void viewRuleCheckRuleDecimal(String fieldKey, DynamicObject ruleDynamicObject) {
+        //改变的值
+//        String fieldKey = e.getProperty().getName();
+        //规则类型为数值型的情况下
+        int minValue = ruleDynamicObject.getInt(CollectInfoRuleUtil.Field.MIN_VALUE);
+        int maxValue = ruleDynamicObject.getInt(CollectInfoRuleUtil.Field.MAX_VALUE);
+        String filedValueStr = this.getModel().getValue(fieldKey).toString();
+        log.info("规则类型为数值型的情况下-filedValueStr:" + filedValueStr);
+        if (CollectInfoRuleUtil.isNotEmptyNumeric(filedValueStr)) {
+            BigDecimal filedValue = new BigDecimal(filedValueStr);
+            log.info("规则类型为数值型的情况下-filedValueStr:" + filedValue);
+//                    BigDecimal filedValue = (BigDecimal) this.getModel().getValue(fieldKey);
+            if (filedValue.compareTo(new BigDecimal(minValue)) < 0 || filedValue.compareTo(new BigDecimal(maxValue)) > 0) {
+                log.info("规则类型为数值型的情况下-filedValue不符合:" + filedValue);
+                this.getView().showTipNotification("输入的值不符合最大最小值范围！");
+                this.getModel().initValue(fieldKey, null);
+                this.getView().updateView(fieldKey);
+            }
+        }
+    }
+
+
+    /**
+     * @Author zb
+     * @Description 值改变-检查文本界面规则
+     * @Date 9:19 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void viewRuleCheckRuleText(PropertyChangedArgs e, DynamicObject ruleDynamicObject) {
+
+        //改变的值
+        String fieldKey = e.getProperty().getName();
+
+        //获取设置的字段最小长度
+        Integer textMinLength = ruleDynamicObject.getInt(CollectInfoRuleUtil.Field.TEXT_MIN_LENGTH);
+
+        //获取设置的字段最大长度
+        Integer textMaxLength = ruleDynamicObject.getInt(CollectInfoRuleUtil.Field.TEXT_MAX_LENGTH);
+
+        boolean noChinese = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.TXT_CHECK_NOT_CHINESE);
+        boolean noDigit = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.TXT_CHECK_NO_DIGIT);
+        boolean noEnglish = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.TXT_CHECK_NO_ENGLISH);
+        boolean noSymbol = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.TXT_CHECK_NO_SYMBOL);
+
+        String filedValueStr = this.getModel().getValue(fieldKey).toString();
+
+        // 判断是否存在文本内容条件
+        if (noChinese) {
+            if (CollectInfoRuleUtil.containsChinese(filedValueStr)) {
+                //如果包含中文，返回错误信息
+                this.getView().showTipNotification(e.getProperty().getDisplayName() + "输入的值不可包含中文！");
+                this.getModel().initValue(fieldKey, null);
+            }
+        }
+        if (noDigit) {
+            if (CollectInfoRuleUtil.containsDigit(filedValueStr)) {
+                //如果包含中文，返回错误信息
+                this.getView().showTipNotification(e.getProperty().getDisplayName() + "输入的值不可包含数字！");
+                this.getModel().initValue(fieldKey, null);
+            }
+        }
+        if (noEnglish) {
+            if (CollectInfoRuleUtil.containsEnglish(filedValueStr)) {
+                //如果包含中文，返回错误信息
+                this.getView().showTipNotification(e.getProperty().getDisplayName() + "输入的值不可包含英文字母！");
+                this.getModel().initValue(fieldKey, null);
+            }
+        }
+        if (noSymbol) {
+            if (CollectInfoRuleUtil.containsSymbol(filedValueStr)) {
+                //如果包含中文，返回错误信息
+                this.getView().showTipNotification(e.getProperty().getDisplayName() + "输入的值不可包含符号！");
+                this.getModel().initValue(fieldKey, null);
+            }
+        }
+
+        //长度判断
+        if (filedValueStr.length() > textMaxLength || filedValueStr.length() < textMinLength) {
+            log.info("CHECK_RULE_DECIMAL--params-textMinLength:" + textMinLength + ",textMaxLength:" + textMaxLength);
+            this.getView().showTipNotification(e.getProperty().getDisplayName() + ":请输入" + textMinLength + "-" + textMaxLength + "位字符");
+        }
+
+        //刷新界面
+        this.getView().updateView(fieldKey);
+    }
+
+
+    /**
+     * @Author zb
+     * @Description checkbox选中影响的字段filedid
+     * @Date 9:05 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void viewRuleCheckRuleCheckbox(String fieldKey, DynamicObject ruleDynamicObject) {
+        //改变的值
+        //规则类型为checkbox的情况下-checkbox选中影响的字段filedid
+        String effectFiledId = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_CHECKBOX_EFFECT);
+        String operate = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_CHECKBOX_OPERATE);
+        if (operate.equals(CHECK_RULE_CHECKBOX_OPERATE_HIDE_AND_NULL)) {
+            boolean checked = (boolean) this.getModel().getValue(fieldKey);
+            if (checked) {
+                this.getModel().initValue(effectFiledId, null);
+                this.getView().setVisible(false, effectFiledId);
+                this.getView().updateView(effectFiledId);
+            } else {
+                this.getView().setVisible(true, effectFiledId);
+                this.getView().updateView(effectFiledId);
+            }
+        }
+    }
+
+
+    /**
+     * @Author zb
+     * @Description 值改变-日期比较是否满足-界面提示
+     * @Date 9:01 2024/7/30
+     * @Param [e, ruleDynamicObject]
+     **/
+    public void viewRuleCheckRuleDateCompare(String fieldKey, DynamicObject ruleDynamicObject) {
+
+        String compareType = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_DATE_COMPARE_TYPE);
+        String compareField = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_DATE_COMPARE_FIELD);
+        String compareTips = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_DATE_COMPARE_TIPS);
+
+        Date fieldKeyDate = (Date) this.getModel().getValue(fieldKey);
+
+        Date compareDate;
+        if (compareField.equals(NOW_DATE)) {
+            compareDate = new Date();
+        } else {
+            compareDate = (Date) this.getModel().getValue(compareField);
+        }
+        //比较的目标字段compareDate不为空，进行比较
+        if (null != compareDate) {
+            //条件：当前值改变时间字段需大于比较字段
+            if (compareType.equals(CHECK_RULE_DATE_COMPARE_TYPE_GREATER_THAN)) {
+                if (fieldKeyDate.before(compareDate)) {
+                    //如果值改变的字段在比较字段日期之前，则代表不满足大于条件，抛出提示
+                    this.getView().showTipNotification(compareTips);
+                    this.getModel().initValue(fieldKey, null);
+                    this.getView().updateView(fieldKey);
+                }
+            } else if (compareType.equals(CHECK_RULE_DATE_COMPARE_TYPE_LESS_THAN)) {
+                //条件：当前值改变时间字段需小于比较字段
+                if (fieldKeyDate.after(compareDate)) {
+                    //如果值改变的字段在比较字段日期之后，则代表不满足小于条件，抛出提示
+                    this.getView().showTipNotification(compareTips);
+                    this.getModel().initValue(fieldKey, null);
+                    this.getView().updateView(fieldKey);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * @Author zb
+     * @Description 根据字段的值设置目标字段属性
+     * @Date 18:40 2024/7/29
+     * @Param [e, ruleDynamicObject,cacheUniqueIdStr]
+     **/
+    public void viewRuleCheckRuleMatchValEffectField(String fieldKey, DynamicObject ruleDynamicObject, String cacheUniqueIdStr) {
+
+        String matchType = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_VAL_TYPE);
+        String matchCondition = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_CONDITION);
+        String matchConditionValue = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_CONDI_VALUE);
+        String matchTarField = ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_TARGET_FIELD);
+        boolean matchTarHide = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_TAR_HIDE);
+        boolean matchTarLock = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_TAR_LOCK);
+        boolean matchTarMustInput = ruleDynamicObject.getBoolean(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_MUST_INPUT);
+
+        // 如果当前界面不存在该字段和目标字段  不执行
+        if (!this.getModel().getDataEntityType().getProperties().containsKey(fieldKey)
+                || !this.getModel().getDataEntityType().getProperties().containsKey(ruleDynamicObject.getString(CollectInfoRuleUtil.Field.CHECK_RULE_MATCH_TARGET_FIELD))) {
+            return;
+        }
+
+
+        //当前字段的值
+        String fieldValue = "";
+
+        //匹配文本
+        if (matchType.equals(CHECK_RULE_MATCH_VAL_TYPE_TEXT)) {
+            //获取当前字段的值-文本
+            fieldValue = (String) this.getModel().getValue(fieldKey);
+        }
+
+        //匹配checkbox
+        if (matchType.equals(CHECK_RULE_MATCH_VAL_TYPE_CHECKBOX)) {
+            //获取当前字段的值-文本
+            boolean checkboxValue = this.getModel().getDataEntity().getBoolean(fieldKey);
+            if (checkboxValue) {
+                fieldValue = "1";
+            } else {
+                fieldValue = "0";
+            }
+        }
+
+        if (matchType.equals(CHECK_RULE_MATCH_VAL_TYPE_BASE_NAME)) {
+            if (null != this.getModel().getDataEntity().getDynamicObject(fieldKey)) {
+                //获取当前字段的值-基础资料-名称
+                fieldValue = this.getModel().getDataEntity().getDynamicObject(fieldKey).getString("name");
+            }
+        }
+        if (matchType.equals(CHECK_RULE_MATCH_VAL_TYPE_BASE_NUMBER)) {
+            if (null != this.getModel().getDataEntity().getDynamicObject(fieldKey)) {
+                //获取当前字段的值-基础资料-编码
+                fieldValue = this.getModel().getDataEntity().getDynamicObject(fieldKey).getString("number");
+            }
+        }
+
+
+        //以下操作页面的界面规则
+
+        IPageCache iPageCache = this.getPageCache();
+        iPageCache.put("", "");
+
+        //条件为等于
+        if (matchCondition.equals(CHECK_RULE_MATCH_CONDITION_EQUAL)) {
+            //比较相关的值
+            if (fieldValue.equals(matchConditionValue)) {
+                //目标字段隐藏校验
+                if (matchTarHide) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Visible", "false");
+                    this.getModel().initValue(matchTarField, null);
+                    this.getView().setVisible(false, matchTarField);
+                } else {
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验
+                if (matchTarLock) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Enable", "false");
+                    this.getView().setEnable(false, matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验
+                if (matchTarMustInput) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "MustInput", "true");
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(true);
+                    //加入必填校验缓存
+                    addMustInputPageCache(matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+            else{
+                // 不隐藏（显示），且不存在当前页面缓存为隐藏的设置，则修改为显示
+                if(matchTarHide && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Visible")){
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验 不锁定，且不存在当前页面缓存为锁定的设置，则修改为不锁定
+                if(matchTarLock && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Enable")){
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验 不必填，且不存在当前页面缓存为锁定的设置，则修改为不锁定
+                if(matchTarMustInput && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"MustInput")){
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }else{
+                    this.getView().setEnable(true, matchTarField);
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+        }
+        //条件为包含
+        if (matchCondition.equals(CHECK_RULE_MATCH_CONDITION_CONTAIN)) {
+            //比较相关的值——满足条件
+            if (fieldValue.contains(matchConditionValue)) {
+                //目标字段隐藏校验
+                if (matchTarHide) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Visible", "false");
+                    this.getModel().initValue(matchTarField, null);
+                    this.getView().setVisible(false, matchTarField);
+                } else {
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验
+                if (matchTarLock) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Enable", "false");
+                    this.getView().setEnable(false, matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验
+                if (matchTarMustInput) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "MustInput", "true");
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(true);
+                    //加入必填校验缓存
+                    addMustInputPageCache(matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+            else{
+                //判断本次值改变事件中设置不隐藏且没有对目标字段设置隐藏的数据，设置显示
+                if(matchTarHide && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Visible")){
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验-判断本次值改变事件中设置为不锁定且没有对目标字段设置锁定的数据，设置不锁定
+                if(matchTarLock && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Enable")){
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验-判断本次值改变事件中设置为不锁定且没有对目标字段设置必填的数据，设置不不填
+                if(matchTarMustInput && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"MustInput")){
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+        }
+
+
+        //条件为不等于
+        if (matchCondition.equals(CHECK_RULE_MATCH_CONDITION_NOT_EQUAL)) {
+            //比较相关的值——满足条件
+            if (!fieldValue.equals(matchConditionValue)) {
+                //目标字段隐藏校验
+                if (matchTarHide) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Visible", "false");
+                    this.getModel().initValue(matchTarField, null);
+                    this.getView().setVisible(false, matchTarField);
+                } else {
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验
+                if (matchTarLock) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "Enable", "false");
+                    this.getView().setEnable(false, matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验
+                if (matchTarMustInput) {
+                    iPageCache.put(cacheUniqueIdStr + matchTarField + "MustInput", "true");
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(true);
+                    //加入必填校验缓存
+                    addMustInputPageCache(matchTarField);
+                } else {
+                    this.getView().setEnable(true, matchTarField);
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+            else{
+                //判断本次值改变事件中设置不隐藏且没有对目标字段设置隐藏的数据，设置显示
+                if(matchTarHide && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Visible")){
+                    this.getView().setVisible(true, matchTarField);
+                }
+                //目标字段锁定校验-判断本次值改变事件中设置为不锁定且没有对目标字段设置锁定的数据，设置不锁定
+                if(matchTarLock && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"Enable")){
+                    this.getView().setEnable(true, matchTarField);
+                }
+                //目标字段必填校验-判断本次值改变事件中设置为不锁定且没有对目标字段设置必填的数据，设置不不填
+                if(matchTarMustInput && null == iPageCache.get(cacheUniqueIdStr+matchTarField+"MustInput")){
+                    FieldEdit fieldEdit = this.getView().getControl(matchTarField);
+                    fieldEdit.setMustInput(false);
+                    //删除必填缓存数据
+                    removeMustInputPageCache(matchTarField);
+                }
+            }
+        }
+
+
+        //刷新界面
+        this.getView().updateView(matchTarField);
+
+    }
+
+
+
+    /**
+     * @Author zb
+     * @Description 添加必填字段缓存
+     * @Date 14:25 2024/8/22
+     * @Param [fieldStr]
+     **/
+    public void addMustInputPageCache(String fieldStr) {
+
+        IPageCache iPageCache = this.getPageCache();
+
+        List<String> fieldList = new ArrayList<>();
+
+        //获取已经存储在缓存中的必填数据--以JSON字符串存储
+        if (null != iPageCache.get(PAGE_CACHE_MUST_INPUT)) {
+            String fieldListJson = (iPageCache.get(PAGE_CACHE_MUST_INPUT));
+
+            //Json转List
+            JSONArray fieldJsonArray = new JSONArray(fieldListJson);
+            for (int i = 0; i < fieldJsonArray.length(); i++) {
+                fieldList.add(fieldJsonArray.getString(i));
+            }
+        }
+        //将要写入缓存的数据添加进去
+        if (!fieldList.contains(fieldStr)) {  //cq add去重
+            fieldList.add(fieldStr);
+        }
+        //将List转Json
+        JSONArray jsonArray = new JSONArray(fieldList);
+
+        // 更新到缓存中
+        iPageCache.put(PAGE_CACHE_MUST_INPUT, jsonArray.toString());
+    }
+
+
+    /**
+     * @Author zb
+     * @Description 删除指定缓存数据
+     * @Date 14:30 2024/8/22
+     * @Param [fieldStr]
+     **/
+    public void removeMustInputPageCache(String fieldStr) {
+
+        IPageCache iPageCache = this.getPageCache();
+
+        List<String> fieldList = new ArrayList<>();
+
+        //获取已经存储在缓存中的必填数据--以JSON字符串存储
+        if (null != iPageCache.get(PAGE_CACHE_MUST_INPUT)) {
+            String fieldListJson = (iPageCache.get(PAGE_CACHE_MUST_INPUT));
+            //Json转List
+            JSONArray fieldJsonArray = new JSONArray(fieldListJson);
+            for (int i = 0; i < fieldJsonArray.length(); i++) {
+                fieldList.add(fieldJsonArray.getString(i));
+            }
+            //将要删除缓存的数据删除 -此处jdk8方法
+            fieldList.removeIf(element -> element.equals(fieldStr));
+            //将List转Json
+            JSONArray jsonArray = new JSONArray(fieldList);
+            // 更新到缓存中
+            iPageCache.put(PAGE_CACHE_MUST_INPUT, jsonArray.toString());
+        }
+
+    }
+
+
+}

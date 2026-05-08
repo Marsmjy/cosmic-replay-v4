@@ -1,0 +1,2007 @@
+{
+  "scene": "haos_structure_maintenance",
+  "formId": "haos_structure",
+  "description": "rules_chain_all.json · 场景 haos_structure_maintenance",
+  "opKeys": {
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "新增矩阵组织 · 表单打开 · 默认 org=用户首选 BU · 默认 otclassify=1010L",
+        "frequency": "中",
+        "stateTransition": "(无) -> (新建表单·status=null)",
+        "extValue": 3,
+        "operationId": "b5994054000016ac",
+        "permissionItemId": "47156aff000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "修改矩阵组织 · 表单打开 · 修改字段值（rootorg/relyonstructproject/iscustomorg 等）",
+        "frequency": "中",
+        "stateTransition": "(查看 -> 编辑态)",
+        "extValue": 3,
+        "operationId": "b5994054000017ac",
+        "permissionItemId": "4715a0df000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "查看矩阵组织详情 · 不可编辑",
+        "frequency": "高",
+        "stateTransition": "(任意 -> 查看态)",
+        "extValue": 3,
+        "operationId": "b5994054000018ac",
+        "permissionItemId": "47150e89000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存矩阵组织 · 6 OP 顺序执行 · 4 Validators 校验",
+        "frequency": "中（每次新建/修改）",
+        "stateTransition": "(草稿 -> status=A · BdVersion 写历史)",
+        "extValue": 3,
+        "operationId": "b599405400001aac",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_save_MustInput_001",
+          "ruleType": "MustInput",
+          "ruleId": "6096194600001fac",
+          "enabled": true,
+          "desc": "字段值合规性校验 · rootorg/org 必填"
+        },
+        {
+          "id": "V_save_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "1VRALXJOVNKD",
+          "enabled": false,
+          "desc": "合法性校验（disabled）"
+        },
+        {
+          "id": "V_save_GroupFieldUnique_003",
+          "ruleType": "GroupFieldUnique",
+          "ruleId": "2+R3Y9FBSJ51",
+          "enabled": true,
+          "desc": "编码 number 唯一性校验"
+        },
+        {
+          "id": "V_save_GroupFieldUnique_004",
+          "ruleType": "GroupFieldUnique",
+          "ruleId": "2+R3ZR7WI4N2",
+          "enabled": true,
+          "desc": "名称 name 唯一性校验"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_save_001",
+          "summary": "save 链 RowKey=- CodeRuleOp 自动生成 number（业务侧编码规则配 · PR-006）",
+          "phase": "beforeExecuteOperationTransaction"
+        },
+        {
+          "id": "B_save_002",
+          "summary": "RowKey=1 BdVersionSaveServicePlugin 写主表 + t_haos_structproject_l 多语言子表 + BdVersion 历史",
+          "phase": "beginOperationTransaction"
+        },
+        {
+          "id": "B_save_003",
+          "summary": "RowKey=2-5 顺序执行 HRBaseDataStatusOp / HRBaseDataLogOp / HRBaseDataEnableOp / HRBaseOriginalOp",
+          "phase": "beforeExecuteOperationTransaction"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final · 反编译 L90 · 不在 SDK 注解白名单）",
+        "⚠ 禁继承 StructureEditPlugin（final · 反编译 L11 · 不在 SDK 注解白名单）",
+        "⚠ 禁继承 StructProjectBUListPlugin（final · 反编译 L13 · 不在 SDK 注解白名单）",
+        "⚠ 禁继承 HRBaseDataStatusOp / HRBaseDataLogOp / HRBaseDataEnableOp / HRBaseOriginalOp（标品业务 OP · PR-001 必须并列挂）",
+        "⚠ 禁继承 BdVersionSaveServicePlugin（平台 OP · 业务侧不动）",
+        "⚠ 禁继承 CodeRuleOp（平台模板 OP · 业务侧编码规则基础资料配 · PR-006）",
+        "⚠ 禁继承 StructProjectRepository（业务 Repository · 无 SDK 注解 · 直接调用 getInstance 即可）",
+        "⚠ 推荐父类 HRDataBaseOp（@SdkPlugin 白名单）+ AbstractValidator（@SdkPublic）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除矩阵组织 · 必须先 disable + 无下游引用",
+        "frequency": "极低（推荐用 disable 代替）",
+        "stateTransition": "(任意 enable=0 -> 已删除)",
+        "extValue": 3,
+        "operationId": "b599405400001bac",
+        "permissionItemId": "4715e1f1000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_delete_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "1cc0054f000016ac",
+          "enabled": false,
+          "desc": "合法性校验（disabled）"
+        },
+        {
+          "id": "V_delete_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "f789ca66000000ac",
+          "enabled": true,
+          "desc": "数据已经禁用 不能删除（实际是 enable!=0 时阻断）"
+        },
+        {
+          "id": "V_delete_hrbddeletevalidator_003",
+          "ruleType": "hrbddeletevalidator",
+          "ruleId": "2+RE4J37K857",
+          "enabled": true,
+          "desc": "HR 基础资料删除校验 · 检查下游引用"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_delete_001",
+          "summary": "Validator f789ca66000000ac 在 enable!=0 时阻断 · 必须先 disable",
+          "phase": "onAddValidators"
+        },
+        {
+          "id": "B_delete_002",
+          "summary": "Validator hrbddeletevalidator 检查下游引用 · 通过反查 refEntity_reverse 列表实现",
+          "phase": "onAddValidators"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final）",
+        "⚠ 禁继承 HRBaseDataStatusOp（标品业务 OP · 并列挂）",
+        "⚠ 禁继承 HRBaseDataLogOp（标品业务 OP · 并列挂）",
+        "⚠ 禁继承 CodeRuleDeleteOp（平台 OP）",
+        "⚠ delete 前必须 enable=0 · 不要绕过标品 Validator f789ca66000000ac"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/3",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "审核矩阵组织 · status A/B -> C",
+        "frequency": "低",
+        "stateTransition": "(status=A or B -> status=C)",
+        "extValue": 3,
+        "operationId": "b599405400001cac",
+        "permissionItemId": "47162f66000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_audit_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "1cc0054f000018ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_audit_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "f2843bab0000bfac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_audit_InProcess_003",
+          "ruleType": "InProcess",
+          "ruleId": "2W/BRWU+MXP7",
+          "enabled": false,
+          "desc": "基础资料在流程中校验（disabled）"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_audit_001",
+          "summary": "audit parameter.Value=C · status A/B -> C · 通过 StatusFieldId=AkId5S4yTs 写",
+          "phase": "beforeExecuteOperationTransaction"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 HRBaseDataLogOp（标品 OP · 并列挂）",
+        "⚠ 禁继承 StructureEditPlugin（final）",
+        "⚠ 禁继承 StructureListPlugin（final）",
+        "⚠ audit 是 status A/B -> C · 推荐扩展走 onAddValidators 加业务校验"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "反审核 · status C -> A",
+        "frequency": "极低",
+        "stateTransition": "(status=C -> status=A)",
+        "extValue": 3,
+        "operationId": "b599405400001dac",
+        "permissionItemId": "47165e8e000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_unaudit_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "1cc0054f000019ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_unaudit_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "f2843bab0000c0ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_unaudit_InProcess_003",
+          "ruleType": "InProcess",
+          "ruleId": "2W/BU/L+T3I2",
+          "enabled": false,
+          "desc": "基础资料在流程中校验（disabled）"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "禁用矩阵组织 · enable 1 -> 0 · 不参与下游查询",
+        "frequency": "中",
+        "stateTransition": "(enable=1 -> enable=0)",
+        "extValue": 3,
+        "operationId": "b599405400001eac",
+        "permissionItemId": "47160c2b000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_disable_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "f2843bab0000baac",
+          "enabled": true,
+          "desc": "合法性校验 · 状态前置"
+        },
+        {
+          "id": "V_disable_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "f2843bab0000bbac",
+          "enabled": true,
+          "desc": "合法性校验"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_disable_001",
+          "summary": "disable parameter.Value=0 · enable 字段 1 -> 0 · StatusFieldId=ac5Y5Dax1q",
+          "phase": "beforeExecuteOperationTransaction"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 HRBaseDataLogOp（标品 OP · 并列挂）",
+        "⚠ 禁继承 StructureListPlugin（final · 反编译 L90）",
+        "⚠ 禁继承 StructureEditPlugin（final · 反编译 L11）",
+        "⚠ disable 前置校验在 onAddValidators · 不要在 afterExecute 做（事务已提交无法回滚）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用矩阵组织 · enable 0 -> 1 · 参与下游查询",
+        "frequency": "中",
+        "stateTransition": "(enable=0 -> enable=1)",
+        "extValue": 3,
+        "operationId": "b599405400001fac",
+        "permissionItemId": "4730fc5d000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_enable_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "f2843bab0000bcac",
+          "enabled": true,
+          "desc": "合法性校验 · 状态前置（enable!=0 阻断）"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_enable_001",
+          "summary": "enable parameter.Value=1 · enable 字段 0 -> 1 · StatusFieldId=ac5Y5Dax1q",
+          "phase": "beforeExecuteOperationTransaction"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 HRBaseDataLogOp（标品 OP · 并列挂）",
+        "⚠ 禁继承 StructureEditPlugin（final）",
+        "⚠ 禁继承 StructureListPlugin（final）",
+        "⚠ CS-04 启用前置校验挂在 onAddValidators · 不要挂 save（让业务可暂存草稿）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭页面 · UI 操作 · 无业务逻辑",
+        "frequency": "高",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "b5994054000021ac",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "F7 返回数据 · 选择回填",
+        "frequency": "高",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "c54e30e7000010ac",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交矩阵组织 · status A -> B · 走 BdVersion 写历史",
+        "frequency": "低",
+        "stateTransition": "(status=A -> status=B)",
+        "extValue": 3,
+        "operationId": "f381c03f00002cac",
+        "permissionItemId": "804f6478000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_submit_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "1cc0054f000017ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_submit_GroupFieldUnique_002",
+          "ruleType": "GroupFieldUnique",
+          "ruleId": "424b895300015bac",
+          "enabled": true,
+          "desc": "组合字段唯一性校验"
+        },
+        {
+          "id": "V_submit_MustInput_003",
+          "ruleType": "MustInput",
+          "ruleId": "RS=E9QE25UN",
+          "enabled": true,
+          "desc": "必填字段校验"
+        },
+        {
+          "id": "V_submit_GroupFieldUnique_004",
+          "ruleType": "GroupFieldUnique",
+          "ruleId": "2DDGGGIVWM1U",
+          "enabled": true,
+          "desc": "名称唯一性校验"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_submit_001",
+          "summary": "submit parameter.Value=B · status A -> B · 走 BdVersion 写历史（同 save 链 RowKey=1）",
+          "phase": "beforeExecuteOperationTransaction"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final · 反编译 L90）",
+        "⚠ 禁继承 StructureEditPlugin（final · 反编译 L11）",
+        "⚠ 禁继承 BdVersionSaveServicePlugin（平台 OP）",
+        "⚠ 禁继承 CodeRuleOp（平台 OP）",
+        "⚠ 禁继承 HRBaseDataLogOp / HRBaseDataEnableOp / HRBaseOriginalOp（标品业务 OP）",
+        "⚠ submit 走 BdVersion 写历史 · ISV 自定义 Validator 别破坏版本管理"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/5",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销提交 · status B -> A",
+        "frequency": "极低",
+        "stateTransition": "(status=B -> status=A)",
+        "extValue": 3,
+        "operationId": "f381c03f00002dac",
+        "permissionItemId": "80513207000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_unsubmit_FormValidate_001",
+          "ruleType": "FormValidate",
+          "ruleId": "3bdba4470000d3ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        },
+        {
+          "id": "V_unsubmit_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "f789ca66000001ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "copy": {
+      "opKey": "copy",
+      "name": "复制",
+      "opType": "copy",
+      "overview": {
+        "scene": "复制现有矩阵组织 · 生成新草稿 · 平台模板提供",
+        "frequency": "低",
+        "stateTransition": "(任意 -> 新草稿)",
+        "extValue": 3,
+        "operationId": "f381c03f000033ac",
+        "permissionItemId": "47156aff000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final）",
+        "⚠ 禁继承 StructureEditPlugin（final）",
+        "⚠ 禁继承 BdVersionSaveServicePlugin（平台 OP）",
+        "⚠ 复制时清空敏感字段（issyspreset / orinumber / oriname）· 否则会误标系统预置"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新列表 · UI 操作",
+        "frequency": "高",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "f381c03f000034ac",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置",
+        "frequency": "极低",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "c8d21820000086ac",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增 · 连续录入",
+        "frequency": "低",
+        "stateTransition": "(status=A -> status=B + 新建草稿)",
+        "extValue": 3,
+        "operationId": "f31a499a0000adac",
+        "permissionItemId": "804f6478000000ac"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_submitandnew_GroupFieldUnique_001",
+          "ruleType": "GroupFieldUnique",
+          "ruleId": "2f5773ca0001b5ac",
+          "enabled": true,
+          "desc": "组合字段唯一性校验"
+        },
+        {
+          "id": "V_submitandnew_FormValidate_002",
+          "ruleType": "FormValidate",
+          "ruleId": "2f5773ca0001b6ac",
+          "enabled": true,
+          "desc": "合法性校验"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "saveandnew": {
+      "opKey": "saveandnew",
+      "name": "保存并新增",
+      "opType": "saveandnew",
+      "overview": {
+        "scene": "保存并新增 · 连续录入",
+        "frequency": "低",
+        "stateTransition": "(草稿 -> status=A + 新建草稿)",
+        "extValue": 3,
+        "operationId": "QQKYA+LT1/4",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "分页首条",
+        "frequency": "低",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "S=VTOGXYQBY",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "分页前一条",
+        "frequency": "低",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "S=VUN3Y4R6Q",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "分页后一条",
+        "frequency": "低",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "S=VVFX/B38V",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "分页末条",
+        "frequency": "低",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "S=VW0K6WD7R",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "logview": {
+      "opKey": "logview",
+      "name": "查看全部日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看全部操作日志",
+        "frequency": "中",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "21A5O/3PV7IL",
+        "permissionItemId": "2DA5R551WK78"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewonelog": {
+      "opKey": "viewonelog",
+      "name": "查看日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看单条操作日志",
+        "frequency": "中",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "2COQ5049N75G",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "maintainframework": {
+      "opKey": "maintainframework",
+      "name": "维护架构",
+      "opType": "donothing",
+      "overview": {
+        "scene": "维护架构 · 跳转 haos_orgstructlist 维护下挂组织 · donothing 类型",
+        "frequency": "中",
+        "stateTransition": "(无 · 跳转)",
+        "extValue": 3,
+        "operationId": "3BSF+V0IJXAJ",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_maintainframework_001",
+          "summary": "donothing 类型 · 直接跳转 haos_orgstructlist + haos_structorgdetail · 通过 customParam 传 struct_project_ids 限定列表过滤",
+          "phase": "(donothing 不进 OP 事务)"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final）",
+        "⚠ 禁继承 StructureEditPlugin（final）",
+        "⚠ 禁继承 StructProjectBUListPlugin（final）",
+        "⚠ donothing 类型不进 OP 事务 · 加自定义逻辑应通过 FormPlugin/ListPlugin 的 beforeDoOperation 拦截",
+        "⚠ 跳转 haos_orgstructlist 时 customParam 必须传 struct_project_ids JSON · 否则下游列表显示全量"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "newentry": {
+      "opKey": "newentry",
+      "name": "新增分录",
+      "opType": "newentry",
+      "overview": {
+        "scene": "新增分录 · 平台模板兜底（本场景无 EntryEntity 不会触发）",
+        "frequency": "无",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "3C5+=UONNYOM",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "deleteentry": {
+      "opKey": "deleteentry",
+      "name": "删除分录",
+      "opType": "deleteentry",
+      "overview": {
+        "scene": "删除分录 · 平台模板兜底",
+        "frequency": "无",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "3C5+NPNO5KYC",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previousentry": {
+      "opKey": "previousentry",
+      "name": "上一分录",
+      "opType": "previousentry",
+      "overview": {
+        "scene": "上一分录 · 平台模板兜底",
+        "frequency": "无",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "3C5/+9HY/OU5",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "nextentry": {
+      "opKey": "nextentry",
+      "name": "下一分录",
+      "opType": "nextentry",
+      "overview": {
+        "scene": "下一分录 · 平台模板兜底",
+        "frequency": "无",
+        "stateTransition": "(无)",
+        "extValue": 3,
+        "operationId": "3C5/=KT5B6SK",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "vectorap": {
+      "opKey": "vectorap",
+      "name": "空操作",
+      "opType": "donothing",
+      "overview": {
+        "scene": "列表行右侧 维护架构 图标 · 由 StructureListPlugin.beforeDoOperation 拦截走 showStructListPage",
+        "frequency": "中",
+        "stateTransition": "(无 · 跳转)",
+        "extValue": 3,
+        "operationId": "3J=+0ZFN7ZPR",
+        "permissionItemId": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_vectorap_001",
+          "summary": "由 StructureListPlugin.beforeDoOperation L195-L213 拦截 · 校验权限项 + rootorg · 通过则调 showStructListPage",
+          "phase": "beforeDoOperation (FormPlugin 链)"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 禁继承 StructureListPlugin（final · vectorap 拦截在它 beforeDoOperation L195）",
+        "⚠ 禁继承 StructureEditPlugin（final）",
+        "⚠ 禁继承 StructProjectBUListPlugin（final）",
+        "⚠ vectorap 是 donothing 类型 · 由 FormPlugin beforeDoOperation 拦截而非 OP · ISV 扩展走新 ListPlugin 并列挂",
+        "⚠ 触发跳转 haos_orgstructlist 前必校验 rootorg 非空 + 维护架构权限项 3F/95X2VSZ=1"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "new",
+        "modify",
+        "view",
+        "save",
+        "delete",
+        "audit",
+        "unaudit",
+        "disable",
+        "enable",
+        "close",
+        "returndata",
+        "submit",
+        "unsubmit",
+        "copy",
+        "refresh",
+        "option",
+        "submitandnew",
+        "saveandnew",
+        "first",
+        "previous",
+        "next",
+        "last",
+        "logview",
+        "viewonelog",
+        "maintainframework",
+        "newentry",
+        "deleteentry",
+        "previousentry",
+        "nextentry",
+        "vectorap"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    },
+    "enrichedAt": "2026-04-26",
+    "enrichedBy": "Agent · haos_structure_maintenance 深度精修",
+    "totalOpKeys": 30,
+    "criticalOpKeysWithMines": 9
+  }
+}

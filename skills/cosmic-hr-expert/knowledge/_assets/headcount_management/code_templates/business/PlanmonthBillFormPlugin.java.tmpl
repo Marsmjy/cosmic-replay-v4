@@ -1,0 +1,585 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.report.CellStyle;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.EntryGrid;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.list.ListShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.workflow.MessageCenterServiceHelper;
+import kd.bos.tree.TreeFilterParameter;
+import kd.bos.url.UrlService;
+import kd.bos.util.StringUtils;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+
+/**
+ * @author 姚帅
+ * @date:2023/1/22
+ * @description: 月度编制管理表单插件
+ */
+public class PlanmonthBillFormPlugin extends AbstractFormPlugin {
+
+    private static Log logger = LogFactory.getLog(PlanmonthBillFormPlugin.class);
+
+    private static final String BIZ_QFILTER_KEY = "bizQFilterKey";
+
+    private static final String[] hideStr = new String[]{"${ISV_FLAG}_entry1", "${ISV_FLAG}_entry2", "${ISV_FLAG}_entry3", "${ISV_FLAG}_entry4", "${ISV_FLAG}_entry5", "${ISV_FLAG}_entry6", "${ISV_FLAG}_entry7", "${ISV_FLAG}_entry8", "${ISV_FLAG}_entry9", "${ISV_FLAG}_entry10", "${ISV_FLAG}_entry11", "${ISV_FLAG}_entry12"};
+
+    private static final String entryFiled = "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz1," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz2," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz3," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz4," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz5," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz6," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz7," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz8," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz9," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz10," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz11," +
+            "${ISV_FLAG}_bz_entry.${ISV_FLAG}_bz12";
+
+    /**
+     * 客户端地址
+     */
+    private String clientPath = "";//客户端地址
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        this.addItemClickListeners("tbmain");
+        this.addItemClickListeners("${ISV_FLAG}_advcontoolbarap");
+
+        //角色编码
+        List<String> roleNumbers = new ArrayList<>();
+        roleNumbers.add("BZ00001");
+        roleNumbers.add("BZ00002");
+        roleNumbers.add("BZ00003");
+        roleNumbers.add("BZ00004");
+        roleNumbers.add("BZ00005");
+        //催办人员过滤
+        QFilter roleFilter = new QFilter("role.number", QCP.in, roleNumbers);
+        DynamicObject[] userPermRoleDy = BusinessDataServiceHelper.load("perm_userrole", "id,user", new QFilter[]{roleFilter});
+        //用户id
+        List<Long> userIds = new ArrayList<>();
+        for (DynamicObject userObj : userPermRoleDy) {
+            userIds.add((Long) userObj.getDynamicObject("user").getPkValue());
+        }
+        BasedataEdit personplan = this.getView().getControl("${ISV_FLAG}_personplan");
+        personplan.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("id", QCP.in, userIds);
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+
+        });
+
+        IDataModel model = this.getModel();
+        //计划
+        DynamicObject dgdlPlanmonth = (DynamicObject) model.getValue("${ISV_FLAG}_planmonth");
+        //组织
+        DynamicObject org = dgdlPlanmonth.getDynamicObject("${ISV_FLAG}_org");
+        BasedataEdit adminorg1 = this.getView().getControl("${ISV_FLAG}_bz_adminorg1");
+        adminorg1.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+
+            TreeFilterParameter treeFilterParameter = new TreeFilterParameter();
+            List<QFilter> list = new ArrayList<>();
+            list.add(new QFilter("org.id", QCP.equals, org.getPkValue()));
+            treeFilterParameter.setQFilters(list);
+            showParam.setTreeFilterParameter(treeFilterParameter);
+        });
+
+        BasedataEdit adminorg2 = this.getView().getControl("${ISV_FLAG}_bz_adminorg2");
+        adminorg2.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+
+            TreeFilterParameter treeFilterParameter = new TreeFilterParameter();
+            List<QFilter> list = new ArrayList<>();
+            list.add(new QFilter("org.id", QCP.equals, org.getPkValue()));
+            treeFilterParameter.setQFilters(list);
+            showParam.setTreeFilterParameter(treeFilterParameter);
+        });
+
+        BasedataEdit adminorg3 = this.getView().getControl("${ISV_FLAG}_bz_adminorg3");
+        adminorg3.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+        });
+
+        BasedataEdit adminorg4 = this.getView().getControl("${ISV_FLAG}_bz_adminorg4");
+        adminorg4.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+        });
+
+        BasedataEdit adminorg5 = this.getView().getControl("${ISV_FLAG}_bz_adminorg5");
+        adminorg5.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+        });
+
+        BasedataEdit adminorg6 = this.getView().getControl("${ISV_FLAG}_bz_adminorg6");
+        adminorg6.addBeforeF7SelectListener((listener) -> {
+            ListShowParameter showParam = (ListShowParameter) listener.getFormShowParameter();
+            QFilter personQfilter = new QFilter("org.id", QCP.equals, org.getPkValue());
+            showParam.getListFilterParameter().getQFilters().add(personQfilter);
+        });
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        //改变字段
+        String filed = e.getProperty().getName();
+        //改变行下标
+        int rowIndex = e.getChangeSet()[0].getRowIndex();
+        IDataModel model = this.getModel();
+        //存储值改变值,计算控编人数
+        List<String> filedList = new ArrayList<>();
+        filedList.add("${ISV_FLAG}_bz_controlediting");
+        filedList.add("${ISV_FLAG}_bz1");
+        filedList.add("${ISV_FLAG}_bz2");
+        filedList.add("${ISV_FLAG}_bz3");
+        filedList.add("${ISV_FLAG}_bz4");
+        filedList.add("${ISV_FLAG}_bz5");
+        filedList.add("${ISV_FLAG}_bz6");
+        filedList.add("${ISV_FLAG}_bz7");
+        filedList.add("${ISV_FLAG}_bz8");
+        filedList.add("${ISV_FLAG}_bz9");
+        filedList.add("${ISV_FLAG}_bz10");
+        filedList.add("${ISV_FLAG}_bz11");
+        filedList.add("${ISV_FLAG}_bz12");
+        filedList.add("${ISV_FLAG}_personplan");
+
+        if (filedList.contains(filed)) {
+            switch (filed) {
+                case "${ISV_FLAG}_bz_controlediting":
+                    String controlediting = (String) model.getValue("${ISV_FLAG}_bz_controlediting", rowIndex);
+                    if (StringUtils.isNotEmpty(controlediting)) {
+                        if ("3".equals(controlediting)) {
+                            this.getView().setVisible(true, "${ISV_FLAG}_bz_way", "${ISV_FLAG}_bz_percent");
+                        } else {
+                            //分录中没有弹性控编,则隐藏弹性方式
+                            DynamicObjectCollection entry = model.getEntryEntity("${ISV_FLAG}_bz_entry");
+                            int size = 0;
+                            for (int i = 0; i < entry.size(); i++) {
+                                String entryType = (String) model.getValue("${ISV_FLAG}_bz_controlediting", i);
+                                if (!"3".equals(entryType)) {
+                                    size++;
+                                }
+                            }
+                            if (size == entry.size()) {
+                                this.getView().setVisible(false, "${ISV_FLAG}_bz_way", "${ISV_FLAG}_bz_percent");
+                            }
+                        }
+                    }
+                    break;
+                case "${ISV_FLAG}_personplan":
+                    //催办人员
+                    DynamicObjectCollection personplan = (DynamicObjectCollection) model.getValue("${ISV_FLAG}_personplan");
+                    List<Long> userList = new ArrayList<>();
+                    for (DynamicObject person : personplan) {
+                        userList.add((Long) person.getDynamicObject("fbasedataid").getPkValue());
+                    }
+                    userList.add(1737148357501250560L);
+                    //处理时间
+                    SimpleDateFormat yearSim = new SimpleDateFormat("yyyy");
+                    //计划
+                    DynamicObject planmonth = (DynamicObject) model.getValue("${ISV_FLAG}_planmonth");
+                    Date year = planmonth.getDate("${ISV_FLAG}_year");
+                    //编制单位
+                    String sonName = planmonth.getDynamicObject("${ISV_FLAG}_org").getString("name");
+                    //所属年份
+                    String yearStr = yearSim.format(year);
+                    //获取月度详情
+                    QFilter planQFilter = new QFilter("${ISV_FLAG}_planmonth.id", QCP.equals, planmonth.getPkValue());
+                    DynamicObject planBillObj = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_planmonth_bill", "id", planQFilter.toArray());
+                    //标题
+                    String content = "请尽快维护" + yearStr + "年" + sonName + "集团编制信息,如已维护,请忽略此消息";
+                    String url = getUrl((Long) planBillObj.getPkValue(), "${ISV_FLAG}_planmonth_bill");
+                    for (Long userId : userList) {
+                        sendMessage("月度编制计划消息通知", content, Collections.singletonList(userId), url);
+                    }
+                    break;
+                default:
+                    //获取分录
+                    EntryGrid grid = this.getView().getControl("${ISV_FLAG}_bz_entry");
+                    String month = null;
+                    //获取月份
+                    if (filed.length() == 8) {
+                        month = filed.substring(filed.length() - 1);
+                    } else {
+                        month = filed.substring(filed.length() - 2);
+                    }
+                    //控编字段
+                    String kb = "${ISV_FLAG}_kb" + month;
+                    //基准数
+                    String jz = "${ISV_FLAG}_jz" + month;
+                    //编制数
+                    int bzCount = (int) model.getValue(filed, rowIndex);
+                    //基准数
+                    int jzCount = (int) model.getValue(jz, rowIndex);
+                    //控编方式
+                    String controled = (String) model.getValue("${ISV_FLAG}_bz_controlediting", rowIndex);
+                    //额度
+                    int percent = (int) model.getValue("${ISV_FLAG}_bz_percent", rowIndex);
+                    if (StringUtils.isNotEmpty(controled) && "3".equals(controled)) {
+                        //弹性方式
+                        String way = (String) model.getValue("${ISV_FLAG}_bz_way", rowIndex);
+                        if ("1".equals(way)) {
+                            //计算额度
+                            BigDecimal divide = new BigDecimal(percent).divide(new BigDecimal(100), 2, RoundingMode.HALF_UP);
+                            //计算增量
+                            BigDecimal multiply = divide.multiply(new BigDecimal(bzCount)).setScale(0, RoundingMode.UP);
+                            model.setValue(kb, multiply.add(new BigDecimal(bzCount)), rowIndex);
+                        } else {
+                            bzCount = bzCount + percent;
+                            model.setValue(kb, bzCount, rowIndex);
+                        }
+                    } else {
+                        model.setValue(kb, bzCount, rowIndex);
+                    }
+
+                    //实时变色
+                    CellStyle cs = new CellStyle();
+                    ArrayList<CellStyle> csList = new ArrayList<>();
+                    if (bzCount > jzCount) {
+                        cs.setForeColor("#ff0000");
+
+                    } else {
+                        cs.setForeColor("#272727");
+                    }
+                    //列标识
+                    cs.setFieldKey(filed);
+                    //行索引
+                    cs.setRow(rowIndex);
+                    csList.add(cs);
+                    grid.setCellStyle(csList);
+                    break;
+            }
+        }
+
+    }
+
+
+    /**
+     * 保存后给页面字体渲染颜色
+     *
+     * @param eventArgs
+     */
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs eventArgs) {
+        super.afterDoOperation(eventArgs);
+        String operateKey = eventArgs.getOperateKey();
+        if ("save".equals(operateKey)) {
+            List<Object> successPkIds = eventArgs.getOperationResult().getSuccessPkIds();
+            if (!successPkIds.isEmpty()) {
+                IDataModel model = this.getModel();
+                //格式化日期
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                //月度计划
+                DynamicObject planmonth = (DynamicObject) model.getValue("${ISV_FLAG}_planmonth");
+                //开始日期
+                Date startmonth = planmonth.getDate("${ISV_FLAG}_startmonth");
+                //结束日期
+                Date endmonth = planmonth.getDate("${ISV_FLAG}_endmonth");
+                int startStr = Integer.parseInt(dateFormat.format(startmonth).split("-")[1]);
+                int endStr = Integer.parseInt(dateFormat.format(endmonth).split("-")[1]);
+                this.setStyle(startStr, endStr);
+            }
+        }
+    }
+
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        IDataModel model = this.getModel();
+        FormOperate operate = (FormOperate) args.getSource();
+        String operateKey = operate.getOperateKey();
+        EntryGrid dgdlKbEntry = this.getControl("${ISV_FLAG}_bz_entry");
+        int[] selectRows = dgdlKbEntry.getSelectRows();
+        //获取分录
+        if ("press".equals(operateKey)) {
+            BasedataEdit control = this.getView().getControl("${ISV_FLAG}_personplan");
+            control.click();
+        } else if ("newentry".equals(operateKey)) {
+            //控编分录增行
+            this.getView().invokeOperation("kbnewEntry");
+        } else if ("deleteentry".equals(operateKey)) {
+            model.deleteEntryRows("${ISV_FLAG}_kb_entry", selectRows);
+        } else if ("save".equals(operateKey)) {
+            //保存
+            checkSave();
+        }
+    }
+
+
+    @Override
+    public void afterBindData(EventObject e) {
+        logger.info("PlanmonthBillFormPlugin进入afterBindData");
+        super.afterBindData(e);
+        IDataModel model = this.getModel();
+        this.getView().setVisible(false, hideStr);
+        //格式化日期
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //月度计划
+        DynamicObject planmonth = (DynamicObject) model.getValue("${ISV_FLAG}_planmonth");
+        //开始日期
+        Date startmonth = planmonth.getDate("${ISV_FLAG}_startmonth");
+        //结束日期
+        Date endmonth = planmonth.getDate("${ISV_FLAG}_endmonth");
+        //所属年度
+        model.setValue("${ISV_FLAG}_year", planmonth.getDate("${ISV_FLAG}_year"));
+        int startStr = Integer.parseInt(dateFormat.format(startmonth).split("-")[1]);
+        int endStr = Integer.parseInt(dateFormat.format(endmonth).split("-")[1]);
+        String entry = "${ISV_FLAG}_entry";
+        String kb = "${ISV_FLAG}_kb";
+        for (int i = startStr; i <= endStr; i++) {
+            this.getView().setVisible(true, entry + i);
+            this.getView().setVisible(true, kb + i);
+        }
+
+        //渲染颜色
+        this.setStyle(startStr, endStr);
+        //分录弹性方式/人数显示隐藏
+        String dgdlWay = planmonth.getString("${ISV_FLAG}_way");
+        if (StringUtils.isNotEmpty(dgdlWay)) {
+            this.getView().setVisible(true, "${ISV_FLAG}_bz_way", "${ISV_FLAG}_bz_percent");
+            this.getView().setVisible(true, "${ISV_FLAG}_kb_way", "${ISV_FLAG}_kb_percent");
+        } else {
+            this.getView().setVisible(false, "${ISV_FLAG}_bz_way", "${ISV_FLAG}_bz_percent");
+            this.getView().setVisible(false, "${ISV_FLAG}_kb_way", "${ISV_FLAG}_kb_percent");
+        }
+
+        //行政组织列隐藏
+        List<String> list = new ArrayList<>();
+        list.add("${ISV_FLAG}_bz_adminorg1");
+        list.add("${ISV_FLAG}_bz_adminorg2");
+        list.add("${ISV_FLAG}_bz_adminorg3");
+        list.add("${ISV_FLAG}_bz_adminorg4");
+        list.add("${ISV_FLAG}_bz_adminorg5");
+        list.add("${ISV_FLAG}_bz_adminorg6");
+        list.add("${ISV_FLAG}_kb_adminorg1");
+        list.add("${ISV_FLAG}_kb_adminorg2");
+        list.add("${ISV_FLAG}_kb_adminorg3");
+        list.add("${ISV_FLAG}_kb_adminorg4");
+        list.add("${ISV_FLAG}_kb_adminorg5");
+        list.add("${ISV_FLAG}_kb_adminorg6");
+        List<String> showList = new ArrayList<>();
+        //组织层级
+        String hierarchy = planmonth.getString("${ISV_FLAG}_orghierarchy");
+        int intHierarchy = Integer.parseInt(hierarchy);
+        String bzOrg = "${ISV_FLAG}_bz_adminorg";
+        String kbOrg = "${ISV_FLAG}_kb_adminorg";
+        for (int i = 1; i <= intHierarchy; i++) {
+            showList.add(bzOrg + i);
+            showList.add(kbOrg + i);
+        }
+        list.removeAll(showList);
+        for (String str : list) {
+            this.getView().setVisible(false, str);
+        }
+
+        //业务单元
+        DynamicObject orgObj = planmonth.getDynamicObject("${ISV_FLAG}_org");
+        String sonNumber = orgObj.getString("number");
+        //加载编制页签
+        ListShowParameter bzLsp = new ListShowParameter();
+        bzLsp.setBillFormId("${ISV_FLAG}_planmonth_bz");
+        //打开的位置
+        bzLsp.getOpenStyle().setTargetKey("${ISV_FLAG}_tab_bz");
+        bzLsp.getOpenStyle().setShowType(ShowType.InContainer);
+        //计划
+        bzLsp.setCustomParam("planId", planmonth.getPkValue());
+        //层级
+        bzLsp.setCustomParam("${ISV_FLAG}_orghierarchy", hierarchy);
+        //用工关系类型
+        String labeldimension = planmonth.getString("${ISV_FLAG}_labeldimension");
+        bzLsp.setCustomParam("labeldimension", labeldimension);
+
+        Set<Long> adminList = getAdminByOrg(sonNumber, hierarchy);
+        adminList.add(100000L);
+        QFilter bzQFilter = new QFilter("${ISV_FLAG}_planmonth_bill.${ISV_FLAG}_planmonth.id", QCP.in, planmonth.getPkValue())
+                .and("${ISV_FLAG}_is_org", QCP.equals, "02");
+        //编制信息管理详情
+        DynamicObject[] bzObjs = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz", "id,${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6", bzQFilter.toArray());
+        //非当前BU下的行政组织
+        Set<Long> notThistOrgList = new HashSet<>();
+        String filed = "${ISV_FLAG}_bz_adminorg";
+        for (DynamicObject obj : bzObjs) {
+            for (int i = 1; i < 7; i++) {
+                DynamicObject orgAdmin = obj.getDynamicObject(filed + i);
+                if (Objects.nonNull(orgAdmin)) {
+                    DynamicObject parent = orgAdmin.getDynamicObject("parent");
+                    if (Objects.nonNull(parent)){
+                        notThistOrgList.add((Long) parent.getPkValue());
+                    }
+                    notThistOrgList.add((Long) orgAdmin.getPkValue());
+                }
+            }
+        }
+        logger.info("PlanmonthBillFormPlugin获取不属于当前组织BU的行政组织" + notThistOrgList);
+        if (!notThistOrgList.isEmpty()) {
+            //无效组织单独处理
+            if (notThistOrgList.contains(1774822336449484800L)) {
+                notThistOrgList.add(1774542341323883520L);
+            }
+            adminList.addAll(notThistOrgList);
+        }
+        //过滤左树
+        QFilter treeQfilte = new QFilter("adminorg.id", QCP.in, adminList);
+        bzLsp.setCustomParam(BIZ_QFILTER_KEY, treeQfilte.toSerializedString());
+        this.getView().showForm(bzLsp);
+        model.setDataChanged(false);
+    }
+
+    private void setStyle(int startStr, int endStr) {
+        IDataModel model = this.getModel();
+        //渲染颜色
+        DynamicObjectCollection bzCollection = model.getEntryEntity("${ISV_FLAG}_bz_entry");
+        EntryGrid grid = this.getView().getControl("${ISV_FLAG}_bz_entry");
+        //月度计划
+        DynamicObject planmonth = (DynamicObject) model.getValue("${ISV_FLAG}_planmonth");
+        //层级
+        String hierarchy = planmonth.getString("${ISV_FLAG}_orghierarchy");
+        int intHierarchy = Integer.parseInt(hierarchy);
+        ArrayList<CellStyle> csList = new ArrayList<>();
+        //基准数
+        String jz1 = "${ISV_FLAG}_jz";
+        //编制数
+        String bz1 = "${ISV_FLAG}_bz";
+        for (int i = 0; i < bzCollection.size(); i++) {
+            DynamicObject bzObj = bzCollection.get(i);
+            for (int j = startStr; j <= endStr; j++) {
+                //基准数
+                int jzCount = bzObj.getInt(jz1 + j);
+                //编制数
+                int bzCount = bzObj.getInt(bz1 + j);
+                CellStyle cs = new CellStyle();
+                if (jzCount < bzCount) {
+                    //字体颜色
+                    cs.setForeColor("#ff0000");
+                } else {
+                    //字体颜色
+                    cs.setForeColor("#272727");
+                }
+                //列标识
+                cs.setFieldKey(bz1 + j);
+                //行索引
+                cs.setRow(i);
+                csList.add(cs);
+            }
+        }
+        grid.setCellStyle(csList);
+    }
+
+    private void checkSave() {
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        DynamicObject dgdlPlanmonth = dataEntity.getDynamicObject("${ISV_FLAG}_planmonth");
+        List<String> dgdlLabeldimensions = Arrays.asList(dgdlPlanmonth.getString("${ISV_FLAG}_labeldimension").split(","));//标签维度
+        DynamicObjectCollection dgdlBzEntryColl = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_bz_entry");
+        //校验必填
+        for (int i = 0; i < dgdlBzEntryColl.size(); i++) {
+            int row = i + 1;
+            DynamicObject dgdlBzEntry = dgdlBzEntryColl.get(i);
+            if (dgdlLabeldimensions.contains("1") && StringUtils.isEmpty(dgdlBzEntry.getString("${ISV_FLAG}_bz_laborreltype"))) {
+                throw new KDBizException("编制数据第" + row + "行用工关系类型必填");
+            }
+            if (dgdlLabeldimensions.contains("2") && StringUtils.isEmpty(dgdlBzEntry.getString("${ISV_FLAG}_bz_jobproperty"))) {
+                throw new KDBizException("编制数据第" + row + "行岗位属性必填");
+            }
+            String dgdlBzControlediting = dgdlBzEntry.getString("${ISV_FLAG}_bz_controlediting");
+            if (dgdlBzControlediting.equals("3")) {
+                if (StringUtils.isEmpty(dgdlBzEntry.getString("${ISV_FLAG}_bz_way"))) {
+                    throw new KDBizException("编制数据第" + row + "行弹性方式必填");
+                }
+                if (dgdlBzEntry.getBigDecimal("${ISV_FLAG}_bz_percent").doubleValue() == 0D) {
+                    throw new KDBizException("编制数据第" + row + "行弹性额度必填");
+                }
+            }
+        }
+    }
+
+    /**
+     * 发送消息
+     *
+     * @param title    标题
+     * @param content  内容
+     * @param userList 用户列表
+     */
+    public static void sendMessage(String title, String content, List<Long> userList, String url) {
+        MessageInfo messageInfo = new MessageInfo();
+        messageInfo.setType(MessageInfo.TYPE_MESSAGE);
+        messageInfo.setTitle(title);
+        messageInfo.setTitle(content);
+        messageInfo.setUserIds(userList);
+        messageInfo.setContentUrl(url);
+        long l = MessageCenterServiceHelper.sendMessage(messageInfo);
+    }
+
+
+    private String getUrl(Long successId, String frombill) {
+        RequestContext ctx = RequestContext.get();
+        //拿到完整的客户端网址
+        this.clientPath = UrlService.getDomainContextUrlByTenantCode(ctx.getTenantCode());
+        StringBuilder contentUrl = new StringBuilder(clientPath);
+        //pc端跳转单据路径
+        contentUrl.append("?formId=").append(frombill).append("&app=${ISV_FLAG}_homs_ext").append("&pkId=").append(successId);
+        logger.info("PlanmonthBillFormPlugin:跳转地址为 " + contentUrl);
+        return contentUrl.toString();
+    }
+
+
+    private Set<Long> getAdminByOrg(String orgNumber, String hierarchy) {
+        Set<Long> adminList = new HashSet<>();
+        logger.info("PlanmonthBillFormPlugin所需生成的组织层级" + hierarchy + ",组织编码=" + orgNumber);
+        //转换层级
+        int intOrg = Integer.parseInt(hierarchy);
+        //控制层级
+        List<String> orghierarchyList = new ArrayList<>();
+        for (int i = 1; i <= intOrg + 1; i++) {
+            orghierarchyList.add("0" + i);
+        }
+        orghierarchyList.add("99");
+        //获取当前子集团下所选层级的行政组织
+        QFilter orgQFilter = new QFilter("datastatus", QCP.equals, "1")
+                .and("org.number", QCP.equals, orgNumber)
+                .and("enable", QCP.equals, "1")
+                .and("adminorglayer.number", QCP.in, orghierarchyList)
+                .and("iscurrentversion", QCP.equals, "1");
+        DynamicObject[] orgObjs = BusinessDataServiceHelper.load("haos_adminorg", "id", orgQFilter.toArray());
+        for (DynamicObject orgObj : orgObjs) {
+            adminList.add((Long) orgObj.getPkValue());
+        }
+        logger.info("PlanmonthBillFormPlugin行政组织数量=" + adminList);
+        return adminList;
+    }
+
+}

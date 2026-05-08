@@ -1,0 +1,34 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import ${ISV_FLAG}.odc.homs.validator.MonthBillCheckValidator;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+
+import java.util.Arrays;
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-03-29  15:02
+ * @Description: 月度编制信息管理保存校验
+ */
+public class MonthBillCheckOp extends AbstractOperationServicePlugIn {
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_planmonth_bill");
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_layer");
+        String[] fields={"adminorg","${ISV_FLAG}_bz_jobproperty","${ISV_FLAG}_bz_laborreltype","${ISV_FLAG}_bz_adminorg1","${ISV_FLAG}_bz_adminorg2","${ISV_FLAG}_bz_adminorg3","${ISV_FLAG}_bz_adminorg4","${ISV_FLAG}_bz_adminorg5","${ISV_FLAG}_bz_adminorg6","${ISV_FLAG}_bz_laborreltype","${ISV_FLAG}_bz_jobproperty","${ISV_FLAG}_jz1","${ISV_FLAG}_jz2","${ISV_FLAG}_jz3","${ISV_FLAG}_jz4","${ISV_FLAG}_jz5","${ISV_FLAG}_jz6","${ISV_FLAG}_jz7",
+                "${ISV_FLAG}_jz8","${ISV_FLAG}_jz9","${ISV_FLAG}_jz10","${ISV_FLAG}_jz11","${ISV_FLAG}_jz12","${ISV_FLAG}_bz1","${ISV_FLAG}_bz2","${ISV_FLAG}_bz3","${ISV_FLAG}_bz4","${ISV_FLAG}_bz5","${ISV_FLAG}_bz6","${ISV_FLAG}_bz7","${ISV_FLAG}_bz8","${ISV_FLAG}_bz9","${ISV_FLAG}_bz10","${ISV_FLAG}_bz11","${ISV_FLAG}_bz12"};
+        e.getFieldKeys().addAll(Arrays.asList(fields));
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        super.onAddValidators(e);
+        e.addValidator(new MonthBillCheckValidator());
+    }
+
+}

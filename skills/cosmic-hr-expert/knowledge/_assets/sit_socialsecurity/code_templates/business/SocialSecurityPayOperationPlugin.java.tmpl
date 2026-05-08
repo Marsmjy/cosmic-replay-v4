@@ -1,0 +1,156 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import ${ISV_FLAG}.swc.sit.other.hsbs_triggercolla.SinsurfileHelper;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Author: wanghansheng
+ * 社保公积金代缴申请单校验插件
+ */
+public class SocialSecurityPayOperationPlugin extends AbstractOperationServicePlugIn {
+    @Override
+    public void   onPreparePropertys(PreparePropertysEventArgs e) {
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_payment_insurance_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_endowment_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_medical_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_unemployment_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_industrial_injury_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_supply_medica_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_maternity_e");
+        e.getFieldKeys().add("entryentity.${ISV_FLAG}_housing_e");
+        e.getFieldKeys().add("${ISV_FLAG}_payment_service_type");
+        e.getFieldKeys().add("${ISV_FLAG}_person");
+        e.getFieldKeys().add("${ISV_FLAG}_effective_date");
+        e.getFieldKeys().add("${ISV_FLAG}_payment_insurance");
+        e.getFieldKeys().add("welfarepayertheory");
+        e.getFieldKeys().add("${ISV_FLAG}_description");
+        e.getFieldKeys().add("${ISV_FLAG}_paying_company");
+        e.getFieldKeys().add("${ISV_FLAG}_paying_company.placeofwelfare");
+        e.getFieldKeys().add("${ISV_FLAG}_insured_company");
+        e.getFieldKeys().add("${ISV_FLAG}_employee");
+        e.getFieldKeys().add("${ISV_FLAG}_radix_table");
+        e.getFieldKeys().add("${ISV_FLAG}_pay_file");
+
+        //基数调整单据体
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_endowment_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_medical_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_unemployment_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_injury_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_medica_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_housing_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_maternity_e1");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_insurance_e");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_insurance_e");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_effective_date");
+        e.getFieldKeys().add("${ISV_FLAG}_base_entryentity.${ISV_FLAG}_base_maternity_e1");
+
+        //停止代缴单据体
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_effective_date");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_insurance_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_endowment_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_medical_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_unemployment_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_injury_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_medica_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_maternity_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_housing_e");
+        e.getFieldKeys().add("${ISV_FLAG}_stop_entryentity.${ISV_FLAG}_stop_medica_e");
+    }
+
+    /**
+     * 构建好操作校验器之后，执行校验之前，触发此事件；
+     */
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        // 添加自定义的校验器
+        e.addValidator(new SocialSecurityPayValidator());
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        String operationKey = e.getOperationKey();
+        if ("audit".equals(operationKey) || "submiteffect".equals(operationKey))
+        {
+            HashMap<String, Long> insuranceProp = SinsurfileHelper.getInsuranceProp();
+            DynamicObject[] entities = e.getDataEntities();
+            List<String> numbers = new ArrayList<>();
+            Map<String, Map<Long,Long>> map = new HashMap<>();
+
+            for (DynamicObject entity : entities) {
+                DynamicObject serviceType = entity.getDynamicObject("${ISV_FLAG}_payment_service_type");       //代缴业务类型
+                String serviceTypeNumber = serviceType.getString("number");
+                //新增代缴处理
+                if("001".equals(serviceTypeNumber)){
+                    //若该员工在“代缴公司”已存在档案，那么调更新接口，把险种、基数、生效日期更新
+                    HashMap<Long,Long> ids = new HashMap(); //key 代缴公司id，value代缴档案id
+                    DynamicObject kdcdPerson = entity.getDynamicObject("${ISV_FLAG}_person");
+                    if (kdcdPerson != null){
+                        //工号
+                        String number = kdcdPerson.getString("employee.number");
+                        if (number != null && !"".equals(number)){
+                            numbers.add(number);
+                        }
+                    }
+                }
+            }
+            QFilter filter = new QFilter("employee.number",QCP.in,numbers);
+            filter.and(new QFilter("iscurrentversion",QCP.equals,"1"));
+            filter.and(new QFilter("enable",QCP.equals,"1"));
+//                            filter.and(new QFilter("isescrowstaff",QCP.equals,"1"));//代管员工
+            filter.and(new QFilter("status",QCP.not_equals,"E"));//数据状态为非已废弃
+            DynamicObject[] hcsiSinsurfiles = BusinessDataServiceHelper.load("hcsi_sinsurfile", "employee.number,id,welfarepayer,${ISV_FLAG}_company,${ISV_FLAG}_insured_company", filter.toArray());
+            if (hcsiSinsurfiles.length > 0){
+                for (DynamicObject dynamicObject : hcsiSinsurfiles) {
+                    String personNumber = dynamicObject.getString("employee.number");
+                    //key 代缴公司id，value代缴档案id
+                    map.computeIfAbsent(personNumber, k -> new HashMap<>()).put(dynamicObject.getLong("welfarepayer_id"),dynamicObject.getLong("id"));
+                }
+            }
+            for (DynamicObject entity : entities) {
+                DynamicObject serviceType = entity.getDynamicObject("${ISV_FLAG}_payment_service_type");       //代缴业务类型
+                String serviceTypeName = serviceType.getString("number");
+                //新增代缴处理
+                if("001".equals(serviceTypeName)){
+                    //若该员工在“代缴公司”已存在档案，那么调更新接口，把险种、基数、生效日期更新
+                    Map<Long,Long> ids = new HashMap();
+                    DynamicObject kdcdPerson = entity.getDynamicObject("${ISV_FLAG}_person");
+                    if (kdcdPerson != null){
+                        //工号
+                        String number = kdcdPerson.getString("employee.number");
+                        if (number != null && !"".equals(number)){
+                            if (!map.isEmpty() && map.containsKey(number)){
+                                ids = map.get(number);
+                            }
+                        }
+                    }
+
+                    //获取代缴单上代缴公司
+                    long companyId = entity.getLong("${ISV_FLAG}_paying_company.id");
+                    Set<Long> welfarepayerSet = ids.keySet();
+                    if(welfarepayerSet.contains(companyId)){
+                        new SinsurfileHelper().addSocialFileBase(ids.get(companyId),entity,insuranceProp);
+                        entity.set("${ISV_FLAG}_pay_file",ids.get(companyId));//代缴档案id
+                        continue;
+                    }
+                }
+
+                Long kdcdPayFile = new SinsurfileHelper().doSinsurAgnetPay(entity,insuranceProp);
+                entity.set("${ISV_FLAG}_pay_file",kdcdPayFile);//代缴档案id
+            }
+        }
+    }
+}

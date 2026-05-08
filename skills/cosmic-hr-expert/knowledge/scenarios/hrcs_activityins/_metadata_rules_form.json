@@ -1,0 +1,454 @@
+{
+  "formId": "hrcs_activityins",
+  "formName": "活动任务实例",
+  "sceneId": "hrcs_activityins",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": null,
+  "bizappId": "15NPDX/GJFOO",
+  "metaIdTechnical": "2+U7C=LT8+LM",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hrcs_activityins",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hrcs_activityins.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ hrcs 配置子表·走 config_subform 标杆)"
+  },
+  "entities": [
+    {
+      "name": "hrcs_activityins",
+      "type": "BaseEntity",
+      "title": "活动任务实例",
+      "physicalTable": "t_hrcs_activityins",
+      "fieldCount": 25
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "applier": {
+      "fieldId": "Z1znp9wAYG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrcs_activityins",
+      "title": "发起人",
+      "physicalColumn": "fapplierid",
+      "_fieldApId": "Z1znp9wAYG"
+    },
+    "bizbillid": {
+      "fieldId": "7viOd9oKw8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "主业务单据ID值",
+      "physicalColumn": "fbizbillid",
+      "_fieldApId": "7viOd9oKw8"
+    },
+    "biznum": {
+      "fieldId": "6EV8MPNNcV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "主业务单据编号",
+      "physicalColumn": "fbiznum",
+      "_fieldApId": "6EV8MPNNcV"
+    },
+    "bizkey": {
+      "fieldId": "qrfoMHowbi",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "主业务单据标识",
+      "physicalColumn": "fbizkey",
+      "_fieldApId": "qrfoMHowbi"
+    },
+    "actthemestr": {
+      "fieldId": "jCxcx5FRXG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务主题",
+      "physicalColumn": "factthemestr",
+      "_fieldApId": "jCxcx5FRXG"
+    },
+    "taskstatus": {
+      "fieldId": "L1PJ5HDSo2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务状态",
+      "physicalColumn": "ftaskstatus",
+      "_fieldApId": "L1PJ5HDSo2"
+    },
+    "createtime": {
+      "fieldId": "t5HRdmbsJo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "创建时间",
+      "physicalColumn": "fcreatetime",
+      "_fieldApId": "t5HRdmbsJo"
+    },
+    "activity": {
+      "fieldId": "ZI3Ox0vm1p",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_activity",
+      "entity": "hrcs_activityins",
+      "title": "活动",
+      "physicalColumn": "factivityid",
+      "_fieldApId": "ZI3Ox0vm1p"
+    },
+    "handletime": {
+      "fieldId": "Ce4oOEEcPk",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "实际处理时间",
+      "physicalColumn": "fhandletime",
+      "_fieldApId": "Ce4oOEEcPk"
+    },
+    "handlers": {
+      "fieldId": "D2QaXq7G1l",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "处理人",
+      "physicalColumn": "t_hrcs_actinshandler（子表）",
+      "_fieldApId": "D2QaXq7G1l"
+    },
+    "actscheme": {
+      "fieldId": "BRlwoShObI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_activityscheme",
+      "entity": "hrcs_activityins",
+      "title": "活动方案",
+      "physicalColumn": "factschemeid",
+      "_fieldApId": "BRlwoShObI"
+    },
+    "schemeversion": {
+      "fieldId": "FSbQq1rxnZ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "活动方案版本",
+      "physicalColumn": "fschemeversion",
+      "_fieldApId": "FSbQq1rxnZ"
+    },
+    "wfcurtaskid": {
+      "fieldId": "RdyNuFlFHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "工作流当前任务ID",
+      "physicalColumn": "fwfcurtaskid",
+      "_fieldApId": "RdyNuFlFHX"
+    },
+    "wfprocessinsid": {
+      "fieldId": "UEmqWitcEG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "工作流实例ID",
+      "physicalColumn": "fwfprocessinsid",
+      "_fieldApId": "UEmqWitcEG"
+    },
+    "wfprocessdefinitionid": {
+      "fieldId": "3LkENIRnwh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "工作流流程定义ID",
+      "physicalColumn": "fwfprocessdefinitionid",
+      "_fieldApId": "3LkENIRnwh"
+    },
+    "schemenumber": {
+      "fieldId": "TA9GYMPpoH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "活动方案编码",
+      "physicalColumn": "fshcemenumber",
+      "_fieldApId": "TA9GYMPpoH"
+    },
+    "bindbizbillid": {
+      "fieldId": "P6TK2fCsyr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务关联的单据ID",
+      "physicalColumn": "fbindbizbillid",
+      "_fieldApId": "P6TK2fCsyr"
+    },
+    "bindbiznum": {
+      "fieldId": "2g2O0zSyKB",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务关联的单据编号",
+      "physicalColumn": "fbindbiznum",
+      "_fieldApId": "2g2O0zSyKB"
+    },
+    "bindbizkey": {
+      "fieldId": "yDlCyUkz8l",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务关联的单据标识",
+      "physicalColumn": "fbindbizkey",
+      "_fieldApId": "yDlCyUkz8l"
+    },
+    "bindinglayoutid": {
+      "fieldId": "HZ2j9GOPxu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "绑定页面",
+      "physicalColumn": "fbindinglayoutid",
+      "_fieldApId": "HZ2j9GOPxu"
+    },
+    "wfnode": {
+      "fieldId": "SjoZDmz5iC",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "工作流节点",
+      "physicalColumn": "fwfnodeid",
+      "_fieldApId": "SjoZDmz5iC"
+    },
+    "isabandon": {
+      "fieldId": "6ebm9pqksx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "是否废弃",
+      "physicalColumn": "fisabandon",
+      "_fieldApId": "6ebm9pqksx"
+    },
+    "globaltaskid": {
+      "fieldId": "YgYUkBU9rlpdGwRiB7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "(工作流)统一任务中心的任务id",
+      "physicalColumn": "fglobaltaskid",
+      "_fieldApId": "YgYUkBU9rlpdGwRiB7"
+    },
+    "ssctaskid": {
+      "fieldId": "8IvZFhEhOOQhZZkQUN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "(共享)共享任务中心的任务id",
+      "physicalColumn": "fssctaskid",
+      "_fieldApId": "8IvZFhEhOOQhZZkQUN"
+    },
+    "taskswitch": {
+      "fieldId": "zAbbzStYR3sou64pcz",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_activityins",
+      "title": "任务处理设置",
+      "physicalColumn": "ftaskswitch",
+      "_fieldApId": "zAbbzStYR3sou64pcz"
+    }
+  },
+  "requiredFields": {
+    "hrcs_activityins": [
+      "applier",
+      "bizbillid",
+      "biznum",
+      "bizkey",
+      "activity",
+      "actscheme"
+    ]
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-04-29 11:35",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId"
+        ],
+        "fieldId_filled": 25,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 25,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 3
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 25,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 3
+      }
+    }
+  ],
+  "sceneCategory": "config_subform",
+  "jsPlugins": [
+    {
+      "ClassName": "2+U7C=LT8+LM_SwratJlZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+U7C=LT8+LM_list_X0EOwL0b",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.activity.ActivityInstancePlugin",
+      "Description": "活动任务实例插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

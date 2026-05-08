@@ -1,0 +1,49 @@
+package ${ISV_FLAG}.swc.hsas.plugin.form.hsas_approvebill.pc;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.MulBasedataDynamicObjectCollection;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.util.ArrayList;
+import java.util.EventObject;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Date: 2024-1-24 13:57
+ * FileName:
+ * Description: 薪资审批单，单据名称更换为核算任务名称
+ */
+public class PayrollApprovalEditPlugin extends AbstractBillPlugIn {
+    @Override
+    public void afterBindData(EventObject e) {
+        MulBasedataDynamicObjectCollection caltasks = (MulBasedataDynamicObjectCollection) this.getModel().getValue("caltasks");
+
+        DynamicObjectCollection taskCollections = null;
+        //获取核算任务的id,查询出核算任务的名称
+        if (caltasks != null){
+            ArrayList taskIds = new ArrayList<>();
+
+            for (int i = 0,size = caltasks.size(); i < size; i++) {
+                //获取核算任务的id,查询出核算任务的名称
+                taskIds.add(caltasks.get(i).get(2));
+            }
+
+            QFilter filter = new QFilter("id", QCP.in,taskIds );
+            taskCollections = QueryServiceHelper.query("hsas_calpayrolltask", "id,name", filter.toArray());
+        }
+
+        //查询出核算任务名称后，用"——"进行连接，然后给summaryname（薪资审批单单据名称）赋值
+        ArrayList<String> nameList = new ArrayList<>();
+        if (taskCollections != null){
+            for (DynamicObject taskCollection : taskCollections) {
+                nameList.add(taskCollection.getString("name"));
+            }
+            this.getModel().setValue("summaryname",nameList.stream().collect(Collectors.joining("——")));
+        }
+    }
+}

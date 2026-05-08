@@ -1,0 +1,39 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.template;
+
+import kd.bos.dlock.DLock;
+import kd.bos.exception.KDBizException;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/8 10:32
+ * FileName: OperateDistributeCacheUtil
+ * Description: 操作分布式缓存的工具类
+ */
+public class OperateDistributeCacheUtil {
+
+    public static <T> void operateCacheTryLock(InvokeFunction<T,Boolean> function, String key, long waitTime){
+        try(DLock lock = DLock.createReentrant(key, "操作分布式缓存的可重入锁").stableMode()) {
+            // 尝试加锁，设置等待时间为1min
+            if (lock.tryLock(waitTime)) {
+                try {
+                    function.invoke();
+                } finally {
+                    // 解锁
+                    lock.unlock();
+                }
+            }else {
+                // 抢锁失败，进行友情提示
+                throw new KDBizException("别的用户正在操作，请稍后重试！！！");
+            }
+        }catch (KDBizException kdBizException){
+            throw new KDBizException(kdBizException.getMessage());
+        }catch (Exception exception){
+            throw new KDBizException(String.format("操作分布式缓存的可重入锁创建失败：%S",exception.getMessage()));
+        }
+    }
+
+    @FunctionalInterface
+    public interface InvokeFunction<T,R>{
+        R invoke();
+    }
+}

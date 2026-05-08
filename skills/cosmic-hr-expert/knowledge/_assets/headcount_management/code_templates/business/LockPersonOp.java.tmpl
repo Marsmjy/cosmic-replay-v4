@@ -1,0 +1,134 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.coderule.CodeRuleServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import org.agrona.Strings;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-01-29  15:02
+ * @Description: 二级组织锁定所有下级组织操作
+ */
+public class LockPersonOp extends AbstractOperationServicePlugIn {
+
+
+    private static Log logger = LogFactory.getLog(LockPersonOp.class);
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_planyear");
+        e.getFieldKeys().add("billno");
+        e.getFieldKeys().add("billstatus");
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        String operationKey = e.getOperationKey();
+        logger.info("LockPersonOp执行操作标识=" + operationKey);
+        DynamicObject[] dataEntities = e.getDataEntities();
+
+        QFilter qf = new QFilter("${ISV_FLAG}_planyear.number", QCP.in, Arrays.stream(dataEntities).map(d -> d.getDynamicObject("${ISV_FLAG}_planyear").getString("number")).collect(Collectors.toList()))
+                .and(new QFilter("${ISV_FLAG}_adminorg2.number", QCP.in, Arrays.stream(dataEntities).map(d -> d.getDynamicObject("adminorg").getString("number")).collect(Collectors.toList())));
+        Map<String, List<DynamicObject>> groupMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail",
+                "id,billstatus,adminorg,billno,${ISV_FLAG}_chg1,${ISV_FLAG}_chg2,${ISV_FLAG}_chg3,${ISV_FLAG}_chg4,${ISV_FLAG}_chg5,${ISV_FLAG}_chg6,${ISV_FLAG}_chg7,${ISV_FLAG}_chg8,${ISV_FLAG}_chg9,${ISV_FLAG}_chg10,${ISV_FLAG}_chg11,${ISV_FLAG}_chg12,${ISV_FLAG}_add,${ISV_FLAG}_reduce,${ISV_FLAG}_planyear.number,${ISV_FLAG}_adminorg2.number",
+                qf.toArray())).collect(Collectors.groupingBy(o -> o.getString("${ISV_FLAG}_planyear.number") + o.getString("${ISV_FLAG}_adminorg2.number")));
+
+
+        ArrayList<DynamicObject> resultList = new ArrayList<>();
+        ArrayList<DynamicObject> updateList = new ArrayList<>();
+        for (DynamicObject dataEntry : dataEntities) {
+            //末级组织
+            DynamicObject lastOrg = dataEntry.getDynamicObject("adminorg");
+            //编制计划
+            DynamicObject planYear = dataEntry.getDynamicObject("${ISV_FLAG}_planyear");
+
+            List<DynamicObject> detailObjs = groupMap.get(planYear.getString("number") + lastOrg.getString("number"));
+            detailObjs = detailObjs.stream().filter(o -> !StringUtils.equals(o.getString("adminorg.number"), lastOrg.getString("number"))).collect(Collectors.toList());
+
+            logger.info("LockPersonOp下级数量=" + detailObjs.size());
+            if (detailObjs.size() > 0) {
+                for (DynamicObject dataObj : detailObjs) {
+                    if ("lock".equals(operationKey)) {
+                        //编制状态
+                        String billstatus = dataObj.getString("billstatus");
+                        if (!"I".equals(billstatus)) {
+                            throw new KDBizException("存在未确认下级,无法锁定");
+                        }
+                        //已锁定
+                        dataObj.set("billstatus", "H");
+                    } else if ("cancellock".equals(operationKey)) {
+                        //取消锁定
+                        dataObj.set("billstatus", "I");
+                    } else if ("submit".equals(operationKey)) {
+                        dataObj.set("billstatus", "B");
+                    } else if ("submiteffect".equals(operationKey)) {
+                        dataObj.set("billstatus", "C");
+                    } else if ("unsubmit".equals(operationKey)){
+                        dataObj.set("billstatus", "H");
+                    } else if ("wfauditing".equals(operationKey)){
+                        dataObj.set("billstatus", "D");
+                    } else if ("audit".equals(operationKey)){
+                        dataObj.set("billstatus", "C");
+                    }
+                }
+
+                updateList.addAll(detailObjs);
+//                SaveServiceHelper.update(detailObjs.toArray(new DynamicObject[]{}));
+//                //执行保存操作
+//                OperateOption option = OperateOption.create();
+//                OperationResult endResult = OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_planyear_detail", detailObjs, option);
+//                logger.info("LockPersonOp锁定所有下级组织操作=" + endResult);
+            }
+
+            if ("lock".equals(operationKey)) {
+                dataEntry.set("billstatus", "H");
+            } else if ("cancellock".equals(operationKey)) {
+                dataEntry.set("billstatus", "I");
+            } else if ("submit".equals(operationKey)) {
+                //单据编码
+                String billno = dataEntry.getString("billno");
+                if (Strings.isEmpty(billno)){
+                    String dgdlPlanyearDetail = CodeRuleServiceHelper.getNumber("${ISV_FLAG}_planyear_detail", dataEntry, null);
+                    dataEntry.set("billno", dgdlPlanyearDetail);
+                }
+                dataEntry.set("billstatus", "B");
+            } else if ("submiteffect".equals(operationKey)) {
+                dataEntry.set("billstatus", "C");
+            } else if ("unsubmit".equals(operationKey)) {
+                dataEntry.set("billstatus", "H");
+            }
+
+            resultList.add(dataEntry);
+        }
+
+        if (!updateList.isEmpty()) {
+            SaveServiceHelper.update(updateList.toArray(new DynamicObject[]{}));
+        }
+
+        if (!resultList.isEmpty()) {
+            OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_planyear_detail", resultList.toArray(new DynamicObject[0]), OperateOption.create());
+        }
+
+    }
+}

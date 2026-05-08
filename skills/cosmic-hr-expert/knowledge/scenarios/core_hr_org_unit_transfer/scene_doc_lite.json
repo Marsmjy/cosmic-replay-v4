@@ -1,0 +1,44 @@
+{
+  "scene": "core_hr_org_unit_transfer",
+  "tier": 2,
+  "modelType": "ScheduleTaskAsset",
+  "cloud": "core_hr",
+  "app": "hdm",
+  "name": "成建制划转",
+  "scene_type": "business_flow_aggregate",
+  "available_cs": ["CS-01", "CS-02", "CS-03", "CS-04", "CS-05", "CS-06"],
+  "asset_ref": "_assets/org_unit_transfer",
+  "primary_form": "${ISV_FLAG}_orguntitransfer",
+  "consumed_forms": [
+    "homs_orgchgrecord",
+    "hbpm_chgrecordevt",
+    "hbpm_chgrecorddetail",
+    "haos_adminorgdetail",
+    "hbpm_positionhr",
+    "haos_changescene",
+    "hrpi_empposorgrel",
+    "hrpi_assignment",
+    "hrpi_empentrel",
+    "hdm_transferbatch",
+    "hdm_transferbatchentry"
+  ],
+  "intents": [
+    "成建制划转",
+    "批量调动",
+    "组织上级调整批量改任职",
+    "组织更名同步任职经历",
+    "岗位更名同步任职经历"
+  ],
+  "key_classes": [
+    "AbstractCommonTask",
+    "OrgParentChgTask",
+    "OrgRenameChgTask",
+    "PostRenameChgTask",
+    "OrgTransferHelper"
+  ],
+  "loc_total": 1354,
+  "antipatterns_avoid": [
+    "AP-01x: ISV 不应私改 hrpi 底表",
+    "AP-02x: ISV 不应自发 MQ 跨云事件"
+  ]
+}

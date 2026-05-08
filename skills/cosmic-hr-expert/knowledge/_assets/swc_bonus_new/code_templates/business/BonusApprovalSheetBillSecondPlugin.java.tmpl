@@ -1,0 +1,970 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.bill.BillOperationStatus;
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.AfterDeleteRowEventArgs;
+import kd.bos.entity.datamodel.events.ChangeData;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.operate.Save;
+import kd.bos.entity.operate.Submit;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.ComboEdit;
+import kd.bos.form.field.ComboItem;
+import kd.bos.form.field.FieldEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.list.ListShowParameter;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.TimeServiceHelper;
+import kd.hr.hbp.common.constants.org.TreeTemplateConstants;
+import kd.hr.hbp.common.util.HRStringUtils;
+import kd.sdk.hr.haos.business.helper.HAOSServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ *
+ * 奖金核定单据插件，${ISV_FLAG}_bonus_approval_2nd
+ *
+ */
+public class BonusApprovalSheetBillSecondPlugin extends AbstractBillPlugIn implements BeforeF7SelectListener {
+
+    // 查询奖金计划的属性标识列表
+    private static List<String> getqueryPlanFieldKeyList() {
+        return Stream.of(
+                "id", // id
+                "billno", // 计划编号
+                "${ISV_FLAG}_plan_name", // 计划名称
+                "${ISV_FLAG}_bonus_types", // 奖金分类
+                "${ISV_FLAG}_bonus_items", // 奖金项目
+                "${ISV_FLAG}_effective_date", // 生效日期
+                "${ISV_FLAG}_expiring_date", // 失效日期
+                "${ISV_FLAG}_plan_money", // 计划总额
+                "${ISV_FLAG}_scope_org", // 适用范围
+                "${ISV_FLAG}_personal_rewards", // 个性化奖金
+                "${ISV_FLAG}_notes", // 计划说明
+                "${ISV_FLAG}_dept_person", // 创建人标识
+                "${ISV_FLAG}_attribut_company", // 创建人所在公司
+                "${ISV_FLAG}_attribut_dept", // 创建人所在部门
+                "${ISV_FLAG}_attribut_post" // 创建人所在岗位
+        ).collect(Collectors.toList());
+    }
+
+    // 查询奖金计划的属性标识字符串，以逗号分割
+    private static final String queryPlanFieldKeyString = String.join(",",getqueryPlanFieldKeyList());
+
+
+    /**
+     * 金额计算工具bean
+     * 记录分录标识、分录金额标识、汇总目标标识
+     */
+    public static class EntriesAmountSumRelation{
+        // 分录标识
+        private String entriesKey;
+        // 分录金额标识
+        private String entriesItemKey;
+        // 汇总金额标识
+        private String sumTargetKey;
+        // 承担组织标识
+        private String underTakeOrgKey;
+
+        private EntriesAmountSumRelation(String entriesKey, String entriesItemKey, String sumTargetKey,String underTakeOrgKey){
+            this.entriesKey = entriesKey;
+            this.entriesItemKey = entriesItemKey;
+            this.sumTargetKey = sumTargetKey;
+            this.underTakeOrgKey = underTakeOrgKey;
+        }
+
+        public String getEntriesKey() {
+            return entriesKey;
+        }
+
+        public void setEntriesKey(String entriesKey) {
+            this.entriesKey = entriesKey;
+        }
+
+        public String getEntriesItemKey() {
+            return entriesItemKey;
+        }
+
+        public void setEntriesItemKey(String entriesItemKey) {
+            this.entriesItemKey = entriesItemKey;
+        }
+
+        public String getSumTargetKey() {
+            return sumTargetKey;
+        }
+
+        public void setSumTargetKey(String sumTargetKey) {
+            this.sumTargetKey = sumTargetKey;
+        }
+
+        public String getUnderTakeOrgKey() {
+            return underTakeOrgKey;
+        }
+
+        public void setUnderTakeOrgKey(String underTakeOrgKey) {
+            this.underTakeOrgKey = underTakeOrgKey;
+        }
+    }
+
+    // 多组 分录标识、分录金额标识、汇总目标标识
+    public static List<EntriesAmountSumRelation> getEntriesAmountSumRelations() {
+        return Stream.of(
+                new EntriesAmountSumRelation("${ISV_FLAG}_award_sure_org", "${ISV_FLAG}_check_amount", "${ISV_FLAG}_currtotal_org", "${ISV_FLAG}_undertake_org"), // 0-组织核定
+                new EntriesAmountSumRelation("${ISV_FLAG}_award_sure_staff", "${ISV_FLAG}_check_amount2", "${ISV_FLAG}_currtotal_staff", "${ISV_FLAG}_undertake_org2"), // 1-人员核定
+                new EntriesAmountSumRelation("${ISV_FLAG}_award_keep_org", "${ISV_FLAG}_check_amount3", "${ISV_FLAG}_keeptotal_org", "${ISV_FLAG}_undertake_org3"), // 2-留存部门经费
+                new EntriesAmountSumRelation("${ISV_FLAG}_award_keep_pool", "${ISV_FLAG}_check_amount4", "${ISV_FLAG}_keeptotal_pool", "${ISV_FLAG}_undertake_org4") // 3-留存奖金池
+        ).collect(Collectors.toList());
+    }
+
+
+    // 表单项标识 指定承担组织
+    private static final String ${ISV_FLAG}_COST_DUTY_ORG_KEY = "${ISV_FLAG}_cost_duty_org";
+
+    @Override
+    public void registerListener(EventObject e) {
+
+        // 事件注册-人员核定明细分录-选择员工姓名
+        BasedataEdit aCompanyBase = this.getView().getControl("${ISV_FLAG}_employee_name");
+        aCompanyBase.addBeforeF7SelectListener(this);
+        // 事件注册-留存部门经费分录-选择行政组织
+        BasedataEdit xzOrg = this.getView().getControl("${ISV_FLAG}_admin_org_keep");
+        xzOrg.addBeforeF7SelectListener(this);
+        // 事件注册-留存奖金池-选择行政组织
+        BasedataEdit xzOrgPool = this.getView().getControl("${ISV_FLAG}_admin_org11");
+        xzOrgPool.addBeforeF7SelectListener(this);
+        // 创建人信息过滤
+        BasedataEdit deptPerson = this.getView().getControl("${ISV_FLAG}_dept_person");
+        deptPerson.addBeforeF7SelectListener(this);
+        // 事件注册-指定承担组织
+        BasedataEdit zdOrgPool = this.getView().getControl("${ISV_FLAG}_cost_duty_org");
+        zdOrgPool.addBeforeF7SelectListener(this);
+        // 事件注册-组织核定明细分录-选择行政组织
+        BasedataEdit zzhdOrg = this.getView().getControl("${ISV_FLAG}_admin_org");
+        zzhdOrg.addBeforeF7SelectListener(this);
+        // 事件注册-单据所属组织
+        BasedataEdit belongToOrg = this.getView().getControl("${ISV_FLAG}_belong_to_org");
+        belongToOrg.addBeforeF7SelectListener(this);
+    }
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent beforeF7SelectEvent) {
+        String name = beforeF7SelectEvent.getProperty().getName();
+        ListShowParameter showParameter = (ListShowParameter) beforeF7SelectEvent.getFormShowParameter();
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+
+        ArrayList<Long> orgIdList = new ArrayList<>();
+        switch (name){
+            case "${ISV_FLAG}_employee_name":
+                // 允许查询离职员工
+                showParameter.setCustomParam("isAllowInfoClassifyEdit",Boolean.TRUE);
+                break;
+            case "${ISV_FLAG}_admin_org_keep":
+//                QFilter orgtypeFilter = new QFilter("orgtype.number",QCP.in, Arrays.asList("1040_S","1041_S","1080_S"));
+//                showParameter.getListFilterParameter().getQFilters().add(orgtypeFilter);
+//                // F7基础资料-组织树过滤
+//                this.filterOrgTreeByF7Limit(showParameter,orgtypeFilter);
+                break;
+            case "${ISV_FLAG}_admin_org":
+            case "${ISV_FLAG}_admin_org11":
+                // 设置列表过滤条件
+                // 留存部门经费
+                // 留存奖金池
+                // 组织核定明细
+                // 不显示行政组织类型为“1043_S 业务组\1050_S 工厂\1070_S 车间/工段”的组织
+                // 增量 1010_S 1015_S
+//                QFilter orgFilter20 = new QFilter("orgtype.number",QCP.not_in, Arrays.asList("1043_S","1050_S","1070_S"
+//                        ,"1010_S","1015_S"));
+//                showParameter.getListFilterParameter().getQFilters().add(orgFilter20);
+//                // F7基础资料-组织树过滤
+//                this.filterOrgTreeByF7Limit(showParameter,orgFilter20);
+                break;
+            case "${ISV_FLAG}_cost_duty_org":
+                // 指定承担组织
+                // 显示行政组织类型为“子公司\”的行政组织+“10017990 股份总部”
+//                QFilter orgFilter3 = new QFilter("orgtype.number",QCP.equals, "1028_S");
+//                orgFilter3.or("number",QCP.in,Arrays.asList("10017990","YX.10.30","10000050","10000268","10012991"));
+//                showParameter.getListFilterParameter().getQFilters().add(orgFilter3);
+//                // F7基础资料-组织树过滤
+//                this.filterOrgTreeByF7Limit(showParameter,orgFilter3);
+                break;
+            case "${ISV_FLAG}_dept_person":
+                QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+                DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+                // 组织人过滤
+                QFilter personOrgFilter = new QFilter("employee.empnumber",QCP.equals, currentPerson.getString("number"));
+                personOrgFilter.and("isdeleted",QCP.equals,"0");
+                showParameter.getListFilterParameter().getQFilters().add(personOrgFilter);
+                break;
+            case "${ISV_FLAG}_belong_to_org":
+                // 所属组织”、“发起组织”选择弹窗需要做过滤，仅保留行政“组织类型归属”为“公司”
+//                QFilter orgFilter30 = new QFilter("${ISV_FLAG}_administrative_org.number",QCP.in
+//                        , Arrays.asList("1020_S"));
+//                showParameter.getListFilterParameter().getQFilters().add(orgFilter30);
+//                // F7基础资料-组织树过滤
+//                this.filterOrgTreeByF7Limit(showParameter,orgFilter30);
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        // 默认设置创建人信息
+        this.setCreatorDefault();
+        // 流程单号/发文文号/制度文件编号设置
+        this.bpsmChange();
+
+        // 生成审批单按钮隐藏
+        String checkSummary = this.getModel().getDataEntity().getString("${ISV_FLAG}_check_summary");
+        if (!StringUtils.isEmpty(checkSummary)){
+            Long planSummaryId = Long.valueOf(checkSummary);
+            DynamicObject bonusCheckApproval = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_approval_flow", new QFilter[]{new QFilter("id",QCP.equals,planSummaryId)});
+            if (bonusCheckApproval != null){
+                this.getView().setVisible(false,"${ISV_FLAG}_donothing_push_check");
+            }
+        }
+    }
+
+    /**
+     * 当单据已经保存，并以查看或修改模式打开时触发。此时，单据数据会从数据库加载
+     * @param e
+     */
+    @Override
+    public void afterLoadData(EventObject e) {
+        super.afterLoadData(e);
+        // 设置奖金关联计划单号下拉框候选列表数据
+        this.setSelectListPlanChoose();
+        // 携带数据初始化-奖金计划部分
+        this.initFormFromPlan();
+        // 值改变事件-单选成本承担方式
+        this.valueChangeActionCostDuty(false);
+        this.getModel().setDataChanged(false);
+    }
+
+    /**
+     * 当单据是全新创建时触发
+     * @param e
+     */
+    @Override
+    public void afterCreateNewData(EventObject e) {
+        // 默认设置创建人信息
+        this.setCreatorDefault();
+        // 设置奖金关联计划单号下拉框候选列表数据
+        this.setSelectListPlanChoose();
+        // 携带数据初始化-奖金计划部分
+        this.initFormFromPlan();
+        // 值改变事件-单选成本承担方式
+        this.valueChangeActionCostDuty(true);
+        // 默认设置核定基本信息-单据所属组织
+        this.setBelongToOrgDefault();
+    }
+
+    /**
+     * 值改变事件
+     * @param e
+     */
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        String name = e.getProperty().getName();
+        ChangeData changeData = e.getChangeSet()[0];
+        switch(name){
+            case "${ISV_FLAG}_plan_bill_id":
+                // 使用范围类型的改变
+                //1.奖金计划id
+                long bonusPlanId =  Long.parseLong((String)changeData.getNewValue());
+                DynamicObject bonusPlan = queryBonusPlanById(bonusPlanId);
+                //2.设置表单其他信息
+                this.setBonusPlanChangeFormItemValue(bonusPlan);
+                break;
+            case "${ISV_FLAG}_cost_duty":
+                // 值改变事件-单选成本承担方式
+                this.valueChangeActionCostDuty(true);
+                break;
+            case "${ISV_FLAG}_admin_org":
+                // 组织核定明细-行政组织发生变化
+                this.adminOrgChange(changeData);
+                break;
+            case "${ISV_FLAG}_employee_name":
+                // 人员核定明细-新选择了员工
+                this.employeeChange(changeData);
+                break;
+            case "${ISV_FLAG}_admin_org_keep":
+                // 留存部门经费-新选择了行政组织
+                this.adminOrgKeepChange(changeData);
+                break;
+            case "${ISV_FLAG}_admin_org11":
+                // 留存奖金池-新选择了行政组织
+                this.keepPoolChange(changeData);
+                break;
+            case "${ISV_FLAG}_subordinate":
+                // 若自己选择组织分配人，则将分配人转换成用户赋值到用户字段
+                this.subordinateChange(changeData);
+                break;
+            case "${ISV_FLAG}_dept_person":
+                this.valueChangeCreateStaffSelect();
+                break;
+            case "${ISV_FLAG}_bpsm":
+                // 流程单号/发文文号/制度文件编号设置
+                this.bpsmChange();
+                break;
+            case "${ISV_FLAG}_approval_total":
+                // 核定总额改变
+                this.operationAmount();
+                break;
+            default:
+
+                break;
+        }
+        //计算核算金额
+        if(getEntriesAmountSumRelations().stream().filter(item ->item.getEntriesItemKey().contains(name)).count() > 0l){
+            operationAmount();
+        }
+        // 指定承担组织  或 单据所属组织 值改变事件监听
+        // 分录成本承担组织赋值监听值改变事件key
+        // 成本承担方式枚举、指定承担组织、单据所属组织、组织核定明细-行政组织发生变化、人员核定明细-新选择了员工、留存部门经费-新选择了行政组织、留存奖金池-新选择了行政组织
+        Set<String> entriesAmountUndertakeKeys = Stream.of("${ISV_FLAG}_cost_duty"
+                ,"${ISV_FLAG}_cost_duty_org"
+                ,"${ISV_FLAG}_belong_to_org"
+                ,"${ISV_FLAG}_admin_org"
+                ,"${ISV_FLAG}_employee_name"
+                ,"${ISV_FLAG}_admin_org_keep"
+                ,"${ISV_FLAG}_admin_org11"
+        ).collect(Collectors.toSet());
+        if(entriesAmountUndertakeKeys.contains(name)){
+            // 设置分录中的奖金成本-承担组织
+            int rowIndex = changeData.getRowIndex();
+            String entryKey = null;
+            List<EntriesAmountSumRelation> entriesAmountSumRelationList = getEntriesAmountSumRelations();
+            if("${ISV_FLAG}_admin_org".equals(name)){
+                // 组织核定-行政组织
+                entryKey = entriesAmountSumRelationList.get(0).getEntriesKey();
+            } else if("${ISV_FLAG}_employee_name".equals(name)){
+                // 人员核定-员工
+                entryKey = entriesAmountSumRelationList.get(1).getEntriesKey();
+            } else if("${ISV_FLAG}_admin_org_keep".equals(name)){
+                // 留存部门-行政组织
+                entryKey = entriesAmountSumRelationList.get(2).getEntriesKey();
+            } else if("${ISV_FLAG}_admin_org11".equals(name)){
+                // 留存奖金池-行政组织
+                entryKey = entriesAmountSumRelationList.get(3).getEntriesKey();
+            }
+            this.setEntriesAmountUndertakeOrg(entryKey,rowIndex);
+        }
+    }
+
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        Object source = args.getSource();
+        FormOperate operate = (FormOperate) args.getSource();
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+//        switch (operate.getOperateKey()) {
+//            // 提交并生效
+//            case "submiteffect":
+//                // 提交校验
+////                this.submitCheck(dataEntity);
+//                break;
+//            default:
+//                break;
+//        }
+        if (source instanceof Submit) {
+            // 提交校验
+//            this.submitCheck(dataEntity);
+        }
+    }
+
+
+
+
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs afterDoOperationEventArgs) {
+        Object source = afterDoOperationEventArgs.getSource();
+        if (source instanceof Save){
+
+        }
+
+        if (source instanceof Submit){
+            BillShowParameter billShowParameter= (BillShowParameter)  this.getView().getFormShowParameter();
+            billShowParameter.setBillStatus(BillOperationStatus.SUBMIT);
+            this.getView().setStatus(OperationStatus.EDIT);
+
+        }
+
+        String operateKey = afterDoOperationEventArgs.getOperateKey();
+        if("donothing_push_check".equals(operateKey)){
+            OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+            if(operationResult.isSuccess()){
+                Long sumApprovalId = null;
+                List<Object> successPkIds = afterDoOperationEventArgs.getOperationResult().getSuccessPkIds();
+                if(!CollectionUtils.isEmpty(successPkIds)){
+                    Object successPkId = successPkIds.get(0);
+                    DynamicObject oneOfSuccessDate = QueryServiceHelper.queryOne(BonusUtil.AP_CHECK_DETAIL_ID, "${ISV_FLAG}_check_summary", new QFilter("id", QCP.equals, successPkId).toArray());
+                    sumApprovalId = Optional.ofNullable(oneOfSuccessDate).map(a -> a.getLong("${ISV_FLAG}_check_summary")).orElse(null);
+                }
+                if(sumApprovalId != null){
+                    // 打开奖金核定审批单的页面
+                    BonusUtil.openBill(this.getView(),sumApprovalId,BonusUtil.AP_CHECK_SUM_ID,null);
+                }
+            }
+        }
+
+        if ("submiteffect".equals(operateKey) || "donothing_push_check".equals(operateKey)){
+            OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+            if(operationResult.isSuccess()){
+                this.getView().invokeOperation("refresh");
+            }
+        }
+    }
+
+
+    /**
+     * >>组织核定明细-行政组织发生变化
+     * @param changeData
+     */
+    private void adminOrgChange(ChangeData changeData) {
+        //组织核定信息单据体中行政组织发生变化
+        DynamicObject adminorg =(DynamicObject) changeData.getNewValue();
+        if (adminorg != null){
+            //1.带出所选行政组织所属的经营主体
+            //1.1经营主体
+            DynamicObject haosCompanytype = adminorg.getDynamicObject("org");
+            int rowIndex = changeData.getRowIndex();
+            this.getModel().setValue("${ISV_FLAG}_business_entity",haosCompanytype,rowIndex);
+            List<Long> orgIds = new ArrayList<>();
+            long orgId = adminorg.getLong("id");
+            orgIds.add(orgId);
+            //2默认带出所选组织负责人
+            Map<Long, List<Map<String, Object>>> personIds = HAOSServiceHelper.queryPastChargeByOrgId(orgIds, TimeServiceHelper.now());
+            // 一个组织出现多个负责人的时候取哪一个
+            if (!personIds.isEmpty() && personIds.containsKey(orgId)){
+                List<Map<String, Object>> personMap = personIds.get(orgId);
+                Map<String, Object> map = personMap.get(0);
+                if (!map.isEmpty() && map.containsKey("person")) {
+                    this.getModel().setValue("${ISV_FLAG}_subordinate", Long.valueOf(String.valueOf(map.get("person"))), rowIndex);
+                }
+            }
+        }
+    }
+
+    //删除单据体数据后，重新核算金额
+    @Override
+    public void afterDeleteRow(AfterDeleteRowEventArgs e) {
+        operationAmount();
+    }
+
+
+
+    /**
+     * >>根据奖金计划，在核定单单据中填写相关奖金信息
+     */
+    private void setBonusPlanChangeFormItemValue(DynamicObject bonusPlan) {
+        //1关联计划信息
+
+        // 计划编号
+        this.getModel().setValue("${ISV_FLAG}_plan_no",bonusPlan.getString("billno"));
+        // 计划名称
+        this.getModel().setValue("${ISV_FLAG}_plan_name",bonusPlan.getString("${ISV_FLAG}_plan_name"));
+        // 奖金分类
+        this.getModel().setValue("${ISV_FLAG}_plan_category",bonusPlan.getString("${ISV_FLAG}_bonus_types"));
+        // 奖金项目
+        this.getModel().setValue("${ISV_FLAG}_plan_project",bonusPlan.getString("${ISV_FLAG}_bonus_items"));
+        // 生效日期
+        this.getModel().setValue("${ISV_FLAG}_plan_date_sx",bonusPlan.getString("${ISV_FLAG}_effective_date"));
+        // 失效日期
+        this.getModel().setValue("${ISV_FLAG}_plan_date_snx",bonusPlan.getString("${ISV_FLAG}_expiring_date"));
+        // 计划总额
+        this.getModel().setValue("${ISV_FLAG}_plan_total",bonusPlan.getString("${ISV_FLAG}_plan_money"));
+        // 适用范围
+        this.setsCopeUse(bonusPlan);
+        // 个性化奖金
+        String awardPlan = bonusPlan.getString("${ISV_FLAG}_personal_rewards");
+        this.getModel().setValue("${ISV_FLAG}_plan_award",BonusWriteBackUtil.mathcValue(awardPlan));
+        // 核定基本信息-是否个性化奖金
+        this.getModel().setValue("${ISV_FLAG}_personalization",awardPlan);
+        // 计划说明
+        this.getModel().setValue("${ISV_FLAG}_plan_describle",bonusPlan.getString("${ISV_FLAG}_notes"));
+        // 组织人
+        this.getModel().setValue("${ISV_FLAG}_plan_creator",bonusPlan.getString("${ISV_FLAG}_dept_person"));
+        // 所在公司
+        this.getModel().setValue("${ISV_FLAG}_plan_company",bonusPlan.getString("${ISV_FLAG}_attribut_company"));
+        // 所在部门
+        this.getModel().setValue("${ISV_FLAG}_plan_dept",bonusPlan.getString("${ISV_FLAG}_attribut_dept"));
+        // 所在岗位
+        this.getModel().setValue("${ISV_FLAG}_plan_post",bonusPlan.getString("${ISV_FLAG}_attribut_post"));
+
+
+        //2核定基本信息
+
+        // 奖金类型
+        this.getModel().setValue("${ISV_FLAG}_award_type",bonusPlan.getString("${ISV_FLAG}_bonus_types"));
+        // 奖金项目
+        this.getModel().setValue("${ISV_FLAG}_award_project",bonusPlan.getString("${ISV_FLAG}_bonus_items"));
+        // 关联的计划单编码
+        this.getModel().setValue("${ISV_FLAG}_plan_bill_no",bonusPlan.getString("billno"));
+    }
+
+    /**
+     * >>值改变事件-单选成本承担方式
+     * @param doValueEmptied 是否置空值
+     */
+    private void valueChangeActionCostDuty(boolean doValueEmptied){
+        DynamicObject bill = this.getModel().getDataEntity();
+        String newValue = bill.getString("${ISV_FLAG}_cost_duty");
+        boolean tag = false;
+        if("C".equals(newValue)){
+            // 指定承担组织  必填、启用
+            tag = true;
+        }
+        BasedataEdit costDutyOrg = this.getView().getControl(${ISV_FLAG}_COST_DUTY_ORG_KEY);
+        costDutyOrg.setMustInput(tag);
+        this.getView().setEnable(tag,${ISV_FLAG}_COST_DUTY_ORG_KEY);
+        // 值置空
+        if(doValueEmptied){
+            this.getModel().setValue(${ISV_FLAG}_COST_DUTY_ORG_KEY,null);
+        }
+    }
+
+    /**
+     * >>设置分录中的奖金成本-承担组织
+     * @param entryChangeKey 值改变-分录key
+     * @param rowChangeIndex 值改变-分录行号
+     */
+    private void setEntriesAmountUndertakeOrg(String entryChangeKey,int rowChangeIndex){
+        DynamicObject bill = this.getModel().getDataEntity();
+        // 成本承担 枚举
+        String newValue = bill.getString("${ISV_FLAG}_cost_duty");
+        // 发起方承担，找单据所属组织
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        // 遍历分录
+        for(EntriesAmountSumRelation relation: getEntriesAmountSumRelations()){
+            // 当前分录标识
+            String currEntriesKey = relation.getEntriesKey();
+            if(HRStringUtils.isNotBlank(entryChangeKey) && !currEntriesKey.equals(entryChangeKey)){
+                // 正在改分录某行的值但不是当前分录-跳过
+                continue;
+            }
+            DynamicObjectCollection perDetailEntry = dataEntity.getDynamicObjectCollection(relation.getEntriesKey());
+            for (int rowIndex = 0; rowIndex < perDetailEntry.size(); rowIndex++) {
+                if(HRStringUtils.isNotBlank(entryChangeKey) && rowChangeIndex != rowIndex){
+                    // 正在改分录某行的值但不是当前行-跳过
+                    continue;
+                }
+                // 分录行对象
+                DynamicObject rowObject = (DynamicObject) perDetailEntry.get(rowIndex);
+                // 分录承担组织赋值的源组织
+                DynamicObject sourceOrg = getSourceOrg(newValue,dataEntity,rowObject,currEntriesKey);
+
+                // 给分录承担组织赋值及设置禁用属性
+                this.getModel().setValue(relation.getUnderTakeOrgKey(),sourceOrg,rowIndex);
+                this.getView().setEnable(false,rowIndex,relation.getUnderTakeOrgKey());
+            }
+        }
+    }
+
+    /**
+     * 获取成本承担组织-界面操作
+     * @param newValue 成本承担方式
+     * @param dataEntity
+     * @param rowObject 行记录对象
+     * @param currEntriesKey 当前分录标识
+     * @return
+     */
+    private DynamicObject getSourceOrg(String newValue,DynamicObject dataEntity,DynamicObject rowObject,String currEntriesKey){
+        DynamicObject sourceOrg = null;
+        if (newValue == null){
+            return null;
+        }
+        switch (newValue){
+            case "A":
+                // 发起方承担
+                // 选择发起方承担时核定明细均默认为单据所属组织
+                sourceOrg = dataEntity.getDynamicObject("${ISV_FLAG}_belong_to_org");
+                break;
+            case "B":
+                // 受奖方承担
+                // 选择受奖方承担时核定明细均默认为核定组织/人员主任职所属公司
+                List<EntriesAmountSumRelation> entriesAmountSumRelationList = getEntriesAmountSumRelations();
+                if(entriesAmountSumRelationList.get(0).getEntriesKey().equals(currEntriesKey)) {
+                    // 组织核定-经营主体判断
+                    DynamicObject adminOrg = rowObject.getDynamicObject("${ISV_FLAG}_admin_org");
+                    if(adminOrg != null){
+                        DynamicObject orgTypeObject = adminOrg.getDynamicObject("adminorgtype");
+                        if(orgTypeObject != null && "1025_S".equals(orgTypeObject.getString("number"))){
+                            // 首先判断核定的行政组织类型是否为经营主体，若为经营主体，则承担组织为空
+                        } else {
+                            // 组织核定-选择受奖方承担时默认为核定组织所属公司
+                            sourceOrg = getCompanyFromEntryRow(rowObject,"${ISV_FLAG}_admin_org");
+                        }
+                    }
+                } else if (entriesAmountSumRelationList.get(1).getEntriesKey().equals(currEntriesKey)) {
+                    // 人员核定-选择受奖方承担时默认为核定人员所属公司
+                    sourceOrg = rowObject.getDynamicObject("${ISV_FLAG}_per_admin_company");
+                } else if (entriesAmountSumRelationList.get(2).getEntriesKey().equals(currEntriesKey)) {
+                    // 留存部门经费-默认为核定组织所属公司
+                    sourceOrg = getCompanyFromEntryRow(rowObject,"${ISV_FLAG}_admin_org_keep");
+                } else if (entriesAmountSumRelationList.get(3).getEntriesKey().equals(currEntriesKey)) {
+                    // 留存奖金池-默认为核定组织所属公司
+                    sourceOrg = getCompanyFromEntryRow(rowObject,"${ISV_FLAG}_admin_org11");
+                }
+                break;
+            case "C":
+                // 指定承担
+                // 选择指定承担时，核定明细均默认为指定的成本承担组织
+                sourceOrg = dataEntity.getDynamicObject("${ISV_FLAG}_cost_duty_org");
+                break;
+            default:
+
+                break;
+        }
+        return sourceOrg;
+    }
+
+    /**
+     *
+     * >>从分录行对象中获取公司信息
+     * @param rowObject 行对象
+     * @param companyKey 公司key
+     * @return
+     */
+    private DynamicObject getCompanyFromEntryRow(DynamicObject rowObject,String companyKey){
+        DynamicObject sourceOrg = null;
+        DynamicObject adminOrg = rowObject.getDynamicObject(companyKey);
+        if(adminOrg != null){
+            sourceOrg = adminOrg.getDynamicObject("belongcompany");
+        }
+        return sourceOrg;
+    }
+
+    /**
+     * >>值改变事件-组织人发生变化
+     */
+    private void valueChangeCreateStaffSelect(){
+        // 组织人发生变化
+        DynamicObject bill = this.getView().getModel().getDataEntity();
+        DynamicObject deptPerson = bill.getDynamicObject("${ISV_FLAG}_dept_person");
+        IDataModel model = this.getModel();
+        if (deptPerson != null){
+            DynamicObject position = deptPerson.getDynamicObject("position");
+            model.setValue("${ISV_FLAG}_attribut_post",position);
+            model.setValue("${ISV_FLAG}_attribut_dept",deptPerson.getDynamicObject("adminorg"));
+            model.setValue("${ISV_FLAG}_attribut_company",deptPerson.getDynamicObject("company"));
+        }else {
+            model.setValue("${ISV_FLAG}_attribut_post",null);
+            model.setValue("${ISV_FLAG}_attribut_dept",null);
+            model.setValue("${ISV_FLAG}_attribut_company",null);
+        }
+    }
+
+    /**
+     * >>设置下拉候选框数据-奖金计划单号列表
+     */
+    private void setSelectListPlanChoose(){
+        //关联奖金计划单号，设置下拉框,id为下拉框标识，奖金单据编号为vale
+        QFilter bonusPlanApprovalFilter = new QFilter("billstatus", QCP.equals, "C");
+        DynamicObjectCollection bonusPlanApproval = QueryServiceHelper.query("${ISV_FLAG}_bonus_plan_approval", "id", bonusPlanApprovalFilter.toArray());
+        Set<String> bonusPlanApprovalIds = bonusPlanApproval.stream().map(item -> String.valueOf(item.getLong("id"))).collect(Collectors.toSet());
+        //关联奖金计划单号，设置下拉框,id为下拉框标识，奖金单据编号为vale
+        QFilter bonusFilter = new QFilter("billstatus", QCP.equals,'C');
+        bonusFilter.and("${ISV_FLAG}_plan_summary",QCP.in,bonusPlanApprovalIds);
+        DynamicObjectCollection tdkwBonusPlans = QueryServiceHelper.query("${ISV_FLAG}_bonus_plan", queryPlanFieldKeyString, bonusFilter.toArray());
+        // 设置奖金计划下拉框
+        ComboEdit control = this.getView().getControl("${ISV_FLAG}_plan_bill_id");
+        ArrayList<ComboItem> comboItemsList = new ArrayList<>();
+        for (DynamicObject item : tdkwBonusPlans) {
+            ComboItem combo = new ComboItem();
+            combo.setCaption(new LocaleString(item.getString("${ISV_FLAG}_plan_name")));
+            combo.setValue(item.getString("id"));
+            comboItemsList.add(combo);
+        }
+        control.setComboItems(comboItemsList);
+    }
+
+    /**
+     * >>计算金额
+     */
+    private void operationAmount() {
+        BigDecimal sumAllAmount = BigDecimal.ZERO;
+        // 遍历 四个分录金额数据汇总赋值
+        for(EntriesAmountSumRelation itemRelation: getEntriesAmountSumRelations()){
+            DynamicObjectCollection currentEntry = this.getModel().getDataEntity(true)
+                    .getDynamicObjectCollection(itemRelation.getEntriesKey());
+            Optional<BigDecimal> checkAmount = currentEntry.stream().map(item ->
+                    item.getBigDecimal(itemRelation.getEntriesItemKey())).reduce(BigDecimal::add);
+            BigDecimal sumAmount = checkAmount.orElse(BigDecimal.ZERO);
+            // 核定统计-核定组织总额赋值
+            this.getModel().setValue(itemRelation.getSumTargetKey(),sumAmount);
+            sumAllAmount = sumAllAmount.add(sumAmount);
+        }
+        this.getModel().setValue("${ISV_FLAG}_currtotal",sumAllAmount);
+        // 核定基本信息-核定总额（元）
+        BigDecimal approvalTotal = this.getModel().getDataEntity(true).getBigDecimal("${ISV_FLAG}_approval_total");
+        // 剩余未用金额
+        this.getModel().setValue("${ISV_FLAG}_leave_total",approvalTotal.subtract(sumAllAmount));
+    }
+
+    /**
+     * >>奖金计划信息-适用范围赋值
+     * @param bonusPlan
+     */
+    public void setsCopeUse(DynamicObject bonusPlan){
+        //1.适用范围
+        QFilter bonusFilter = new QFilter("id", QCP.equals, bonusPlan.getLong("id"));
+        DynamicObject plan = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_plan", queryPlanFieldKeyString, bonusFilter.toArray());
+        if (Objects.nonNull(plan)){
+            ArrayList<Long> idsList = new ArrayList<>();
+            DynamicObjectCollection scopeOrg = plan.getDynamicObjectCollection("${ISV_FLAG}_scope_org");
+            for (DynamicObject scope : scopeOrg) {
+                idsList.add(scope.getLong("fbasedataid.id"));
+            }
+            Long[] array = idsList.toArray(new Long[0]);
+            this.getModel().setValue("${ISV_FLAG}_plan_fw",array.length == 0? null:array);
+        }
+    }
+
+    /**
+     * >>根据id查询奖金计划
+     */
+    private static DynamicObject queryBonusPlanById(Long bonusPlanId) {
+        QFilter bonusFilter = new QFilter("id", QCP.equals, bonusPlanId);
+        return QueryServiceHelper.queryOne("${ISV_FLAG}_bonus_plan", queryPlanFieldKeyString, bonusFilter.toArray());
+    }
+
+    /**
+     * >>携带数据初始化-奖金计划部分
+     */
+    private void initFormFromPlan(){
+        Long bonusPlanId = this.getView().getModel().getDataEntity().getLong("${ISV_FLAG}_plan_bill_id");
+        // 新记录，从参数中找计划id
+        if(bonusPlanId == null || bonusPlanId.longValue() == 0){
+            // 获取当前表单的显示参数
+            FormShowParameter formShowParameter = this.getView().getFormShowParameter();
+            JSONObject bonusVerMap = formShowParameter.getCustomParam("customMap");
+            if (bonusVerMap != null){
+                //奖金计划上，创建核定单按钮
+                //奖金计划单id
+                bonusPlanId = (Long)bonusVerMap.get("bonusPlanId");
+            }
+        }
+        if(!(bonusPlanId == null || bonusPlanId.longValue() == 0)){
+            DynamicObject bonusPlan = queryBonusPlanById(bonusPlanId);
+            //设置下拉框的值
+            this.getModel().setValue("${ISV_FLAG}_plan_bill_id",bonusPlan.getString("id"));
+            //设置表单其他信息
+            this.setBonusPlanChangeFormItemValue(bonusPlan);
+        }
+    }
+
+
+
+    /**
+     * >>人员核定明细单据体中人员发生变化
+     * @param changeData
+     */
+    private void employeeChange(ChangeData changeData) {
+        //1人员核定明细单据体中人员发生变化
+        DynamicObject hrPerson =(DynamicObject) changeData.getNewValue();
+        //1.1所属经营主体,所属公司,所属部门,查询人员的任职经历,最新的历史版本，承担组织,默认为人员所属公司，支持修改
+        if (hrPerson != null){
+            Long assignmentId = hrPerson.getLong("assignment.id");
+            // 查找最新任职
+            QFilter assignmentFilter = new QFilter("id", QCP.equals,assignmentId);
+            DynamicObject assignment = QueryServiceHelper.queryOne("hrpi_assignment","org", assignmentFilter.toArray());
+
+            // 设置人员及公司岗位信息
+            int rowIndex = changeData.getRowIndex();
+            // 员工工号
+            this.getModel().setValue("${ISV_FLAG}_employee_number",hrPerson.getString("employee.empnumber"),rowIndex);
+            //任职经历历史版本
+            this.getModel().setValue("${ISV_FLAG}_employment_history",hrPerson.getLong("id"),rowIndex);
+            // 所属经营主体
+            this.getModel().setValue("${ISV_FLAG}_per_business_entity",assignment.getLong("org"),rowIndex);
+            // 所属公司
+            this.getModel().setValue("${ISV_FLAG}_per_admin_company",hrPerson.getLong("company.id"),rowIndex);
+            // 所属部门-行政组织
+            this.getModel().setValue("${ISV_FLAG}_admin_dept",hrPerson.getLong("adminorg.id"),rowIndex);
+            // 岗位
+            this.getModel().setValue("${ISV_FLAG}_admin_post",hrPerson.getLong("position.id"),rowIndex);
+        }
+    }
+
+    /**
+     * 根据人员id获取人员及公司岗位信息
+     * @param staffId 人员id
+     * @return
+     */
+    private DynamicObject getSureStaffRelation(long staffId){
+        QFilter hrpiEmpposorgrelFilter = new QFilter("employee", QCP.equals,staffId);
+        hrpiEmpposorgrelFilter.and("iscurrentversion",QCP.equals,"1");
+        hrpiEmpposorgrelFilter.and("datastatus",QCP.equals,"1");
+        hrpiEmpposorgrelFilter.and("businessstatus",QCP.equals,"1");
+        DynamicObject hrpiEmpposorgrel = QueryServiceHelper.queryOne("hrpi_empposorgrel", "id,boid,company,adminorg,${ISV_FLAG}_haos_companytype,position", hrpiEmpposorgrelFilter.toArray());
+        return hrpiEmpposorgrel;
+    }
+
+    /**
+     * >>F7基础资料-组织树过滤
+     * @param showParameter
+     * @param orgFilter
+     */
+    private void filterOrgTreeByF7Limit(ListShowParameter showParameter,QFilter orgFilter){
+        // 过滤左树
+        DynamicObjectCollection adminorgCollection = QueryServiceHelper.query("haos_adminorg", "id,structlongnumber", orgFilter.toArray());
+        List<String> orgList = adminorgCollection.stream().map(item -> item.getString("structlongnumber")).collect(Collectors.toList());
+        List<String> structnumber = new ArrayList<>();
+        for (String structlongnumber : orgList) {
+            String[] split = structlongnumber.split("!");
+            structnumber.addAll(Arrays.stream(split).collect(Collectors.toList()));
+        }
+        QFilter filter = new QFilter("structnumber",QCP.in,structnumber);
+        DynamicObjectCollection orgTree = QueryServiceHelper.query("haos_adminorg", "id", filter.toArray());
+        showParameter.getCustomParams().put(TreeTemplateConstants.BIZ_QFILTER_KEY, new QFilter("adminorg.id", QCP.in, orgTree.stream().map(item -> item.getLong("id")).collect(Collectors.toSet())).toSerializedString());
+    }
+
+    /**
+     * >>留存部门经费-新选择了行政组织
+     * @param changeData
+     */
+    private void adminOrgKeepChange(ChangeData changeData) {
+        //组织核定信息单据体中行政组织发生变化
+        DynamicObject adminorg =(DynamicObject) changeData.getNewValue();
+        if (adminorg != null){
+            int rowIndex = changeData.getRowIndex();
+            //1.带出所选行政组织所属的经营主体
+            //1.1经营主体
+            DynamicObject haosCompanytype = adminorg.getDynamicObject("org");
+            this.getModel().setValue("${ISV_FLAG}_bs_entity_org",haosCompanytype,rowIndex);
+            // 所属公司 company
+            DynamicObject company = adminorg.getDynamicObject("belongcompany");
+            this.getModel().setValue("${ISV_FLAG}_keep_company",company,rowIndex);
+            // 所属一级部门 ${ISV_FLAG}_one_admin
+            DynamicObject oneAdmin = adminorg.getDynamicObject("belongdept");
+            this.getModel().setValue("${ISV_FLAG}_admin_dept1",oneAdmin,rowIndex);
+        }
+    }
+
+    /**
+     * >>留存奖金池-新选择了行政组织
+     * @param changeData
+     */
+    private void keepPoolChange(ChangeData changeData) {
+        //组织核定信息单据体中行政组织发生变化
+        DynamicObject adminorg =(DynamicObject) changeData.getNewValue();
+        if (adminorg != null){
+            int rowIndex = changeData.getRowIndex();
+            //1.带出所选行政组织所属的经营主体
+            //1.1经营主体
+            DynamicObject haosCompanytype = adminorg.getDynamicObject("org");
+            this.getModel().setValue("${ISV_FLAG}_per_business_entity2",haosCompanytype,rowIndex);
+        }
+    }
+
+    /**
+     * >>默认设置核定基本信息-单据所属组织
+     */
+    private void setBelongToOrgDefault(){
+        DynamicObject dynamicObject = this.getModel().getDataEntity(true);
+        DynamicObject attributCompany = (DynamicObject)dynamicObject.getDynamicObject("${ISV_FLAG}_attribut_company");
+        if (attributCompany != null){
+            this.getModel().setValue("${ISV_FLAG}_belong_to_org",attributCompany);
+        }
+    }
+
+    /**
+     * >>组织核定明细-分配人变化
+     * @param changeData
+     */
+    private void subordinateChange(ChangeData changeData){
+        DynamicObject subordinate =(DynamicObject) changeData.getNewValue();
+        if (subordinate != null){
+            String hrNumber = subordinate.getString("number");
+            QFilter bosUserQFilter = new QFilter("number", QCP.equals, hrNumber);
+            DynamicObject bosUser = BusinessDataServiceHelper.loadSingle("bos_user", bosUserQFilter.toArray());
+            this.getModel().setValue("${ISV_FLAG}_user_convert", bosUser);
+        }
+    }
+
+    /**
+     * >>默认设置创建人信息
+     */
+    private void setCreatorDefault(){
+        // 创建人员信息绑定
+        DynamicObject deptPerson = this.getView().getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_dept_person");
+        if(deptPerson == null){
+            QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+            DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+            QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+            filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+            DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+            if (empPosRel != null){
+            this.getView().getModel().setValue("${ISV_FLAG}_dept_person",empPosRel);
+            this.getView().updateView("${ISV_FLAG}_dept_person");
+
+            // 部门信息
+            DynamicObject position = empPosRel.getDynamicObject("position");
+            this.getView().getModel().setValue("${ISV_FLAG}_attribut_post",position);
+
+            this.getView().getModel().setValue("${ISV_FLAG}_attribut_dept",empPosRel.getDynamicObject("adminorg"));
+            this.getView().getModel().setValue("${ISV_FLAG}_attribut_company",empPosRel.getDynamicObject("company"));
+            }
+        }
+    }
+
+    private void isMustInput(String filedKey,Boolean isMustInput) {
+        FieldEdit salaryadjscm = this.getView().getControl(filedKey);
+        salaryadjscm.setMustInput(isMustInput);
+    }
+
+    private void setVisible(String filedKey,Boolean isVisible){
+        this.getView().setVisible(isVisible,filedKey);
+    }
+
+
+    /**
+     * 流程单号/发文文号/制度文件编号设置
+     */
+    private void bpsmChange(){
+        String approvalExplain = this.getModel().getDataEntity().getString("${ISV_FLAG}_bpsm");
+        List<String> approvalExplains =Arrays.asList("1","2","3");
+        if (approvalExplains.contains(approvalExplain)){
+            isMustInput("${ISV_FLAG}_file_no",true);
+            setVisible("${ISV_FLAG}_file_no",true);
+        }else {
+            isMustInput("${ISV_FLAG}_file_no",false);
+            setVisible("${ISV_FLAG}_file_no",false);
+        }
+    }
+}

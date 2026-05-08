@@ -1,0 +1,46 @@
+package ${ISV_FLAG}.hspm.wordprint.business;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author xx
+ * @ClassName FileConversionService
+ * @description: 文件转换
+ * @ModifiedBy: （填入修改人）
+ * @ModifyTime: （修改时间）
+ * @date 2023年07月07日
+ * @version: 1.0
+ */
+public interface FileConversionService {
+
+    /**
+     * @param employeeId       员工Id
+     * @param assignmentId     组织分配Id
+     * @param employeeName     员工姓名
+     * @param templateNumber word编码名称
+     * @return java.util.Map        URl 文件暂存地址
+     * name 文件名称
+     * size 文件大小
+     * @description 文件转换
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/10 9:34
+     */
+    Map<String, Object> fileConversion(Long employeeId, Long assignmentId, String employeeName, String templateNumber);
+
+    /**
+     * @param allDataMap       构建完成数据的Map
+     * @param fileName         文件名称
+     * @param templateEncoding 模板编码  统一从 `xyjt_hspm_wordconversion` 取值
+     * @param configNameList   配置类 文档中多行的唯一标识集合
+     * @return java.util.Map<java.lang.String, java.lang.Object>
+     * @description 组装word文件
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/11 15:54
+     */
+    Map<String, Object> assembleWordFile(Map<String, Object> allDataMap, String fileName, String templateEncoding, List<String> configNameList);
+}

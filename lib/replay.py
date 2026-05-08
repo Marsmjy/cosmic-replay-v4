@@ -200,7 +200,42 @@ class CosmicFormReplay:
         # addVirtualTab 响应里按 appId 记的 pending pageId（未绑定表单，按 app 兜底）
         self._pending_by_app: dict[str, str] = {}
 
+    # ---------- 资源管理 ----------
+
+    def close(self):
+        """释放 HTTP 会话资源"""
+        if hasattr(self, 'http') and self.http:
+            try:
+                self.http.close()
+            except Exception:
+                pass
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     # ---------- HTTP 低层 ----------
+
+    def _post_with_retry(self, url, *, data=None, json_data=None, headers=None,
+                         retries=1, retry_wait=1.0, **kwargs):
+        """对 HTTP POST 添加重试，仅在网络异常时重试，成功路径不变"""
+        import time as _time
+        last_err = None
+        for attempt in range(retries + 1):
+            try:
+                resp = self.http.post(url, data=data, json=json_data,
+                                     headers=headers, **kwargs)
+                return resp
+            except (requests.ConnectionError, requests.Timeout) as e:
+                last_err = e
+                if attempt < retries:
+                    _time.sleep(retry_wait * (2 ** attempt))
+        raise last_err
 
     def _post(self, path: str, body_urlenc: str, cqappid: str,
               extra_headers: dict | None = None) -> requests.Response:
@@ -209,7 +244,7 @@ class CosmicFormReplay:
         if extra_headers:
             headers.update(extra_headers)
         url = self.s.base_url + path
-        r = self.http.post(url, data=body_urlenc, headers=headers, timeout=self.timeout)
+        r = self._post_with_retry(url, data=body_urlenc, headers=headers, timeout=self.timeout)
         return r
 
     def _get(self, path: str, params: dict, cqappid: str = "bos") -> requests.Response:

@@ -1,0 +1,248 @@
+{
+  "formId": "brm_ruletest",
+  "formName": null,
+  "sceneId": "brm_ruletest",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "1IMTC4ANI0KA",
+  "metaIdTechnical": "1IMW3PXBWFZ8",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "brm_ruletest",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/brm_ruletest.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·brm 规则测试)"
+  },
+  "entities": [
+    {
+      "name": "brm_ruletest",
+      "type": "MainEntity",
+      "title": "规则测试",
+      "physicalTable": null,
+      "fieldCount": 3
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 7
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "bizapp": {
+      "fieldId": "lXC0Ma5i0m",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hbp_devportal_bizapp",
+      "entity": "brm_ruletest",
+      "title": "应用",
+      "physicalColumn": "—",
+      "_fieldApId": "lXC0Ma5i0m"
+    },
+    "scene": {
+      "fieldId": "5i7fcafoi6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "brm_scene",
+      "entity": "brm_ruletest",
+      "title": "场景",
+      "physicalColumn": "—",
+      "_fieldApId": "5i7fcafoi6"
+    },
+    "bu": {
+      "fieldId": "e89JghHQ65",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "brm_ruletest",
+      "title": "组织",
+      "physicalColumn": "—",
+      "_fieldApId": "e89JghHQ65"
+    },
+    "policyname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "策略编码",
+      "physicalColumn": "—"
+    },
+    "rulenumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "规则编码",
+      "physicalColumn": "—"
+    },
+    "rulename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "规则名称",
+      "physicalColumn": "—"
+    },
+    "resultvalue": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "结果值",
+      "physicalColumn": "—"
+    },
+    "policymode": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "策略模式",
+      "physicalColumn": "—"
+    },
+    "returnresult": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "返回结果",
+      "physicalColumn": "—"
+    },
+    "resulttype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "结果类型",
+      "physicalColumn": "—"
+    }
+  },
+  "requiredFields": {
+    "brm_ruletest": [
+      "bizapp",
+      "scene",
+      "bu"
+    ],
+    "entryentity": []
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-04-29 12:04",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "bizappId"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "formPlugins_count": 2
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "formPlugins_count": 2
+      }
+    }
+  ],
+  "sceneCategory": "placeholder_dict",
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.brm.formplugin.web.customplugin.RuleTestPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRCustomControlPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.HRCustomControlPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

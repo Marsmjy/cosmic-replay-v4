@@ -1,0 +1,45 @@
+# ${ASSET_NAME_CN}（${ASSET_NAME_EN}）
+
+> 基于金蝶云苍穹 HR 核心人力 / hdm 调配管理 ISV 资产
+> 资产 ID：`${ASSET_ID}` · 部署客户：${CLIENT_NAME}
+> 开发商标识：`${ISV_FLAG}` · ISV 应用：`${BIZ_APP}`
+> 复刻自：`hr-hdm-orgtransfer @ feature-standard`（金蝶资产中心 v1.0 · 2025-08-04）
+
+## 业务概要
+
+${BUSINESS_BRIEF}
+
+## 工程结构
+
+```
+code/
+├── base/
+│   ├── ${ISV_FLAG}-base-common/     # 通用基础模块
+│   └── ${ISV_FLAG}-base-helper/      # 帮助类
+├── ${ISV_FLAG}-cosmic-debug/         # 苍穹调试入口
+└── ${ISV_FLAG}-${ASSET_MODULE}/      # 业务代码（成建制划转 5 类）
+    └── src/main/java/${ISV_FLAG}/hr/hdm/orgtransfer/business/
+        ├── AbstractCommonTask.java
+        ├── OrgParentChgTask.java   (changeType=A)
+        ├── OrgRenameChgTask.java   (changeType=B)
+        ├── PostRenameChgTask.java  (changeType=C)
+        └── OrgTransferHelper.java
+
+datamodel/
+└── hdm_ext/1.5.0/main/${BIZ_APP}/
+    ├── ${BIZ_APP}.app
+    ├── ${BIZ_APP}.zh_CN.appx
+    ├── ${BIZ_APP}.xml
+    └── metadata/
+        ├── ${ISV_FLAG}_orguntitransfer.dym
+        ├── ${ISV_FLAG}_orguntitransfer.zh_CN.dymx
+        └── schedule_hdm_orgtransfer_plan_SKDP_S.schdata
+```
+
+## 部署 SOP
+
+详见 [文档/成建制划转复用说明书.docx](文档/成建制划转复用说明书.docx) §4.1.2 + 本仓 [deploy_sop.md](deploy_sop.md)
+
+## 扩展点
+
+详见 [customization_points.md](customization_points.md)

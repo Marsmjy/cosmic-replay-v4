@@ -1,0 +1,93 @@
+{
+  "scene": "haos_dynamicdimension",
+  "formId": "haos_dynamicdimension",
+  "description": "rules_chain_all.json · 场景 haos_dynamicdimension · 编制维度",
+  "opKeys": {
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存编制维度记录",
+        "frequency": "高频 · 新增/修改时触发",
+        "stateTransition": "草稿 → 已保存",
+        "extValue": 0
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "StaffDimSaveOp",
+          "className": "kd.hr.haos.opplugin.web.staff.StaffDimSaveOp",
+          "role": "plugins.json 实证 · 场景专属 · forbidden-extend"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "mines": [
+        "❌ 禁继承 OrgStaffDimensionEdit（场景专属 FormPlugin · ISV 用 HRDataBaseEdit 并列挂）",
+        "❌ 禁继承 StaffDimesionListPlugin（场景专属 ListPlugin · ISV 用 HRDataBaseList 并列挂）",
+        "❌ 禁继承 StaffDimSaveOp（场景专属 SaveOp · ISV 用 HRDataBaseOp 并列挂）",
+        "❌ 禁继承 StaffDimDeleteOp（场景专属 DeleteOp · ISV 用 HRDataBaseOp 并列挂）",
+        "❌ 禁继承 AbsOrgBaseOp（not in SDK whitelist · 禁止继承）",
+        "⚠ OP 层用 entity.set() 不用 getModel().setValue()（PR-003）",
+        "⚠ 分布式 ID 用 ID.genLongId() 不用 UUID（PR-005）",
+        "❌ 禁继承 HRBaseDataTplEdit（标品基础资料模板 · ISV 应并列挂 HRDataBaseEdit · PR-001）",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ]
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除编制维度记录",
+        "frequency": "低频 · 管理员操作",
+        "stateTransition": "已保存 → 已删除",
+        "extValue": 0
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "StaffDimDeleteOp",
+          "className": "kd.hr.haos.opplugin.web.staff.StaffDimDeleteOp",
+          "role": "plugins.json 实证 · 场景专属 · forbidden-extend"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "mines": [
+        "⚠ 删除前应通过 refentity_reverse 检查下游引用（haos_staff.staffdimension）",
+        "⚠ 删除被引用维度会导致已有编制记录 staffdimension 字段游离"
+      ]
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-28",
+      "source": "probe_opkey_registry.py + manual_enrich",
+      "opKeysAdded": [
+        "save",
+        "delete"
+      ],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+package ${ISV_FLAG}.wtc.common.model;
+
+import ${ISV_FLAG}.wtc.common.util.DateUtilNew;
+
+import java.util.Date;
+
+public class DateScope {
+    public DateScope(Date startDate, Date endDate) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public Date getStartDate() {
+        return startDate;
+    }
+
+    public String getStartDateString() {
+        return DateUtilNew.date2Str(this.startDate,DateUtilNew.YYYY_MM_DD_HH_MM_SS);
+    }
+
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
+
+    public Date getEndDate() {
+        return endDate;
+    }
+
+    public String getEndDateString() {
+        return DateUtilNew.date2Str(this.endDate,DateUtilNew.YYYY_MM_DD_HH_MM_SS);
+    }
+
+    public void setEndDate(Date endDate) {
+        this.endDate = endDate;
+    }
+
+    private Date startDate;
+    private Date endDate;
+}

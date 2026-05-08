@@ -1,0 +1,1448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "1.1.0",
+    "created_at": "2026-05-02",
+    "purpose": "场景关系图 · 标注 type / 上下游 / 替代关系 · v3 codegen 跨云生成代码必查",
+    "scene_count": 31,
+    "data_source": "knowledge/scenarios/ 198 场景中 v3 高频 30 个 · 来源 _intent_routing.json + collab L7 + 8 主表 CS 跨云链",
+    "schema_ref": "v3_rewrite_plan/specs/knowledge_schema_extension.md §2",
+    "next_step": "v3.1 加剩余 36 高频场景 + 152 长尾场景",
+    "last_updated": "2026-05-06",
+    "last_updated_by": "case_002_contract_renew",
+    "assets_index": {
+      "org_unit_transfer": {
+        "asset_id": "org_unit_transfer",
+        "primary_scene": "core_hr_org_unit_transfer",
+        "cloud": "core_hr",
+        "app": "hdm",
+        "consumed_scenes_count": 11,
+        "added": "2026-05-06"
+      },
+      "contract_renew_batch": {
+        "asset_id": "contract_renew_batch",
+        "primary_scene": "core_hr_contract_renew",
+        "cloud": "core_hr",
+        "app": "hlcm",
+        "consumed_scenes_count": 12,
+        "added": "2026-05-06"
+      },
+      "headcount_management": {
+        "asset_id": "headcount_management",
+        "primary_scene": "org_dev_headcount_management",
+        "cloud": "org_dev",
+        "app": "homs",
+        "consumed_scenes_count": 8,
+        "added": "2026-05-06"
+      },
+      "emp_super_rel_chart": {
+        "asset_id": "emp_super_rel_chart",
+        "primary_scene": "core_hr_emp_super_rel_chart",
+        "cloud": "core_hr",
+        "app": "hspm",
+        "consumed_scenes_count": 4,
+        "added": "2026-05-06"
+      },
+      "adminorgbill_extension": {
+        "asset_id": "adminorgbill_extension",
+        "primary_scene": "org_dev_adminorgbill_extension",
+        "cloud": "org_dev",
+        "app": "homs",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "bankcardchange": {
+        "asset_id": "bankcardchange",
+        "primary_scene": "payroll_bankcardchange",
+        "cloud": "payroll",
+        "app": "hsas",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "beforecomputationcheck": {
+        "asset_id": "beforecomputationcheck",
+        "primary_scene": "payroll_beforecomputationcheck",
+        "cloud": "payroll",
+        "app": "hsas",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "downermanfileword": {
+        "asset_id": "downermanfileword",
+        "primary_scene": "core_hr_downermanfileword",
+        "cloud": "core_hr",
+        "app": "hspm",
+        "consumed_scenes_count": 3,
+        "added": "2026-05-06"
+      },
+      "sit_socialsecurity": {
+        "asset_id": "sit_socialsecurity",
+        "primary_scene": "payroll_sit_socialsecurity",
+        "cloud": "payroll",
+        "app": "sit",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "swc_salaryapproval": {
+        "asset_id": "swc_salaryapproval",
+        "primary_scene": "payroll_swc_salaryapproval",
+        "cloud": "payroll",
+        "app": "swc",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "wtc_marriageverify": {
+        "asset_id": "wtc_marriageverify",
+        "primary_scene": "attendance_wtc_marriageverify",
+        "cloud": "attendance",
+        "app": "wtabm",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "wtc_roster": {
+        "asset_id": "wtc_roster",
+        "primary_scene": "attendance_wtc_roster",
+        "cloud": "attendance",
+        "app": "wtbd",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      },
+      "swc_bonus_new": {
+        "asset_id": "swc_bonus_new",
+        "primary_scene": "payroll_swc_bonus_new",
+        "cloud": "payroll",
+        "app": "swc",
+        "consumed_scenes_count": 4,
+        "added": "2026-05-06"
+      },
+      "home_check_rule": {
+        "asset_id": "home_check_rule",
+        "primary_scene": "org_dev_home_check_rule",
+        "cloud": "org_dev",
+        "app": "hom",
+        "consumed_scenes_count": 2,
+        "added": "2026-05-06"
+      }
+    },
+    "total_scenes": 45
+  },
+  "scenes": {
+    "hies_entity_import": {
+      "type": "standard_business",
+      "title": "HR 实体导入（HIES-Pro）",
+      "description": "苍穹 HR 标品全平台实体批量导入工具 · 零代码 · 支持 Excel 模板 / 字段校验 / 部分回滚 / 进度展示",
+      "intent_keywords": [
+        "批量导入",
+        "Excel 导入",
+        "数据迁移",
+        "数据初始化",
+        "实体导入"
+      ],
+      "covers_intent": [
+        "组织批量导入",
+        "员工批量导入",
+        "薪酬批量导入",
+        "考勤批量导入",
+        "通用基础资料批量导入"
+      ],
+      "applicable_to": "all_billformmodel_and_basedata",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "homs_orgbatchchgbill_maintenance",
+        "core_hr_employee",
+        "wtp_attfilebase",
+        "hsbs_salaryitem"
+      ],
+      "see_also": [
+        "hies_multientry_tpl"
+      ]
+    },
+    "homs_orgbatchchgbill_maintenance": {
+      "type": "isv_extension_ready",
+      "title": "组织调整申请单 · ISV 扩展场景",
+      "description": "标品组织变更主单据 · 7 entry 涵盖新增/调整上级/信息变更/停用/合并/拆分 · ISV 可扩展",
+      "intent_keywords": [
+        "组织变更",
+        "组织调整",
+        "组织批量",
+        "新设组织",
+        "停用组织",
+        "合并组织"
+      ],
+      "covers_intent": [
+        "组织字段定制",
+        "组织变更校验扩展",
+        "组织变更通知外系",
+        "组织变更同步 ERP"
+      ],
+      "alternatives_for": {
+        "组织批量导入": [
+          "hies_entity_import"
+        ],
+        "组织单条变更": [
+          "admin_org_quick_maintenance"
+        ]
+      },
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "haos_changescene",
+        "haos_orgchangereason"
+      ],
+      "downstream_scenes": [
+        "haos_adminorgdetail",
+        "haos_adminorghis",
+        "homs_orgchgrecord"
+      ],
+      "see_also": [
+        "admin_org_quick_maintenance",
+        "homs_orgchgrecord"
+      ],
+      "consumed_by_assets": [
+        "_assets/adminorgbill_extension"
+      ],
+      "consumed_by_scenes": [
+        "org_dev_adminorgbill_extension"
+      ]
+    },
+    "admin_org_quick_maintenance": {
+      "type": "isv_extension_ready",
+      "title": "组织快速维护 · ISV 扩展场景（标杆）",
+      "description": "标品行政组织维护单据（haos_adminorg）· 单条编辑 · 32 CS · v5+ 标杆场景",
+      "intent_keywords": [
+        "组织维护",
+        "组织新增",
+        "组织修改",
+        "改组织名称",
+        "行政组织维护"
+      ],
+      "covers_intent": [
+        "单条组织变更",
+        "组织字段定制",
+        "组织保存校验扩展",
+        "组织生效后通知"
+      ],
+      "alternatives_for": {
+        "组织批量导入": [
+          "hies_entity_import"
+        ],
+        "组织批量变更": [
+          "homs_orgbatchchgbill_maintenance"
+        ]
+      },
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "haos_adminorghis",
+        "homs_orgchgrecord"
+      ],
+      "see_also": [
+        "homs_orgbatchchgbill_maintenance",
+        "haos_structure_maintenance"
+      ]
+    },
+    "haos_structure_maintenance": {
+      "type": "isv_extension_ready",
+      "title": "矩阵组织维护",
+      "description": "矩阵组织主维护场景 · 跨业务线 / 项目维度组织",
+      "intent_keywords": [
+        "矩阵组织",
+        "matrix 组织",
+        "项目组织",
+        "横向组织"
+      ],
+      "covers_intent": [
+        "矩阵组织建立",
+        "矩阵组织字段扩展"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "haos_structproject",
+        "haos_structtype"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "admin_org_quick_maintenance"
+      ]
+    },
+    "hbpm_position_maintenance": {
+      "type": "isv_extension_ready",
+      "title": "岗位信息维护 · ISV 扩展场景（标杆）",
+      "description": "标品岗位信息维护 · 18 CS · v5+ 高质量场景",
+      "intent_keywords": [
+        "岗位维护",
+        "岗位建立",
+        "岗位修改",
+        "岗位树",
+        "岗位信息"
+      ],
+      "covers_intent": [
+        "岗位字段扩展",
+        "岗位变动",
+        "岗位审批扩展"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "hbpm_basedatalist",
+        "hbpm_stposition"
+      ],
+      "downstream_scenes": [
+        "hbpm_positionhis"
+      ],
+      "see_also": [
+        "hbpm_stposition"
+      ]
+    },
+    "core_hr_employee": {
+      "type": "isv_extension_ready",
+      "title": "员工档案 · ISV 扩展场景",
+      "description": "员工档案主场景 · ISV 扩展字段最高频入口",
+      "intent_keywords": [
+        "员工档案",
+        "员工信息",
+        "档案扩展",
+        "hrpi 加字段"
+      ],
+      "covers_intent": [
+        "档案字段扩展",
+        "档案数据规则",
+        "档案保存校验"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "core_hr_onboard"
+      ],
+      "downstream_scenes": [
+        "core_hr_assignment",
+        "core_hr_contractinfo",
+        "hsas_personchange",
+        "wtp_attfilebase"
+      ],
+      "see_also": [
+        "core_hr_employee_resume",
+        "core_hr_assignment"
+      ],
+      "consumed_by_assets": [
+        "_assets/emp_super_rel_chart"
+      ],
+      "consumed_by_scenes": [
+        "core_hr_emp_super_rel_chart"
+      ]
+    },
+    "core_hr_onboard": {
+      "type": "isv_extension_ready",
+      "title": "员工入职",
+      "description": "新员工入职登记单",
+      "intent_keywords": [
+        "新员工",
+        "入职",
+        "onboarding",
+        "入职登记"
+      ],
+      "covers_intent": [
+        "入职流程定制",
+        "入职字段扩展"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "core_hr_employee",
+        "core_hr_assignment",
+        "core_hr_contractinfo",
+        "wtp_attfilebase",
+        "hsas_personchange"
+      ],
+      "see_also": [
+        "core_hr_quit",
+        "core_hr_transfer"
+      ]
+    },
+    "core_hr_quit": {
+      "type": "isv_extension_ready",
+      "title": "员工离职",
+      "description": "标品员工离职单",
+      "intent_keywords": [
+        "离职",
+        "解除劳动合同",
+        "终止合同",
+        "退工"
+      ],
+      "covers_intent": [
+        "离职流程定制",
+        "离职审批扩展",
+        "离职后清理"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "core_hr_employee"
+      ],
+      "downstream_scenes": [
+        "core_hr_change_collab_attendance",
+        "core_hr_change_collab_payroll"
+      ],
+      "see_also": [
+        "core_hr_contract_termination"
+      ]
+    },
+    "core_hr_transfer": {
+      "type": "isv_extension_ready",
+      "title": "员工调动",
+      "description": "标品员工调动单 · 调岗 / 调部门",
+      "intent_keywords": [
+        "调岗",
+        "调动",
+        "异动",
+        "transfer"
+      ],
+      "covers_intent": [
+        "调动审批",
+        "调动后联动"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "core_hr_employee",
+        "core_hr_assignment"
+      ],
+      "downstream_scenes": [
+        "core_hr_change_collab_payroll",
+        "core_hr_change_collab_attendance"
+      ],
+      "see_also": [
+        "core_hr_transferout_in",
+        "core_hr_infochange"
+      ]
+    },
+    "core_hr_assignment": {
+      "type": "isv_extension_ready",
+      "title": "员工任职",
+      "description": "标品任职信息 · 主任职 / 兼职",
+      "intent_keywords": [
+        "任职",
+        "任职关系",
+        "兼职",
+        "任命"
+      ],
+      "covers_intent": [
+        "任职扩展",
+        "兼职管理"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "core_hr_onboard"
+      ],
+      "downstream_scenes": [
+        "core_hr_appointremoverel"
+      ],
+      "see_also": [
+        "core_hr_assignmentmag"
+      ]
+    },
+    "core_hr_change_collab_overview": {
+      "type": "standard_platform",
+      "title": "员工变动协作总览",
+      "description": "核心人力 → 5 下游云的变动协作框架总入口",
+      "intent_keywords": [
+        "变动协作",
+        "EmployeeCoord",
+        "员工变动同步",
+        "变动派发"
+      ],
+      "covers_intent": [
+        "跨云变动协作"
+      ],
+      "applicable_to": "core_hr_only",
+      "upstream_scenes": [
+        "core_hr_employee",
+        "core_hr_onboard",
+        "core_hr_quit",
+        "core_hr_transfer"
+      ],
+      "downstream_scenes": [
+        "core_hr_change_collab_payroll",
+        "core_hr_change_collab_attendance",
+        "core_hr_change_collab_talent_dev",
+        "core_hr_change_collab_perm",
+        "core_hr_change_collab_internal_loop"
+      ],
+      "see_also": []
+    },
+    "core_hr_change_collab_payroll": {
+      "type": "isv_extension_ready",
+      "title": "员工变动协作 · 薪酬云",
+      "description": "核心人力 → 薪酬云的协作场景 · ISV 实现 EmployeeCoordService 接口",
+      "intent_keywords": [
+        "薪酬变动协作",
+        "薪酬人员变动",
+        "HpdiEmployeeCoordTask"
+      ],
+      "covers_intent": [
+        "接收员工变动写薪酬"
+      ],
+      "applicable_to": "core_hr_to_swc",
+      "upstream_scenes": [
+        "core_hr_change_collab_overview"
+      ],
+      "downstream_scenes": [
+        "hsas_personchange",
+        "hsas_salaryfilelisttab",
+        "hcdm_salarystandard"
+      ],
+      "see_also": [
+        "core_hr_change_collab_attendance"
+      ]
+    },
+    "core_hr_change_collab_attendance": {
+      "type": "isv_extension_ready",
+      "title": "员工变动协作 · 考勤云",
+      "description": "核心人力 → 考勤云的协作场景 · ISV 实现 EmployeeCoordService 接口",
+      "intent_keywords": [
+        "考勤变动协作",
+        "考勤人员变动",
+        "WtcEmployeeCoordTask"
+      ],
+      "covers_intent": [
+        "接收员工变动写考勤"
+      ],
+      "applicable_to": "core_hr_to_wtc",
+      "upstream_scenes": [
+        "core_hr_change_collab_overview"
+      ],
+      "downstream_scenes": [
+        "wtp_attfilebase",
+        "wts_rosterview",
+        "wtte_calresult"
+      ],
+      "see_also": [
+        "core_hr_change_collab_payroll"
+      ]
+    },
+    "hsas_personchange": {
+      "type": "isv_extension_ready",
+      "title": "薪酬人员变动记录",
+      "description": "薪酬侧人员变动入口 · 接收 collab_payroll 写入",
+      "intent_keywords": [
+        "人员变动记录",
+        "薪酬人员变动",
+        "调薪事件"
+      ],
+      "covers_intent": [
+        "薪酬变动落表",
+        "回溯触发"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [
+        "core_hr_change_collab_payroll"
+      ],
+      "downstream_scenes": [
+        "hsas_retroevent",
+        "hsas_salaryfilelisttab"
+      ],
+      "see_also": [
+        "hsas_retroevent"
+      ]
+    },
+    "hsas_salaryfilelisttab": {
+      "type": "standard_business",
+      "title": "薪资档案 · list view",
+      "description": "薪资档案 list 派生视图",
+      "intent_keywords": [
+        "薪资档案",
+        "薪酬档案",
+        "员工薪资"
+      ],
+      "covers_intent": [
+        "薪资档案查询"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [
+        "hsas_personchange",
+        "hsbs_employeequerylist"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "hsas_calplatformcard",
+        "hsas_retroevent"
+      ]
+    },
+    "hsbs_salaryitem": {
+      "type": "isv_extension_ready",
+      "title": "薪酬项目主表",
+      "description": "标品薪酬项目维护 · 业务核心 · BEC 发布事件源",
+      "intent_keywords": [
+        "薪酬项",
+        "工资项",
+        "薪酬科目",
+        "薪资项目"
+      ],
+      "covers_intent": [
+        "薪酬项扩展",
+        "公式扩展",
+        "BEC 订阅"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "hcdm_salarystandard"
+      ],
+      "see_also": [
+        "hcdm_salarystandard",
+        "hsbs_calperiodtype"
+      ]
+    },
+    "hcdm_salarystandard": {
+      "type": "isv_extension_ready",
+      "title": "薪酬标准表",
+      "description": "标品薪酬标准 · 116 字段 · 薪酬体系核心",
+      "intent_keywords": [
+        "薪酬标准",
+        "薪酬体系",
+        "薪酬带宽",
+        "薪酬设计"
+      ],
+      "covers_intent": [
+        "标准定义",
+        "标准时态切换",
+        "跨云接收变动"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [
+        "hsbs_salaryitem"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "hsbs_salaryitem"
+      ]
+    },
+    "hsas_retroevent": {
+      "type": "isv_extension_ready",
+      "title": "薪资回溯事件",
+      "description": "薪资回溯触发器 · 算薪引擎消费",
+      "intent_keywords": [
+        "回溯",
+        "重算",
+        "薪资追溯",
+        "补发",
+        "薪资追算"
+      ],
+      "covers_intent": [
+        "回溯触发",
+        "重算补发"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [
+        "hsas_personchange"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "hsas_personchange"
+      ]
+    },
+    "hsas_employeetaxcnlist": {
+      "type": "isv_extension_ready",
+      "title": "员工个税信息",
+      "description": "中国个税信息 · 派生 list view",
+      "intent_keywords": [
+        "个税",
+        "个人所得税",
+        "员工税"
+      ],
+      "covers_intent": [
+        "个税扩展",
+        "金税集成",
+        "数据规则隔离"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [
+        "hsas_personchange"
+      ],
+      "downstream_scenes": [],
+      "see_also": []
+    },
+    "hsbs_calperiodtype": {
+      "type": "isv_extension_ready",
+      "title": "薪资期间",
+      "description": "薪资期间配置 · 周/月/季 周期",
+      "intent_keywords": [
+        "薪资期间",
+        "薪资周期",
+        "薪期",
+        "工资周期"
+      ],
+      "covers_intent": [
+        "期间配置"
+      ],
+      "applicable_to": "swc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [],
+      "see_also": []
+    },
+    "wtp_attfilebase": {
+      "type": "isv_extension_ready",
+      "title": "考勤档案主表（v5.1 标杆）",
+      "description": "考勤档案真主表 · 73 字段 + 16 反编译类 · v5.1 标杆 · ISV 扩展首选",
+      "intent_keywords": [
+        "考勤档案",
+        "考勤主档",
+        "员工考勤档案"
+      ],
+      "covers_intent": [
+        "考勤档案扩展",
+        "校验",
+        "联动",
+        "接收变动协作",
+        "批改"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [
+        "core_hr_change_collab_attendance"
+      ],
+      "downstream_scenes": [
+        "wts_rosterview",
+        "wtte_calresult"
+      ],
+      "see_also": [
+        "wtp_attfilebasetab"
+      ]
+    },
+    "wts_rosterview": {
+      "type": "isv_extension_ready",
+      "title": "按人员排班",
+      "description": "标品按人员排班视图 · 排班调整入口",
+      "intent_keywords": [
+        "排班",
+        "排班计划",
+        "倒班",
+        "员工排班"
+      ],
+      "covers_intent": [
+        "排班定制",
+        "批量排班",
+        "接收变动重排"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [
+        "wtp_attfilebase",
+        "wtbd_shift"
+      ],
+      "downstream_scenes": [
+        "wtte_calresult"
+      ],
+      "see_also": [
+        "wtbd_shift"
+      ]
+    },
+    "wtbd_shift": {
+      "type": "isv_extension_ready",
+      "title": "班次基础资料",
+      "description": "标品班次定义 · 76 字段 · 排班引擎输入",
+      "intent_keywords": [
+        "班次",
+        "班次设置",
+        "班次定义",
+        "工作时段"
+      ],
+      "covers_intent": [
+        "班次扩展",
+        "时态调整"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "wts_rosterview",
+        "wtte_calresult"
+      ],
+      "see_also": [
+        "wtbd_workschedule",
+        "wtbd_holiday"
+      ]
+    },
+    "wtte_calresult": {
+      "type": "isv_extension_ready",
+      "title": "考勤核算结果",
+      "description": "标品考勤核算结果 · 算薪输入源",
+      "intent_keywords": [
+        "考勤核算",
+        "考勤计算",
+        "考勤汇总",
+        "出勤核算"
+      ],
+      "covers_intent": [
+        "核算字段扩展",
+        "算法替换",
+        "复算",
+        "预警",
+        "推送薪酬"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [
+        "wts_rosterview",
+        "wtp_attfilebase"
+      ],
+      "downstream_scenes": [
+        "hsas_bizdatalist"
+      ],
+      "see_also": []
+    },
+    "wtbd_holiday": {
+      "type": "isv_extension_ready",
+      "title": "假期类型",
+      "description": "标品假期类型基础资料",
+      "intent_keywords": [
+        "假期",
+        "假期类型",
+        "假期定义"
+      ],
+      "covers_intent": [
+        "假期扩展"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "wtabm_vaapplyself"
+      ],
+      "see_also": []
+    },
+    "wtabm_vaapplyself": {
+      "type": "isv_extension_ready",
+      "title": "休假申请",
+      "description": "标品员工休假申请单",
+      "intent_keywords": [
+        "休假申请",
+        "请假",
+        "休假"
+      ],
+      "covers_intent": [
+        "休假流程"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [
+        "wtbd_holiday"
+      ],
+      "downstream_scenes": [
+        "wtte_calresult"
+      ],
+      "see_also": [
+        "wtom_overtimeapplybill",
+        "wtam_busitripbill"
+      ]
+    },
+    "wtom_overtimeapplybill": {
+      "type": "isv_extension_ready",
+      "title": "加班申请",
+      "description": "标品代他人加班申请",
+      "intent_keywords": [
+        "加班",
+        "overtime",
+        "加班单"
+      ],
+      "covers_intent": [
+        "加班审批"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "wtte_calresult"
+      ],
+      "see_also": []
+    },
+    "wtam_busitripbill": {
+      "type": "isv_extension_ready",
+      "title": "出差申请",
+      "description": "标品代他人出差申请",
+      "intent_keywords": [
+        "出差",
+        "business trip",
+        "出差单"
+      ],
+      "covers_intent": [
+        "出差审批"
+      ],
+      "applicable_to": "wtc_only",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "wtte_calresult"
+      ],
+      "see_also": []
+    },
+    "hrcs_datarule": {
+      "type": "standard_platform",
+      "title": "数据规则",
+      "description": "标品数据规则配置 · 全 HR 域通用数据隔离",
+      "intent_keywords": [
+        "数据规则",
+        "data rule",
+        "数据权限",
+        "数据隔离"
+      ],
+      "covers_intent": [
+        "数据隔离配置",
+        "权限规则"
+      ],
+      "applicable_to": "all_hr",
+      "upstream_scenes": [
+        "hrcs_dimension"
+      ],
+      "downstream_scenes": [
+        "hrcs_permfilelist"
+      ],
+      "see_also": [
+        "hrcs_useradmingroup",
+        "hrcs_rolelist"
+      ]
+    },
+    "hrcs_warnscene": {
+      "type": "standard_platform",
+      "title": "预警场景",
+      "description": "标品预警框架 · 全 HR 域统一预警",
+      "intent_keywords": [
+        "预警",
+        "告警",
+        "warning",
+        "提醒",
+        "通知"
+      ],
+      "covers_intent": [
+        "预警配置",
+        "推送"
+      ],
+      "applicable_to": "all_hr",
+      "upstream_scenes": [],
+      "downstream_scenes": [
+        "hrcs_warnscheme",
+        "hrcs_warnexeclog"
+      ],
+      "see_also": []
+    },
+    "core_hr_contract": {
+      "type": "aggregate_scene",
+      "title": "劳动合同（hlcm 聚合·新签/续签/变更/电签/纸签）",
+      "description": "苍穹 HR 标品 HLCM 模块的合同管理聚合场景·包含 6 entity（hlcm_contract / contractapply / empprotocol / otheragreements / renewinquery / contractapplyrenew）",
+      "intent_keywords": [
+        "合同管理",
+        "劳动合同",
+        "合同续签",
+        "合同变更",
+        "电子合同"
+      ],
+      "covers_intent": [
+        "合同续签批量处理",
+        "合同新签",
+        "合同变更"
+      ],
+      "applicable_to": "hlcm_aggregate_entities",
+      "upstream_scenes": [
+        "core_hr_employee"
+      ],
+      "downstream_scenes": [
+        "core_hr_contractinfo",
+        "core_hr_contract_termination",
+        "core_hr_econtract"
+      ],
+      "see_also": [
+        "core_hr_econtract"
+      ],
+      "_added_by": "case_002_contract_renew · DCS-driven L1 reverse-feedback · 2026-05-02",
+      "consumed_by_assets": [
+        "_assets/contract_renew_batch"
+      ],
+      "consumed_by_scenes": [
+        "core_hr_contract_renew"
+      ]
+    },
+    "core_hr_org_unit_transfer": {
+      "type": "isv_extension_with_asset",
+      "title": "成建制划转（业务流型聚合 + 完整资产）",
+      "description": "调度任务批量处理组织/岗位变更·写入标品 hdm_transferbatch 调动单·SUBMITEFFECT 触发标品自动协同 hrpi_* 任职经历底表·完整可复刻资产 _assets/org_unit_transfer/",
+      "intent_keywords": [
+        "成建制划转",
+        "批量调动",
+        "组织上级调整批量改任职",
+        "组织更名同步任职经历",
+        "岗位更名同步任职经历"
+      ],
+      "covers_intent": [
+        "成建制划转"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/org_unit_transfer",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "homs_orgchgrecord",
+        "hbpm_chgrecordevt",
+        "hbpm_chgrecorddetail",
+        "haos_changescene"
+      ],
+      "downstream_scenes": [
+        "hdm_transferbatch",
+        "hdm_transferbatchentry",
+        "hrpi_empposorgrel",
+        "hrpi_assignment",
+        "hrpi_empentrel"
+      ],
+      "see_also": [
+        "core_hr_transfer",
+        "haos_adminorgdetail",
+        "hbpm_positionhr"
+      ],
+      "consumed_forms": [
+        "homs_orgchgrecord",
+        "hbpm_chgrecordevt",
+        "hbpm_chgrecorddetail",
+        "haos_adminorgdetail",
+        "hbpm_positionhr",
+        "haos_changescene",
+        "hrpi_empposorgrel",
+        "hrpi_assignment",
+        "hrpi_empentrel",
+        "hdm_transferbatch",
+        "hdm_transferbatchentry"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_orguntitransfer"
+      ]
+    },
+    "core_hr_contract_renew": {
+      "type": "isv_extension_with_asset",
+      "title": "批量劳动合同续签",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/contract_renew_batch/",
+      "intent_keywords": [
+        "合同续签",
+        "批量续签",
+        "合同到期续约",
+        "劳动合同到期处理",
+        "合同批量延期"
+      ],
+      "covers_intent": [
+        "合同续签"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/contract_renew_batch",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hlcm_contractapplyrenew",
+        "core_hr_contract"
+      ],
+      "downstream_scenes": [
+        "core_hr_contractinfo"
+      ],
+      "see_also": [
+        "core_hr_contract",
+        "core_hr_contract_termination",
+        "core_hr_contractinfo"
+      ],
+      "consumed_forms": [
+        "hlcm_contractapplyrenew",
+        "hlcm_contract",
+        "hlcm_contractapplynew",
+        "hlcm_contractapplyend",
+        "hlcm_contractapplychange",
+        "hlcm_contractapplycancel",
+        "hlcm_contractfileemp",
+        "hlcm_contractfileother",
+        "hlcm_empprotocolnew",
+        "hlcm_empprotocolrelieve",
+        "hlcm_empprotocolterminate",
+        "hlcm_otheragreements"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_hlcm_renewbatch"
+      ]
+    },
+    "org_dev_headcount_management": {
+      "type": "isv_extension_with_asset",
+      "title": "编制管理",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/headcount_management/",
+      "intent_keywords": [
+        "编制管理",
+        "编制计划",
+        "年度编制",
+        "月度编制",
+        "在编人数管理"
+      ],
+      "covers_intent": [
+        "编制管理"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/headcount_management",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "homs_orgchgrecord",
+        "haos_adminorgdetail"
+      ],
+      "downstream_scenes": [
+        "hbpm_positionhr",
+        "hrpi_empposorgrel"
+      ],
+      "see_also": [
+        "haos_adminorgdetail",
+        "hbpm_positionhr",
+        "hjm_jobhr_maintenance"
+      ],
+      "consumed_forms": [
+        "homs_orgchgrecord",
+        "haos_adminorgdetail",
+        "hbpm_positionhr",
+        "hrpi_empposorgrel",
+        "hbss_position_dict",
+        "hbss_jobclass_dict",
+        "hjm_jobhr",
+        "hbjm_jobhr_ext"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_planyear_bill"
+      ]
+    },
+    "core_hr_emp_super_rel_chart": {
+      "type": "isv_extension_with_asset",
+      "title": "员工汇报关系图",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/emp_super_rel_chart/",
+      "intent_keywords": [
+        "员工汇报关系图",
+        "组织架构图",
+        "上下级关系展示",
+        "直属上级查看",
+        "员工视角组织树"
+      ],
+      "covers_intent": [
+        "员工汇报关系图"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/emp_super_rel_chart",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hspm_ermanfile"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "core_hr_employee"
+      ],
+      "consumed_forms": [
+        "hspm_ermanfile",
+        "hrpi_empposorgrel",
+        "hrpi_empentrel",
+        "haos_adminorgdetail"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_empsuprel"
+      ]
+    },
+    "org_dev_adminorgbill_extension": {
+      "type": "isv_extension_with_asset",
+      "title": "组织信息变更审核(变更前后信息)",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/adminorgbill_extension/",
+      "intent_keywords": [
+        "组织信息变更审核",
+        "变更前后信息展示",
+        "组织变更对照表",
+        "审核组织变更详情",
+        "做一套组织变更审核"
+      ],
+      "covers_intent": [
+        "组织信息变更审核"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/adminorgbill_extension",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "homs_orgbatchchgbill_maintenance",
+        "haos_adminorgdetail"
+      ],
+      "downstream_scenes": [],
+      "see_also": [
+        "homs_orgchgrecord",
+        "haos_adminorgdetail"
+      ],
+      "consumed_forms": [
+        "homs_orgbatchchgbill",
+        "haos_adminorgdetail"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_homs_orgbatchchg_ext"
+      ]
+    },
+    "payroll_bankcardchange": {
+      "type": "isv_extension_with_asset",
+      "title": "银行卡变更申请(移动端)",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/bankcardchange/",
+      "intent_keywords": [
+        "银行卡变更",
+        "银行卡修改",
+        "工资卡变更",
+        "做一套银行卡变更",
+        "移动端银行卡变更"
+      ],
+      "covers_intent": [
+        "银行卡变更"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/bankcardchange",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hsas_employee",
+        "hsas_bankaccount"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "hsas_employee",
+        "hsas_bankaccount"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_hsas_bankcard_change"
+      ]
+    },
+    "payroll_beforecomputationcheck": {
+      "type": "isv_extension_with_asset",
+      "title": "计算前校验在途单据",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/beforecomputationcheck/",
+      "intent_keywords": [
+        "计算前校验",
+        "在途单据校验",
+        "薪资计算前置校验",
+        "做一套计算前校验"
+      ],
+      "covers_intent": [
+        "计算前校验"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/beforecomputationcheck",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hsas_calculatebill",
+        "hpdi_personchgrecord"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "hsas_calculatebill",
+        "hpdi_personchgrecord"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_hsas_compute_check"
+      ]
+    },
+    "core_hr_downermanfileword": {
+      "type": "isv_extension_with_asset",
+      "title": "人员履历Word打印",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/downermanfileword/",
+      "intent_keywords": [
+        "人员履历打印",
+        "员工档案Word导出",
+        "履历模板",
+        "做一套履历打印"
+      ],
+      "covers_intent": [
+        "人员履历打印"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/downermanfileword",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hspm_ermanfile",
+        "hrpi_empentrel",
+        "hrpi_empposorgrel"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "hspm_ermanfile",
+        "hrpi_empentrel",
+        "hrpi_empposorgrel"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_hspm_word_template"
+      ]
+    },
+    "payroll_sit_socialsecurity": {
+      "type": "isv_extension_with_asset",
+      "title": "社保代缴单",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/sit_socialsecurity/",
+      "intent_keywords": [
+        "社保代缴",
+        "社保代缴单",
+        "社保托管",
+        "做一套社保代缴"
+      ],
+      "covers_intent": [
+        "社保代缴"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/sit_socialsecurity",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "hsas_employee",
+        "hsas_calculatebill"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "hsas_employee",
+        "hsas_calculatebill"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_sit_socialsecurity"
+      ]
+    },
+    "payroll_swc_salaryapproval": {
+      "type": "isv_extension_with_asset",
+      "title": "移动端薪资审批",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/swc_salaryapproval/",
+      "intent_keywords": [
+        "移动端薪资审批",
+        "薪资移动审批",
+        "做一套薪资审批"
+      ],
+      "covers_intent": [
+        "移动端薪资审批"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/swc_salaryapproval",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "swc_calsalbill",
+        "swc_pcsalbill"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "swc_calsalbill",
+        "swc_pcsalbill"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_swc_salaryapproval"
+      ]
+    },
+    "attendance_wtc_marriageverify": {
+      "type": "isv_extension_with_asset",
+      "title": "婚假有效期核验",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/wtc_marriageverify/",
+      "intent_keywords": [
+        "婚假核验",
+        "婚假有效期",
+        "婚假申请校验",
+        "做一套婚假核验"
+      ],
+      "covers_intent": [
+        "婚假核验"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/wtc_marriageverify",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "wtabm_holiday",
+        "wtabm_balance"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "wtabm_holiday",
+        "wtabm_balance"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_wtabm_marriage_verify"
+      ]
+    },
+    "attendance_wtc_roster": {
+      "type": "isv_extension_with_asset",
+      "title": "考勤周期封存提交校验",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/wtc_roster/",
+      "intent_keywords": [
+        "排班周期封存校验",
+        "考勤周期封存",
+        "封存后禁提交",
+        "做一套封存校验"
+      ],
+      "covers_intent": [
+        "排班周期封存校验"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/wtc_roster",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "wtbd_rosterview",
+        "wtbd_periodlock"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "wtbd_rosterview",
+        "wtbd_periodlock"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_wtbd_roster_lock"
+      ]
+    },
+    "payroll_swc_bonus_new": {
+      "type": "isv_extension_with_asset",
+      "title": "奖金管理",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/swc_bonus_new/",
+      "intent_keywords": [
+        "奖金管理",
+        "奖金计划",
+        "奖金发放",
+        "奖金审批",
+        "绩效奖金"
+      ],
+      "covers_intent": [
+        "奖金管理"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/swc_bonus_new",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [
+        "swc_calsalbill"
+      ],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "swc_calsalbill",
+        "hrpi_empentrel",
+        "hrpi_empposorgrel",
+        "haos_adminorgdetail"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_bonus_plan"
+      ]
+    },
+    "org_dev_home_check_rule": {
+      "type": "isv_extension_with_asset",
+      "title": "信息采集校验配置工具",
+      "description": "基于 dcs_clean 标准化资产 + dcs-case-run K2 实战沉淀·完整可复刻资产 _assets/home_check_rule/",
+      "intent_keywords": [
+        "信息采集校验",
+        "采集规则配置",
+        "字段校验配置",
+        "做一套采集校验"
+      ],
+      "covers_intent": [
+        "信息采集校验"
+      ],
+      "applicable_to": "schedule_task_asset",
+      "asset_ref": "_assets/home_check_rule",
+      "tier": 2,
+      "modelType": "ScheduleTaskAsset",
+      "upstream_scenes": [],
+      "downstream_scenes": [],
+      "see_also": [],
+      "consumed_forms": [
+        "homs_collect",
+        "hpfs_chgaction"
+      ],
+      "isv_self_built_forms": [
+        "${ISV_FLAG}_hom_checkrule"
+      ]
+    }
+  }
+}

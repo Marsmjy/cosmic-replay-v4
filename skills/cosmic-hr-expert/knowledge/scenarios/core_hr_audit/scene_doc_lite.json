@@ -1,0 +1,27 @@
+{
+  "scene": "core_hr_audit",
+  "title": "HR 审批通用基础（htm · hraudite + superaudite 2 form）",
+  "cloud": "core_hr",
+  "description": "HR 审批通用基础 · 提供给离职/调动等业务单据复用的审批基类。ApprovalRejectToSubmitOp 通用模式：审批驳回后回到提交态。应优先继承标品审批基类，不要从零起。",
+  "entities": [
+    "core_hr_audit"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "N/A (审批基类 · 不直接落 chgaction)",
+    "chgEvent": "N/A",
+    "createsHrpi": [],
+    "isvExtPoints": []
+  },
+  "_decompile_anchors": [
+    "kd.hr.htm.opplugin.apply.ApprovalRejectToSubmitOp",
+    "kd.hr.hom.opplugin.onbrd.ApprovalRejectToSubmitOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 0 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

@@ -1,0 +1,418 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_sum_approval;
+
+import kd.bos.dataentity.metadata.IDataEntityProperty;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.operate.OperateOptionConst;
+import kd.bos.entity.operate.result.IOperateInfo;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.entity.plugin.args.EndOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.orm.util.StringUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/9 9:49
+ * FileName: BonusSumApprovalOperatePlugin
+ * Description: 奖金汇总审批单操作插件
+ */
+public class BonusSumApprovalOperatePlugin extends AbstractOperationServicePlugIn {
+    private static final Log logger = LogFactory.getLog(BonusSumApprovalOperatePlugin.class);
+    private static final String BTN_DISCARD = "discard"; // 废弃按钮
+    private static final String BTN_DELETE = "delete"; // 废弃按钮
+    private static final String BTN_SYNC_STATUS = "donothing_sync_status"; // 同步状态到分配汇总单按钮
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        try {
+            List<String> fieldKeys = e.getFieldKeys();
+            String name = this.billEntityType.getName();
+            Map<String, IDataEntityProperty> fieldMap = EntityMetadataCache.getDataEntityType(name).getAllFields();
+            Set<String> keyNumbers = fieldMap.keySet();
+            fieldKeys.addAll(keyNumbers);
+            fieldKeys.add("${ISV_FLAG}_source_dis_sum_id_tag");
+        } catch (Exception ex) {
+            throw new RuntimeException("onPrepareProperties all filed fail",ex);
+        }
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        String operationKey = e.getOperationKey();
+        DynamicObject[] dataEntities = e.getDataEntities();
+        // 提交并生效 或 审核操作时生成奖金发放和部门经费
+        if("submiteffect".equals(operationKey) || "audit".equals(operationKey)){
+            // 跳过权限
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue(OperateOptionConst.ISHASRIGHT, String.valueOf(true));
+            operateOption.setVariableValue(OperateOptionConst.SKIPCHECKPERMISSION, String.valueOf(true));
+
+            // 奖金发放的提交、审核
+            List<DynamicObject> bonusPayments = creatBounsPayments(dataEntities,"");
+            if (bonusPayments.size() > 0) {
+                OperationResult submitResult = OperationServiceHelper.executeOperate("submit", "${ISV_FLAG}_bonus_payment", bonusPayments.toArray(new DynamicObject[0]), operateOption.copy());
+                List<Object> submitSuccessPkIds = submitResult.getSuccessPkIds();
+                checkOperationResult(submitResult,"生成奖金发放失败\n");
+                OperationResult auditResult = OperationServiceHelper.executeOperate("audit", "${ISV_FLAG}_bonus_payment", submitSuccessPkIds.toArray(), operateOption.copy());
+                checkOperationResult(auditResult,"生成奖金发放失败\n");
+            }
+
+            // 部门经费的提交、审核
+            List<DynamicObject> departmentFunds = creatDepartmentFunds(dataEntities,"");
+            if (departmentFunds.size() > 0) {
+                OperationResult submitResult = OperationServiceHelper.executeOperate("submit", "${ISV_FLAG}_department_funds", departmentFunds.toArray(new DynamicObject[0]), operateOption.copy());
+                List<Object> submitSuccessPkIds = submitResult.getSuccessPkIds();
+                checkOperationResult(submitResult,"生成部门经费失败\n");
+                OperationResult auditResult = OperationServiceHelper.executeOperate("audit", "${ISV_FLAG}_department_funds", submitSuccessPkIds.toArray(), operateOption.copy());
+                checkOperationResult(auditResult,"生成部门经费失败\n");
+            }
+        }
+    }
+
+    @Override
+    public void endOperationTransaction(EndOperationTransactionArgs e) {
+        String operationKey = e.getOperationKey();
+        DynamicObject[] dataEntities = e.getDataEntities();
+        // 【废弃按钮】 || 【删除按钮】
+        if(BTN_DISCARD.equals(operationKey) || BTN_DELETE.equals(operationKey)){
+            discard(dataEntities);
+        }
+        // 【同步审批状态】
+        else if(BTN_SYNC_STATUS.equals(operationKey)){
+            syncAuditStatus(dataEntities);
+        }
+    }
+
+    /**
+     * 同步审批状态
+     */
+    private static void syncAuditStatus(DynamicObject[] dataEntities) {
+        // 获取到所有的来源汇总审批单的id
+        Set<Long> distributeSumIdSet = Arrays.stream(dataEntities).map(data -> Arrays.stream(data.getString("${ISV_FLAG}_source_dis_sum_id_tag").split(","))
+                        .map(Long::parseLong).collect(Collectors.toSet()))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        DynamicObject[] distributeSumBills = BusinessDataServiceHelper.load(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, BonusUtil.afterExpectQueryAllField(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, "${ISV_FLAG}_approval_bill"), new QFilter("id", QCP.in, distributeSumIdSet).toArray());
+        // 将分配汇总单按照【汇总审批单的id】进行分组
+        Map<Long,List<DynamicObject>> groupBySumApprovalIdMap = Arrays.stream(distributeSumBills).collect(Collectors.groupingBy(id -> id.getLong("${ISV_FLAG}_sum_approval_id")));
+        // 此操作只在流程中执行，一单执行一次
+        Arrays.stream(dataEntities).forEach(data -> {
+            long sumApprovalId = data.getLong("id");
+            List<DynamicObject> distributeSumList = groupBySumApprovalIdMap.get(sumApprovalId);
+            // 对每张汇总审批单单独操作
+            if(!ObjectUtils.isEmpty(distributeSumList)){
+                String billStatus = data.getString("billstatus");
+                distributeSumList.forEach(status -> status.set("${ISV_FLAG}_approval_status",billStatus));
+            }
+        });
+        BonusUtil.updateBill(distributeSumBills);
+    }
+
+    private void discard(DynamicObject[] dataEntities) {
+        Set<Long> sourceDisSumIdSet = Arrays.stream(dataEntities)
+                .map(distributeSumId -> Arrays.asList(distributeSumId.getString("${ISV_FLAG}_source_dis_sum_id_tag").split(",")))
+                .flatMap(List<String>::stream)
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
+        String afterRemoveAllFields = BonusUtil.afterExpectQueryAllField(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID,"${ISV_FLAG}_approval_bill");
+        DynamicObject[] distributeSumBills = BusinessDataServiceHelper.load(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, afterRemoveAllFields, new QFilter("id", QCP.in, sourceDisSumIdSet).toArray());
+        Arrays.stream(distributeSumBills).forEach(bill -> {
+            bill.set("${ISV_FLAG}_approval_status",null);
+            bill.set("${ISV_FLAG}_gen_bill_date",null);
+            bill.set("${ISV_FLAG}_sum_approval_id",null);
+        });
+        if(!ObjectUtils.isEmpty(distributeSumBills)){
+            SaveServiceHelper.update(distributeSumBills);
+        }
+    }
+
+    /**
+     * 审批通过后或者提交并生效后，生成奖金发放
+     */
+    public List<DynamicObject> creatBounsPayments(DynamicObject[] dataEntities,String isChecked) {
+        List<Long> disSumIdList = new ArrayList<>();
+        if ("isChecked".equals(isChecked)){
+            disSumIdList.addAll(Arrays.stream(dataEntities).map(item -> item.getLong("id")).collect(Collectors.toList()));
+        }else {
+            // 收集分配汇总单id
+            for (DynamicObject dataEntity : dataEntities) {
+                String disSumId = dataEntity.getString("${ISV_FLAG}_source_dis_sum_id_tag");
+                if (StringUtils.isEmpty(disSumId)){
+                    continue;
+                }
+                if (disSumId.contains(",")) {
+                    disSumIdList.addAll(Arrays.stream(disSumId.split(",")).map(Long::valueOf).collect(Collectors.toList()));
+                }else {
+                    disSumIdList.add(Long.valueOf(disSumId));
+                }
+            }
+        }
+
+        // 查询分配汇总单
+        Object[] pkIdArray = disSumIdList.toArray(new Object[]{});
+        DynamicObject[] disSumArray = BusinessDataServiceHelper.load(pkIdArray, BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_distribute_sum").getDynamicObjectType());
+
+        // 查询分配汇总单对应的核定单和分配汇总单
+        List<Long> entryIds = new ArrayList<>();
+        List<Long> distributeIds = new ArrayList<>(); // 来源分配单
+        List<Long> approvalIds = new ArrayList<>(); // 来源核定单
+        Arrays.stream(disSumArray).map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail"))
+                .flatMap(DynamicObjectCollection::stream)
+                .forEach(item -> {
+                    entryIds.add(item.getLong("id"));
+                    String sourceBillType = item.getString("${ISV_FLAG}_source_bill_type"); // 来源单据类型
+                    if ("A".equals(sourceBillType)){
+                        // 来源数据为核定
+                        approvalIds.add(item.getLong("${ISV_FLAG}_source_bill_hd.id"));
+                    }else if ("B".equals(sourceBillType)){
+                        // 来源数据为分配
+                        distributeIds.add(item.getLong("${ISV_FLAG}_source_bill_fp.id"));
+                    }else {
+                        throw new KDBizException("出现未知数据来源，请联系相关人员查看。");
+                    }
+                });
+
+        // 查询奖金发放数据
+        QFilter filter = new QFilter("${ISV_FLAG}_source_bill_type", QCP.equals, "A");
+        filter.and("${ISV_FLAG}_sourceid",QCP.in,entryIds);
+        DynamicObjectCollection bonusPaymentQuery = QueryServiceHelper.query("${ISV_FLAG}_bonus_payment", "id", filter.toArray());
+        if (!CollectionUtils.isEmpty(bonusPaymentQuery)){
+            throw new KDBizException("当前汇总审批单已生成了奖金发放，请联系相关人员查看。");
+        }
+
+        // 查询对应的核定单
+        approvalIds.addAll(Arrays.stream(disSumArray).map(item -> item.getLong("${ISV_FLAG}_approval_bill_id")).collect(Collectors.toList()));
+
+        DynamicObject[] approvalArray = BusinessDataServiceHelper.load(approvalIds.toArray(), BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_approval_2nd").getDynamicObjectType());
+        Map<Long, DynamicObject> approvalMap = Arrays.stream(approvalArray).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+        // 查询对应的奖金分配详情
+        DynamicObject[] distributeArray = BusinessDataServiceHelper.load(distributeIds.toArray(), BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_dis_detail").getDynamicObjectType());
+        Map<Long, DynamicObject> distributeMap = Arrays.stream(distributeArray).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+        // 默认为人民币
+        DynamicObject currency = BusinessDataServiceHelper.loadSingle("bd_currency", "id,amtprecision", new QFilter("number", QCP.equals, "CNY").toArray()); // 币别
+        List<DynamicObject> bonusPayments = new ArrayList<>();
+        for (DynamicObject disSum : disSumArray) {
+            String disSumBillno = disSum.getString("billno");// 分配汇总单号
+            DynamicObject bonusItem = disSum.getDynamicObject("${ISV_FLAG}_bonus_item"); // 奖金项目
+            Date belongPeriod = disSum.getDate("${ISV_FLAG}_belong_period"); // 归属期间
+            long checkId = disSum.getLong("${ISV_FLAG}_approval_bill_id"); // 关联核定单id
+            // 分配汇总单得上级单据类型是否为部门经费
+            String parentBillType = disSum.getString("${ISV_FLAG}_parent_bill_type");
+
+
+            // 获取人员分配明细
+            DynamicObjectCollection personDisDetailEntry = disSum.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail");
+            for (DynamicObject personDisDetail : personDisDetailEntry) {
+                long entryId = personDisDetail.getLong("id");
+                BigDecimal disTotalPerson = personDisDetail.getBigDecimal("${ISV_FLAG}_dis_total_person"); // 分配金额（元）
+                DynamicObject person = personDisDetail.getDynamicObject("${ISV_FLAG}_dept_person"); // 人员
+                DynamicObject company = personDisDetail.getDynamicObject("${ISV_FLAG}_per_admin_company"); // 所属公司
+                DynamicObject dept = personDisDetail.getDynamicObject("${ISV_FLAG}_admin_dept"); // 所属部门
+                DynamicObject underTakeCompany = personDisDetail.getDynamicObject("${ISV_FLAG}_undertake_organizati"); // 承担组织
+                DynamicObject org = underTakeCompany.getDynamicObject("org"); // 承担组织的bu
+                String sourceBillType = personDisDetail.getString("${ISV_FLAG}_source_bill_type"); //数据来源类型 A核定单 B分配单
+                DynamicObject distributeOrg; // 分配组织
+                Date distributeTime; // 分配时间
+                DynamicObject distributePerson; //分配人
+                if ("A".equals(sourceBillType)){
+                    long sourceId = personDisDetail.getLong("${ISV_FLAG}_source_bill_hd.id");
+                    DynamicObject  approvalData = approvalMap.get(sourceId);
+                    if (approvalData == null){
+                        throw new KDBizException("出现未知数据来源，请联系相关人员查看。");
+                    }
+                    distributeOrg = approvalData.getDynamicObject("${ISV_FLAG}_belong_to_org");
+                    distributeTime = approvalData.getDate("createtime");
+                    distributePerson = approvalData.getDynamicObject("${ISV_FLAG}_dept_person");
+                }else {
+                    long sourceId = personDisDetail.getLong("${ISV_FLAG}_source_bill_fp.id");
+                    DynamicObject distributeData = distributeMap.get(sourceId);
+                    if (distributeData == null){
+                        throw new KDBizException("出现未知数据来源，请联系相关人员查看。");
+                    }
+                    distributeOrg = distributeData.getDynamicObject("${ISV_FLAG}_distribute_org");
+                    distributeTime = distributeData.getDate("createtime");
+                    distributePerson = distributeData.getDynamicObject("${ISV_FLAG}_dept_person");
+                }
+
+                // 生成奖金发放
+                DynamicObject  checkBill = approvalMap.get(checkId);
+                DynamicObject bonusPayment = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_payment");
+                bonusPayment.set("billstatus","A");
+                bonusPayment.set("org",org); // 承担组织的bu
+                bonusPayment.set("${ISV_FLAG}_person",person); // 人员
+                bonusPayment.set("${ISV_FLAG}_company",company); // 所属公司
+                bonusPayment.set("${ISV_FLAG}_dept",dept);  // 所属部门
+                bonusPayment.set("${ISV_FLAG}_is_agent","0");  // 是否代发
+                bonusPayment.set("${ISV_FLAG}_payment_company",underTakeCompany); // 发放公司
+                bonusPayment.set("${ISV_FLAG}_shoulder_org",underTakeCompany); // 承担组织
+                bonusPayment.set("${ISV_FLAG}_bonus_item",bonusItem); // 奖金项目
+                bonusPayment.set("${ISV_FLAG}_period",belongPeriod); // 所属期间
+                bonusPayment.set("${ISV_FLAG}_amount",disTotalPerson); // 分配总额
+                bonusPayment.set("${ISV_FLAG}_currency",currency); // 币别
+                bonusPayment.set("${ISV_FLAG}_distribute_org",distributeOrg); // 分配组织
+                bonusPayment.set("${ISV_FLAG}_distribute_time",distributeTime); // 分配时间
+                bonusPayment.set("${ISV_FLAG}_distribute_person",distributePerson); // 分配人
+                bonusPayment.set("${ISV_FLAG}_redeem_amount",disTotalPerson); // 可兑现金额
+                bonusPayment.set("${ISV_FLAG}_is_zero",disTotalPerson.compareTo(BigDecimal.ZERO) == 0? "1" : "0"); // 可兑现金额是否为0
+                bonusPayment.set("${ISV_FLAG}_cancelled_amount",BigDecimal.ZERO); // 作废金额
+                bonusPayment.set("${ISV_FLAG}_sourceid",entryId); // 数据来源
+                bonusPayment.set("${ISV_FLAG}_source_billno",disSumBillno); // 来源单号
+                bonusPayment.set("${ISV_FLAG}_source_bill_type","B"); // 来源类型 A核定单 B分配汇总单
+                bonusPayment.set("${ISV_FLAG}_check_id",checkBill.getLong("id")); // 核定单id
+                bonusPayment.set("${ISV_FLAG}_check_number",checkBill.getString("billno")); //核定单编码
+                bonusPayment.set("${ISV_FLAG}_check_name",checkBill.getString("${ISV_FLAG}_approval_name")); //核定单名称
+                bonusPayment.set("${ISV_FLAG}_grant_per_count",0); // 发放次数
+                bonusPayment.set("${ISV_FLAG}_grant_amount", BigDecimal.ZERO); // 发放总额
+                bonusPayment.set("${ISV_FLAG}_dept_funds_number","C".equals(parentBillType) ? disSum.getString("${ISV_FLAG}_parent_bill_no") : ""); // 部门经费编码，需判断分配汇总单得上级单据类型是否为部门经费
+                bonusPayment.set("${ISV_FLAG}_personalization", checkBill.getString("${ISV_FLAG}_personalization")); // 奖金业务类别
+                bonusPayments.add(bonusPayment);
+            }
+        }
+        return bonusPayments;
+    }
+
+
+    /**
+     * 生成部门经费
+     */
+    public List<DynamicObject> creatDepartmentFunds(DynamicObject[] dataEntities,String isChecked) {
+        List<Long> disSumIdList = new ArrayList<>();
+        if ("isChecked".equals(isChecked)){
+            disSumIdList.addAll(Arrays.stream(dataEntities).map(item -> item.getLong("id")).collect(Collectors.toList()));
+        }else {
+            // 收集分配汇总单id
+            for (DynamicObject dataEntity : dataEntities) {
+                String disSumId = dataEntity.getString("${ISV_FLAG}_source_dis_sum_id_tag");
+                disSumIdList.addAll(Arrays.stream(disSumId.split(",")).map(Long::valueOf).collect(Collectors.toList()));
+            }
+        }
+
+        // 查询分配汇总单
+        Object[] pkIdArray = disSumIdList.toArray(new Object[]{});
+        DynamicObject[] disSumArray = BusinessDataServiceHelper.load(pkIdArray, BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_distribute_sum").getDynamicObjectType());
+
+        // 查询分配汇总单对应的核定单和分配汇总单
+        List<Long> entryIds = new ArrayList<>();
+        Arrays.stream(disSumArray).map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_dept_retentiion_deta"))
+                .flatMap(DynamicObjectCollection::stream)
+                .forEach(item -> {
+                    // 来源数据为分配
+                    entryIds.add(item.getLong("id"));
+                });
+        // 查询部门留存数据
+        QFilter filter = new QFilter("${ISV_FLAG}_source_bill_type", QCP.equals, "B");
+        filter.and("${ISV_FLAG}_sourceid", QCP.in, entryIds);
+        DynamicObjectCollection departmentFundsQuery = QueryServiceHelper.query("${ISV_FLAG}_department_funds", "id", filter.toArray());
+        if (!CollectionUtils.isEmpty(departmentFundsQuery)) {
+            throw new RuntimeException("存在核定单已生成了部门留存数据，请联系相关人员查看。");
+        }
+
+        // 默认为人民币
+        DynamicObject currency = BusinessDataServiceHelper.loadSingle("bd_currency", "id,amtprecision", new QFilter("number", QCP.equals, "CNY").toArray()); // 币别
+        List<DynamicObject> departmentFunds = new ArrayList<>();
+        for (DynamicObject disSum : disSumArray) {
+            String disSumBillno = disSum.getString("billno");// 分配汇总单号
+            DynamicObject bonusItem = disSum.getDynamicObject("${ISV_FLAG}_bonus_item"); // 奖金项目
+            Date belongPeriod = disSum.getDate("${ISV_FLAG}_belong_period"); // 归属期间
+            long checkId = disSum.getLong("${ISV_FLAG}_approval_bill_id"); // 关联核定单id
+
+            // 创建人信息
+            DynamicObject deptPerson = disSum.getDynamicObject("${ISV_FLAG}_dept_person1");
+            DynamicObject attributPost = disSum.getDynamicObject("${ISV_FLAG}_attribut_post");
+            DynamicObject attributDept = disSum.getDynamicObject("${ISV_FLAG}_attribut_dept");
+            DynamicObject attributCompany = disSum.getDynamicObject("${ISV_FLAG}_attribut_company");
+
+            // 获取人员分配明细
+            DynamicObjectCollection deptRetentionEntry = disSum.getDynamicObjectCollection("${ISV_FLAG}_dept_retentiion_deta");
+            for (DynamicObject deptRetention : deptRetentionEntry) {
+                long entryId = deptRetention.getLong("id");
+                BigDecimal amount = deptRetention.getBigDecimal("${ISV_FLAG}_retention_total_dept"); // 分配金额（元）
+                DynamicObject company = deptRetention.getDynamicObject("${ISV_FLAG}_keep_company"); // 所属公司
+                DynamicObject dept = deptRetention.getDynamicObject("${ISV_FLAG}_admin_org_keep"); // 所属部门
+                DynamicObject underTakeCompany = deptRetention.getDynamicObject("${ISV_FLAG}_undertake_org_dept"); // 承担组织
+                DynamicObject org = company.getDynamicObject("org"); // 所属公司的bu
+                String sourceBillType = deptRetention.getString("${ISV_FLAG}_source_bill_type_dep"); //数据来源类型 A核定单 B分配单
+                String remark = deptRetention.getString("${ISV_FLAG}_remark_dept");
+                // 生成部门经费
+                DynamicObject departmentFund = BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_department_funds");
+                departmentFund.set("billstatus", "A");
+                departmentFund.set("auditstatus", "A");
+                departmentFund.set("org", org); // 所属公司的bu
+                departmentFund.set("${ISV_FLAG}_bonus_item", bonusItem); // 奖金项目
+                departmentFund.set("${ISV_FLAG}_keep_company",company); // 公司
+                departmentFund.set("${ISV_FLAG}_admin_org_keep", dept); // 部门
+                departmentFund.set("${ISV_FLAG}_undertake_org", underTakeCompany); // 承担组织
+                departmentFund.set("${ISV_FLAG}_belong_period", belongPeriod); // 承归属期间
+                departmentFund.set("${ISV_FLAG}_currency",currency); // 币别
+                departmentFund.set("${ISV_FLAG}_dept_amount",amount); // 部门经费总额
+                departmentFund.set("${ISV_FLAG}_surplus_amount",amount); // 剩余可用总额
+                departmentFund.set("${ISV_FLAG}_is_zero",amount.compareTo(BigDecimal.ZERO) == 0? "1" : "0");// 剩余可用总额是否为0
+                departmentFund.set("${ISV_FLAG}_used_amount", BigDecimal.ZERO); // 已用总额
+                departmentFund.set("${ISV_FLAG}_redistribut_amount", BigDecimal.ZERO); // 再分配总额
+                departmentFund.set("${ISV_FLAG}_sub_finance_amount", BigDecimal.ZERO); // 提交财务总额
+                departmentFund.set("${ISV_FLAG}_finance_use_amount", BigDecimal.ZERO); // 财务已用金额
+                departmentFund.set("${ISV_FLAG}_finance_unuse_amount", BigDecimal.ZERO); // 财务未用总额
+                departmentFund.set("${ISV_FLAG}_sourceid", entryId); // 数据来源
+                departmentFund.set("${ISV_FLAG}_source_billno", disSumBillno); // 来源单号
+                departmentFund.set("${ISV_FLAG}_source_bill_type", "B"); // 来源类型 A核定单 B分配单
+                departmentFund.set("${ISV_FLAG}_check_id",checkId); // 核定单id
+                departmentFund.set("${ISV_FLAG}_remark_dept",remark); // 备注
+
+                // 创建人信息
+                departmentFund.set("${ISV_FLAG}_dept_person",deptPerson);
+                departmentFund.set("${ISV_FLAG}_attribut_post",attributPost);
+                departmentFund.set("${ISV_FLAG}_attribut_dept",attributDept);
+                departmentFund.set("${ISV_FLAG}_attribut_company",attributCompany);
+                departmentFunds.add(departmentFund);
+            }
+        }
+        return departmentFunds;
+    }
+
+    /**
+     * 操作结果校验
+     */
+    private static void checkOperationResult(OperationResult auditResult,String message) {
+        if (!auditResult.isSuccess()){
+            List<IOperateInfo> allErrorOrValidateInfo = auditResult.getAllErrorOrValidateInfo();
+            if (allErrorOrValidateInfo != null && allErrorOrValidateInfo.size() > 0) {
+                List<String> messages = allErrorOrValidateInfo.stream().map(item -> item.getMessage() + "\n").collect(Collectors.toList());
+                List<String> collect = IntStream.range(0, messages.size()).mapToObj(i -> (i + 1) + "、" + messages.get(i)).collect(Collectors.toList());
+                throw new RuntimeException(message + String.join("", collect));
+            }
+            if (!StringUtils.isEmpty(auditResult.getMessage())){
+                throw new RuntimeException(message + auditResult.getMessage());
+            }
+            logger.info("error{}",auditResult);
+            throw new KDBizException("出现未知结果，请联系相关人员查看");
+        }
+    }
+}

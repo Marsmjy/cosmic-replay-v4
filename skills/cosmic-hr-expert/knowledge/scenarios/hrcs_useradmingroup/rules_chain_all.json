@@ -1,0 +1,1378 @@
+{
+  "scene": "hrcs_useradmingroup",
+  "formId": "hrcs_useradmingroup",
+  "description": "rules_chain_all.json · 场景 hrcs_useradmingroup · 10 opKey 全富化（5 反编译类实证 · TreeList 视图 · 0 个 BEC 发布）",
+  "opKeys": {
+    "donothing_remove_user": {
+      "opKey": "donothing_remove_user",
+      "name": "删除用户（FormPlugin 拦截·校验+触发 do_remove_user）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 工具栏\"删除用户\"按钮 · 由 FormPlugin.beforeDoOperation 拦截 · 校验当前组在管控范围内 · 列表删行后 afterDoOperation 自动调 do_remove_user OP",
+        "frequency": "高频 · TreeList 用户管理主操作",
+        "stateTransition": "无（FormPlugin 拦截·不直接落库）",
+        "extValue": 4
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "FormPlugin.beforeDoOperation 拦截 · 调 verifyAdminGroup（superiorGroupIds 守护 · 上级组不允许删用户）"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "FormPlugin 阶段 · 校验当前组不是上级组 · 不在 superiorGroupIds · 命中则 evt.setCancel(true) 阻断"
+        },
+        {
+          "order": 2,
+          "plugin": "(标品框架删行)",
+          "className": "kd.bos.list.framework",
+          "role": "标品 ListPlugin 框架删除选中行（List 默认 delete 操作）"
+        },
+        {
+          "order": 3,
+          "plugin": "HRAdminGroupTreeListPlugin#afterDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "成功后调 OperationServiceHelper.executeOperate(\"do_remove_user\", arr, opt) · opt 含 superiorGroupIds + focusNodeId 给 OP 防越权用"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DROU_1",
+          "order": 1,
+          "name": "上级组不允许删用户（superiorGroupIds 守护）",
+          "type": "beforeDoOperation",
+          "definition": "if focusNodeId 不是根 && superiorGroupIds.contains(adminGroupId) → showTipNotification(\"当前分组不在您的管控范围内...\") + evt.setCancel(true)",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "SerializationUtils.fromJsonString(superiorGroupIds, List)"
+          ],
+          "edgeCase": "根节点 ROOT_NODE_ID=8609760E-EF83-4775-A9FF-CCDEC7C0B689 跳过此校验·因为 split(\"_\")[0] 拿到的是字符串非数字",
+          "sourceLine": "L179-L189",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "afterDoOperation 触发 do_remove_user 二次落库 · clearCache + refresh"
+        }
+      ],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 这是 FormPlugin 拦截 opKey · 没有 OP 链 · ISV 想加 OP 校验请挂到 do_remove_user（真正的 OP opKey）",
+        "⚠ 反模式·禁继承 HRAdminGroupTreeListPlugin · 这是场景专属类 · ISV 应继承 AbstractTreeListPlugin 并列挂",
+        "⚠ ISV 重写 beforeDoOperation 不要自己调 super.beforeDoOperation · 否则 isHrAdmin 校验会两次"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 选中右侧用户行后点删除"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 HRAdminGroupTreeListPlugin.java",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "donothing_add_user": {
+      "opKey": "donothing_add_user",
+      "name": "添加用户（FormPlugin 弹用户F7·关闭后调 do_add_user）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 工具栏\"添加用户\"按钮 · 弹 bos_user F7 · 5 道范围过滤 · 用户选完 closedCallBack 调 do_add_user OP 落库",
+        "frequency": "高频 · TreeList 主入口",
+        "stateTransition": "无（FormPlugin 拦截·不直接落库）",
+        "extValue": 5
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "FormPlugin.beforeDoOperation 拦截 · 调 showUserF7TreeList · 弹用户 F7 + IAdminGroupListSubExtPlugin 扩展点"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "拦截 → showUserF7TreeList(): 5 道过滤（已加用户/自己/同scheme不同type/enable=1/usertype 多值匹配）+ HRPluginProxy.callAfter(IAdminGroupListSubExtPlugin#beforeAddCustomUser)"
+        },
+        {
+          "order": 2,
+          "plugin": "HRAdminGroupTreeListPlugin#closedCallBack",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "用户F7关闭 · actionId == BOS_USERTREELISTF7 · 拿 ListSelectedRowCollection · 构造 hrcs_useradmingroup DO[] · 调 do_add_user OP"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DAU_1",
+          "order": 1,
+          "name": "用户F7范围 5 道过滤（DB 直查 + DynaScheme 联动）",
+          "type": "beforeDoOperation",
+          "definition": "(1)已在本组 not in (2)RequestContext.currUserId 不能加自己 (3)同 adminScheme 不同 adminType 用户 not in (4)enable=1 (5)usertype 4-OR链匹配·扩展点 IAdminGroupListSubExtPlugin#beforeAddCustomUser",
+          "phase": "FormPlugin.beforeDoOperation → showUserF7TreeList",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#showUserF7TreeList",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [
+            "(perm_admingroup).id",
+            "(bos_user).enable",
+            "(bos_user).usertype"
+          ],
+          "serviceCalls": [
+            "DB.query(DBRoute.base, ...)",
+            "RequestContext.get().getCurrUserId()",
+            "HRPluginProxy.callAfter(IAdminGroupListSubExtPlugin)"
+          ],
+          "edgeCase": "adminScheme 缓存为空时·走 HRAdminGroupService.writeOpLog(false, appId) + 调 verifyAdmin · 若失败也写日志",
+          "sourceLine": "L399-L443",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "(main).user",
+        "(main).usergroup"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 这是 FormPlugin 拦截 opKey · 不挂 OP · ISV 加校验只能挂 do_add_user（真正的 OP opKey）",
+        "⚠ ISV 想扩展用户F7范围 · 唯一办法是实现 IAdminGroupListSubExtPlugin#beforeAddCustomUser 并通过 KingdeeCloudConfig 注册",
+        "⚠ 反模式·不能继承 HRAdminGroupTreeListPlugin 重写 showUserF7TreeList · 这是私有方法 · 也是场景专属类不允许继承",
+        "⚠ closedCallBack 里 do_add_user 失败时·当前实现只 showErrorNotification 不抛异常 · ISV 加监听要注意 OperationResult.isSuccess()"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 选中树节点后点添加用户"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 HRAdminGroupTreeListPlugin.java",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "donothing_modify_group": {
+      "opKey": "donothing_modify_group",
+      "name": "修改HR管理员分组（FormPlugin 弹明细页·EDIT/VIEW 双态）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 双击节点或点修改按钮 · 弹 hrcs_admingroupdetail 子页面 · 根据 superiorGroupIds 决定 EDIT/VIEW 双态",
+        "frequency": "中频",
+        "stateTransition": "无",
+        "extValue": 4
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "调 adminGroupTreeModifyOperation · 拼 FormShowParameter"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "verifyAdminGroup（根节点拒/上级拒）→ 拼 FormShowParameter(formId=hrcs_admingroupdetail) · 设 OperationStatus.EDIT 或 VIEW · pageId = adminGroupId + \"|\" + parentPageId · showForm"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DNMG_1",
+          "order": 1,
+          "name": "修改前·focusNodeId 非空",
+          "type": "AbstractValidator",
+          "definition": "override validate(): focusNodeId 不能空",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "donothing_* 一般 FormPlugin 拦截·OP 链空·ISV 加 Validator 也会被框架忽略 · 实际生效是 FormPlugin.beforeDoOperation 拦截",
+          "sourceLine": "(参考 mines)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DNMG_2",
+          "order": 2,
+          "name": "修改前·非根节点",
+          "type": "AbstractValidator",
+          "definition": "override validate(): focusNodeId != ROOT_NODE_ID",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建·与 FormPlugin verifyAdminGroup 双闸)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "donothing 实际不走 OP·此 Validator 不会触发",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DNMG_3",
+          "order": 3,
+          "name": "修改前·在管控范围",
+          "type": "AbstractValidator",
+          "definition": "override validate(): superiorGroupIds 不包含 adminGroupId",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "同 V_DNMG_2",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DMG_1",
+          "order": 1,
+          "name": "EDIT/VIEW 双态判定（superiorGroupIds 包含 → VIEW · 否则 EDIT）",
+          "type": "beforeDoOperation",
+          "definition": "if superiorGroupId.contains(adminGroupId) → bsp.getCustomParams().put(\"viewstatus\", \"1\") + bsp.setStatus(OperationStatus.VIEW); else → \"viewstatus\"=\"0\" + EDIT",
+          "phase": "FormPlugin.beforeDoOperation → adminGroupTreeModifyOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeModifyOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [
+            "(perm_admingroup).number",
+            "(perm_admingroup).name",
+            "(perm_admingroup).description"
+          ],
+          "serviceCalls": [
+            "HRBaseServiceHelper.queryOne(perm_admingroup)"
+          ],
+          "edgeCase": "根节点（ROOT_NODE_ID）跳过双态判定·直接进 EDIT；level=1 时父组强制为 \"0\"",
+          "sourceLine": "L260-L302",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNMG_pageIdFormat",
+          "order": 2,
+          "name": "pageId 拼接规则（防止重复打开同一明细页）",
+          "type": "beforeDoOperation",
+          "definition": "String newPageId = adminGroupId + \"|\" + this.getView().getPageId(); bsp.setPageId(newPageId);",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeModifyOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "IFormView.getPageId"
+          ],
+          "edgeCase": "同一 adminGroupId 第二次点击修改·newPageId 相同·苍穹自动复用已开 tab",
+          "sourceLine": "L278",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNMG_parentNodeId",
+          "order": 3,
+          "name": "parentNodeId 解析规则（level==1 强制为 \"0\"）",
+          "type": "beforeDoOperation",
+          "definition": "adminGroupParentId = parentNodeId.contains(\"_\") ? parentNodeId.substring(0, parentNodeId.indexOf(95)) : parentNodeId; if (level == 1) adminGroupParentId = \"0\";",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeModifyOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "String.substring",
+            "String.indexOf"
+          ],
+          "edgeCase": "95 是字符 \"_\" 的 ASCII 码·常量魔法数 · level==1 时父级硬编码 0 表示根",
+          "sourceLine": "L281-L285",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNMG_caption",
+          "order": 4,
+          "name": "明细页标题用 perm_admingroup.name LocaleString",
+          "type": "beforeDoOperation",
+          "definition": "HRBaseServiceHelper serviceHelper = new HRBaseServiceHelper(\"perm_admingroup\"); DynamicObject adminGroup = serviceHelper.queryOne(\"number,name,description\", new QFilter(\"id\", \"=\", adminGroupId)); bsp.setCaption(adminGroup.getLocaleString(\"name\").getLocaleValue());",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeModifyOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [
+            "(perm_admingroup).number",
+            "(perm_admingroup).name",
+            "(perm_admingroup).description"
+          ],
+          "serviceCalls": [
+            "HRBaseServiceHelper.queryOne",
+            "LocaleString.getLocaleValue"
+          ],
+          "edgeCase": "多语言下 caption 跟当前 lang 走·ISV 改 caption 注意 lang 兼容",
+          "sourceLine": "L286-L288",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNMG_customParams",
+          "order": 5,
+          "name": "CustomParams 三件套（adminGroupId/adminGroupParentId/level）传给子页面",
+          "type": "beforeDoOperation",
+          "definition": "bsp.getCustomParams().put(\"adminGroupId\", adminGroupId); bsp.getCustomParams().put(\"adminGroupParentId\", adminGroupParentId); bsp.getCustomParams().put(\"level\", String.valueOf(level));",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeModifyOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "FormShowParameter.getCustomParams"
+          ],
+          "edgeCase": "子页面 hrcs_admingroupdetail 通过 customParams 拿这 3 个 key",
+          "sourceLine": "L280-L290",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(perm_admingroup).number",
+        "(perm_admingroup).name",
+        "(perm_admingroup).description"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ pageId 拼接规则: adminGroupId + \"|\" + parentPageId · 防止重复打开同一管理员组明细页",
+        "⚠ 反模式·禁止继承 HRAdminGroupTreeListPlugin 重写 adminGroupTreeModifyOperation · 私有方法 · 场景专属类",
+        "⚠ ISV 想给 hrcs_admingroupdetail 子页面加字段 · 应直接挂 hrcs_admingroupdetail 的 FormPlugin · 不要走父表单"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 节点双击或点修改按钮"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "donothing_remove_group": {
+      "opKey": "donothing_remove_group",
+      "name": "删除HR管理员分组（FormPlugin 4道前置校验+确认对话框→do_remove_group OP）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 删除按钮 · FormPlugin 拦截 · 4 道前置校验（非根/管控/无下级/无用户/无角色引用）+ 确认对话框 · 用户确认后 confirmCallBack 调 do_remove_group OP 触发 9 表级联删",
+        "frequency": "低频但风险高（级联删 9 表）",
+        "stateTransition": "无（FormPlugin 拦截 + OP 调度）",
+        "extValue": 5
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "adminGroupTreeRemoveOperation · 4 道校验 + 弹 OK/Cancel 确认框"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "校验 1: 不是根节点; 校验 2: verifyAdminGroup（在管控范围）; 校验 3: 无下级（perm_admingroup.parent=adminGroupId 查空）; 校验 4: 无用户（hrcs_useradmingroup.usergroup=adminGroupId 查空）; 校验 5: checkHasRoleRef（perm_role.createadmingrp / hrcs_roleopenscope.admingroup / hrcs_roleassignscope.admingroup 三表都不能引用）; 全过 → 弹确认框"
+        },
+        {
+          "order": 2,
+          "plugin": "HRAdminGroupTreeListPlugin#confirmCallBack",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "MessageBoxResult.Yes → 调 OperationServiceHelper.executeOperate(\"do_remove_group\", arr, opt) · opt 带 focusNodeId/tag_of_view"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DRG_1",
+          "order": 1,
+          "name": "4 道前置校验 + 角色引用反查",
+          "type": "beforeDoOperation",
+          "definition": "依次：1)非根 2)verifyAdminGroup（管控） 3)无下级分组 4)无用户 5)无角色引用（3 张表）· 任一失败 showTipNotification + return",
+          "phase": "FormPlugin.beforeDoOperation → adminGroupTreeRemoveOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeRemoveOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "BusinessDataServiceHelper.loadSingle(perm_admingroup, parent=adminGroupId)",
+            "BusinessDataServiceHelper.loadSingle(hrcs_useradmingroup, usergroup=adminGroupId)",
+            "PermDBServiceHelper.roleDBService.isExists(createadmingrp)",
+            "HRBaseServiceHelper(hrcs_roleopenscope).isExists(admingroup)",
+            "HRBaseServiceHelper(hrcs_roleassignscope).isExists(admingroup)"
+          ],
+          "edgeCase": "下级分组/用户/角色任意命中 · 提示文本不同 · 但都不会调用 do_remove_group",
+          "sourceLine": "L230-L258 + L500-L519",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·禁继承 HRAdminGroupTreeListPlugin 重写 adminGroupTreeRemoveOperation 或 confirmCallBack · 场景专属类",
+        "⚠ ISV 想加额外删组前置校验·应通过 do_remove_group 的 onAddValidators 注册 Validator · 不要在这层加",
+        "⚠ 用户点 Cancel 时 · 不会调 do_remove_group · 但 confirmCallBack 会触发 · 注意通过 event.getResult() 区分",
+        "⚠ 角色引用 3 张表（perm_role/hrcs_roleopenscope/hrcs_roleassignscope）的查询语义不一样 · ISV 加新引用表时不要假设走同一查询"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 选中节点后点删除"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 HRAdminGroupTreeListPlugin.adminGroupTreeRemoveOperation/confirmCallBack/checkHasRoleRef",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "donothing_batch_perm": {
+      "opKey": "donothing_batch_perm",
+      "name": "批量授权HR管理员分组（FormPlugin 弹批量授权页 hrcs_amingroupbatchauth）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 工具栏 · 选中非明细管理员组 · 弹 hrcs_amingroupbatchauth 主页签做批量授权",
+        "frequency": "中频",
+        "stateTransition": "无",
+        "extValue": 4
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "verifyBatchAuth + 弹 hrcs_amingroupbatchauth"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "verifyBatchAuth: 1)非根 2)有下级分组（longnumber like 查 ≥ 2 条·明细组拒） 3)在管控范围（focusNodeLongNumber.startsWith currentUserInGroup.longnumber） · 全过 → bsp.setFormId(hrcs_amingroupbatchauth) · type=batchAuth · MainNewTabPage"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DNBP_1",
+          "order": 1,
+          "name": "批量授权前·focusNodeLongNumber 非空",
+          "type": "AbstractValidator",
+          "definition": "override validate(): IPageCache.focusNodeLongNumber 不能空",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "donothing opKey 实际不走 OP · ISV 加 Validator 不生效 · 实际生效是 FormPlugin verifyBatchAuth",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DNBP_2",
+          "order": 2,
+          "name": "批量授权前·非明细组（必须有下级）",
+          "type": "AbstractValidator",
+          "definition": "override validate(): perm_admingroup 中 longnumber like %focusLongNumber% 至少 2 条",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [
+            "(perm_admingroup).longnumber"
+          ],
+          "edgeCase": "同 V_DNBP_1",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DNBP_3",
+          "order": 3,
+          "name": "批量授权前·在管控范围（startsWith currentUserInGroup.longnumber）",
+          "type": "AbstractValidator",
+          "definition": "override validate(): focusNodeLongNumber.startsWith(任一 currentUserInGroup.longnumber)",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "同 V_DNBP_1",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DBP_1",
+          "order": 1,
+          "name": "verifyBatchAuth · 明细组拒（必须是非明细 longnumber 至少 2 条）",
+          "type": "beforeDoOperation",
+          "definition": "DynamicObjectCollection coll = HRBaseServiceHelper(perm_admingroup).queryOriginalCollection(\"id\", new QFilter(\"longnumber\", \"like\", \"%\"+focusNodeLongNumber+\"%\")); if (coll.size() < 2) → showTipNotification(\"选择一个非明细管理员分组。\") return false;",
+          "phase": "FormPlugin.beforeDoOperation → verifyBatchAuth",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#verifyBatchAuth",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [
+            "(perm_admingroup).id",
+            "(perm_admingroup).longnumber"
+          ],
+          "serviceCalls": [
+            "HRBaseServiceHelper.queryOriginalCollection",
+            "SerializationUtils.fromJsonString(currentUserInGroup, Set)"
+          ],
+          "edgeCase": "currentUserInGroup 集合中 longnumber 必须是 focusNodeLongNumber 的前缀（startsWith）· 否则就是越权",
+          "sourceLine": "L448-L467",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNBP_levelFromArr",
+          "order": 2,
+          "name": "level 取自 nodeId.split(\"_\")[1]",
+          "type": "beforeDoOperation",
+          "definition": "String[] arr = focusNodeId.split(\"_\"); String adminGroupId = arr[0]; bsp.getCustomParams().put(\"level\", arr[1]);",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeBatchPermOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "String.split"
+          ],
+          "edgeCase": "根节点不会到这里·因为 verifyBatchAuth 的非根校验已拦",
+          "sourceLine": "L213-L227",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNBP_typeBatchAuth",
+          "order": 3,
+          "name": "CustomParam type=batchAuth 给子页面",
+          "type": "beforeDoOperation",
+          "definition": "bsp.getCustomParams().put(\"type\", \"batchAuth\");",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeBatchPermOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "FormShowParameter.getCustomParams.put"
+          ],
+          "edgeCase": "hrcs_amingroupbatchauth 子页面通过 type 区分 batchAuth 与其他模式",
+          "sourceLine": "L226",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNBP_mainNewTabPage",
+          "order": 4,
+          "name": "ShowType.MainNewTabPage",
+          "type": "beforeDoOperation",
+          "definition": "bsp.getOpenStyle().setShowType(ShowType.MainNewTabPage);",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeBatchPermOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "ShowType.MainNewTabPage",
+            "OpenStyle.setShowType"
+          ],
+          "edgeCase": "与 modify 的 MainNewTabPage 一致·ISV 改成 Modal 会影响用户体验",
+          "sourceLine": "L222",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DNBP_currentUserInGroup",
+          "order": 5,
+          "name": "currentUserInGroup 缓存校验（startsWith 算法）",
+          "type": "beforeDoOperation",
+          "definition": "Set<String> currentUserInGroup = SerializationUtils.fromJsonString(pageCache.get(\"currentUserInGroup\"), Set.class); for (String longNumber : currentUserInGroup) { if (focusNodeLongNumber.startsWith(longNumber)) return true; }",
+          "phase": "FormPlugin.beforeDoOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#verifyBatchAuth",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "SerializationUtils.fromJsonString"
+          ],
+          "edgeCase": "startsWith 是字符串前缀匹配·organization 树形 longnumber 模式（!.!.!）·防止越权",
+          "sourceLine": "L460-L466",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·禁继承 HRAdminGroupTreeListPlugin 重写 verifyBatchAuth 或 adminGroupTreeBatchPermOperation · 场景专属类",
+        "⚠ 真正的批量授权落库逻辑在 hrcs_amingroupbatchauth 子页面 · 不在 hrcs_useradmingroup · ISV 加批量授权后置逻辑应挂子页面",
+        "⚠ longnumber 用 \"%X%\" 模糊查 · 不是精确查 · ISV 不能假设结果集只含子级"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 选中非明细组后点批量授权"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "donothing_add_group": {
+      "opKey": "donothing_add_group",
+      "name": "新增管理员分组（FormPlugin 弹明细页·OperationStatus.ADDNEW）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "TreeList 工具栏\"新增\"按钮 · 弹 hrcs_admingroupdetail 子页面新增 · 校验层级上限 PermCommonUtil.getAdminLevelLimit()",
+        "frequency": "中频",
+        "stateTransition": "无",
+        "extValue": 4
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "adminGroupTreeAddOperation · 校验层级 + 弹明细页"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "verifyAdminGroup（管控） + 校验 level >= getAdminLevelLimit()（如 5 级则只能建到第 5 级） · 全过 → bsp.setFormId(hrcs_admingroupdetail) · level=parentLevel+1 · OperationStatus.ADDNEW · viewstatus=\"0\""
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_DAG_1",
+          "order": 1,
+          "name": "层级上限校验",
+          "type": "beforeDoOperation",
+          "definition": "int level = Integer.parseInt(arr[1]); if (level >= PermCommonUtil.getAdminLevelLimit()) → showTipNotification(\"仅允许创建%s级管理员。\", levelLimit) + return",
+          "phase": "FormPlugin.beforeDoOperation → adminGroupTreeAddOperation",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#adminGroupTreeAddOperation",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "PermCommonUtil.getAdminLevelLimit()"
+          ],
+          "edgeCase": "level 取自 nodeId.split(\"_\")[1] · 字符串解析失败抛 NumberFormatException 没单独捕获",
+          "sourceLine": "L304-L332",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·禁继承 HRAdminGroupTreeListPlugin 重写 adminGroupTreeAddOperation · 场景专属类",
+        "⚠ 真正落库逻辑在 hrcs_admingroupdetail 的 save OP · 不在本场景 · ISV 加新增后置应挂 hrcs_admingroupdetail",
+        "⚠ getAdminLevelLimit() 是平台级配置·不是单 form 配置·ISV 不应硬编码层级上限"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 选中父节点后点新增"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新（FormPlugin 重建 TreeView）",
+      "opType": "refresh",
+      "overview": {
+        "scene": "TreeList 工具栏\"刷新\"按钮 · 重新调 HRAdminGroupService.initAdminGroupTree 装载树",
+        "frequency": "中频",
+        "stateTransition": "无",
+        "extValue": 2
+      },
+      "formPluginBefore": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "调 refresh() 私有方法"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRAdminGroupTreeListPlugin#beforeDoOperation",
+          "className": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "role": "switch case refresh → this.refresh() · 内部调 HRAdminGroupService.initAdminGroupTree(tv, pageCache) · 异常时弹错误并 logger.error([AdminGroupEditPlugin]重新加载管理员组树异常：)"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HAGTL_REFRESH_1",
+          "order": 1,
+          "name": "异常吞掉 · 不抛业务异常",
+          "type": "beforeDoOperation",
+          "definition": "try { initAdminGroupTree } catch (Exception var12) { showErrorNotification + logger.error + return; }",
+          "phase": "FormPlugin.beforeDoOperation → refresh",
+          "impl": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin#refresh",
+          "implClass": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminGroupTreeListPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HRAdminGroupService.initAdminGroupTree"
+          ],
+          "edgeCase": "异常会被吞 · TreeView 可能空 · 但不会抛 KDBizException 中断流程",
+          "sourceLine": "L383-L393",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·禁继承 HRAdminGroupTreeListPlugin 重写 refresh · 场景专属类",
+        "⚠ refresh 不会清 IPageCache · ISV 想完整重置 · 应同步调 pageCache.clear() 或显式 remove key",
+        "⚠ refresh 也是 do_add_user / do_remove_user 成功后内部调用·不要假设 refresh 只来自工具栏点击"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "TreeList 工具栏 · 刷新按钮"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "do_remove_group": {
+      "opKey": "do_remove_group",
+      "name": "删除HR管理员分组（OP·9 表级联删·标品已封装）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "OP opKey · 由 FormPlugin.confirmCallBack 触发 · AdminGroupDelOp 在事务内级联删 9 张表（perm_admingroup* + hrcs_admingroup*）· 失败统一抛 KDBizException",
+        "frequency": "低频但风险高",
+        "stateTransition": "记录从存在→删除",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminGroupDelOp",
+          "className": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp",
+          "role": "重写 1 个方法：beginOperationTransaction（事务中级联删 9 张表 · super.beginOperationTransaction(e) 先调 · 然后从 OperateOption 取 focusNodeId · 拆出 adminGroupId · 9 张表逐一 DeleteServiceHelper.delete · 失败统一抛 KDBizException(\"删除失败。\")）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DRG_1",
+          "order": 1,
+          "name": "删组校验·focusNodeId 必须存在",
+          "type": "AbstractValidator",
+          "definition": "override validate(): focusNodeId 不能空",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "与 V_DRU_1 同模式",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DRG_2",
+          "order": 2,
+          "name": "删组校验·非根节点",
+          "type": "AbstractValidator",
+          "definition": "override validate(): focusNodeId.split(\"_\")[0] != \"8609760E-EF83-4775-A9FF-CCDEC7C0B689\"",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建·兜底)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "FormPlugin 已校验·这里是 OP 层双闸",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DRG_3",
+          "order": 3,
+          "name": "删组校验·下游 ISV 表无引用（如有）",
+          "type": "AbstractValidator",
+          "definition": "ISV 自建表（如 ${ISV_FLAG}_admingroupext）有 admingroup 引用时·此 Validator 防止漏删",
+          "phase": "onAddValidators",
+          "impl": "(ISV 强烈推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "AdminGroupDelOp 只删 9 张标品表·ISV 自建表不会自动级联",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_AdminGroupDelOp_1",
+          "order": 1,
+          "name": "9 表级联删（事务内）",
+          "type": "beginOperationTransaction",
+          "definition": "依次 DeleteServiceHelper.delete: perm_admingroupfunperm / perm_admingroupbizunit / perm_admingrouporg / perm_admingroupapp / perm_admingroupadduser / perm_admingroup / hrcs_admingrouporg / hrcs_admingroupfunc / hrcs_admingroupfile · 全用 usergroup=adminGroupId 或 id=adminGroupId 过滤",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "DeleteServiceHelper.delete(perm_admingroupfunperm)",
+            "DeleteServiceHelper.delete(perm_admingroupbizunit)",
+            "DeleteServiceHelper.delete(perm_admingrouporg)",
+            "DeleteServiceHelper.delete(perm_admingroupapp)",
+            "DeleteServiceHelper.delete(perm_admingroupadduser)",
+            "DeleteServiceHelper.delete(perm_admingroup)",
+            "DeleteServiceHelper.delete(hrcs_admingrouporg)",
+            "DeleteServiceHelper.delete(hrcs_admingroupfunc)",
+            "DeleteServiceHelper.delete(hrcs_admingroupfile)"
+          ],
+          "edgeCase": "any DeleteServiceHelper.delete throws → 整个 try 块抛 KDBizException · 事务回滚 · 9 表协同回滚（DB 事务保证）· focusNodeId 为空时 LOGGER.info 后直接 return（什么都不删）",
+          "sourceLine": "L34-L58",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRG_focusNodeIdEmpty",
+          "order": 2,
+          "name": "focusNodeId 为空 → 直接 return",
+          "type": "beginOperationTransaction",
+          "definition": "String focusNodeId = this.getOption().getVariableValue(\"focusNodeId\",\"\"); if (StringUtils.isEmpty(focusNodeId)) { LOGGER.info(\"FOCUS_NODE_ID_IS_EMPTY\"); return; }",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "StringUtils.isEmpty"
+          ],
+          "edgeCase": "非 FormPlugin 调用·OP 不删任何东西",
+          "sourceLine": "L36-L40",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRG_parseAdminGroupId",
+          "order": 3,
+          "name": "解析 adminGroupId（focusNodeId.split(\"_\")[0]）",
+          "type": "beginOperationTransaction",
+          "definition": "String[] arr = focusNodeId.split(\"_\"); Long adminGroupId = Long.parseLong(arr[0]);",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "Long.parseLong"
+          ],
+          "edgeCase": "根节点 ROOT_NODE_ID 是 UUID 不是数字·parseLong 抛 NumberFormatException · 但 FormPlugin 阶段已防",
+          "sourceLine": "L41-L42",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRG_unifiedExceptionHandle",
+          "order": 4,
+          "name": "统一异常处理（任一表删失败抛 KDBizException(\"删除失败。\")）",
+          "type": "beginOperationTransaction",
+          "definition": "try { 9 张表 DeleteServiceHelper.delete } catch (Exception ex) { LOGGER.error(\"删除管理员组失败\", ex); throw new KDBizException(ResManager.loadKDString(\"删除失败。\", \"AdminGroupTreeListPlugin_7\", \"bos-permission-formplugin\", new Object[0])); }",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "ResManager.loadKDString",
+            "KDBizException.<init>"
+          ],
+          "edgeCase": "i18n key 是 AdminGroupTreeListPlugin_7 · project 是 bos-permission-formplugin（不是 hrmp-hrcs-formplugin）",
+          "sourceLine": "L53-L57",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRG_no_isv_cascade",
+          "order": 5,
+          "name": "ISV 自建表 不会被自动级联（标品 9 表外的需要 ISV 在自己 OP 加 cascade）",
+          "type": "beginOperationTransaction",
+          "definition": "AdminGroupDelOp 只 delete 9 张标品表·ISV 自建跨表（如 ${ISV_FLAG}_admingroupext）·必须 ISV 自建 OP 在 beginOperationTransaction 阶段加级联（同事务保证回滚）",
+          "phase": "beginOperationTransaction",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "(ISV 自建 OP 推荐)",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "ISV 在 afterExecuteOperationTransaction 做级联是错的·主表事务已提交·ISV 表如果失败造成数据不一致",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·绝对不能继承 AdminGroupDelOp · 场景专属 OP · ISV 应继承 HRDataBaseOp 并列挂 do_remove_group",
+        "⚠ 不应该自己再 delete perm_admingroup* / hrcs_admingroup* 9 张表 · 标品已经做了 · ISV 重复 delete 会撞已删除主键",
+        "⚠ ISV 想加跨表（如 ISV 自建 ${ISV_FLAG}_admingroupext）的级联删 · 应在自己的 OP 里加 · 在 beginOperationTransaction 阶段做（与 AdminGroupDelOp 同事务）",
+        "⚠ ISV 加 onAddValidators 校验时 · OperateOption.focusNodeId 在 Validator 阶段已可读 · 通过 this.getOption().getVariableValue 拿"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "由 HRAdminGroupTreeListPlugin.confirmCallBack 触发"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 AdminGroupDelOp.java",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "do_add_user": {
+      "opKey": "do_add_user",
+      "name": "添加用户（OP·SaveServiceHelper.save+权限日志+缓存清理）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "OP opKey · 由 FormPlugin.closedCallBack 触发 · AdminGroupAddUserOp 在事务内 SaveServiceHelper.save 创建 hrcs_useradmingroup 行 · 然后清缓存 + 写权限日志（PermAdminLogHelper.adminEventImage）",
+        "frequency": "高频",
+        "stateTransition": "记录从无→已创建",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminGroupAddUserOp",
+          "className": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "role": "重写 1 个方法：beginOperationTransaction · 遍历 dataEntities 拿 user.id + usergroup.id · saveUserAdminGroup · 条件 PermCommonUtil.isEnableAuthorityChangeNotice() 调 FormConfigFactory.cancelShowFormRights 清缓存 · 条件 PermCommonUtil.isEnablePermLog() 调 PermAdminLogHelper.adminEventImage + HRAdminGroupService.adminEvent2PermLog 写日志 · 最后 HRAdminGroupService.writeOpLog(true, appId)"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DAU_1",
+          "order": 1,
+          "name": "用户F7返回非空校验",
+          "type": "AbstractValidator",
+          "definition": "override validate(): for each row → row.getDataEntity().getDynamicObject(\"user\") 不为 null · null 则 addErrorMessage(\"请选择用户\")",
+          "phase": "onAddValidators",
+          "impl": "(ISV 自定义 Validator)",
+          "implClass": "(ISV 推荐继承 AbstractValidator 自建·非标品)",
+          "readFields": [
+            "(main).user"
+          ],
+          "edgeCase": "对应 FormPlugin closedCallBack 闭环·正常情况 user 必有值",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DAU_2",
+          "order": 2,
+          "name": "usergroup 非空校验",
+          "type": "AbstractValidator",
+          "definition": "override validate(): row.getDataEntity().getDynamicObject(\"usergroup\") != null · null 抛错\"请选择管理员组\"",
+          "phase": "onAddValidators",
+          "impl": "(ISV 自定义 Validator)",
+          "implClass": "(ISV 推荐继承 AbstractValidator 自建·非标品)",
+          "readFields": [
+            "(main).usergroup"
+          ],
+          "edgeCase": "usergroup 由 closedCallBack 写入·焦点节点丢失会null",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DAU_3",
+          "order": 3,
+          "name": "用户在组内重复校验（防重）",
+          "type": "AbstractValidator",
+          "definition": "override validate(): 用 user.id+usergroup.id 在 hrcs_useradmingroup 反查·已存在则 addErrorMessage(\"用户已在该管理员组内\")",
+          "phase": "onAddValidators",
+          "impl": "(ISV 自定义 Validator)",
+          "implClass": "(ISV 推荐继承 AbstractValidator 自建·标品 FormPlugin 已通过 SQL not in 过滤·但 OP 层兜底防重)",
+          "readFields": [
+            "(main).user",
+            "(main).usergroup"
+          ],
+          "edgeCase": "并发场景下两个会话同时点添加可能撞·OP 层 Validator 是兜底",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_AdminGroupAddUserOp_1",
+          "order": 1,
+          "name": "saveUserAdminGroup 私有方法",
+          "type": "beginOperationTransaction",
+          "definition": "for each userId: BusinessDataServiceHelper.newDynamicObject(\"hrcs_useradmingroup\") · set(\"user\", userId) · set(\"usergroup\", adminGroupId) · saveList.add(do); SaveServiceHelper.save(saveList.toArray)",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp#saveUserAdminGroup",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "writeFields": [
+            "(main).user",
+            "(main).usergroup"
+          ],
+          "readFields": [
+            "user.id",
+            "usergroup.id"
+          ],
+          "serviceCalls": [
+            "BusinessDataServiceHelper.newDynamicObject(hrcs_useradmingroup)",
+            "SaveServiceHelper.save(arr)",
+            "PermAdminLogHelper.adminEventImage",
+            "HRAdminGroupService.adminEvent2PermLog",
+            "HRAdminGroupService.writeOpLog",
+            "FormConfigFactory.cancelShowFormRights"
+          ],
+          "edgeCase": "adminGroupId 来自 dataEntity.getString(\"usergroup.id\") · 只取最后一行（覆盖式赋值·见 L52-L56）· 假设全部行同一 adminGroupId · 这是 FormPlugin 约束",
+          "sourceLine": "L52-L81",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DAU_isEnableAuthorityChangeNotice",
+          "order": 2,
+          "name": "权限变更通知开关 → 清缓存",
+          "type": "beginOperationTransaction",
+          "definition": "if (PermCommonUtil.isEnableAuthorityChangeNotice()) { try { FormConfigFactory.cancelShowFormRights(saveUserIds); } catch(Ex){ logger.error } }",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "PermCommonUtil.isEnableAuthorityChangeNotice",
+            "FormConfigFactory.cancelShowFormRights"
+          ],
+          "edgeCase": "开关关闭时不清缓存·权限页可能展示旧缓存·业务侧能容忍",
+          "sourceLine": "L62-L70",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DAU_writePermLog",
+          "order": 3,
+          "name": "权限日志记录（adminEvent2PermLog）",
+          "type": "beginOperationTransaction",
+          "definition": "if (PermCommonUtil.isEnablePermLog()) { adminEventImage(...) → adminEvent2PermLog(appId, \"bar_add\", opbtn, adminGroupId, focusAdgNumber, focusAdgName, \"\", afterData, ConstantsHelper.getAdminAddBusifrom(), EnumPermBusiType.ADMIN_ADD); }",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "PermCommonUtil.isEnablePermLog",
+            "PermAdminLogHelper.adminEventImage",
+            "HRAdminGroupService.adminEvent2PermLog",
+            "ConstantsHelper.getAdd",
+            "ConstantsHelper.getAdminAddBusifrom"
+          ],
+          "edgeCase": "opbtn 来自 ConstantsHelper.getAdd() 平台多语言·ISV 不要硬编码\"add\"",
+          "sourceLine": "L73-L78",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DAU_writeOpLog",
+          "order": 4,
+          "name": "操作日志（writeOpLog true）",
+          "type": "beginOperationTransaction",
+          "definition": "HRAdminGroupService.writeOpLog(true, appId);  // 末尾固定调",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HRAdminGroupService.writeOpLog"
+          ],
+          "edgeCase": "true=成功·false=失败两端日志配对·ISV 不要在自己的 OP 重复调以免日志双写",
+          "sourceLine": "L80",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DAU_appIdFromOption",
+          "order": 5,
+          "name": "appId 来自 OperateOption（FormPlugin 传入）",
+          "type": "beginOperationTransaction",
+          "definition": "String appId = this.getOption().getVariableValue(\"appId\", \"\");  // 默认空字符串",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupAddUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "当 OP 被定时任务等非 FormPlugin 调用时·appId 为空·权限日志缺源",
+          "sourceLine": "L72",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "(main).user",
+        "(main).usergroup"
+      ],
+      "readFields": [
+        "user.id",
+        "usergroup.id"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·绝对不能继承 AdminGroupAddUserOp · 场景专属 OP · ISV 应继承 HRDataBaseOp 并列挂 do_add_user",
+        "⚠ saveList.add 在 lambda 内 · 顺序按 userIdSet 迭代序 · userIdSet 是 List 实证 L83 → 顺序确定",
+        "⚠ ISV 加 Validator 时 · 注意 entity.getString(\"usergroup.id\") 返回字符串而不是 Long · 长整型转换要 Long.parseLong",
+        "⚠ FormConfigFactory.cancelShowFormRights 失败时只 logger.error 不抛异常 · ISV 不能依赖它一定成功 · 自己的缓存清理要在 afterExecuteOperationTransaction 重做"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "由 HRAdminGroupTreeListPlugin.closedCallBack 触发（用户F7关闭）"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 AdminGroupAddUserOp.java",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    },
+    "do_remove_user": {
+      "opKey": "do_remove_user",
+      "name": "删除用户（OP·跨组守护+部分成功反馈+权限日志）",
+      "opType": "donothing",
+      "overview": {
+        "scene": "OP opKey · 由 FormPlugin.afterDoOperation 触发 · AdminGroupDelUserOp 在事务内根据 focusNodeId 是否根节点分两支：非根直接删；根节点带 superiorGroupIds 守护逐行判断·跳过上级组·返回 customData(delAll/count/notDelData)",
+        "frequency": "高频",
+        "stateTransition": "记录从存在→删除",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminGroupDelUserOp",
+          "className": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "role": "重写 1 个方法：beginOperationTransaction · super 先调 · 取 focusNodeId · isEmpty 直接 return · 非根节点：load id+user.id 然后 DeleteServiceHelper.delete · 根节点：load 5 字段 · 逐行判断 superiorGroupIds 是否包含 usergroup.id · 不包含才加入 deleteList · 包含则统计到 notDelData · 然后 DeleteServiceHelper.delete(deleteList) + 设 customData(delAll/count/notDelData) · 最后写权限日志 + 清 cancelShowFormRights"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_DRU_1",
+          "order": 1,
+          "name": "删用户校验·focusNodeId 必须存在",
+          "type": "AbstractValidator",
+          "definition": "override validate(): String focusNodeId = this.getOption().getVariableValue(\"focusNodeId\",\"\"); if HRStringUtils.isEmpty(focusNodeId) addErrorMessage",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建·防御非 TreeList 触发场景)",
+          "implClass": "AbstractValidator",
+          "readFields": [],
+          "edgeCase": "非 FormPlugin 调用时·OperateOption 可能空",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DRU_2",
+          "order": 2,
+          "name": "删用户校验·删除集合非空",
+          "type": "AbstractValidator",
+          "definition": "override validate(): row.getDataEntity().getLong(\"id\") > 0",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建)",
+          "implClass": "AbstractValidator",
+          "readFields": [
+            "(main).id"
+          ],
+          "edgeCase": "AdminGroupDelUserOp 内部假设 id 必有·ISV 防御",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        },
+        {
+          "id": "V_DRU_3",
+          "order": 3,
+          "name": "删用户校验·跨组守护（superiorGroupIds）",
+          "type": "AbstractValidator",
+          "definition": "override validate(): 取 OperateOption.superiorGroupIds JSON · for each row 看 usergroup.id 是否在守护列表 · 命中拒",
+          "phase": "onAddValidators",
+          "impl": "(ISV 推荐自建·与 OP 内分支语义对齐)",
+          "implClass": "AbstractValidator",
+          "readFields": [
+            "(main).usergroup.id"
+          ],
+          "edgeCase": "根节点删用户场景的兜底·OP 内分支已做·Validator 是双闸",
+          "sourceLine": "(ISV 推荐占位)",
+          "confidence": "recommended_pattern"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_AdminGroupDelUserOp_1",
+          "order": 1,
+          "name": "非根节点分支 · 直接 DeleteServiceHelper.delete",
+          "type": "beginOperationTransaction",
+          "definition": "DynamicObject[] arr = BusinessDataServiceHelper.load(\"hrcs_useradmingroup\", \"id, user.id\", QFilter(\"id\", \"in\", userAdminGroupIdList)); for(arr) userIds.add(user.id); DeleteServiceHelper.delete(\"hrcs_useradmingroup\", QFilter(\"id\", \"in\", userAdminGroupIdList))",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "writeFields": [],
+          "readFields": [
+            "id",
+            "user.id"
+          ],
+          "serviceCalls": [
+            "BusinessDataServiceHelper.load",
+            "DeleteServiceHelper.delete"
+          ],
+          "edgeCase": "非根节点不做 superiorGroupIds 校验·因为 FormPlugin 阶段已经校验过（B_HAGTL_DROU_1）",
+          "sourceLine": "L72-L78",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_AdminGroupDelUserOp_2",
+          "order": 2,
+          "name": "根节点分支 · superiorGroupIds 守护 + 部分成功反馈",
+          "type": "beginOperationTransaction",
+          "definition": "load 5 字段（id, user.id, user.name, usergroup.id, usergroup.name）· for each row: if !superiorGroupIds.contains(usergroup.id) → deleteList.add(id); else → delAll=false + notDelData.append([adminGroupName - userName]); 最后 DeleteServiceHelper.delete(deleteList) + customData put(delAll/count/notDelData)",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "writeFields": [],
+          "readFields": [
+            "id",
+            "user.id",
+            "user.name",
+            "usergroup.id",
+            "usergroup.name"
+          ],
+          "serviceCalls": [
+            "BusinessDataServiceHelper.load",
+            "DeleteServiceHelper.delete",
+            "SerializationUtils.fromJsonString(superiorGroupIds, List)"
+          ],
+          "edgeCase": "deleteList 为空时·不调 DeleteServiceHelper.delete · 但 customData 仍设 delAll/count/notDelData · count=0",
+          "sourceLine": "L78-L107",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_AdminGroupDelUserOp_3",
+          "order": 3,
+          "name": "权限日志 + 缓存清理",
+          "type": "beginOperationTransaction",
+          "definition": "if PermCommonUtil.isEnablePermLog() → adminEventImage + HRAdminGroupService.adminEvent2PermLog(\"donothing_remove_user\", ...EnumPermBusiType.ADMIN_DEL); if PermCommonUtil.isEnableAuthorityChangeNotice() → FormConfigFactory.cancelShowFormRights(userIds)",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "PermCommonUtil.isEnablePermLog",
+            "PermAdminLogHelper.adminEventImage",
+            "HRAdminGroupService.adminEvent2PermLog",
+            "PermCommonUtil.isEnableAuthorityChangeNotice",
+            "FormConfigFactory.cancelShowFormRights"
+          ],
+          "edgeCase": "cancelShowFormRights 失败被 catch · 只 logger.error · 不影响 OP 成功 · 但缓存可能脏",
+          "sourceLine": "L108-L125",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRU_focusNodeIdEmpty",
+          "order": 4,
+          "name": "focusNodeId 为空 → 直接 return",
+          "type": "beginOperationTransaction",
+          "definition": "String focusNodeId = this.getOption().getVariableValue(\"focusNodeId\",\"\"); if (HRStringUtils.isEmpty(focusNodeId)) { LOGGER.info(\"FOCUS_NODE_ID_IS_EMPTY\"); return; }",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HRStringUtils.isEmpty"
+          ],
+          "edgeCase": "非 FormPlugin 调用·OP 直接什么都不做·没异常",
+          "sourceLine": "L62-L66",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_DRU_setCustomData",
+          "order": 5,
+          "name": "根节点分支返回 customData 给 FormPlugin afterDoOperation",
+          "type": "beginOperationTransaction",
+          "definition": "returnMap.put(\"delAll\", Boolean.toString(delAll)); returnMap.put(\"count\", deleteList.size()+\"\"); returnMap.put(\"notDelData\", notDelData.toString()); this.getOperationResult().setCustomData(returnMap);",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp#beginOperationTransaction",
+          "implClass": "kd.hr.hrcs.opplugin.web.perm.AdminGroupDelUserOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "Maps.newHashMapWithExpectedSize",
+            "OperationResult.setCustomData"
+          ],
+          "edgeCase": "非根节点分支不设 customData · FormPlugin afterDoOperation 通过 customData.delAll 判定走哪个分支·ISV 不要破坏 customData 结构",
+          "sourceLine": "L102-L106",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "id",
+        "user.id",
+        "user.name",
+        "usergroup.id",
+        "usergroup.name"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 反模式·绝对不能继承 AdminGroupDelUserOp · 场景专属 OP · ISV 应继承 HRDataBaseOp 并列挂 do_remove_user",
+        "⚠ 根/非根节点分支判定基于 OperateOption.focusNodeId 字符串相等 · ISV 加扩展时 OperateOption 必须延续这个 key",
+        "⚠ customData 含 delAll/count/notDelData 三个 key · UI 端 afterDoOperation 依赖这个格式 · ISV 不能改 customData 结构",
+        "⚠ ISV 加 Validator 时 · 注意此 OP readFields 已含 5 个字段 · onPreparePropertys 不需要重声明 · 但 ISV 自定义 readFields 要再 add"
+      ],
+      "metadataConfig": {
+        "uiTrigger": "由 HRAdminGroupTreeListPlugin.afterDoOperation 触发"
+      },
+      "_synthesized": {
+        "from": "manual_curation_v2 · 反编译实证 AdminGroupDelUserOp.java",
+        "confidence": "verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "expert_curation_2026-04-28"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-28",
+      "source": "manual_curation",
+      "opKeysAdded": [],
+      "bosNativeSkipped": [],
+      "injectionScript": "manual"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-28",
+      "source": "expert_curation_v2 · 5 反编译类实证 + form_lifecycle_rules.json + curated_sdk.json 联动",
+      "opKeysEnriched": [
+        "donothing_remove_user",
+        "donothing_add_user",
+        "donothing_modify_group",
+        "donothing_remove_group",
+        "donothing_batch_perm",
+        "donothing_add_group",
+        "refresh",
+        "do_remove_group",
+        "do_add_user",
+        "do_remove_user"
+      ],
+      "injectionScript": "manual_curation_v2"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package ${ISV_FLAG}.swc.hsbm.common.util;
+
+import java.text.MessageFormat;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.resource.ResManager;
+
+public class SWCI18NParam {
+    private String description;
+    private String resourceID;
+    private String systemType;
+
+    public SWCI18NParam() {
+    }
+
+    public SWCI18NParam(String description, String resourceID, String systemType) {
+        this.description = description;
+        this.resourceID = resourceID;
+        this.systemType = systemType;
+    }
+
+    public String loadKDString() {
+        return ResManager.loadKDString(this.getDescription(), this.getResourceID(), this.getSystemType(), new Object[0]);
+    }
+
+    public LocaleString getLocaleString() {
+        return ResManager.getLocaleString(this.getDescription(), this.getResourceID(), this.getSystemType());
+    }
+
+    public String loadKDString(Object... params) {
+        return MessageFormat.format(ResManager.loadKDString(this.getDescription(), this.getResourceID(), this.getSystemType(), new Object[0]), params);
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getResourceID() {
+        return this.resourceID;
+    }
+
+    public void setResourceID(String resourceID) {
+        this.resourceID = resourceID;
+    }
+
+    public String getSystemType() {
+        return this.systemType;
+    }
+
+    public void setSystemType(String systemType) {
+        this.systemType = systemType;
+    }
+}

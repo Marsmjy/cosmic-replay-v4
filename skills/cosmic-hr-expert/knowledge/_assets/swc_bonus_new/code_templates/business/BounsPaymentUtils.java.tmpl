@@ -1,0 +1,585 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.db.DB;
+import kd.bos.db.DBRoute;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.sdk.swc.hsas.business.helper.HSASBizDataServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.common.util.BizDataFailStatusEnum;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * Author: wanghansheng
+ * Date: 2025/4/8 15:26
+ */
+public class BounsPaymentUtils {
+    public static final String DonothingBonusPayment = "donothing_bonus_payment"; // 奖金发放操作标识
+    public static final String DonothingBonusTermination = "donothing_bonus_termination"; // 奖金终止操作标识
+    public static final String DonothingAgentDisbursement = "donothing_agent_disbursement";// 奖金代发操作标识
+
+    public static final String key = "bouns/BounsPaymentAgentOperation"; //奖金发放操作唯一键
+
+    /**
+     * 根据奖金发放id，查询暂存、已提交、待重新提交、审批中的奖金代发审批单
+     * @param ids
+     * @return
+     */
+    public static DynamicObject[] getBounsAgentApprove(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_agent_approve", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+    /**
+     * 根据奖金发放id，查询暂存、已提交、待重新提交、审批中的奖金终止审批单
+     */
+    public static DynamicObject[] getBounsEndApprove(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_end_approval", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+    /**
+     * 根据奖金发放id，查询暂存、已提交、待重新提交、审批中的发放记录单
+     */
+    public static DynamicObject[] getBounsRecord(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_record", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+    /**
+     * 根据奖金发放id，查询暂存、已提交、待重新提交、审批中的发放记录单
+     */
+    public static DynamicObject[] getBounsRecordAll(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+        stateList.add("C");//审批通过
+        stateList.add("E");//审批不通过
+        stateList.add("F");//已废弃
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_record", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+    /**
+     * 根据奖金发放id，查询奖金代发的单据
+     */
+    public static DynamicObject[] getBounsAgentRecordAll(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+        stateList.add("C");//审批通过
+        stateList.add("E");//审批不通过
+        stateList.add("F");//已废弃
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_agent_approve", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+    /**
+     * 根据奖金发放id，查询奖金终止的单据
+     */
+    public static DynamicObject[] getBounsEndRecordAll(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+        stateList.add("C");//审批通过
+        stateList.add("E");//审批不通过
+        stateList.add("F");//已废弃
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_end_approval", "id,${ISV_FLAG}_entryentity.id",filter.toArray());
+    }
+
+
+    /**
+     * 查询正在进行代发的发放单
+     */
+    public static List<Long> getBounsAgentApproveSourceIds(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        DynamicObjectCollection query = QueryServiceHelper.query("${ISV_FLAG}_bouns_agent_approve", "id,${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid", filter.toArray());
+        return query.stream().map(item -> item.getLong("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid")).collect(Collectors.toList());
+    }
+
+    /**
+     * 查询正在进行终止的发放单
+     */
+    public static List<Long> getBounsEndApproveSourceIds(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        DynamicObjectCollection query = QueryServiceHelper.query("${ISV_FLAG}_bouns_end_approval", "id,${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid", filter.toArray());
+        return query.stream().map(item -> item.getLong("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid")).collect(Collectors.toList());
+    }
+
+    /**
+     * 查询正在进行奖金发放的奖金发放单记录单
+     */
+    public static List<Long> getBounsRecordSourceIds(List<Long> ids){
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+
+        QFilter filter = new QFilter("billstatus", QCP.in, stateList);
+        filter.and("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid",QCP.in,ids);
+        DynamicObjectCollection query = QueryServiceHelper.query("${ISV_FLAG}_bouns_record", "id,${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid", filter.toArray());
+        return query.stream().map(item -> item.getLong("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid")).collect(Collectors.toList());
+    }
+
+    /**
+     * 根据bos_user查询最新的主任职
+     */
+    public static DynamicObject[] getErmanfile(Long userId){
+        // 查询生效中的人事业务档案
+        QFilter personFilter = new QFilter("id", QCP.equals, userId);
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("empposrel.isprimary", QCP.equals, "1");
+        filter.and("person.number",QCP.equals,currentPerson.getString("number"));
+        filter.and("iscurrentversion",QCP.equals,"1");
+        filter.and("datastatus",QCP.equals,"1");
+        filter.and("businessstatus",QCP.equals,"1");
+        filter.and("filetype.number",QCP.not_equals,"1050_S");
+        return BusinessDataServiceHelper.load("hspm_ermanfile", "org,empposrel.depemp", filter.toArray());
+    }
+
+    /**
+     * 发放单，奖金代发，奖金终止，奖金发放校验
+     */
+    public static List<String> bounsPaymentvalidtor(List<Long> ids,String operateKey){
+        List<String> errorMsg = new ArrayList<>();
+
+        // 获取真正进行代发的发放单
+        List<Long> bounsAgentApproveSourceIds = BounsPaymentUtils.getBounsAgentApproveSourceIds(ids);
+        // 获取真正进行终止的发放单
+        List<Long> bounsEndApproveSourceIds = BounsPaymentUtils.getBounsEndApproveSourceIds(ids);
+        // 查询正在进行奖金发放的记录单
+        List<Long> bounsRecordSourceIds = BounsPaymentUtils.getBounsRecordSourceIds(ids);
+
+        // 查询发放单数据
+        // 校验
+        DynamicObject[] load = getBonusPaymentObjecys(ids);
+        for (DynamicObject bill : load) {
+            long id = bill.getLong("id");
+            String personNumber = bill.getString("${ISV_FLAG}_person.empnumber");
+            if (bounsAgentApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的代发，请处理后在进行其他业务。\n");
+            }
+            if (bounsEndApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的终止发放，请处理后在进行其他业务。\n");
+            }
+            if (bounsRecordSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的发放记录，请处理后在进行其他业务。\n");
+            }
+
+            String billstatus = bill.getString("billstatus");
+            if (!"C".equals(billstatus)){
+                errorMsg.add("”" + personNumber + "“员工单据状态不为已审核，请重新选择执行数据。\n");
+            }
+
+            // 奖金代发
+            if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operateKey)){
+                // 若所选人员已发金额大于0不允许代发，提醒“XXX员工存在已发放记录，不允许代发”
+                DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+                if (!CollectionUtils.isEmpty(entryentity)){
+                    errorMsg.add("”" + personNumber + "“员工存在已发放记录，不允许代发。\n");
+                }
+
+                // 承担组织编码、所属公司编码
+                /*String shoulderOrgNumber = bill.getString("${ISV_FLAG}_shoulder_org.number");
+                String companyNumber = bill.getString("${ISV_FLAG}_company.number");
+                if(StringUtils.isEmpty(shoulderOrgNumber) || StringUtils.isEmpty(companyNumber) || shoulderOrgNumber.equals(companyNumber)){
+                    errorMsg.add("”" + personNumber + "“员工承担组织和所在公司相同不可代发。\n");
+                }*/
+            }
+
+            // 奖金终止
+            if (BounsPaymentUtils.DonothingBonusTermination.equals(operateKey)){
+                BigDecimal redeemAoumt = bill.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                if (BigDecimal.ZERO.compareTo(redeemAoumt) == 0){
+                    errorMsg.add("”" + personNumber + "“员工无可兑现奖金，无法终止\n");
+                }
+            }
+
+            // 奖金发放
+            if (BounsPaymentUtils.DonothingBonusPayment.equals(operateKey)){
+                BigDecimal redeemAoumt = bill.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                if (BigDecimal.ZERO.compareTo(redeemAoumt) == 0){
+                    errorMsg.add("”" + personNumber + "“员工无可兑现奖金，无法进行发放\n");
+                }
+            }
+
+        }
+
+        // 奖金代发
+        if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operateKey)){
+            // 若所选人员所在公司不同不允许批量代发
+            Map<String, List<DynamicObject>> collect = Arrays.stream(load).collect(Collectors.groupingBy(item -> {
+                String orgNumber = item.getString("org.number");
+                String companyNumber = item.getString("${ISV_FLAG}_company.number");
+                return orgNumber + "&" + companyNumber;
+            }));
+            if (collect.size() > 1){
+                errorMsg.add("所选人员不是相同奖金管理组织、相同所属公司，请重新择则执行数据。\n");
+            }
+        }
+
+        // 奖金终止
+        if (BounsPaymentUtils.DonothingBonusTermination.equals(operateKey)){
+            // 若所选人员承担组织不同不允许批量代发
+            Map<String, List<DynamicObject>> collect = Arrays.stream(load).collect(Collectors.groupingBy(item -> {
+                String orgNumber = item.getString("org.number");
+                String companyNumber = item.getString("${ISV_FLAG}_shoulder_org.number");
+                return orgNumber + "&" + companyNumber;
+            }));
+            if (collect.size() > 1){
+                errorMsg.add("所选人员不是相同奖金管理组织、相同承担组织，请重新选择执行数据。\n");
+            }
+        }
+
+        // 奖金发放记录
+        if (BounsPaymentUtils.DonothingBonusPayment.equals(operateKey)){
+            // 所选人员发放公司不同时不允许发放
+            Map<String, List<DynamicObject>> collect = Arrays.stream(load).collect(Collectors.groupingBy(item -> {
+                String orgNumber = item.getString("org.number");
+                String paymentCompanyNumber = item.getString("${ISV_FLAG}_payment_company.number");
+                return orgNumber + "&" + paymentCompanyNumber;
+            }));
+            if (collect.size() > 1){
+                errorMsg.add("所选人员不是相同奖金管理组织、相同发放公司，请重新选择执行数据。\n");
+            }
+        }
+
+        // 错误结果返回;
+        return IntStream.range(0, errorMsg.size()).mapToObj(i -> (i + 1) + "、" + errorMsg.get(i)).collect(Collectors.toList());
+    }
+
+    /**
+     * 发放单，奖金代发，奖金终止，奖金发放校验
+     */
+    public static List<String> bounsPaymentvalidtorExtA(List<Long> ids,String operateKey){
+        List<String> errorMsg = new ArrayList<>();
+
+        // 获取真正进行代发的发放单
+        List<Long> bounsAgentApproveSourceIds = BounsPaymentUtils.getBounsAgentApproveSourceIds(ids);
+        // 获取真正进行终止的发放单
+        List<Long> bounsEndApproveSourceIds = BounsPaymentUtils.getBounsEndApproveSourceIds(ids);
+        // 查询正在进行奖金发放的记录单
+        List<Long> bounsRecordSourceIds = BounsPaymentUtils.getBounsRecordSourceIds(ids);
+
+        // 查询发放单数据
+        // 校验
+        DynamicObject[] load = getBonusPaymentObjecys(ids);
+        for (DynamicObject bill : load) {
+            long id = bill.getLong("id");
+            String personNumber = bill.getString("${ISV_FLAG}_person.number");
+            if (bounsAgentApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的代发，请处理后在进行其他业务。\n");
+            }
+            if (bounsEndApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的终止发放，请处理后在进行其他业务。\n");
+            }
+            if (bounsRecordSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的发放记录，请处理后在进行其他业务。\n");
+            }
+
+            String billstatus = bill.getString("billstatus");
+            if (!"C".equals(billstatus)){
+                errorMsg.add("”" + personNumber + "“员工单据状态不为已审核，请重新选择执行数据。\n");
+            }
+
+
+            // 奖金发放
+            if (BounsPaymentUtils.DonothingBonusPayment.equals(operateKey)){
+//                BigDecimal redeemAoumt = bill.getBigDecimal("${ISV_FLAG}_redeem_amount");
+//                if (BigDecimal.ZERO.compareTo(redeemAoumt) >= 0){
+//                    errorMsg.add("”" + personNumber + "“员工无可兑现奖金，无法进行发放\n");
+//                }
+            }
+
+        }
+        // 错误结果返回;
+        return IntStream.range(0, errorMsg.size()).mapToObj(i -> (i + 1) + "、" + errorMsg.get(i)).collect(Collectors.toList());
+    }
+
+    private static DynamicObject[] getBonusPaymentObjecys(List<Long> ids) {
+        return BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment", "id,billstatus,org,${ISV_FLAG}_person,${ISV_FLAG}_company,${ISV_FLAG}_shoulder_org,${ISV_FLAG}_payment_company,${ISV_FLAG}_redeem_amount,entryentity", new QFilter[]{new QFilter("id", QCP.in, ids)});
+    }
+
+    /**
+     * 发放单，奖金代发，奖金终止，奖金发放校验
+     */
+    public static HashMap<Long, List<String>> bounsPaymentvalidtorExtB(List<Long> ids){
+        // 获取真正进行代发的发放单
+        List<Long> bounsAgentApproveSourceIds = BounsPaymentUtils.getBounsAgentApproveSourceIds(ids);
+        // 获取真正进行终止的发放单
+        List<Long> bounsEndApproveSourceIds = BounsPaymentUtils.getBounsEndApproveSourceIds(ids);
+        // 查询正在进行奖金发放的记录单
+        List<Long> bounsRecordSourceIds = BounsPaymentUtils.getBounsRecordSourceIds(ids);
+
+        // 查询发放单数据
+        DynamicObject[] load = getBonusPaymentObjecys(ids);
+        // 校验
+        HashMap<Long, List<String>> resultMap = new HashMap<>();
+        for (DynamicObject bill : load) {
+            List<String> errorMsg = new ArrayList<>();
+            long id = bill.getLong("id");
+            String personNumber = bill.getString("${ISV_FLAG}_person.number");
+            if (bounsAgentApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的代发，请处理后在进行其他业务。\n");
+            }
+            if (bounsEndApproveSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的终止发放，请处理后在进行其他业务。\n");
+            }
+            if (bounsRecordSourceIds.contains(id)) {
+                errorMsg.add("”" + personNumber + "“员工已存在正在处理中的发放记录，请处理后在进行其他业务。\n");
+            }
+
+            String billstatus = bill.getString("billstatus");
+            if (!"C".equals(billstatus)){
+                errorMsg.add("”" + personNumber + "“员工单据状态不为已审核，请重新选择执行数据。\n");
+            }
+
+            BigDecimal redeemAoumt = bill.getBigDecimal("${ISV_FLAG}_redeem_amount");
+//            if (BigDecimal.ZERO.compareTo(redeemAoumt) >= 0){
+//                errorMsg.add("”" + personNumber + "“员工无可兑现奖金，无法进行发放\n");
+//            }
+            resultMap.put(id,errorMsg);
+        }
+        // 校验结果返回
+        return resultMap;
+    }
+
+    /**
+     * 奖金发放记录推送到前端业务数据中
+     * @param entryBills 奖金发放记录
+     * @param currencyId 币别
+     * @param batchcode 批次号
+     * @param effDate 生效日期
+     * @param bonusCheckGroup 核定单单号
+     */
+    public static Map<String, String> pushItem(DynamicObjectCollection entryBills,Long currencyId,String batchcode,Date effDate,Map<String,String> bonusCheckGroup) {
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+        filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+        DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+        // 分录字段推送算薪
+        List<Map<String, Object>> bizDataList = new ArrayList<>();
+        for (DynamicObject entry : entryBills) {
+            // 无需推送的数据过滤掉
+            String pushStatus = entry.getString("${ISV_FLAG}_push_status");
+            if ("F".equals(pushStatus)){
+                continue;
+            }
+
+            Map<String, Object> bizDataObj = new HashMap();
+            bizDataList.add(bizDataObj);
+
+            //业务项目id
+            bizDataObj.put("bizitemid", entry.getLong("${ISV_FLAG}_bonus_item.${ISV_FLAG}_business_item.id"));
+            // 币别
+            bizDataObj.put("currencyid", currencyId);
+            // 是否加密
+            bizDataObj.put("isencrypted", "false");
+            // 前端业务数据识别码
+            String bizdatacode = entry.getLong("id") + "&" + entry.getString("${ISV_FLAG}_person.empnumber");
+            bizDataObj.put("bizdatacode", bizdatacode);
+            // 批次号
+            bizDataObj.put("batchcode", batchcode);
+            // 业务数据模板id
+            // bizDataObj.put("bizdataaccesstplid", "");
+            //任职经历id  必填
+             bizDataObj.put("empposorgrelid", empPosRel.getLong("id"));
+            // 频度
+            //bizDataObj.put("calfrequencyid", null);
+            //业务数据生效日期
+            bizDataObj.put("startdate", effDate);
+            //失效日期
+            //bizDataObj.put("enddate", null);
+            // 数据来源系统 hpdi-前端 hcdm-薪酬管理 wtc-考勤
+            bizDataObj.put("srcsystem", "奖金平台");
+            // 数据来源 1-手工新增 2-前端集成 3-前端提报
+            bizDataObj.put("datasources", "2");
+            // 档案id
+            long salaryfileid = entry.getLong("${ISV_FLAG}_salary_file_id");
+            bizDataObj.put("salaryfileid", salaryfileid);
+            // 业务数据值
+            bizDataObj.put("value", String.valueOf(entry.getBigDecimal("${ISV_FLAG}_current_amount").doubleValue()));
+            // 备注
+            bizDataObj.put("description", bonusCheckGroup.get(entry.getString("${ISV_FLAG}_check_id")));
+            // 业务数据生效日期
+//            bizDataObj.put("bsed", effDate);
+            // 所属周期
+            bizDataObj.put("${ISV_FLAG}_period",entry.getDate("${ISV_FLAG}_period"));
+            // 承担组织
+            bizDataObj.put("${ISV_FLAG}_shoulder_orgid",entry.getLong("${ISV_FLAG}_shoulder_org.id"));
+            // 奖金业务类别
+            bizDataObj.put("${ISV_FLAG}_personalization",entry.getString("${ISV_FLAG}_personalization"));
+            // 本次兑现金额
+            bizDataObj.put("${ISV_FLAG}_current_amount", entry.getBigDecimal("${ISV_FLAG}_current_amount").doubleValue());
+        }
+        List<List<Map<String, Object>>> synListData = splitCollection(bizDataList, 500);
+        Map<String, String> errorMap = new HashMap<>();
+        int size = synListData.size()-1;
+        int index = 0;
+        synBizDataBySalaryFile(synListData, errorMap, size, index);
+        return errorMap;
+    }
+
+    private static void synBizDataBySalaryFile(List<List<Map<String, Object>>> synListData, Map<String, String> errorMap, int size, int index) {
+        List<Map<String, Object>> data = synListData.get(index);
+        Map<String, Object> params = new HashMap<>();
+        params.put("operate", "1");       // 是否新增,1新增 ,2更正
+        params.put("opsystem", "hsas");   // 操作提报数据系统
+        params.put("data", data);
+        Map<String, Object> result = HSASBizDataServiceHelper.synBizData(params);
+        List<Map<String, Object>>  resultList = (List)result.get("result");
+        for (Map<String, Object> res : resultList) {
+            if(!"1".equals(res.get("status"))) {
+                String errorcode = (String) res.get("errorcode");
+                String errerMessage = BizDataFailStatusEnum.getDesc(errorcode);
+                errorMap.put((String)res.get("bizdatacode"),errerMessage);
+            }
+        }
+        if (index == size){
+            return;
+        }
+        synBizDataBySalaryFile(synListData, errorMap, size, index + 1);
+    }
+
+    public static List<List<Map<String, Object>>> splitCollection(List<Map<String, Object>> bizDataList,int size) {
+        List<List<Map<String, Object>>> batches = new ArrayList<>();
+        if (bizDataList.isEmpty()){
+            return batches;
+        }
+        List<Map<String, Object>> currentBatch = new ArrayList<>(size);
+        for (Map<String, Object> data : bizDataList) {
+            currentBatch.add(data);
+            if (currentBatch.size() == size){
+                batches.add(currentBatch);
+                currentBatch = new ArrayList<>(size);
+            }
+        }
+        if (!currentBatch.isEmpty()){
+            batches.add(currentBatch);
+        }
+        return batches;
+    }
+
+
+
+
+
+    /**
+     * 删除已经推送的数据
+     * @param entryBills 奖金发放记录
+     * @param operate E 废弃，LD 删除，LDE先删除，删除不了后废弃
+     */
+    public static Map<String, String> delete(DynamicObjectCollection entryBills,String operate) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("operate", operate);
+        params.put("opsystem", "hsas");
+        List<Map<String, Object>> bizDataList = new ArrayList<>();
+        params.put("data", bizDataList);
+        for (DynamicObject entry : entryBills) {
+            // 无需推送的数据过滤掉
+            String pushStatus = entry.getString("${ISV_FLAG}_push_status");
+            if ("F".equals(pushStatus)){
+                continue;
+            }
+            String bizdatacode = entry.getLong("id") + "&" + entry.getString("${ISV_FLAG}_person.empnumber");
+            Map<String, Object> bizDataObj = new HashMap<>();
+            bizDataList.add(bizDataObj);
+            bizDataObj.put("bizitemid", entry.getLong("${ISV_FLAG}_bonus_item.${ISV_FLAG}_business_item.id"));
+            bizDataObj.put("bizdatacode", bizdatacode);;
+        }
+        //删除数量为0，不调用标品接口
+        Map<String, String> errorMap = new HashMap<>();
+        if (bizDataList.size() == 0){
+            return errorMap;
+        }
+        Map<String, Object> result = HSASBizDataServiceHelper.delBizData(params);
+
+        if(!((boolean)result.get("success"))){
+            throw new KDBizException("删除算薪失败。"+result);
+        }
+        // 整理错误信息并显示
+        List<Map<String, Object>>  resultList = (List)result.get("result");
+        for (Map<String, Object> res : resultList) {
+            if(!"1".equals(res.get("status"))) {
+                String errorcode = (String) res.get("errorcode");
+                String errerMessage = BizDataFailStatusEnum.getDesc(errorcode);
+                errorMap.put((String)res.get("bizdatacode"),errerMessage);
+            }
+        }
+        return errorMap;
+    }
+
+    /**
+     * 奖金发放更新数据时，锁住数据
+     * @param sourceId
+     */
+    public static void bounsForUpdate(List<Long> sourceId){
+        String sql = "select fid from tk_tdkw_bonus_payment where fid in (" + sourceId.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") FOR UPDATE";
+        DB.queryDataSet(BounsPaymentUtils.class.getName(), new DBRoute("swc"), "/*dialect*/" + sql);
+    }
+}

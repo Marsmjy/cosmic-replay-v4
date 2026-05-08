@@ -1,0 +1,62 @@
+{
+  "id": "hies_entity_import",
+  "name": "HR 实体导入（HIES-Pro）",
+  "domain": "hr_import_export",
+  "domain_label": "HR 导入导出",
+  "sub_scenarios": [
+    {"id": "basic_import",        "name": "基础资料 / 档案导入（新增）"},
+    {"id": "update_import",       "name": "更新导入（按主键匹配更新）"},
+    {"id": "template_custom",     "name": "模板自定义（表头列 / 必填）"},
+    {"id": "validate_before_save","name": "保存前业务校验（重复 / 跨表）"}
+  ],
+  "referenced_entities": [
+    "(场景中性 · 具体实体按子场景 · 如 hrpi_attfile / haos_personroster / hspm_* 等)"
+  ],
+  "referenced_ext_points": [
+    "ep_import_beforeValidate",
+    "ep_import_beforeInitValidator",
+    "ep_import_beforeCreateHeaderColumn",
+    "ep_import_beforeCallOperation",
+    "ep_import_afterParseBillData",
+    "ep_import_beforeShowTemplateSelectList"
+  ],
+  "referenced_flows": [
+    "flow_hies_import_12_steps"
+  ],
+  "referenced_cross_module_links": [],
+  "referenced_cases": [],
+  "referenced_exceptions": [
+    "ex_import_duplicate_key",
+    "ex_import_refbd_not_found",
+    "ex_import_date_invalid"
+  ],
+  "cross_module_impact": ["hrpi", "haos", "hspm", "hbpm", "att"],
+  "metadata": {
+    "version_range": ">=8.3",
+    "source": ["hies-dev skill v8.3", "plugin_demo distill", "hr-import-export-extension-dev.md (7549 lines)"],
+    "source_detail": "从标品团队 hies-dev Skill v8.3 的 25 个 plugin_demo + 10033 行文档蒸馏 · 19 个 HRImportPlugin",
+    "confidence": "distilled",
+    "verified_at": "2026-04-23",
+    "authors": ["system", "standard_product_team(indirect)"],
+    "last_updated": "2026-04-23"
+  },
+  "default_expanded_cards_by_role": {
+    "developer": ["ext_points", "customization_solutions", "model_design", "exceptions"],
+    "consultant": ["capability_boundary", "business_rules", "business_flow", "upstream_downstream_logic"],
+    "architect": "all"
+  },
+  "dimensions": [
+    "01_capability_boundary",
+    "02_business_rules",
+    "03_model_design",
+    "04_business_flow",
+    "05_data_flow",
+    "06_customization_solutions",
+    "07_ext_points",
+    "08_impact_analysis",
+    "09_cases",
+    "10_exceptions",
+    "11_upstream_downstream_logic"
+  ],
+  "tags": ["HR导入导出", "HIES-Pro", "v8.3", "标品团队产出", "HRImportPlugin"]
+}

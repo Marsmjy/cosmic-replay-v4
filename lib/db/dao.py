@@ -532,65 +532,323 @@ class ReportDAO:
     
     def __init__(self, pool: DatabasePool = None):
         self.pool = pool or get_pool()
+        self._ensure_table()
     
-    def create(self, task_id: str) -> str:
-        """创建报告"""
+    def _ensure_table(self):
+        """确保 reports 表存在并包含 report_json 列"""
+        try:
+            self.pool.execute("""
+                CREATE TABLE IF NOT EXISTS reports (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    total_cases INTEGER DEFAULT 0,
+                    passed_cases INTEGER DEFAULT 0,
+                    failed_cases INTEGER DEFAULT 0,
+                    total_steps INTEGER DEFAULT 0,
+                    passed_steps INTEGER DEFAULT 0,
+                    failed_steps INTEGER DEFAULT 0,
+                    total_duration_s REAL DEFAULT 0,
+                    pass_rate REAL DEFAULT 0,
+                    error_summary TEXT,
+                    report_json TEXT,
+                    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            # 尝试添加 report_json 列（已存在则忽略）
+            try:
+                self.pool.execute("ALTER TABLE reports ADD COLUMN report_json TEXT")
+            except Exception:
+                pass
+            self.pool.get_connection().commit()
+        except Exception:
+            pass
+    
+    def create(self, task_id: str, report_data: dict = None) -> str:
+        """创建报告
+        
+        Args:
+            task_id: 任务ID
+            report_data: 完整报告数据字典（可选）。如果提供，将完整JSON存储。
+        """
         report_id = f"rpt_{task_id}"
         
-        # 汇总数据
-        stats = self.pool.query_one("""
-            SELECT 
-                COUNT(*) as total_cases,
-                SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) as passed_cases,
-                SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) as failed_cases,
-                SUM(step_ok) as passed_steps,
-                SUM(step_count - step_ok) as failed_steps,
-                SUM(step_count) as total_steps,
-                SUM(duration_s) as total_duration
-            FROM task_cases 
-            WHERE task_id=?
-        """, (task_id,))
-        
-        # 计算通过率
-        pass_rate = 0
-        if stats["total_cases"] > 0:
-            pass_rate = round(stats["passed_cases"] * 100.0 / stats["total_cases"], 1)
-        
-        # 收集错误汇总
-        errors = self.pool.query_all("""
-            SELECT case_name, error_message 
-            FROM task_cases 
-            WHERE task_id=? AND status='failed'
-            LIMIT 10
-        """, (task_id,))
-        
-        error_summary = json.dumps([dict(e) for e in errors])
-        
-        self.pool.execute("""
-            INSERT INTO reports 
-            (id, task_id, total_cases, passed_cases, failed_cases,
-             total_steps, passed_steps, failed_steps, total_duration_s,
-             pass_rate, error_summary)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (report_id, task_id, stats["total_cases"], stats["passed_cases"],
-              stats["failed_cases"], stats["total_steps"], stats["passed_steps"],
-              stats["failed_steps"], stats["total_duration"] or 0,
-              pass_rate, error_summary))
+        if report_data:
+            # 存储完整报告JSON
+            summary = report_data.get("summary", {})
+            report_json_str = json.dumps(report_data, ensure_ascii=False)
+            error_summary = json.dumps(report_data.get("errors", []), ensure_ascii=False)
+            
+            self.pool.execute("""
+                INSERT OR REPLACE INTO reports 
+                (id, task_id, total_cases, passed_cases, failed_cases,
+                 total_steps, passed_steps, failed_steps, total_duration_s,
+                 pass_rate, error_summary, report_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (report_id, task_id, 
+                  summary.get("total_cases", 0),
+                  summary.get("passed_cases", 0),
+                  summary.get("failed_cases", 0),
+                  summary.get("total_steps", 0),
+                  summary.get("passed_steps", 0),
+                  summary.get("failed_steps", 0),
+                  summary.get("total_duration_s", 0),
+                  summary.get("pass_rate", 0),
+                  error_summary, report_json_str))
+        else:
+            # 兼容老逻辑：从 task_cases 表汇总数据
+            stats = self.pool.query_one("""
+                SELECT 
+                    COUNT(*) as total_cases,
+                    SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) as passed_cases,
+                    SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) as failed_cases,
+                    SUM(step_ok) as passed_steps,
+                    SUM(step_count - step_ok) as failed_steps,
+                    SUM(step_count) as total_steps,
+                    SUM(duration_s) as total_duration
+                FROM task_cases 
+                WHERE task_id=?
+            """, (task_id,))
+            
+            pass_rate = 0
+            if stats and stats["total_cases"] and stats["total_cases"] > 0:
+                pass_rate = round(stats["passed_cases"] / stats["total_cases"], 4)
+            
+            errors = self.pool.query_all("""
+                SELECT case_name, error_message 
+                FROM task_cases 
+                WHERE task_id=? AND status='failed'
+                LIMIT 10
+            """, (task_id,))
+            
+            error_summary = json.dumps([dict(e) for e in errors]) if errors else "[]"
+            
+            self.pool.execute("""
+                INSERT OR REPLACE INTO reports 
+                (id, task_id, total_cases, passed_cases, failed_cases,
+                 total_steps, passed_steps, failed_steps, total_duration_s,
+                 pass_rate, error_summary)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (report_id, task_id, 
+                  stats["total_cases"] if stats else 0,
+                  stats["passed_cases"] if stats else 0,
+                  stats["failed_cases"] if stats else 0,
+                  stats["total_steps"] if stats else 0,
+                  stats["passed_steps"] if stats else 0,
+                  stats["failed_steps"] if stats else 0,
+                  (stats["total_duration"] or 0) if stats else 0,
+                  pass_rate, error_summary))
         
         return report_id
     
-    def get_by_task(self, task_id: str) -> Optional[dict]:
-        """获取任务报告"""
-        return self.pool.query_one(
+    def get_by_task_id(self, task_id: str) -> Optional[dict]:
+        """获取任务报告（优先返回完整JSON）"""
+        row = self.pool.query_one(
             "SELECT * FROM reports WHERE task_id=?", (task_id,)
         )
+        if not row:
+            return None
+        # 如果有完整报告JSON，直接解析返回
+        if row.get("report_json"):
+            try:
+                return json.loads(row["report_json"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        # 兼容老数据：从列构建
+        return {
+            "report_id": row.get("id", ""),
+            "task_id": row.get("task_id", ""),
+            "generated_at": row.get("generated_at", ""),
+            "summary": {
+                "total_cases": row.get("total_cases", 0),
+                "passed_cases": row.get("passed_cases", 0),
+                "failed_cases": row.get("failed_cases", 0),
+                "total_steps": row.get("total_steps", 0),
+                "passed_steps": row.get("passed_steps", 0),
+                "failed_steps": row.get("failed_steps", 0),
+                "total_duration_s": row.get("total_duration_s", 0),
+                "pass_rate": row.get("pass_rate", 0),
+            },
+            "errors": json.loads(row["error_summary"]) if row.get("error_summary") else [],
+            "error_breakdown": {},
+            "performance": {
+                "avg_step_duration_s": 0,
+                "slowest_cases": [],
+                "fastest_cases": [],
+            },
+        }
+    
+    def get_by_task(self, task_id: str) -> Optional[dict]:
+        """兼容旧方法名"""
+        return self.get_by_task_id(task_id)
     
     def list_recent(self, limit: int = 20) -> list[dict]:
         """列出最近报告"""
-        return self.pool.query_all("""
+        rows = self.pool.query_all("""
             SELECT r.*, t.name as task_name, t.env_id
             FROM reports r
-            JOIN tasks t ON r.task_id = t.id
+            LEFT JOIN tasks t ON r.task_id = t.id
             ORDER BY r.generated_at DESC
             LIMIT ?
         """, (limit,))
+        results = []
+        for row in rows:
+            if row.get("report_json"):
+                try:
+                    results.append(json.loads(row["report_json"]))
+                    continue
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            # 兼容老数据
+            results.append({
+                "report_id": row.get("id", ""),
+                "task_id": row.get("task_id", ""),
+                "task_name": row.get("task_name", ""),
+                "env": row.get("env_id", ""),
+                "generated_at": row.get("generated_at", ""),
+                "summary": {
+                    "total_cases": row.get("total_cases", 0),
+                    "passed_cases": row.get("passed_cases", 0),
+                    "failed_cases": row.get("failed_cases", 0),
+                    "total_steps": row.get("total_steps", 0),
+                    "passed_steps": row.get("passed_steps", 0),
+                    "failed_steps": row.get("failed_steps", 0),
+                    "total_duration_s": row.get("total_duration_s", 0),
+                    "pass_rate": row.get("pass_rate", 0),
+                },
+                "errors": json.loads(row["error_summary"]) if row.get("error_summary") else [],
+                "error_breakdown": {},
+                "performance": {
+                    "avg_step_duration_s": 0,
+                    "slowest_cases": [],
+                    "fastest_cases": [],
+                },
+            })
+        return results
+
+    def list_trend(self, days: int = 14) -> list:
+        """获取最近N天的报告趋势数据
+        
+        Returns:
+            [{"date": "2026-05-08", "pass_rate": 0.75, "total_cases": 4, "duration_s": 19.3}, ...]
+        """
+        try:
+            rows = self.pool.query_all("""
+                SELECT 
+                    date(generated_at) as day,
+                    AVG(pass_rate) as avg_pass_rate,
+                    SUM(total_cases) as total_cases,
+                    SUM(total_duration_s) as total_duration_s,
+                    COUNT(*) as report_count
+                FROM reports
+                WHERE generated_at >= datetime('now', ? || ' days')
+                GROUP BY day
+                ORDER BY day ASC
+            """, (f"-{days}",))
+            
+            result = []
+            for row in rows:
+                if not row.get("day"):
+                    continue
+                result.append({
+                    "date": row["day"],
+                    "pass_rate": round(row["avg_pass_rate"] or 0, 4),
+                    "total_cases": row["total_cases"] or 0,
+                    "duration_s": round(row["total_duration_s"] or 0, 1),
+                    "report_count": row["report_count"] or 0,
+                })
+            return result
+        except Exception:
+            return []
+
+    def get_case_stability(self, case_name: str, limit: int = 10) -> dict:
+        """获取用例在最近N次执行中的稳定性数据
+        
+        先从 task_cases 表查询，如果数据不足则尝试从 report_json 中提取。
+        
+        Returns:
+            {"case_name": "xxx", "total_runs": 10, "passed": 8, "failed": 2, 
+             "pass_rate": 0.8, "is_flaky": False}
+        """
+        default_result = {
+            "case_name": case_name,
+            "total_runs": 0,
+            "passed": 0,
+            "failed": 0,
+            "pass_rate": 0,
+            "is_flaky": False,
+        }
+        
+        try:
+            # 方式1：从 task_cases 表查询
+            rows = self.pool.query_all("""
+                SELECT status
+                FROM task_cases
+                WHERE case_name = ? AND status IN ('passed', 'failed')
+                ORDER BY id DESC
+                LIMIT ?
+            """, (case_name, limit))
+            
+            if rows:
+                total_runs = len(rows)
+                passed = sum(1 for r in rows if r["status"] == "passed")
+                failed = total_runs - passed
+                pass_rate = round(passed / total_runs, 4) if total_runs > 0 else 0
+                is_flaky = 0.05 <= pass_rate <= 0.95
+                
+                return {
+                    "case_name": case_name,
+                    "total_runs": total_runs,
+                    "passed": passed,
+                    "failed": failed,
+                    "pass_rate": pass_rate,
+                    "is_flaky": is_flaky,
+                }
+            
+            # 方式2：从 report_json 中解析 case_results
+            report_rows = self.pool.query_all("""
+                SELECT report_json
+                FROM reports
+                WHERE report_json IS NOT NULL
+                ORDER BY generated_at DESC
+                LIMIT ?
+            """, (limit * 2,))
+            
+            passed_count = 0
+            failed_count = 0
+            
+            for rrow in report_rows:
+                if not rrow.get("report_json"):
+                    continue
+                try:
+                    report_data = json.loads(rrow["report_json"])
+                    case_results = report_data.get("case_results", [])
+                    for cr in case_results:
+                        if cr.get("name") == case_name:
+                            if cr.get("passed"):
+                                passed_count += 1
+                            else:
+                                failed_count += 1
+                            break
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    continue
+                
+                if passed_count + failed_count >= limit:
+                    break
+            
+            total_runs = passed_count + failed_count
+            if total_runs == 0:
+                return default_result
+            
+            pass_rate = round(passed_count / total_runs, 4)
+            is_flaky = 0.05 <= pass_rate <= 0.95
+            
+            return {
+                "case_name": case_name,
+                "total_runs": total_runs,
+                "passed": passed_count,
+                "failed": failed_count,
+                "pass_rate": pass_rate,
+                "is_flaky": is_flaky,
+            }
+        except Exception:
+            return default_result

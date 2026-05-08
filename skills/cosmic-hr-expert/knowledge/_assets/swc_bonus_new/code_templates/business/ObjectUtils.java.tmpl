@@ -1,0 +1,31 @@
+package ${ISV_FLAG}.swc.hsbm.biz.eip.task.common.util;
+
+
+import kd.bos.dataentity.utils.ArrayUtils;
+
+import java.util.Collection;
+import java.util.Map;
+
+/**
+ * @Description:ToDo
+ * @Author:wxl
+ * @Create: 2024-05-15 14:01
+ **/
+public class ObjectUtils {
+    public static boolean isNotEmpty(Object object) {
+        return !isApacheEmpty(object);
+    }
+    public static boolean isApacheEmpty(Object object) {
+        if (object == null) {
+            return true;
+        } else if (object instanceof CharSequence) {
+            return ((CharSequence)object).length() == 0;
+        } else if (object.getClass().isArray()) {
+            return ArrayUtils.isEmpty((Object[])object);
+        } else if (object instanceof Collection) {
+            return ((Collection)object).isEmpty();
+        } else {
+            return object instanceof Map && ((Map)object).isEmpty();
+        }
+    }
+}

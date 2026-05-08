@@ -1,0 +1,62 @@
+{
+  "scene": "core_hr_org_unit_transfer",
+  "name": "成建制划转（业务流型聚合场景）",
+  "name_en": "Org Unit Transfer (Aggregated Business Flow)",
+  "domain": "核心人力/调配管理",
+  "cloud": "core_hr",
+  "app": "hdm",
+  "scene_type": "business_flow_aggregate",
+  "tier": 2,
+  "modelType": "ScheduleTaskAsset",
+  "form_numbers": [
+    "${ISV_FLAG}_orguntitransfer"
+  ],
+  "asset_ref": "_assets/org_unit_transfer",
+  "consumed_forms": [
+    "homs_orgchgrecord",
+    "hbpm_chgrecordevt",
+    "hbpm_chgrecorddetail",
+    "haos_adminorgdetail",
+    "hbpm_positionhr",
+    "haos_changescene",
+    "hrpi_empposorgrel",
+    "hrpi_assignment",
+    "hrpi_empentrel",
+    "hdm_transferbatch",
+    "hdm_transferbatchentry"
+  ],
+  "isv_self_built_forms": [
+    "${ISV_FLAG}_orguntitransfer"
+  ],
+  "schedule_plan": "hdm_orgtransfer_plan_SKDP_S",
+  "task_classes": [
+    {"changeType": "A", "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgParentChgTask", "name": "组织上级调整", "scenes": ["1020_S"]},
+    {"changeType": "B", "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgRenameChgTask", "name": "组织更名", "scenes": ["1030_S"]},
+    {"changeType": "C", "fqn": "${ISV_FLAG}.hr.hdm.orgtransfer.business.PostRenameChgTask", "name": "岗位更名", "scenes": ["1020_S", "1080_S"]}
+  ],
+  "available_cs": ["CS-01", "CS-02", "CS-03", "CS-04", "CS-05", "CS-06"],
+  "extension_points": ["EP-01", "EP-02", "EP-03", "EP-04", "EP-05", "EP-06"],
+  "intents": [
+    "成建制划转",
+    "批量调动",
+    "组织上级调整批量改任职",
+    "组织更名同步任职经历",
+    "岗位更名同步任职经历",
+    "调度任务消费组织变更记录"
+  ],
+  "key_business_rules": [
+    "ISV 不私改 hrpi_* 底表·完全交标品 hdm_transferbatch.SUBMITEFFECT 协同",
+    "A/B/C 三任务独立调度·变动场景编码集互斥",
+    "执行状态机 01 待 / 02 执行中（仅 docx 定义）/ 03 完成",
+    "失败保留 01 自动重试·错误细节写 resultmsg_tag"
+  ],
+  "metadata": {
+    "source": [
+      "dcs-case-run K2 v2.1 case_001 反哺",
+      "dcs_clean/hr-hdm-orgtransfer @ feature-standard cf299a0",
+      "成建制划转复用说明书.docx v1.0 (2025-08-04)"
+    ],
+    "evidence_anchors": "deep_scan_audit.md + deep_scan_diff.md (case_001 真扫·100% file:line 锚点)",
+    "built_at": "2026-05-06"
+  }
+}

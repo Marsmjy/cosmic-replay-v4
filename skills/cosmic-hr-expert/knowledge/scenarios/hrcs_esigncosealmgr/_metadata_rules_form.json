@@ -1,0 +1,152 @@
+{
+  "formId": "hrcs_esigncosealmgr",
+  "formName": null,
+  "sceneId": "hrcs_esigncosealmgr",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "15NPDX/GJFOO",
+  "metaIdTechnical": "3F4YGLYHTZJ6",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hrcs_esigncosealmgr",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hrcs_esigncosealmgr.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·共享签章管理)"
+  },
+  "entities": [
+    {
+      "name": "hrcs_esigncosealmgr",
+      "type": "MainEntity",
+      "title": "企业印章管理",
+      "physicalTable": null,
+      "fieldCount": 3
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "esignsp": {
+      "fieldId": "Ax6NFvgz5Z",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_esignspmgr",
+      "entity": "hrcs_esigncosealmgr",
+      "title": "电子签服务商",
+      "physicalColumn": "—",
+      "_fieldApId": "Ax6NFvgz5Z"
+    },
+    "curappnumber": {
+      "fieldId": "8a14XvLWse",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_esigncosealmgr",
+      "title": "当前应用",
+      "physicalColumn": "—",
+      "_fieldApId": "8a14XvLWse"
+    },
+    "curcorpnumber": {
+      "fieldId": "vQOtF3ETrg",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_esigncosealmgr",
+      "title": "当前企业",
+      "physicalColumn": "—",
+      "_fieldApId": "vQOtF3ETrg"
+    }
+  },
+  "requiredFields": {
+    "hrcs_esigncosealmgr": []
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-04-29 11:40",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "bizappId"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "formPlugins_count": 1
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "formPlugins_count": 1
+      }
+    }
+  ],
+  "sceneCategory": "config_subform",
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.esign.ESignCOSealMgrPlugin",
+      "Description": "电子签印章管理树状列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

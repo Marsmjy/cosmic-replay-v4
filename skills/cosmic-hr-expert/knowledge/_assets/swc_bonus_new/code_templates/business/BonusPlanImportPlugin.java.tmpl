@@ -1,0 +1,167 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.plugin.ImportLogger;
+import kd.bos.form.plugin.impt.BatchImportPlugin;
+import kd.bos.form.plugin.impt.ImportBillData;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * 描述：奖金计划引入插件
+ * 作者：luob
+ */
+public class BonusPlanImportPlugin extends BatchImportPlugin {
+
+    @Override
+    public List<String> getDefaultLockUIs() {
+        List<String> lockKeys = new ArrayList();
+        lockKeys.add("radiofield1");
+        lockKeys.add("radiofield2");
+        lockKeys.add("keyfields");
+        return lockKeys;
+    }
+
+    @Override
+    public String getDefaultImportType() {
+        return "new";
+    }
+
+    @Override
+    protected void beforeSave(List<ImportBillData> billdatas, ImportLogger logger) {
+        // 2.查询奖金科目
+        Map<String, List<String>> itemMap = new HashMap<>();
+        List<String> bonusTypes = billdatas.stream().map(s -> s.getData().getJSONObject("${ISV_FLAG}_bonus_types").getString("number")).collect(Collectors.toList());
+        QFilter qfilter = new QFilter("${ISV_FLAG}_bonus_type.number", QCP.in, bonusTypes)
+                .and("enable", QCP.equals, "1")
+                .and("status", QCP.equals, "C");
+        DynamicObject[] bonusItems = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_items", "id,number,${ISV_FLAG}_bonus_type.number", qfilter.toArray());
+        Map<String, List<DynamicObject>> typeNumberGroups = Arrays.stream(bonusItems).collect(Collectors.groupingBy(s -> s.getString("${ISV_FLAG}_bonus_type.number")));
+        for (Map.Entry<String, List<DynamicObject>> type : typeNumberGroups.entrySet()) {
+            String typeNumber = type.getKey();
+            List<String> itemNumbers = type.getValue().stream().map(s -> s.getString("number")).distinct().collect(Collectors.toList());
+            itemMap.put(typeNumber, itemNumbers);
+        }
+
+        // 创建人信息
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+        filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+        DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+        Boolean flag = Boolean.FALSE;
+        DynamicObject position = null;
+        DynamicObject dept = null;
+        DynamicObject company = null;
+        if (empPosRel != null){
+            flag = Boolean.TRUE;
+            position = empPosRel.getDynamicObject("position");
+            dept = empPosRel.getDynamicObject("adminorg");
+            company = empPosRel.getDynamicObject("company");
+        }
+
+        // 遍历，数据处理
+        Iterator<ImportBillData> iterator = billdatas.iterator();
+        while (iterator.hasNext()) {
+            JSONObject data = iterator.next().getData();
+            Integer index = data.getInteger("rowNum");//列数
+
+            // 创建人信息自动维护
+            if (flag){
+                JSONObject deptPersonJsonObject = new JSONObject();
+                deptPersonJsonObject.put("id",empPosRel.getLong("id"));
+                data.put("${ISV_FLAG}_dept_person",deptPersonJsonObject);
+
+                // 岗位
+                JSONObject positionJsonObject = new JSONObject();
+                positionJsonObject.put("id",position.getLong("id"));
+                data.put("${ISV_FLAG}_attribut_post",positionJsonObject);
+
+                // 部门
+                JSONObject deptJsonObject = new JSONObject();
+                deptJsonObject.put("id",dept.getLong("id"));
+                data.put("${ISV_FLAG}_attribut_dept",deptJsonObject);
+
+                // 公司
+                JSONObject companyJsonObject = new JSONObject();
+                companyJsonObject.put("id",company.getLong("id"));
+                data.put("${ISV_FLAG}_attribut_company",companyJsonObject);
+            }else {
+                logger.log(index, "创建人无组织人信息").fail();
+                iterator.remove();
+                continue;
+            }
+
+            // 奖金类型和奖金科目校验
+            JSONObject bonusType = data.getJSONObject("${ISV_FLAG}_bonus_types");
+            JSONObject bonusItem = data.getJSONObject("${ISV_FLAG}_bonus_items");
+            if (bonusType != null && bonusItem != null) {
+                String typeNumber = bonusType.getString("number");
+                String itemNumber = bonusItem.getString("number");
+                List<String> itemNumbers = itemMap.get(typeNumber);
+                if (itemNumbers != null) {
+                    if (!itemNumbers.contains(itemNumber)) {
+                        logger.log(index, "引入的奖金项目与奖金类型不匹配").fail();
+                        iterator.remove();
+                        continue;
+                    }
+                } else {
+                    logger.log(index, "奖金项目月奖金类型不存在或奖金类型下无对应奖金项目").fail();
+                    iterator.remove();
+                    continue;
+                }
+            }
+
+            // 剩余总额(元) = 计划总额 - 核算总额
+            // 计划总额
+            BigDecimal planMoney = data.getBigDecimal("${ISV_FLAG}_plan_money");
+            if (planMoney == null || planMoney.compareTo(BigDecimal.ZERO) == 0){
+                logger.log(index, "计划总额不能等于0").fail();
+                iterator.remove();
+                continue;
+            }
+
+            // 核算总额
+            BigDecimal checkAmount = data.getBigDecimal("${ISV_FLAG}_app_total_amount");
+            if (checkAmount == null){
+                checkAmount = BigDecimal.ZERO;
+            }
+            BigDecimal amount = planMoney.subtract(checkAmount);
+            data.put("${ISV_FLAG}_sur_total_amonut",amount);
+
+            // 是否差额
+            if (amount.compareTo(BigDecimal.ZERO) == 0){
+                data.put("${ISV_FLAG}_over","1");
+            }else {
+                data.put("${ISV_FLAG}_over","0");
+            }
+
+            // 流程单号/发文文号/制度文件编号判断
+            String approvalExplain = data.getString("${ISV_FLAG}_approval_explain");
+            if (!"非已报批/发文/执行制度".equals(approvalExplain)){
+                String fileNumber = data.getString("${ISV_FLAG}_file_number");
+                if (StringUtils.isEmpty(fileNumber)){
+                    logger.log(index, "若已报批、已发文、执行制度，则流程单号/发文文号/制度文件编号字段必填").fail();
+                    iterator.remove();
+                    continue;
+                }
+            }
+
+        }
+        super.beforeSave(billdatas, logger);
+    }
+}

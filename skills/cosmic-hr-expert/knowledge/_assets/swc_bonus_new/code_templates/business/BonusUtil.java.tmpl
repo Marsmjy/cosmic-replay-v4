@@ -1,0 +1,230 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util;
+
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.ILocaleString;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.utils.ArrayUtils;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.IFormView;
+import kd.bos.form.ShowType;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.servicehelper.workflow.MessageCenterServiceHelper;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+import ${ISV_FLAG}.swc.hsbm.biz.eip.task.common.util.CommonUtil;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/9 10:10
+ * FileName: BonusUtil
+ * Description: 奖金工具类
+ */
+public class BonusUtil {
+
+    public static final String APPROVAL_SUM_BILL = "${ISV_FLAG}_bonus_sum_approval"; // 汇总审批单的表单id
+    public static final String DISTRIBUTE_SUM_BILL_FORM_ID = "${ISV_FLAG}_bonus_distribute_sum"; // 奖金分配汇总单的表单ID
+    public static final String DISTRIBUTE_BILL_FORM_ID = "${ISV_FLAG}_bonus_dis_detail"; // 奖金分配单的表单ID
+    public static final String APPROVAL_BILL_FORM_ID = "${ISV_FLAG}_bonus_approval_2nd"; // 奖金核定单的表单ID
+    public static final String REJECT_CONFIRM_FORM_ID = "${ISV_FLAG}_dist_reject"; // 驳回弹窗的表单ID
+    public static final String AP_CHECK_DETAIL_ID = "${ISV_FLAG}_bonus_approval_2nd"; // 核定详情表单ID
+    public static final String AP_CHECK_SUM_ID = "${ISV_FLAG}_bonus_approval_flow"; // 核定审批表单ID
+    public static Long currency = 0l;
+    static {
+        // 币别
+        DynamicObject currencyTemp = QueryServiceHelper.queryOne("bd_currency", "id,amtprecision", new QFilter("number", QCP.equals, "CNY").toArray());
+        if (currencyTemp == null) {
+            throw new RuntimeException("初始化失败：未找到币别 CNY 的配置");
+        } else{
+            currency = currencyTemp.getLong("id");
+        }
+    }
+
+    /**
+     * 批量发送消息
+     * @param groupSendMsgMap key:单据的id value:[处理人ID] && 【消息提示内容】
+     * @param currentDate 消息发送的时间
+     * @param linkOpenEntityId 链接打开的表单标识
+     * @param msgType 消息类型
+     * @return 消息批量发送的结果
+     */
+    public static boolean batchSendMsg(Map<Long, String> groupSendMsgMap, Date currentDate, String linkOpenEntityId, String msgType) {
+        // 构建消息发送的列表
+        List<MessageInfo> messageInfos = new ArrayList<>();
+        // ------------------------------------发送消息的时候按照分配人进行区分-------------------------------------------------
+        groupSendMsgMap.keySet().forEach(key -> {
+            String value = groupSendMsgMap.get(key);
+            String[] split = value.split("&&");
+            String receiverId = split[0];
+            String tipStr = split[1];
+            String billId = split[2];
+
+            MessageInfo message = new MessageInfo();
+            // 信息title
+            ILocaleString title = new LocaleString();
+            title.setLocaleValue_en("Bonus allocation processing reminder");
+            title.setLocaleValue_zh_CN("奖金分配汇总催办处理提醒");
+            title.setLocaleValue_zh_TW("");
+            message.setMessageTitle(title);
+
+            // 信息标签
+            ILocaleString tag = new LocaleString();
+            tag.setLocaleValue_zh_CN("奖金分配");
+            message.setTag("奖金分配");
+            message.setMessageTag(tag);
+
+            // 信息发送人
+            message.setSenderId(RequestContext.get().getCurrUserId());
+            message.setType(msgType);
+
+            // 模板以及场景和时间
+//            message.setTplScene("${ISV_FLAG}_bonus_dis_scence"); // 设置消息场景
+            message.setEntityNumber(linkOpenEntityId); // 实体标识
+//            message.setTemplateNumber("${ISV_FLAG}_bonus_distribution"); // 设置消息模板
+            message.setSendTime(currentDate); // 发送时间
+
+            // 下面这几个必须配置 否则批量发送不了消息通知
+            message.setSource("");
+            message.setNestAppid("${ISV_FLAG}_hsbm");
+            message.setNestEntityNumber(linkOpenEntityId);
+            message.setBizDataId(key); // 单据id
+
+            // 信息接收人
+            message.setUserIds(Collections.singletonList(Long.valueOf(receiverId)));
+
+            // 信息主体
+            ILocaleString content = new LocaleString();
+            content.setLocaleValue_en("Please follow up as soon as possible!");
+            content.setLocaleValue_zh_CN(tipStr);
+            content.setLocaleValue_zh_TW("");
+            message.setMessageContent(content);
+
+            // 设置快速处理链接
+            /*String domainContextUrl = UrlService.getDomainContextUrl();
+            String url = domainContextUrl + "/index.html?formId=" + linkOpenEntityId + "&type=bill&pkId=" + Long.valueOf(billId) + "&operationStatus=VIEW";
+            message.setContentUrl(url);*/
+
+            messageInfos.add(message);
+        });
+        // 批量发送消息
+        Map<String, Object> resultMap = MessageCenterServiceHelper.batchSendMessages(messageInfos);
+        if(resultMap == null){
+            return false;
+        }
+        // 获取消息发送后的返回结果
+        return (boolean) resultMap.get("success");
+    }
+
+    public static void openForm(IFormView view,String entityName,Map<String, Object> customMap) {
+        FormShowParameter formShowParameter = new FormShowParameter();
+        formShowParameter.setFormId(entityName);
+        formShowParameter.setCustomParams(customMap);
+        formShowParameter.getOpenStyle().setShowType(ShowType.Modal);
+        view.showForm(formShowParameter);
+    }
+
+    public static void openBill(IFormView view, Long pkId, String formId, Map<String,Object> customData) {
+        // 打开筛选数据的弹窗
+        BillShowParameter formShowParameter = new BillShowParameter();
+        formShowParameter.setFormId(formId);
+        formShowParameter.setPkId(pkId);
+        formShowParameter.setCustomParams(customData);
+        formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+        view.showForm(formShowParameter);
+    }
+
+
+    /**
+     * 查看详情页面
+     * @param view
+     * @param pkId
+     * @param formId
+     * @param customData
+     */
+    public static void openInfoBill(IFormView view, Long pkId, String formId, Map<String,Object> customData) {
+        BillShowParameter formShowParameter = new BillShowParameter();
+        formShowParameter.setFormId(formId);
+        formShowParameter.setPkId(pkId);
+        formShowParameter.setCustomParams(customData);
+        formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+        if(BonusUtil.APPROVAL_SUM_BILL.equals(formId)){
+            formShowParameter.setStatus(OperationStatus.EDIT);
+        } else{
+            formShowParameter.setStatus(OperationStatus.VIEW);
+        }
+        formShowParameter.setHasRight(true);
+        view.showForm(formShowParameter);
+    }
+
+
+
+    /**
+     * 全字段查询（单独剔除某些字段）
+     * param entityName 表单名称
+     * @param fields 需要剔除的字段的集合
+     * @return 提出后的字段集合
+     */
+    @NotNull
+    public static String afterExpectQueryAllField(String entityName, String... fields) {
+        String allFields = CommonUtil.getAllFields(entityName);
+        ArrayList<String> allFieldList = new ArrayList<>(Arrays.asList(allFields.split(",")));
+        Arrays.stream(fields).forEach(field -> allFieldList.removeIf(a -> a.equals(field)));
+        return String.join(",", allFieldList);
+    }
+
+    public static void updateBill(DynamicObject[] bills){
+        if(ArrayUtils.isNotEmpty(bills)){
+            SaveServiceHelper.update(bills);
+        }
+    }
+
+    /**
+     * 保存后台生成的单据
+     * @return 保存后的结果
+     */
+    public static Object[] saveBill(DynamicObject[] bills) {
+        // 调用 SaveServiceHelper.save() 的方法的时候，如果数组为空的话，会报错
+        if(ArrayUtils.isNotEmpty(bills) && bills.length > 0){
+            return SaveServiceHelper.save(bills);
+        }
+        return null;
+    }
+
+
+    /**
+     */
+    public static DynamicObject getCurrentUserErmanfile() {
+        // 查询生效中的人事业务档案
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("empposrel.isprimary", QCP.equals, "1");
+        filter.and("person.number",QCP.equals,currentPerson.getString("number"));
+        filter.and("iscurrentversion",QCP.equals,"1");
+        filter.and("datastatus",QCP.equals,"1");
+        filter.and("businessstatus",QCP.equals,"1");
+        filter.and("filetype.number",QCP.not_equals,"1050_S");
+        return BusinessDataServiceHelper.loadSingle("hspm_ermanfile", filter.toArray());
+    }
+
+
+    /**
+     */
+    public static DynamicObject getCurrentErmanfile(String personNumber) {
+        // 查询生效中的人事业务档案
+        QFilter filter = new QFilter("empposrel.isprimary", QCP.equals, "1");
+        filter.and("person.number",QCP.equals,personNumber);
+        filter.and("iscurrentversion",QCP.equals,"1");
+        filter.and("datastatus",QCP.equals,"1");
+        filter.and("businessstatus",QCP.equals,"1");
+        filter.and("filetype.number",QCP.not_equals,"1050_S");
+        return BusinessDataServiceHelper.loadSingle("hspm_ermanfile", filter.toArray());
+    }
+}

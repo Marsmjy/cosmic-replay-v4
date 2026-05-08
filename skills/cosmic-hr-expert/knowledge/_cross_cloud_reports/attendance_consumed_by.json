@@ -1,0 +1,139 @@
+{
+  "_meta": {
+    "description": "attendance 实体被其他 form 引用反向报告（ADR-009 跨云穿透 L1 数据基础）",
+    "cloud": "attendance",
+    "generatedAt": "2026-04-30",
+    "generator": "scripts/gen_cross_cloud_consumed_by_report.py",
+    "totalEntities": 5,
+    "crossCloudEntities": 5
+  },
+  "entities": [
+    {
+      "entity": "hpfs_chgaction",
+      "totalRefs": 4,
+      "crossCloudRefs": 4,
+      "ownedScene": "core_hr_pfs_chgevent",
+      "byCloud": {
+        "hr_hrmp": [
+          {
+            "form": "hrcs_dynamsgdealtrace",
+            "field": "chgaction",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_permapplybill",
+            "field": "chgaction",
+            "fieldType": "BasedataField"
+          }
+        ],
+        "core_hr": [
+          {
+            "form": "hrpi_empjobrel",
+            "field": "chgaction",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrpi_empposorgrel",
+            "field": "chgaction",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hpfs_chgcategory",
+      "totalRefs": 4,
+      "crossCloudRefs": 4,
+      "ownedScene": "core_hr_pfs_chgevent",
+      "byCloud": {
+        "hr_hrmp": [
+          {
+            "form": "hrcs_dynamsgdealtrace",
+            "field": "chgcategory",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_dynascheme",
+            "field": "assignactype",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_dynascheme",
+            "field": "cancelactype",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_permapplybill",
+            "field": "chgcategory",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hpfs_chgevent",
+      "totalRefs": 3,
+      "crossCloudRefs": 3,
+      "ownedScene": "core_hr_pfs_chgevent",
+      "byCloud": {
+        "hr_hrmp": [
+          {
+            "form": "hrcs_chgeventblacklist",
+            "field": "chgevent",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_dynamsgdealtrace",
+            "field": "chgevent",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_permapplybill",
+            "field": "chgevent",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hpfs_chgreason",
+      "totalRefs": 3,
+      "crossCloudRefs": 3,
+      "ownedScene": "core_hr_pfs_chgevent",
+      "byCloud": {
+        "core_hr": [
+          {
+            "form": "hrpi_blacklist",
+            "field": "quitreasonid",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrpi_dispatchinfo",
+            "field": "dispreason",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrpi_empposorgrel",
+            "field": "chgreason",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hpfs_chgrecord",
+      "totalRefs": 1,
+      "crossCloudRefs": 1,
+      "ownedScene": "core_hr_pfs_chgrecord",
+      "byCloud": {
+        "hr_hrmp": [
+          {
+            "form": "hrcs_permapplybill",
+            "field": "chgrecord",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    }
+  ]
+}

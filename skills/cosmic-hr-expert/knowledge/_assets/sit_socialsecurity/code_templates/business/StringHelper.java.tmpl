@@ -1,0 +1,171 @@
+package ${ISV_FLAG}.swc.sit.common.util;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+public class StringHelper {
+
+
+    // 对象集合转换为SQL使用的ID列表字符串
+    public static String toSql(DynamicObjectCollection collection)
+    {
+        if (collection == null || collection.size() == 0)
+            return "''";
+        StringBuffer sql = new StringBuffer();
+        for(int i=0; i<collection.size(); i++)
+        {
+            DynamicObject object = collection.get(i);
+            if(object!=null)
+                sql.append("'").append(object.getString("id")).append("',");
+        }
+        if(sql.length()>0)
+            sql.deleteCharAt(sql.length()-1);
+        else
+            sql.append("''");
+        return sql.toString();
+    }
+
+
+    public static String longIdToSql(DynamicObjectCollection collection)
+    {
+        return longIdToSql(collection, "id");
+    }
+
+    public static String longIdToSql(DynamicObjectCollection collection, String propertyName)
+    {
+        if (collection == null || collection.size() == 0)
+            return "0";
+        StringBuffer sql = new StringBuffer();
+        for(int i=0; i<collection.size(); i++)
+        {
+            DynamicObject object = collection.get(i);
+            if(object!=null)
+                sql.append(object.getString(propertyName)).append(",");
+        }
+        if(sql.length()>0)
+            sql.deleteCharAt(sql.length()-1);
+        else
+            sql.append("0");
+        return sql.toString();
+    }
+
+    // 对象或ID列表，转换为SQL使用的ID列表字符串
+    public static String toSql(List list)
+    {
+        if (list == null || list.size() == 0)
+            return "''";
+        StringBuffer sql = new StringBuffer();
+        for(int i=0; i<list.size(); i++)
+        {
+            Object object = list.get(i);
+            if(object==null)
+                continue;
+            if(object instanceof DynamicObject)
+                sql.append("'").append(((DynamicObject)object).getString("id")).append("',");
+            else
+                sql.append("'").append(object.toString()).append("',");
+        }
+        if(sql.length()>0)
+            sql.deleteCharAt(sql.length()-1);
+        else
+            sql.append("''");
+        return sql.toString();
+    }
+
+
+    public static String longIdToSql(Collection list)
+    {
+        return longIdToSql(Arrays.asList(list.toArray()));
+    }
+
+    // 对象或ID列表，转换为SQL使用的ID列表字符串
+    public static String longIdToSql(List list)
+    {
+        if (list == null || list.size() == 0)
+            return "0";
+        StringBuffer sql = new StringBuffer();
+        for(int i=0; i<list.size(); i++)
+        {
+            Object object = list.get(i);
+            if(object==null)
+                continue;
+            if(object instanceof DynamicObject)
+                sql.append(((DynamicObject)object).getString("id")).append(",");
+            else
+                sql.append(object.toString()).append(",");
+        }
+        if(sql.length()>0)
+            sql.deleteCharAt(sql.length()-1);
+        else
+            sql.append("0");
+        return sql.toString();
+    }
+
+
+    public static ArrayList<String> getList(String... elements)
+    {
+        ArrayList<String> list = new ArrayList();
+        if(elements==null || elements.length==0)
+            return list;
+        for(int i=0; i<elements.length; i++)
+            list.add(elements[i]);
+        return list;
+    }
+
+    public static ArrayList<Long> getList(long... elements)
+    {
+        ArrayList<Long> list = new ArrayList();
+        if(elements==null || elements.length==0)
+            return list;
+        for(int i=0; i<elements.length; i++)
+            list.add(elements[i]);
+        return list;
+    }
+
+    public static ArrayList<Object> getObjList(Object... elements)
+    {
+        ArrayList<Object> list = new ArrayList();
+        if(elements==null || elements.length==0)
+            return list;
+        for(int i=0; i<elements.length; i++)
+            list.add(elements[i]);
+        return list;
+    }
+
+
+
+    public static String join(Object[] srcValues)
+    {
+        return join(srcValues, ",", true);
+    }
+
+    public static String join(Object[] srcValues, String splitor, boolean isgoreEmpty)
+    {
+        if(srcValues==null || srcValues.length==0)
+            return "";
+        StringBuffer stringBuffer = new StringBuffer();
+        for(int i=0; i<srcValues.length; i++)
+        {
+            Object object = srcValues[i];
+            if(object==null || StringUtils.isEmpty(object.toString()))
+            {
+                if(isgoreEmpty)
+                    continue;
+                else {
+                    stringBuffer.append(String.valueOf(object)).append(",");
+                }
+            }
+            stringBuffer.append(String.valueOf(object)).append(",");
+        }
+        if(stringBuffer.length()>0)
+            stringBuffer.deleteCharAt(stringBuffer.length()-1);
+        return stringBuffer.toString();
+    }
+
+}

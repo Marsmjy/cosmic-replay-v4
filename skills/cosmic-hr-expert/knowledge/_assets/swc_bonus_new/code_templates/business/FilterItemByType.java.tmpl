@@ -1,0 +1,326 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan;
+
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.ChangeData;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.form.ShowType;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.ComboEdit;
+import kd.bos.form.field.ComboItem;
+import kd.bos.form.field.FieldEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.list.ListShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.util.CollectionUtils;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/3/26 14:54
+ * FileName: FilterItemByType
+ * Description: 根据奖金类型过滤奖金项目
+ */
+public class FilterItemByType extends AbstractFormPlugin implements BeforeF7SelectListener {
+
+    private static final Log log = LogFactory.getLog(FilterItemByType.class);
+
+    @Override
+    public void registerListener(EventObject e) {
+        // 适用范围过滤
+        BasedataEdit scopeUseSalorg = this.getView().getControl("${ISV_FLAG}_scope_org");
+        scopeUseSalorg.addBeforeF7SelectListener(this);
+
+        // 创建人信息过滤
+        BasedataEdit deptPerson = this.getView().getControl("${ISV_FLAG}_dept_person");
+        deptPerson.addBeforeF7SelectListener(this);
+    }
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent beforeF7SelectEvent) {
+        String fieldKey = beforeF7SelectEvent.getProperty().getName();
+        ListShowParameter showParameter = (ListShowParameter) beforeF7SelectEvent.getFormShowParameter();
+        if ("${ISV_FLAG}_scope_org".equals(fieldKey)){
+            // 设置列表过滤条件
+            QFilter orgFilter = new QFilter("adminorgtype.number",QCP.in, Arrays.asList("1028_S","1025_S"));
+            orgFilter.or("number",QCP.equals,"10017990");
+//            showParameter.getListFilterParameter().getQFilters().add(orgFilter);
+
+            // 过滤左树
+            QFilter copyFilter = orgFilter.copy();
+            copyFilter.and("iscurrentversion", QCP.equals, "1");
+            copyFilter.and("datastatus", QCP.equals, "1");
+            DynamicObjectCollection adminorgCollection = QueryServiceHelper.query("haos_adminorg", "id,structlongnumber", copyFilter.toArray());
+            List<String> orgList = adminorgCollection.stream().map(item -> item.getString("structlongnumber")).collect(Collectors.toList());
+            List<String> structnumber = new ArrayList<>();
+            for (String structlongnumber : orgList) {
+                String[] split = structlongnumber.split("!");
+                structnumber.addAll(Arrays.stream(split).collect(Collectors.toList()));
+            }
+            QFilter filter = new QFilter("structnumber",QCP.in,structnumber);
+            filter.and("iscurrentversion", QCP.equals, "1");
+            filter.and("datastatus", QCP.equals, "1");
+            DynamicObjectCollection orgTree = QueryServiceHelper.query("haos_adminorg", "id", filter.toArray());
+//            showParameter.getCustomParams().put(TreeTemplateConstants.BIZ_QFILTER_KEY, new QFilter("adminorg.id", QCP.in, orgTree.stream().map(item -> item.getLong("id")).collect(Collectors.toSet())).toSerializedString());
+        }
+
+        if ("${ISV_FLAG}_dept_person".equals(fieldKey)){
+            QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+            DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+            // 组织人过滤
+            QFilter personOrgFilter = new QFilter("employee.empnumber",QCP.equals, currentPerson.getString("number"));
+            personOrgFilter.and("businessstatus",QCP.equals,"1");
+            showParameter.getListFilterParameter().getQFilters().add(personOrgFilter);
+        }
+    }
+
+    @Override
+    public void afterCreateNewData(EventObject e) {
+        // 设置奖金业务类别下拉框
+        setPersonalRewards();
+    }
+
+    /**
+     * 设置奖金业务类别下拉框
+     */
+    private void setPersonalRewards() {
+        DynamicObject bill = this.getModel().getDataEntity();
+        String orgNumber = bill.getString("org.number");
+
+        List<String> list = new ArrayList<>();
+        list.add("1&个性化类");
+        list.add("2&工程建设类");
+        list.add("3&重大科创类");
+        list.add("4&年终奖类");
+        list.add("0&其他");
+
+        ComboEdit comboEdit = this.getControl("${ISV_FLAG}_personal_rewards");
+        List<ComboItem> comboItems = new ArrayList<>();
+        for (String value : list) {
+            String[] split = value.split("&");
+            ComboItem comboItem = new ComboItem();
+            if (split[0].equals("3")){
+                if (!Arrays.asList("TW01","TW02").contains(orgNumber)){
+                    continue;
+                }
+            }
+            // 设置下拉项显示的内容
+            comboItem.setCaption(new LocaleString(split[1]));
+            // 设置下拉项的值
+            comboItem.setValue(split[0]);
+            // 将单个下拉项添加到下拉列表中
+            comboItems.add(comboItem);
+        }
+        comboEdit.setComboItems(comboItems);
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        String relationshipChart = this.getView().getFormShowParameter().getCustomParam("RelationshipChart");
+        // 判断从关系图点击跳转进来的隐藏【新增】，【修改】按钮
+        if(relationshipChart != null){
+            this.getView().setVisible(false,"bar_new","bar_modify");
+        }
+
+        // 生成审批单按钮隐藏
+        String planSummary = this.getModel().getDataEntity().getString("${ISV_FLAG}_plan_summary");
+        if (!StringUtils.isEmpty(planSummary)){
+            Long planSummaryId = Long.valueOf(planSummary);
+            DynamicObject bonusPlanApproval = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_plan_approval", new QFilter[]{new QFilter("id",QCP.equals,planSummaryId)});
+            if (bonusPlanApproval != null){
+                this.getView().setVisible(false,"${ISV_FLAG}_donothing_push_check");
+            }
+        }
+
+        // 流程单号/发文文号/制度文件编号设置
+        String approvalExplain = this.getModel().getDataEntity().getString("${ISV_FLAG}_approval_explain");
+        List<String> approvalExplains =Arrays.asList("1","2","3");
+        if (approvalExplains.contains(approvalExplain)){
+            isMustInput("${ISV_FLAG}_file_number",true);
+            setVisible("${ISV_FLAG}_file_number",true);
+        }else {
+            isMustInput("${ISV_FLAG}_file_number",false);
+            setVisible("${ISV_FLAG}_file_number",false);
+        }
+
+        DynamicObject deptPerson = this.getView().getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_dept_person");
+        if(deptPerson == null) {
+            QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+            DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+            QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+            filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+            DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id", new QFilter[]{filter});
+
+            if (empPosRel != null) {
+                this.getView().getModel().setValue("${ISV_FLAG}_dept_person", empPosRel);
+                this.getView().updateView("${ISV_FLAG}_dept_person");
+            }
+        }
+        // 设置奖金业务类别下拉框
+        setPersonalRewards();
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        DynamicObject bill = this.getView().getModel().getDataEntity();
+        IDataModel model = this.getModel();
+        // 获取值改变的标识
+        String name = e.getProperty().getName();
+        // 获取改变后的新值
+        ChangeData changeData = e.getChangeSet()[0];
+
+        // 奖金类型的改变
+        if("${ISV_FLAG}_bonus_types".equals(name)){
+//            DynamicObject bonusType = (DynamicObject) changeData.getNewValue();
+//            // 如果是删除值，则清空后面关联的奖金项目，并直接结束
+//            if(bonusType == null){
+//                model.setValue("${ISV_FLAG}_bonus_items",null); // 清空奖金项目基础资料的值
+//                return;
+//            }
+//            // 获取到改变后的值
+//            long bonusTypeId = bonusType.getLong("id");
+//            // 根据获取到的基础资料过滤 奖金项目的基础资料弹窗
+//            BasedataEdit bonusItems = this.getControl("${ISV_FLAG}_bonus_items");
+//            QFilter qFilter = new QFilter("${ISV_FLAG}_bonus_type", QCP.equals,bonusTypeId);
+//            bonusItems.setQFilter(qFilter);
+        }
+
+        // 奖金项目的改变
+        if ("${ISV_FLAG}_bonus_items".equals(name)){
+            DynamicObject bonusItem = (DynamicObject) changeData.getNewValue();
+            // 奖金项目的健壮性处理
+            if(bonusItem == null){
+                this.getView().getModel().setValue("${ISV_FLAG}_bonus_types",null);
+                return;
+            }
+            // 获取到奖金项目对应的薪酬业务项目
+            DynamicObject businessItem = bonusItem.getDynamicObject("${ISV_FLAG}_business_item");
+            // 如果没有关联薪酬业务项目，则提示警告
+            if(businessItem == null){
+                this.getView().showErrorNotification("奖金项目无关联薪酬业务项目");
+            }
+            // 奖金类型赋值
+            this.getView().getModel().setValue("${ISV_FLAG}_bonus_types",bonusItem.getDynamicObject("${ISV_FLAG}_bonus_type"));
+        }
+
+        // 生效日期、失效日期发生改变
+        if ("${ISV_FLAG}_effective_date".equals(name) || "${ISV_FLAG}_expiring_date".equals(name)){
+            Date effectiveDate = bill.getDate("${ISV_FLAG}_effective_date");
+            Date expiringDate = bill.getDate("${ISV_FLAG}_expiring_date");
+            if (effectiveDate != null && expiringDate != null){
+                if (expiringDate.compareTo(effectiveDate) <= 0){
+                    model.setValue("${ISV_FLAG}_expiring_date",null);
+                    this.getView().showTipNotification("失效日期不得早于或等于生效日期。");
+                }
+            }
+        }
+
+        // 组织人发生变化
+        if ("${ISV_FLAG}_dept_person".equals(name)){
+            DynamicObject deptPerson = bill.getDynamicObject("${ISV_FLAG}_dept_person");
+            if (deptPerson != null){
+                Long adminOrgId = deptPerson.getLong("adminorg.id");
+                DynamicObject position = deptPerson.getDynamicObject("position");
+                model.setValue("${ISV_FLAG}_attribut_post",position);
+
+                QFilter filter = new QFilter("id",QCP.equals,adminOrgId);
+                DynamicObject org = BusinessDataServiceHelper.loadSingle("haos_adminorg", "id, belongdept, belongcompany", filter.toArray());
+//                model.setValue("${ISV_FLAG}_attribut_dept",org.getDynamicObject("belongdept"));
+                model.setValue("${ISV_FLAG}_attribut_dept",adminOrgId);
+                model.setValue("${ISV_FLAG}_attribut_company",org.getDynamicObject("belongcompany"));
+            }else {
+                model.setValue("${ISV_FLAG}_attribut_post",null);
+                model.setValue("${ISV_FLAG}_attribut_dept",null);
+                model.setValue("${ISV_FLAG}_attribut_company",null);
+            }
+        }
+
+        if ("${ISV_FLAG}_approval_explain".equals(name)){
+            List<String> approvalExplains =Arrays.asList("1","2","3");
+            String approvalExplain = bill.getString("${ISV_FLAG}_approval_explain");
+            if (approvalExplains.contains(approvalExplain)){
+                isMustInput("${ISV_FLAG}_file_number",true);
+                setVisible("${ISV_FLAG}_file_number",true);
+            }else {
+                isMustInput("${ISV_FLAG}_file_number",false);
+                setVisible("${ISV_FLAG}_file_number",false);
+            }
+        }
+
+        if ("${ISV_FLAG}_plan_money".equals(name)){
+            BigDecimal planMoney = bill.getBigDecimal("${ISV_FLAG}_plan_money");
+            if (planMoney != null){
+                this.getView().getModel().setValue("${ISV_FLAG}_sur_total_amonut",planMoney);
+            }
+        }
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs afterDoOperationEventArgs) {
+        String operateKey = afterDoOperationEventArgs.getOperateKey();
+        if("donothing_push_check".equals(operateKey)){
+            OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+            if(operationResult.isSuccess()){
+                List<Object> successPkIds = afterDoOperationEventArgs.getOperationResult().getSuccessPkIds();
+                if(CollectionUtils.isNotEmpty(successPkIds)){
+                    DynamicObject bill = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_plan", new QFilter[]{new QFilter("id", QCP.in,successPkIds)});
+                    showBonusPlanApproval(bill);
+                }
+            }
+        }
+
+        if ("submiteffect".equals(operateKey) || "donothing_push_check".equals(operateKey)){
+            OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+            if(operationResult.isSuccess()){
+                this.getView().invokeOperation("refresh");
+            }
+        }
+    }
+
+    /**
+     * 跳转到计划汇总审批界面
+     */
+    private void showBonusPlanApproval(DynamicObject bill) {
+        if (bill != null){
+            OperationStatus operationStatus = OperationStatus.EDIT;
+            BillShowParameter formShowParameter = new BillShowParameter();
+            formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+            formShowParameter.setStatus(operationStatus);
+            formShowParameter.setFormId("${ISV_FLAG}_bonus_plan_approval");
+            formShowParameter.setPkId(bill.getString("${ISV_FLAG}_plan_summary"));
+            this.getView().showForm(formShowParameter);
+        }
+    }
+
+    private void isMustInput(String filedKey,Boolean isMustInput) {
+        FieldEdit salaryadjscm = this.getView().getControl(filedKey);
+        salaryadjscm.setMustInput(isMustInput);
+    }
+
+    private void setVisible(String filedKey,Boolean isVisible){
+        this.getView().setVisible(isVisible,filedKey);
+    }
+}

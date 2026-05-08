@@ -1,0 +1,27 @@
+# admin_org_erp_sync · 能力边界
+
+> **聚合场景**：admin_org_erp_sync · 包含 1 个 hbss 字典实体（ERP 组织同步 · 聚合场景...）
+> **占位说明**：本文档为骨架占位 · 待 Agent 深度精修补内容
+> **生成时间**：2026-04-29
+
+## 概述
+
+ERP 组织同步 · 聚合场景
+
+## 涉及实体（1 个）
+
+- `homs_orgdifftemp`
+
+## 标准模式
+
+- **插件模式**：HRBaseDataTplEdit（标准基础资料模板 · ISV 禁继承 · @SdkPlugin 并列挂）
+- **跨云影响**：中
+- **ISV 扩展原则**（PR-001）：禁止继承 HRBaseDataTplEdit · 必须并列挂 HRDataBaseEdit
+
+## 待 Agent 精修要点
+
+1. 每个子实体单独的能力边界章节（1 个）
+2. 反编译 sourceLine 实证（如有 hbss 业务 jar · 需扫 `hrmp-hbss-*.jar`）
+3. 跨云引用真实下游（hbss 是底座 · 76+ 实体被组织/薪酬云引用 · 见 `_org_entity_ref_report.json`）
+
+参见上游脚本：`scripts/complete_aggregate_scenes.py` · 由 P0-1 沉淀。

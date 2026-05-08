@@ -1,0 +1,19 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_fund;
+
+import kd.bos.form.events.BeforeCreateListDataProviderArgs;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.sdk.plugin.Plugin;
+
+/**
+ * Author: wanghansheng
+ * Description: 社保公积金基数列表中，展示数据状态字段
+ */
+public class SocialSecurityFundListPlugin extends AbstractListPlugin implements Plugin {
+    @Override
+    public void beforeCreateListDataProvider(BeforeCreateListDataProviderArgs args) {
+        //隐藏某些操作按钮
+        this.getView().setVisible(false,"baritemap");
+        this.getView().setVisible(false,"tblassign");
+        this.getView().setVisible(false,"bar_manage");
+    }
+}

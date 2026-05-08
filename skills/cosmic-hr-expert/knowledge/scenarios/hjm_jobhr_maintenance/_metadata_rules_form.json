@@ -1,0 +1,1268 @@
+{
+  "formId": "hbjm_jobhr",
+  "formName": "职位",
+  "sceneId": "hjm_jobhr_maintenance",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "21VC3A4THFOS",
+  "bizappId": "14SL2L0H+OZM",
+  "metaIdTechnical": "/IJRHGRN5RVY",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hjm_jobhr_maintenance",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hjm_jobhr_maintenance.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hbjm_jobhr",
+      "type": "BaseEntity",
+      "title": "职位",
+      "physicalTable": null,
+      "fieldCount": 64
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职位编码",
+      "physicalColumn": "t_hbjm_job.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职位名称",
+      "physicalColumn": "t_hbjm_job.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "数据状态",
+      "physicalColumn": "t_hbjm_job.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hbjm_jobhr",
+      "title": "创建人",
+      "physicalColumn": "t_hbjm_job.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hbjm_jobhr",
+      "title": "修改人",
+      "physicalColumn": "t_hbjm_job.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "业务状态",
+      "physicalColumn": "t_hbjm_job.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "创建时间",
+      "physicalColumn": "t_hbjm_job.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "修改时间",
+      "physicalColumn": "t_hbjm_job.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "主数据内码",
+      "physicalColumn": "t_hbjm_job.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "createorg": {
+      "fieldId": "YgMJgrpUsm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hbjm_jobhr",
+      "title": "创建组织",
+      "physicalColumn": "—",
+      "_fieldApId": "YgMJgrpUsm"
+    },
+    "org": {
+      "fieldId": "2y6WC8v9a5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hbjm_jobhr",
+      "title": "管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "2y6WC8v9a5"
+    },
+    "useorg": {
+      "fieldId": "AdVIkjJWrL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hbjm_jobhr",
+      "title": "使用组织",
+      "physicalColumn": "—",
+      "_fieldApId": "AdVIkjJWrL"
+    },
+    "ctrlstrategy": {
+      "fieldId": "7WAfe0bdMp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "控制策略",
+      "physicalColumn": "—",
+      "_fieldApId": "7WAfe0bdMp"
+    },
+    "sourcedata": {
+      "fieldId": "VGMs5W9kgy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "原资料id",
+      "physicalColumn": "—",
+      "_fieldApId": "VGMs5W9kgy"
+    },
+    "bitindex": {
+      "fieldId": "Z9zssSoYI1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "位图",
+      "physicalColumn": "—",
+      "_fieldApId": "Z9zssSoYI1"
+    },
+    "srcindex": {
+      "fieldId": "KPOe3NMluU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "原资料位图",
+      "physicalColumn": "—",
+      "_fieldApId": "KPOe3NMluU"
+    },
+    "srccreateorg": {
+      "fieldId": "1JSQmoJSAF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hbjm_jobhr",
+      "title": "原创建组织",
+      "physicalColumn": "—",
+      "_fieldApId": "1JSQmoJSAF"
+    },
+    "index": {
+      "fieldId": "lCXdqxaqjI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "排序号",
+      "physicalColumn": "t_hbjm_job.findex",
+      "_fieldApId": "lCXdqxaqjI"
+    },
+    "simplename": {
+      "fieldId": "Ypwb324S6X",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职位简称",
+      "physicalColumn": "t_hbjm_job.fsimplename",
+      "_fieldApId": "Ypwb324S6X"
+    },
+    "description": {
+      "fieldId": "xSqhCEZeWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "描述",
+      "physicalColumn": "t_hbjm_job.fdescription",
+      "_fieldApId": "xSqhCEZeWb"
+    },
+    "issyspreset": {
+      "fieldId": "YM4ENbMZdc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "系统预置",
+      "physicalColumn": "t_hbjm_job.fissyspreset",
+      "_fieldApId": "YM4ENbMZdc"
+    },
+    "disabler": {
+      "fieldId": "0O1EyH58Z6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hbjm_jobhr",
+      "title": "禁用人",
+      "physicalColumn": "t_hbjm_job.FDisablerID",
+      "_fieldApId": "0O1EyH58Z6"
+    },
+    "disabledate": {
+      "fieldId": "uRIWPWS2SP",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "禁用时间",
+      "physicalColumn": "t_hbjm_job.FDisableDate",
+      "_fieldApId": "uRIWPWS2SP"
+    },
+    "initdatasource": {
+      "fieldId": "exOPnkSVp5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "数据来源",
+      "physicalColumn": "t_hbjm_job.finitdatasource",
+      "_fieldApId": "exOPnkSVp5"
+    },
+    "orinumber": {
+      "fieldId": "AMQQU5rq5I",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "出厂编码",
+      "physicalColumn": "t_hbjm_job.forinumber",
+      "_fieldApId": "AMQQU5rq5I"
+    },
+    "oristatus": {
+      "fieldId": "iIekn43NoU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "t_hbjm_job.foristatus",
+      "_fieldApId": "iIekn43NoU"
+    },
+    "oriname": {
+      "fieldId": "5A4PDjLBv7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "出厂名称",
+      "physicalColumn": "t_hbjm_job.foriname",
+      "_fieldApId": "5A4PDjLBv7"
+    },
+    "boid": {
+      "fieldId": "SC1cLONKUM",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "业务ID",
+      "physicalColumn": "t_hbjm_job.fboid",
+      "_fieldApId": "SC1cLONKUM"
+    },
+    "iscurrentversion": {
+      "fieldId": "XRfz1rm7QF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "是否当前生效数据",
+      "physicalColumn": "t_hbjm_job.fiscurrentversion",
+      "_fieldApId": "XRfz1rm7QF"
+    },
+    "datastatus": {
+      "fieldId": "k16Kp1SI6F",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "数据版本状态",
+      "physicalColumn": "t_hbjm_job.fdatastatus",
+      "_fieldApId": "k16Kp1SI6F"
+    },
+    "sourcevid": {
+      "fieldId": "pQQfhzfjCY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "关联历史版本",
+      "physicalColumn": "t_hbjm_job.fsourcevid",
+      "_fieldApId": "pQQfhzfjCY"
+    },
+    "firstbsed": {
+      "fieldId": "BFNe97ylAQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "最早生效日期",
+      "physicalColumn": "t_hbjm_job.ffirstbsed",
+      "_fieldApId": "BFNe97ylAQ"
+    },
+    "bsed": {
+      "fieldId": "NBt1XSZL1f",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "生效日期",
+      "physicalColumn": "t_hbjm_job.fbsed",
+      "_fieldApId": "NBt1XSZL1f"
+    },
+    "bsled": {
+      "fieldId": "b3NCD9QuGo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "失效日期",
+      "physicalColumn": "t_hbjm_job.fbsled",
+      "_fieldApId": "b3NCD9QuGo"
+    },
+    "changedescription": {
+      "fieldId": "mwaMbagQDx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "变更说明",
+      "physicalColumn": "t_hbjm_job.fchangedescription",
+      "_fieldApId": "mwaMbagQDx"
+    },
+    "hisversion": {
+      "fieldId": "0AxoDRSmGT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "版本号",
+      "physicalColumn": "t_hbjm_job.fhisversion",
+      "_fieldApId": "0AxoDRSmGT"
+    },
+    "lowjoblevel": {
+      "fieldId": "bRCCyuMhez",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_joblevelhr",
+      "entity": "hbjm_jobhr",
+      "title": "最低职级",
+      "physicalColumn": "t_hbjm_job.flowjoblevelid",
+      "_fieldApId": "bRCCyuMhez"
+    },
+    "highjoblevel": {
+      "fieldId": "IkOf3ECTzQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_joblevelhr",
+      "entity": "hbjm_jobhr",
+      "title": "最高职级",
+      "physicalColumn": "t_hbjm_job.fhighjoblevelid",
+      "_fieldApId": "IkOf3ECTzQ"
+    },
+    "lowjobgrade": {
+      "fieldId": "kqFFplaj6r",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_jobgradehr",
+      "entity": "hbjm_jobhr",
+      "title": "最低职等",
+      "physicalColumn": "t_hbjm_job.flowjobgradeid",
+      "_fieldApId": "kqFFplaj6r"
+    },
+    "highjobgrade": {
+      "fieldId": "WA7w65Dy9P",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_jobgradehr",
+      "entity": "hbjm_jobhr",
+      "title": "最高职等",
+      "physicalColumn": "t_hbjm_job.fhighjobgradeid",
+      "_fieldApId": "WA7w65Dy9P"
+    },
+    "jobtype": {
+      "fieldId": "uQPQcA3hsi",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_jobtype",
+      "entity": "hbjm_jobhr",
+      "title": "职位类别",
+      "physicalColumn": "t_hbjm_job.fjobtypeid",
+      "_fieldApId": "uQPQcA3hsi"
+    },
+    "depcytype": {
+      "fieldId": "w8JTOzWrhy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_depcytype",
+      "entity": "hbjm_jobhr",
+      "title": "属地员工类别(废弃)",
+      "physicalColumn": "t_hbjm_job.fdepcytypeid",
+      "_fieldApId": "w8JTOzWrhy"
+    },
+    "diplomareq": {
+      "fieldId": "Sdei6ZNI65",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_diploma",
+      "entity": "hbjm_jobhr",
+      "title": "学历要求",
+      "physicalColumn": "t_hbjm_job.fdiplomareqid",
+      "_fieldApId": "Sdei6ZNI65"
+    },
+    "agereq": {
+      "fieldId": "gv3EuWqjde",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "年龄要求",
+      "physicalColumn": "t_hbjm_job.fagereq",
+      "_fieldApId": "gv3EuWqjde"
+    },
+    "knowledgereq": {
+      "fieldId": "Q44G60308v",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "知识要求",
+      "physicalColumn": "t_hbjm_job.fknowledgereq",
+      "_fieldApId": "Q44G60308v"
+    },
+    "skillreq": {
+      "fieldId": "bMDCSWxkfZ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "技能要求",
+      "physicalColumn": "t_hbjm_job.fskillreq",
+      "_fieldApId": "bMDCSWxkfZ"
+    },
+    "abilityreq": {
+      "fieldId": "J1uodOv8KT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "能力要求",
+      "physicalColumn": "t_hbjm_job.fabilityreq",
+      "_fieldApId": "J1uodOv8KT"
+    },
+    "experiencereq": {
+      "fieldId": "GiAf2wa070",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "经验要求",
+      "physicalColumn": "t_hbjm_job.fexperiencereq",
+      "_fieldApId": "GiAf2wa070"
+    },
+    "joblevelrang": {
+      "fieldId": "X3VVdKo3z7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职级范围",
+      "physicalColumn": "—",
+      "_fieldApId": "X3VVdKo3z7"
+    },
+    "jobgraderang": {
+      "fieldId": "o0lpvdmtIi",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职等范围",
+      "physicalColumn": "—",
+      "_fieldApId": "o0lpvdmtIi"
+    },
+    "jobseq": {
+      "fieldId": "j5YqygqBoT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hbjm_jobseqhr",
+      "entity": "hbjm_jobhr",
+      "title": "职位序列",
+      "physicalColumn": "t_hbjm_job.fjobseqid",
+      "_fieldApId": "j5YqygqBoT"
+    },
+    "jobfamily": {
+      "fieldId": "atKkqMEuN8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hbjm_jobfamilyhr",
+      "entity": "hbjm_jobhr",
+      "title": "职位族",
+      "physicalColumn": "t_hbjm_job.fjobfamilyid",
+      "_fieldApId": "atKkqMEuN8"
+    },
+    "jobclass": {
+      "fieldId": "FSyDAgIw5F",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hbjm_jobclasshr",
+      "entity": "hbjm_jobhr",
+      "title": "职位类",
+      "physicalColumn": "t_hbjm_job.fjobclassid",
+      "_fieldApId": "FSyDAgIw5F"
+    },
+    "joborientation": {
+      "fieldId": "ojynK3ZX7W",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "定位",
+      "physicalColumn": "t_hbjm_job.fjoborientation",
+      "_fieldApId": "ojynK3ZX7W"
+    },
+    "jobduty": {
+      "fieldId": "iDQNL21dIR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "主要职责",
+      "physicalColumn": "t_hbjm_job.fjobduty",
+      "_fieldApId": "iDQNL21dIR"
+    },
+    "jobstandard": {
+      "fieldId": "Mq39ZaeJQv",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "衡量标准",
+      "physicalColumn": "t_hbjm_job.fjobstandard",
+      "_fieldApId": "Mq39ZaeJQv"
+    },
+    "highjoblevelname": {
+      "fieldId": "GOS5j3K0a9",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "最高职级",
+      "physicalColumn": "—",
+      "_fieldApId": "GOS5j3K0a9"
+    },
+    "lowjoblevelname": {
+      "fieldId": "6aH0pm4Dcw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "最低职级",
+      "physicalColumn": "—",
+      "_fieldApId": "6aH0pm4Dcw"
+    },
+    "lowjobgradename": {
+      "fieldId": "CR5yHJy05u",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "最低职等",
+      "physicalColumn": "—",
+      "_fieldApId": "CR5yHJy05u"
+    },
+    "highjobgradename": {
+      "fieldId": "jM1ZaGjIV0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "最高职等",
+      "physicalColumn": "—",
+      "_fieldApId": "jM1ZaGjIV0"
+    },
+    "jobgradescm": {
+      "fieldId": "SMNA5SaaCk",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_jobgradescmhr",
+      "entity": "hbjm_jobhr",
+      "title": "职等方案",
+      "physicalColumn": "t_hbjm_job.fjobgradescmid",
+      "_fieldApId": "SMNA5SaaCk"
+    },
+    "joblevelscm": {
+      "fieldId": "mfN4l4N8UGehYbMS5R",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_joblevelscmhr",
+      "entity": "hbjm_jobhr",
+      "title": "职级方案",
+      "physicalColumn": "t_hbjm_job.fjoblevelscmid",
+      "_fieldApId": "mfN4l4N8UGehYbMS5R"
+    },
+    "jobscm": {
+      "fieldId": "wX46FKkh54",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "职位体系方案",
+      "physicalColumn": "t_hbjm_jobscmmul（子表）",
+      "_fieldApId": "wX46FKkh54"
+    },
+    "sourcesyskey": {
+      "fieldId": "4Ls7t7AKwr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hbjm_jobhr",
+      "title": "来源系统唯一标识",
+      "physicalColumn": "t_hbjm_job.fsourcesyskey",
+      "_fieldApId": "4Ls7t7AKwr"
+    }
+  },
+  "requiredFields": {
+    "hbjm_jobhr": [
+      "jobseq"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "ab7efc31000015ac_moblist_XsneyOOQ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_moblist_8He2gnXF",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYVXZRP5/F_moblist_xuufHf2k",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21VC3A4THFOS_moblist_Xy7ktqJC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/IJRHGRN5RVY_moblist_z8ghRlVk",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_mZFcYYTH",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_CI5GW115",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYVXZRP5/F_6ykLZLIu",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21VC3A4THFOS_S2JzOKeC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/IJRHGRN5RVY_iPn3vbIU",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_mob_3GzL16VC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_mob_H2SGnlPD",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYVXZRP5/F_mob_9qKheZBB",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21VC3A4THFOS_mob_IsBEtt0a",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/IJRHGRN5RVY_mob_vNoYlfAI",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_list_HzvMMKKY",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_list_BTUexbVC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYVXZRP5/F_list_bPXk1ZUH",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21VC3A4THFOS_list_Ne159LLe",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/IJRHGRN5RVY_list_KlDx8sk3",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataCreateOrgPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataFormPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+      "Description": "历史模型模板通用表单插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.form.HisModelBuFormPlugin",
+      "Description": "历史模型带bu模板表单插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.basedata.JobHisBasedataEdit",
+      "Description": "JobHisBasedataEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.basedata.JobHisBasedataFiledChangeEdit",
+      "Description": "职位历史变更字段改变判断",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.rp.HRRelatePageRightDynamicPlugin",
+      "Description": "侧边栏插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.job.JobBasedataEdit",
+      "Description": "职位表单插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataMobListPlugin",
+      "Description": "kd.bos.form.plugin.bdctrl.BaseDataMobListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.mobile.HisModelMobileListPlugin",
+      "Description": "历史模型移动端列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicListPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataNewPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataListPlugin",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+      "Description": "历史模型模板通用列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelBuListPlugin",
+      "Description": "历史模型带bu模板列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelF7ListPlugin",
+      "Description": "历史模型F7列表通用插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelListPlugin",
+      "Description": "历史模型模板列表过滤面板插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelF7ListPlugin",
+      "Description": "历史模型模板列表过滤面板F7插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.common.JobBaseDataListPlugin",
+      "Description": "职位基础资料列表排序插件",
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.basedata.JobBaseBuListPlugin",
+      "Description": "bu过滤插件",
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.basedata.JobInitFilterCommonPlugin",
+      "Description": "初始化过滤插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hrmp.hbjm.formplugin.web.job.JobListPlugin",
+      "Description": "职位列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 64,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 2,
+        "jsPlugins_count": 20,
+        "formPlugins_count": 35
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 64,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 2,
+        "jsPlugins_count": 20,
+        "formPlugins_count": 35
+      }
+    }
+  ]
+}

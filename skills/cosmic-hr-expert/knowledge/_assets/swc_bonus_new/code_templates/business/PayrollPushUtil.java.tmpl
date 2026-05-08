@@ -1,0 +1,129 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_payroll_accounting;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.QueryServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.salmap.util.CalendarUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class PayrollPushUtil {
+    private static final Log logger = LogFactory.getLog(PayrollPushUtil.class);
+    //算发薪方式“在职算薪”,"离职补发补扣"
+    private static ArrayList<String> getSalaryCalcStyle() {
+        return new ArrayList<>(Arrays.asList("1010_S", "1020_S"));
+    }
+
+    //人员薪资档案数据版本状态 in(待生效、生效中、已失效）
+    private static ArrayList<String> getSalaryFileDataStatusList() {
+        return new ArrayList<>(Arrays.asList("0", "1", "2"));
+    }
+
+
+    /**
+     * 根据工号，薪资核算组编码，日期，找到对应期间的薪资档案
+     * @param personNumberList 工号集合
+     * @param accountOrgNumbers  薪资核算组编码
+     * @param enddate          薪资结束日期
+     * @return Map<工号:薪资核算组编码, 薪资档案数据>
+     */
+    public static Map<String, Map<String, Object>> getEffectiveSalaryFile(Set<String> personNumberList, Set<String> accountOrgNumbers, Date enddate) {
+        //获取月末、月初
+        Date firstDay = CalendarUtil.queryMonthFirstDay(enddate);
+        Date endDate = CalendarUtil.queryMonthLastDay(enddate);
+        //查询字段
+//        String salaryFiled = String.join(",", "id", "number", "boid", "bsed", "bsled", "employee.empnumber personNumber", "empposinfo.number empposinfoNumber", "salarycalcstyle.number salaryTypeNumber", "org.number", "adminorg.structlongnumber","payrollgroup.number");
+        String salaryFiled = String.join(",", "id", "number", "boid", "bsed", "bsled", "employee.empnumber personNumber", "salarycalcstyle.number salaryTypeNumber", "org.number", "adminorg.structlongnumber","payrollgroup.number");
+        //查询人事业务档案,算发薪方式=在职算薪、离职补发补扣
+        QFilter salaryFileFilterA = new QFilter("payrollgroup.number", QCP.in, accountOrgNumbers);
+        salaryFileFilterA.and("bsed", QCP.less_equals, endDate);//生效日期小于月末
+        salaryFileFilterA.and("bsled", QCP.large_equals, firstDay);//失效日期大于月初
+        salaryFileFilterA.and("datastatus", QCP.in, getSalaryFileDataStatusList());
+        salaryFileFilterA.and("salaryfile.status",QCP.equals,"C");
+        salaryFileFilterA.and("salarycalcstyle.number", QCP.in, getSalaryCalcStyle());
+        salaryFileFilterA.and("employee.empnumber", QCP.in, personNumberList);
+        DynamicObjectCollection salaryFileCollection = QueryServiceHelper.query("hsas_salaryfile", salaryFiled, salaryFileFilterA.toArray());
+        // Map<工号:薪资核算组编码, 薪资档案数据>
+        Map<String, List<DynamicObject>> salaryFileGroup = salaryFileCollection.stream().collect(Collectors.groupingBy(item -> item.getString("personNumber") + ":" + item.getString("payrollgroup.number")));
+        // Map<工号:薪资核算组编码, 薪资档案数据>
+        Map<String, Map<String, Object>> resultMap = new HashMap<>();
+        // 封装结果
+        for (String key : salaryFileGroup.keySet()) {
+            // 数据准备
+            List<DynamicObject> salaryFileList = salaryFileGroup.get(key);
+            if (!CollectionUtils.isEmpty(salaryFileList)){
+                // 在职算薪、离职补发补扣结果收集
+                ArrayList<DynamicObject> workingSalaryList = new ArrayList<>();
+                ArrayList<DynamicObject> dimissionSalrayList = new ArrayList<>();
+                for (DynamicObject salaryFile : salaryFileList) {
+                    //在职算薪
+                    String salaryTypeNumber = salaryFile.getString("salaryTypeNumber");
+                    if ("1010_S".equals(salaryTypeNumber)) {
+                        workingSalaryList.add(salaryFile);
+                    }
+                    //离职算薪
+                    if ("1020_S".equals(salaryTypeNumber)) {
+                        dimissionSalrayList.add(salaryFile);
+                    }
+                }
+                // 根据生效日期降序排列
+                workingSalaryList.sort((o1, o2) -> {
+                    Date oldBesdDate = o1.getDate("bsed");
+                    Date newBesdDate = o2.getDate("bsed");
+                    int dateComparison = newBesdDate.compareTo(oldBesdDate);//降序
+                    if (dateComparison != 0) {
+                        return dateComparison;
+                    } else {
+                        //失效日期
+                        Date oldBsledDate = o1.getDate("bsled");
+                        Date newBsledDate = o2.getDate("bsled");
+                        return newBsledDate.compareTo(oldBsledDate);//降序
+                    }
+                });
+                dimissionSalrayList.sort((o1, o2) -> {
+                    Date oldBesdDate = o1.getDate("bsed");
+                    Date newBesdDate = o2.getDate("bsed");
+                    int dateComparison = newBesdDate.compareTo(oldBesdDate);//降序
+                    if (dateComparison != 0) {
+                        return dateComparison;
+                    } else {
+                        //失效日期
+                        Date oldBsledDate = o1.getDate("bsled");
+                        Date newBsledDate = o2.getDate("bsled");
+                        return newBsledDate.compareTo(oldBsledDate);//降序
+                    }
+                });
+
+
+                // 封装结果
+                HashMap<String, Object> result = new HashMap<>();
+                // 在职
+                if (!CollectionUtils.isEmpty(workingSalaryList)){
+                    result.put("salaryFileNumber", workingSalaryList.get(0).getString("number"));
+                    result.put("salaryFileBoId", workingSalaryList.get(0).getLong("boid"));
+                    resultMap.put(key,result);
+                }
+                // 在职档案没有找到，找离职补发补扣档案
+                if (CollectionUtils.isEmpty(result) && !CollectionUtils.isEmpty(dimissionSalrayList)){
+                    result.put("salaryFileNumber", dimissionSalrayList.get(0).getString("number"));
+                    result.put("salaryFileBoId", dimissionSalrayList.get(0).getLong("boid"));
+                    resultMap.put(key,result);
+                }
+            }
+        }
+        // 封装请求数据并返回
+        return resultMap;
+    }
+}

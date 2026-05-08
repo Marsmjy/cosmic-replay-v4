@@ -1,0 +1,107 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util;
+
+import kd.bos.dataentity.entity.ILocaleString;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.servicehelper.workflow.MessageCenterServiceHelper;
+import kd.bos.url.UrlService;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Author: wanghansheng
+ */
+public class TdkwSendMessageUtil {
+
+    /**
+     * 批量发送消息
+     * @return 消息批量发送的结果
+     */
+    public static boolean sendMsg(Map<String, Object> messageParams,List<Map<String,Object>> messageData) {
+        String tagInfo = (String)messageParams.get("tagInfo");
+        String titleInfo = (String)messageParams.get("titleInfo");
+        String msgType = (String)messageParams.get("msgType");
+        String scence = (String)messageParams.get("scence");
+        String template = (String)messageParams.get("template");
+        String entityNumber = (String)messageParams.get("entityNumber");
+        String appId = (String)messageParams.get("appId");
+        Boolean isLinked = (Boolean)messageParams.get("isLinked");
+
+        // 发送时间
+        Date date = new Date();
+        // 构建消息发送的列表
+        List<MessageInfo> messageInfos = new ArrayList<>();
+
+        // 构建消费发送内容
+        for (Map<String, Object> messageDatum : messageData) {
+            Long id = (Long)messageDatum.get("id");// 单据id
+            String messageInfo = (String)messageDatum.get("messageInfo");// 消息内容
+            Long handlerId = (Long)messageDatum.get("handlerId");// 消息处理人id
+            Long senderId = (Long)messageDatum.get("senderId");
+
+            MessageInfo message = new MessageInfo();
+            // 信息title
+            ILocaleString title = new LocaleString();
+            title.setLocaleValue_zh_CN(titleInfo);
+            message.setMessageTitle(title);
+
+            // 信息标签
+            ILocaleString tag = new LocaleString();
+            tag.setLocaleValue_zh_CN(tagInfo);
+            message.setTag(tagInfo);
+            message.setMessageTag(tag);
+
+            // 信息发送人
+            message.setSenderId(senderId);
+            message.setType(msgType);
+
+            // 模板以及场景和时间
+            if (!StringUtils.isEmpty(scence)){
+                message.setTplScene(scence); // 设置消息场景
+            }
+            if (!StringUtils.isEmpty(template)){
+                message.setTemplateNumber(template); // 设置消息模板
+            }
+            message.setSendTime(date); // 发送时间
+            message.setEntityNumber(entityNumber); // 实体标识
+
+            // 下面这几个必须配置 否则批量发送不了消息通知
+            message.setSource("");
+            message.setNestAppid(appId);
+            message.setNestEntityNumber(entityNumber);
+            message.setBizDataId(id); // 单据id
+
+            // 信息接收人
+            message.setUserIds(Collections.singletonList(handlerId));
+
+            // 信息主体
+            ILocaleString content = new LocaleString();
+            content.setLocaleValue_en("Please follow up as soon as possible!");
+            content.setLocaleValue_zh_CN(messageInfo);
+            content.setLocaleValue_zh_TW("");
+            message.setMessageContent(content);
+
+            // 设置快速处理链接
+            if (isLinked){
+                String domainContextUrl = UrlService.getDomainContextUrl();
+                String url = domainContextUrl + "/index.html?formId=" + entityNumber + "&type=bill&pkId=" + id + "&operationStatus=view";
+                message.setContentUrl(url);
+            }
+
+            messageInfos.add(message);
+        }
+
+        // 批量发送消息
+        Map<String, Object> resultMap = MessageCenterServiceHelper.batchSendMessages(messageInfos);
+        if(resultMap == null){
+            return false;
+        }
+        // 获取消息发送后的返回结果
+        return (boolean) resultMap.get("success");
+    }
+}

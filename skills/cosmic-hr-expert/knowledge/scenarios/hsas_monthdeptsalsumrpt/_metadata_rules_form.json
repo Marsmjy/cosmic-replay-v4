@@ -1,0 +1,362 @@
+{
+  "formId": "hsas_monthdeptsalsumrpt",
+  "formName": null,
+  "sceneId": "hsas_monthdeptsalsumrpt",
+  "isv": "kingdee",
+  "modelType": "ReportFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1b760aa100003bac",
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "0KPIMQY3=K7X",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_monthdeptsalsumrpt",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_monthdeptsalsumrpt.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_monthdeptsalsumrpt",
+      "type": "ReportEntity",
+      "title": "组织薪资月汇总表",
+      "physicalTable": null,
+      "fieldCount": 18
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "rowtype = '2' 总计行",
+      "TrueActions": {
+        "SetRowStyleAction": {
+          "RET": "134",
+          "ActionType": "SetRowStyleAction",
+          "RowStyles": {
+            "RowStyle": {
+              "BackgroundColor": "#FFF8E1",
+              "Degree": "100",
+              "Id": "3+CT2H2=+V2B",
+              "ForeColor": "#ED812B"
+            }
+          },
+          "Description": "设置行样式",
+          "Id": "3+CT5MJ4A78D"
+        }
+      },
+      "Id": "0O2FGFGY7ZR/",
+      "PreCondition": "rowtype = '2'"
+    },
+    {
+      "PreDescription": "rowtype = '3' 小计行",
+      "TrueActions": {
+        "SetRowStyleAction": {
+          "RET": "134",
+          "ActionType": "SetRowStyleAction",
+          "RowStyles": {
+            "RowStyle": {
+              "BackgroundColor": "#FFF8E1",
+              "Degree": "100",
+              "Id": "3+CT5968BXVF",
+              "ForeColor": "#ED812B"
+            }
+          },
+          "Description": "设置行样式",
+          "Id": "3+CT5MJ4A7XN"
+        }
+      },
+      "Id": "3+CT5I4OXL/R",
+      "PreCondition": "rowtype = '3'"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "lastlevel": {
+      "fieldId": "9arU0gho6z",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "最末显示层级",
+      "physicalColumn": "—",
+      "_fieldApId": "9arU0gho6z"
+    },
+    "isshowlower": {
+      "fieldId": "AS4bec3lbN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "包含下级",
+      "physicalColumn": "—",
+      "_fieldApId": "AS4bec3lbN"
+    },
+    "calcurrency": {
+      "fieldId": "4zqX5FfyZD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "CurrencyField",
+      "ref": "bd_currency",
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "核算币种",
+      "physicalColumn": "—",
+      "_fieldApId": "4zqX5FfyZD"
+    },
+    "laborreltype": {
+      "fieldId": "LZvD86067B",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "用工关系类型",
+      "physicalColumn": "—",
+      "_fieldApId": "LZvD86067B"
+    },
+    "payrollgroup": {
+      "fieldId": "JeCBjgv2Tx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资核算组",
+      "physicalColumn": "—",
+      "_fieldApId": "JeCBjgv2Tx"
+    },
+    "orgtree": {
+      "fieldId": "Sgy4cXELWV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "组织架构树",
+      "physicalColumn": "—",
+      "_fieldApId": "Sgy4cXELWV"
+    },
+    "adminorg": {
+      "fieldId": "0Tx3CMiglo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "0Tx3CMiglo"
+    },
+    "startperiod": {
+      "fieldId": "Fja8Rf6nut",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资起始年月",
+      "physicalColumn": "—",
+      "_fieldApId": "Fja8Rf6nut"
+    },
+    "endperiod": {
+      "fieldId": "PVpMfLE5c0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资截止年月",
+      "physicalColumn": "—",
+      "_fieldApId": "PVpMfLE5c0"
+    },
+    "period": {
+      "fieldId": "nA4e1dZHc2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资期间",
+      "physicalColumn": "—",
+      "_fieldApId": "nA4e1dZHc2"
+    },
+    "empgroup": {
+      "fieldId": "v9AGbL17qb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资档案分组",
+      "physicalColumn": "—",
+      "_fieldApId": "v9AGbL17qb"
+    },
+    "payrollscene": {
+      "fieldId": "ewRcGM6Qyl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "薪资核算场景",
+      "physicalColumn": "—",
+      "_fieldApId": "ewRcGM6Qyl"
+    },
+    "countstructure": {
+      "fieldId": "iirHRrmJmK",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "统计架构",
+      "physicalColumn": "—",
+      "_fieldApId": "iirHRrmJmK"
+    },
+    "attachadminorg": {
+      "fieldId": "sTiDqlp7Sm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "管理部门",
+      "physicalColumn": "—",
+      "_fieldApId": "sTiDqlp7Sm"
+    },
+    "calstatus": {
+      "fieldId": "saGANnr4wL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "核算状态",
+      "physicalColumn": "—",
+      "_fieldApId": "saGANnr4wL"
+    },
+    "org": {
+      "fieldId": "ip08zM3cCU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "算发薪管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "ip08zM3cCU"
+    },
+    "displayscheme": {
+      "fieldId": "PRUD1Ojrxp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsas_salaryrptdisplayschm",
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "显示方案",
+      "physicalColumn": "—",
+      "_fieldApId": "PRUD1Ojrxp"
+    },
+    "onholdstatus": {
+      "fieldId": "DLXWap3VLr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulComboField",
+      "ref": null,
+      "entity": "hsas_monthdeptsalsumrpt",
+      "title": "停缓发状态",
+      "physicalColumn": "—",
+      "_fieldApId": "DLXWap3VLr"
+    }
+  },
+  "requiredFields": {
+    "hsas_monthdeptsalsumrpt": [
+      "lastlevel",
+      "calcurrency",
+      "orgtree",
+      "adminorg",
+      "startperiod",
+      "endperiod",
+      "period",
+      "countstructure",
+      "org",
+      "displayscheme"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0KPIMQY3=K7X_zVmHVrJg",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.report.SalaryDptMonthSumFormRptPlugin",
+      "Description": "kd.swc.hsas.formplugin.web.report.SalaryDptMonthSumFormRptPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 18,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 2,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 2
+      }
+    }
+  ]
+}

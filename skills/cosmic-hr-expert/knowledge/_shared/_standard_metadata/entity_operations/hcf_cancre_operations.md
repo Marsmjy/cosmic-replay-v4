@@ -1,0 +1,33 @@
+# hcf_cancre — 拟入职人员证件信息 操作清单
+**继承链**: `hbp_bd_originaltpl` → `hcf_candidatereltpl` → `hcf_cancre`  **操作数**: 17
+---
+## 操作总览
+| # | oid | 操作类型 | 操作名称 | Key | 根定义 | 插件数 | 校验器数 |
+|---|-----|---------|---------|-----|--------|--------|--------|
+| 1 | `/9AXL8BLRPMZ` | first | 第一 | first | `hbp_bd_originaltpl` | 0 | 0 |
+| 2 | `/9AXMFLGA=WK` | previous | 前一 | previous | `hbp_bd_originaltpl` | 0 | 0 |
+| 3 | `/9AXNHU=9=4S` | next | 后一 | next | `hbp_bd_originaltpl` | 0 | 0 |
+| 4 | `/9AXONQK5XN9` | last | 最后 | last | `hbp_bd_originaltpl` | 0 | 0 |
+| 5 | `/X9FTE5ABBM6` | save | 保存 | save | `hbp_bd_originaltpl` | 0 | 1 |
+| 6 | `36XNX2J0IYJ/` | importdata_hr | 导入数据 | importdata_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 7 | `36XNYXBDN8US` | show_import_record_hr | 查看导入记录 | show_import_record_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 8 | `36XO+0YA=NQ1` | export_from_list_hr | 按列表导出 | export_from_list_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 9 | `36XO/49Y36PX` | export_from_impttpl_hr | 按导入模板导出 | export_from_impttpl_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 10 | `36XO07P0TYXD` | export_from_expttpl_hr | 按导出模板导出 | export_from_expttpl_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 11 | `36XO16LFA2/E` | show_export_record_hr | 查看导出记录 | show_export_record_hr | `hbp_bd_originaltpl` | 0 | 0 |
+| 12 | `19T05H32N0QJ` | new | 新增 | new | `hcf_candidatereltpl` | 0 | 0 |
+| 13 | `19TD8962GS6/` | modify | 修改 | modify | `hcf_candidatereltpl` | 0 | 0 |
+| 14 | `19TDF1LNZWBI` | delete | 删除 | delete | `hcf_candidatereltpl` | 0 | 0 |
+| 15 | `4TOWUMASEIZZ` | close | 关闭 | close | `hcf_candidatereltpl` | 0 | 0 |
+| 16 | `4TOXT=J1BXSA` | saveandnew | 保存并新增 | saveandnew | `hcf_candidatereltpl` | 0 | 0 |
+| 17 | `5CECYNFT9P+J` | donothing | 修改 | modifyatt | `hcf_candidatereltpl` | 0 | 0 |
+---
+## 操作详情（仅展示有插件或校验器的操作）
+---
+### 5. 保存（save / Key: save / oid: /X9FTE5ABBM6）
+> 根定义: `hbp_bd_originaltpl`
+**校验器**：
+| # | 类型 | Id | 说明 | 来源 |
+|---|-----|----|------|------|
+| 1 | MustInputValidation | `4YZA/JA68NJT` | 字段值合规性校验 | `hcf_cancre` |
+

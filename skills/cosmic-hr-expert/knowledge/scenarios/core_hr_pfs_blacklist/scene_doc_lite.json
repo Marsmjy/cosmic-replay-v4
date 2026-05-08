@@ -1,0 +1,20 @@
+{
+  "scene": "core_hr_pfs_blacklist",
+  "title": "黑名单（hpfs 视角 · 含日志 + 简卡 + 弹窗）",
+  "cloud": "core_hr",
+  "description": "hpfs 视角的黑名单管理。注意：**hpfs_blacklist 继承 hrpi_blacklist**（探针实证）—— 是 hrpi 黑名单底表的视图扩展，业务字段在 hrpi_blacklist 上。此场景管 ISV 在 hpfs 端追加的视图字段（如 simplecard 简卡展示）+ 操作日志。底表 ISV 扩展 → 看 core_hr_blacklist (1.6.1) + core_hr_blacklist_reasons (1.6.2)。",
+  "entities": [
+    "hpfs_blacklist",
+    "hpfs_blacklistlog",
+    "hpfs_simplecard"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · hpfs 是所有人事单据的元配置层 · 改这里影响所有下游业务云",
+  "pluginPattern": "HRBaseDataTplEdit / HRDataBaseOp · ISV 走 hpfs_chgaction + filemapmanager 配置 · 不直接继承 hpfs OP 类",
+  "_decompile_anchors": [],
+  "_meta": {
+    "note": "hpfs 第二波 · 3 个 form · 业务核心 · 详见 docs/CHGACTION_DEEP_TRACE.md",
+    "createdAt": "2026-04-29"
+  }
+}

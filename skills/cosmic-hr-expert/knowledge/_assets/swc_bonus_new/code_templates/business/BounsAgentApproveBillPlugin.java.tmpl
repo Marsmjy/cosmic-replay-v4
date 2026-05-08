@@ -1,0 +1,37 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_agent_approve;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.list.ListShowParameter;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+
+import java.util.EventObject;
+
+/**
+ * Author: wanghansheng
+ * Date: 2025/4/28 14:04
+ * FileName: 奖金代发表单插件
+ * Description:
+ */
+public class BounsAgentApproveBillPlugin extends AbstractBillPlugIn implements BeforeF7SelectListener {
+    @Override
+    public void registerListener(EventObject e) {
+        // 适用范围过滤
+        BasedataEdit org = this.getView().getControl("${ISV_FLAG}_payment_company");
+        org.addBeforeF7SelectListener(this);
+    }
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent beforeF7SelectEvent) {
+        String fieldKey = beforeF7SelectEvent.getProperty().getName();
+        ListShowParameter showParameter = (ListShowParameter) beforeF7SelectEvent.getFormShowParameter();
+        if ("${ISV_FLAG}_payment_company".equals(fieldKey)){
+            QFilter orgFilter = new QFilter("adminorgtype.number",QCP.equals, "1020_S");
+//            orgFilter.or("number",QCP.equals,"10017990");
+            showParameter.getListFilterParameter().getQFilters().add(orgFilter);
+        }
+    }
+}

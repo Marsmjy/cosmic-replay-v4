@@ -1,0 +1,111 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.ILocaleString;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.exception.BosErrorCode;
+import kd.bos.exception.KDException;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.login.utils.StringUtils;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.Objects;
+
+/**
+ * @author lzf
+ * @date 2023/9/7 15:49
+ * @description
+ */
+public class PlanMonthFormPlugin extends AbstractBillPlugIn {
+    private static Log logger = LogFactory.getLog(PlanMonthFormPlugin.class);
+
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        IDataModel model = this.getModel();
+        //改变值
+        String filed = e.getProperty().getName();
+        if ("${ISV_FLAG}_controlediting".equals(filed)){
+            String controlediting = (String)model.getValue(filed);
+            if (StringUtils.isNotEmpty(controlediting)){
+                if ("1".equals(controlediting) || "2".equals(controlediting)){
+                    model.setValue("${ISV_FLAG}_way",null);
+                    model.setValue("${ISV_FLAG}_people",null);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        IDataModel model = this.getModel();
+        //编制计划单位
+        DynamicObject org = (DynamicObject) model.getValue("${ISV_FLAG}_org");
+        //名称
+        ILocaleString localeString = (ILocaleString) getModel().getValue("name");
+        // 简体
+        String name = localeString.getLocaleValue_zh_CN();
+        if (Objects.nonNull(org)) {
+            Object orgId = org.getPkValue();
+            QFilter qFilter = new QFilter("${ISV_FLAG}_planmonth.${ISV_FLAG}_org.id", QCP.equals, orgId)
+                    .and("${ISV_FLAG}_planmonth.name", QCP.equals, name);
+            DynamicObject dynamicObject = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_planmonth_bill", "id", qFilter.toArray());
+            if (Objects.nonNull(dynamicObject)) {
+                this.getView().setEnable(false, "${ISV_FLAG}_org", "number", "${ISV_FLAG}_year", "${ISV_FLAG}_startmonth", "${ISV_FLAG}_endmonth",
+                        "${ISV_FLAG}_orghierarchy", "${ISV_FLAG}_plantype", "${ISV_FLAG}_labeldimension", "${ISV_FLAG}_controlediting", "${ISV_FLAG}_way", "${ISV_FLAG}_peoplecount", "${ISV_FLAG}_percent", "${ISV_FLAG}_isunify","${ISV_FLAG}_people");
+            }
+        }
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        Date dgdlEndmonth = dataEntity.getDate("${ISV_FLAG}_endmonth");
+        if (dgdlEndmonth != null) {
+            dataEntity.set("${ISV_FLAG}_endmonth", getMaxMonthDate(dgdlEndmonth));
+        }
+    }
+
+
+
+    public static Date getMaxMonthDate(Date date) {
+        date = getDataFormat(date, false);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH));
+        return calendar.getTime();
+    }
+
+
+    public static Date getDataFormat(Date date, boolean isStart) {
+        String dateStr = (new SimpleDateFormat("yyyy-MM-dd")).format(date);
+        String suffix = " 00:00:00";
+        if (!isStart) {
+            suffix = " 23:59:59";
+        }
+
+        String source = dateStr + suffix;
+
+        try {
+            return (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")).parse(source);
+        } catch (ParseException var6) {
+            throw new KDException(var6, BosErrorCode.systemError);
+        }
+    }
+
+
+}

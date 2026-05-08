@@ -1,0 +1,84 @@
+package ${ISV_FLAG}.wtc.attendancecycle.plugin.form.wtam_busitripbil.model;
+
+
+public enum LogoTypeEnum {
+
+    wtam_busitripbill("wtam_busitripbill","entryentity"),
+
+    wtam_busiselfbillchange("wtam_busiselfbillchange","entryentity"),
+
+    wtam_busitripselfbill("wtam_busitripselfbill","entryentity"),
+
+    wtam_busibillchange("wtam_busibillchange","entryentity"),
+
+    wtam_buchangeselfmob("wtam_buchangeselfmob","entryentity"),
+
+    wtam_busitripbillmob("wtam_busitripbillmob","entryentity"),
+
+    wtam_busitripselfbillmob("wtam_busitripselfbillmob","entryentity"),
+
+    wtabm_vaapplyself("wtabm_vaapplyself","entryentity"),
+
+    wtabm_vaapplymob_self("wtabm_vaapplymob_self","entryentity"),
+
+    wtabm_vaapply("wtabm_vaapply","entryentity"),
+
+    wtabm_vaapplymob("wtabm_vaapplymob","entryentity"),
+
+    wtabm_vaupdateself("wtabm_vaupdateself","entryentity"),
+
+    wtabm_vaupdate("wtabm_vaupdate","entryentity"),
+
+    wtpm_supsignself("wtpm_supsignself","entryentity"),
+
+    wtpm_supsignself_m("wtpm_supsignself_m","entryentity"),
+
+    wtpm_supsignpc("wtpm_supsignpc","entryentity"),
+
+    wtpm_supsignpc_addm("wtpm_supsignpc_addm","entryentity"),
+
+    wtom_otbillself("wtom_otbillself","sdentry"),
+
+    wtom_overtimeapplybill("wtom_overtimeapplybill","sdentry"),
+
+    wtom_otbillselef_m("wtom_otbillselef_m","sdentry"),
+
+    wtom_otbillother_m("wtom_otbillother_m","sdentry"),
+
+    wtom_otselfbillchange("wtom_otselfbillchange","sdentry"),
+
+    wtom_otselfbillchange_m("wtom_otselfbillchange_m","sdentry_fq"),
+
+    wtom_otbillchange("wtom_otbillchange","sdentry"),
+
+    wtom_otbillchange_m("wtom_otbillchange_m","sdentry_fq") ;
+
+
+    LogoTypeEnum(String name, String code) {
+        this.name = name;
+        this.code = code;
+    }
+
+    public static String getCodeByName(String name){
+        for (LogoTypeEnum item : LogoTypeEnum.values()){
+            if (item.getName().equals(name)){
+                return item.getCode();
+            }
+        }
+        return "";
+    }
+
+    private String getCode() {
+        return this.code;
+    }
+
+    private String getName() {
+        return this.name;
+    }
+
+
+    private final String name;
+
+    private final String code;
+
+}

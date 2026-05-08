@@ -6,6 +6,7 @@
   <title>COSMIC REPLAY v4</title>
   <script src="/static/tailwind.js"></script>
   <script defer src="/static/alpine.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     /* === 宇宙主题核心样式 === */
     :root {
@@ -401,7 +402,7 @@
         <div class="flex gap-2">
           <button @click="openHarWizard()" class="btn-secondary text-xs">📥 导入HAR</button>
           <button @click="view='batch'" class="btn-secondary text-xs">⚡ 批量运行</button>
-          <button @click="view='logs'; logsTab='tasks'" class="btn-secondary text-xs">📊 查看报告</button>
+          <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn-secondary text-xs">📊 查看报告</button>
         </div>
       </div>
     </div>
@@ -409,15 +410,15 @@
     <!-- 搜索和筛选 -->
     <div class="glass-card p-4 mb-4">
       <div class="flex items-center gap-3">
-        <input type="text" x-model="caseSearch" placeholder="搜索用例名称、表单、标签..." 
+        <input type="text" x-model="caseSearch" @input="casePage=1" placeholder="搜索用例名称、表单、标签..." 
                class="input-glass flex-1">
-        <select x-model="caseSort" class="input-glass w-32 text-xs">
+        <select x-model="caseSort" @change="casePage=1" class="input-glass w-32 text-xs">
           <option value="name">按名称</option>
           <option value="mtime">按时间</option>
           <option value="status">按状态</option>
           <option value="steps">按步骤</option>
         </select>
-        <button @click="caseSortDir = caseSortDir==='asc' ? 'desc' : 'asc'"
+        <button @click="caseSortDir = caseSortDir==='asc' ? 'desc' : 'asc'; casePage=1"
                 class="btn-secondary px-3 text-xs"
                 x-text="caseSortDir==='asc' ? '↑' : '↓'"></button>
       </div>
@@ -443,61 +444,56 @@
               <input type="checkbox" :checked="dashAllChecked()" @change="toggleDashSelectAll()"
                      class="accent-sky-500">
             </th>
-            <th class="text-left px-3 py-2 w-12">状态</th>
             <th class="text-left px-4 py-2">用例</th>
             <th class="text-left px-4 py-2">主表单</th>
             <th class="text-left px-4 py-2 w-20">步骤</th>
-            <th class="text-left px-4 py-2">标签</th>
             <th class="text-right px-4 py-2 w-48">操作</th>
           </tr>
         </thead>
         <tbody>
-          <template x-for="c in filteredCases()" :key="c.name">
-            <tr class="border-t border-slate-800 hover:bg-slate-800/40"
+          <template x-for="c in pagedCases" :key="c.name">
+            <tr class="border-t border-slate-800 hover:bg-slate-800/40 group"
                 :class="{'bg-sky-950/20': dashSelected.has(c.name)}">
               <td class="px-3 py-3">
                 <input type="checkbox" :checked="dashSelected.has(c.name)"
                        @change="toggleDashSelect(c.name)" class="accent-sky-500">
               </td>
-              <td class="px-3 py-3">
-                <span x-show="lastResults[c.name]==='pass'"
-                      class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span x-show="lastResults[c.name]==='fail'"
-                      class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                <span x-show="lastResults[c.name]==='running'"
-                      class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 pulse-dot"></span>
-                <span x-show="!lastResults[c.name]"
-                      class="inline-block w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-              </td>
+
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <div class="font-medium cursor-pointer hover:text-sky-400 flex-1" 
-                       @click="openCase(c.name)"
-                       @dblclick="startEditCaseName(c.name, c.display_name || c.name)"
-                       x-text="c.display_name || c.name"></div>
-                  <button @click="startEditCaseName(c.name, c.display_name || c.name)"
-                          class="text-slate-500 hover:text-sky-400 opacity-0 hover:opacity-100 transition-opacity"
+                  <!-- 非编辑状态：显示名称，双击进入编辑 -->
+                  <span x-show="editingCaseName !== c.name" 
+                        @dblclick="startEditCaseName(c.name, c.display_name || c.name)"
+                        class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer flex-1"
+                        x-text="c.display_name || c.name"
+                        title="双击编辑名称"></span>
+                  <!-- 编辑状态：显示输入框 -->
+                  <input x-show="editingCaseName === c.name"
+                         x-model="editingCaseNameValue"
+                         @blur="saveCaseName(c.name)"
+                         @keyup.enter="$event.target.blur()"
+                         @keyup.escape="cancelEditCaseName()"
+                         class="bg-gray-700 border border-sky-500 rounded px-2 py-0.5 text-white text-sm w-full flex-1"
+                         x-ref="editNameInput">
+                  <button x-show="editingCaseName !== c.name"
+                          @click="startEditCaseName(c.name, c.display_name || c.name)"
+                          class="text-slate-500 hover:text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="编辑名称">✎</button>
                 </div>
-                <div x-show="editingCaseName === c.name" class="mt-1">
-                  <input type="text" 
-                         x-model="editingCaseNameValue"
-                         @keyup.enter="saveCaseName(c.name)"
-                         @keyup.escape="cancelEditCaseName()"
-                         @blur="saveCaseName(c.name)"
-                         class="w-full bg-slate-800 border border-sky-500 rounded px-2 py-1 text-sm focus:outline-none"
-                         x-ref="editNameInput">
-                </div>
-                <div class="text-xs text-slate-500 mt-0.5 truncate max-w-xs" x-text="c.description || c.name"></div>
+                <!-- 描述：非编辑状态 -->
+                <div x-show="editingDesc !== c.name" @dblclick="startEditCaseDesc(c)"
+                     class="text-xs text-gray-500 truncate max-w-xs cursor-pointer hover:text-gray-400 mt-0.5"
+                     x-text="c.description || '双击添加描述'"
+                     title="双击编辑描述"></div>
+                <!-- 描述：编辑状态 -->
+                <input x-show="editingDesc === c.name"
+                       :value="c.description || ''" @blur="saveCaseDesc($event, c)" @keyup.enter="$event.target.blur()"
+                       @keyup.escape="editingDesc=''"
+                       class="bg-gray-700 border border-sky-500 rounded px-2 py-0.5 text-gray-300 text-xs w-full mt-1">
               </td>
               <td class="px-4 py-3 mono text-xs text-slate-400" x-text="c.main_form_id || '-'"></td>
               <td class="px-4 py-3 text-slate-400" x-text="c.step_count || 0"></td>
-              <td class="px-4 py-3">
-                <template x-for="t in (c.tags || [])" :key="t">
-                  <span class="inline-block text-xs bg-slate-800 border border-slate-700 rounded px-2 py-0.5 mr-1"
-                        x-text="t"></span>
-                </template>
-              </td>
+
               <td class="px-4 py-3 text-right space-x-1">
                 <template x-if="lastResults[c.name]==='running'">
                   <button @click="openCase(c.name)"
@@ -508,7 +504,7 @@
                 <template x-if="lastResults[c.name]!=='running'">
                   <div class="inline-flex gap-1">
                     <button @click="openCase(c.name)"
-                            class="text-sky-400 hover:text-sky-300 px-2 py-1 rounded hover:bg-slate-800 text-xs">打开</button>
+                            class="text-sky-400 hover:text-sky-300 px-2 py-1 rounded hover:bg-slate-800 text-xs">编辑</button>
                     <button @click="runCase(c.name)"
                             class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded text-xs">▶ 运行</button>
                     <button @click="deleteCase(c.name)"
@@ -519,13 +515,32 @@
             </tr>
           </template>
           <tr x-show="filteredCases().length===0">
-            <td colspan="7" class="px-4 py-12 text-center text-slate-500">
+            <td colspan="5" class="px-4 py-12 text-center text-slate-500">
               <span x-show="cases.length===0">还没有用例。<button @click="openHarWizard()" class="text-sky-400 hover:underline">导入第一条 HAR</button></span>
               <span x-show="cases.length>0 && filteredCases().length===0">没有匹配的用例</span>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <!-- 分页控件 -->
+    <div class="flex items-center justify-between mt-4 px-2" x-show="casePageCount > 1">
+      <span class="text-sm text-gray-400">
+        共 <span x-text="filteredCases().length"></span> 条，
+        第 <span x-text="casePage"></span>/<span x-text="casePageCount"></span> 页
+      </span>
+      <div class="flex gap-1">
+        <button @click="casePage = Math.max(1, casePage-1)" :disabled="casePage<=1"
+                class="px-3 py-1 rounded text-sm" 
+                :class="casePage<=1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 hover:bg-slate-700'">
+          ← 上一页
+        </button>
+        <button @click="casePage = Math.min(casePageCount, casePage+1)" :disabled="casePage>=casePageCount"
+                class="px-3 py-1 rounded text-sm"
+                :class="casePage>=casePageCount ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 hover:bg-slate-700'">
+          下一页 →
+        </button>
+      </div>
     </div>
   </section>
 
@@ -554,8 +569,15 @@
           <div x-show="running" class="text-slate-300">
             正在执行：<span class="mono text-sky-400" x-text="currentRunningStepLabel() || '准备中...'"></span>
           </div>
-          <div x-show="!running && summary" class="text-slate-300"
-               x-text="summary?.passed ? '执行通过' : '执行失败（见下方建议）'"></div>
+          <div x-show="!running && summary" class="text-slate-300">
+               <span x-text="summary?.passed ? '执行通过' : '执行失败'"></span>
+               <template x-if="!summary?.passed && summary?.error">
+                 <span class="text-rose-400 text-xs ml-2" x-text="'— ' + summary.error"></span>
+               </template>
+               <template x-if="!summary?.passed && !summary?.error">
+                 <span class="text-slate-500 text-xs ml-2">（见下方详情）</span>
+               </template>
+          </div>
           <div class="h-1 bg-slate-800 rounded mt-2 overflow-hidden">
             <div class="h-full transition-all"
                  :class="running ? 'bg-sky-500' : (summary?.passed ? 'bg-emerald-500' : 'bg-rose-500')"
@@ -1065,11 +1087,41 @@
 
   <!-- ========== 批量运行 ========== -->
   <section x-show="view==='batch'" class="fadein">
+
+  <!-- 子Tab切换 -->
+  <div class="flex space-x-4 mb-4 border-b border-gray-700">
+    <button @click="batchSubTab='run'" 
+            :class="batchSubTab==='run' ? 'border-b-2 border-sky-400 text-sky-400' : 'text-gray-400 hover:text-gray-200'"
+            class="pb-2 px-1 text-sm font-medium">
+      批量运行
+    </button>
+    <button @click="batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" 
+            :class="batchSubTab==='history' ? 'border-b-2 border-sky-400 text-sky-400' : 'text-gray-400 hover:text-gray-200'"
+            class="pb-2 px-1 text-sm font-medium">
+      任务记录
+    </button>
+  </div>
+
+  <!-- 子Tab: 批量运行 -->
+  <div x-show="batchSubTab==='run'">
+
+  <!-- 用例列表视图 -->
+  <div x-show="batchView==='list'">
     <div class="flex items-center justify-between mb-4">
       <h1 class="text-2xl font-semibold">批量运行</h1>
       <div class="flex gap-2">
-        <button @click="selectAll()" class="text-sm px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded">全选</button>
-        <button @click="selectNone()" class="text-sm px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded">全不选</button>
+        <button @click="batchPagedCases.forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
+                class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+          选当页
+        </button>
+        <button @click="cases.forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
+                class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+          全选
+        </button>
+        <button @click="batchSelected = new Set()"
+                class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+          全不选
+        </button>
         <button @click="runBatch()" :disabled="batchRunning || batchSelected.size===0"
                 class="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 text-white px-4 py-1.5 rounded text-sm">
           <span x-show="!batchRunning">▶ 运行选中 (<span x-text="batchSelected.size"></span>)</span>
@@ -1122,7 +1174,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="c in cases" :key="c.name">
+          <template x-for="c in batchPagedCases" :key="c.name">
             <tr class="border-t border-slate-800 hover:bg-slate-800/40">
               <td class="px-4 py-3">
                 <input type="checkbox" :checked="batchSelected.has(c.name)"
@@ -1136,15 +1188,290 @@
                 <span x-show="!batchResults[c.name]" class="text-slate-600">○</span>
               </td>
               <td class="px-4 py-3">
-                <div class="font-medium" x-text="c.display_name || c.name"></div>
+                <span @click="openCase(c.name)" class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer hover:underline" x-text="c.display_name || c.name"></span>
+                <span x-show="c.is_flaky" class="ml-1 text-xs text-amber-400" title="不稳定用例">⚠ Flaky</span>
                 <div class="text-xs text-slate-500" x-text="c.main_form_id"></div>
               </td>
-              <td class="px-4 py-3 text-xs text-slate-400" x-text="batchErrors[c.name] || ''"></td>
+              <td class="px-4 py-3">
+                <!-- 本次批量运行错误信息 -->
+                <template x-if="batchErrors[c.name]">
+                  <div class="text-xs text-rose-400" x-text="batchErrors[c.name]"></div>
+                </template>
+                <!-- 最近执行结果 -->
+                <template x-if="!batchErrors[c.name]">
+                  <div>
+                    <template x-if="c.last_result === 'PASS'">
+                      <span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-900/60 text-emerald-400">PASS</span>
+                    </template>
+                    <template x-if="c.last_result === 'FAIL'">
+                      <span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-rose-900/60 text-rose-400">FAIL</span>
+                    </template>
+                    <template x-if="!c.last_result">
+                      <span class="text-xs text-slate-600">—</span>
+                    </template>
+                    <div x-show="c.last_run_time" class="text-xs text-slate-500 mt-0.5" x-text="c.last_run_time ? c.last_run_time.slice(5, 16) : ''"></div>
+                  </div>
+                </template>
+              </td>
             </tr>
           </template>
         </tbody>
       </table>
     </div>
+
+    <!-- 分页控件 -->
+    <div x-show="batchPageCount > 1" class="flex items-center justify-between mt-4 px-2">
+      <div class="text-sm text-slate-400">
+        共 <span x-text="cases.length"></span> 个用例，第 <span x-text="batchPage"></span>/<span x-text="batchPageCount"></span> 页
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="batchPage = Math.max(1, batchPage - 1)" 
+                :disabled="batchPage <= 1"
+                class="px-3 py-1 text-sm rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          ◀ 上一页
+        </button>
+        <template x-for="(p, idx) in batchPaginationRange()" :key="'pg'+idx">
+          <button @click="p !== '...' && (batchPage = p)"
+                  :disabled="p === '...'"
+                  :class="p === '...' ? 'cursor-default text-slate-500' : (p === batchPage ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700')"
+                  class="w-8 h-8 text-sm rounded disabled:bg-transparent"
+                  x-text="p === '...' ? '…' : p">
+          </button>
+        </template>
+        <button @click="batchPage = Math.min(batchPageCount, batchPage + 1)"
+                :disabled="batchPage >= batchPageCount"
+                class="px-3 py-1 text-sm rounded bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
+          下一页 ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 任务详情视图 -->
+  <div x-show="batchView==='detail' && taskDetail">
+    <!-- 头部：返回 + 任务名 + 状态 -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <button @click="batchView='list'; batchSubTab='history'; loadTaskHistory()" class="text-slate-400 hover:text-slate-100 text-lg">←</button>
+        <h1 class="text-2xl font-semibold" x-text="taskDetail.name || '批量执行'"></h1>
+      </div>
+      <span class="px-3 py-1 rounded text-xs font-medium"
+            :class="{
+              'bg-sky-900 text-sky-300': taskDetail.status==='running',
+              'bg-emerald-900 text-emerald-300': taskDetail.status==='completed' && taskDetail.failed_count===0,
+              'bg-amber-900 text-amber-300': taskDetail.status==='completed' && taskDetail.failed_count>0,
+              'bg-slate-800 text-slate-400': taskDetail.status==='pending',
+              'bg-rose-900 text-rose-300': taskDetail.status==='failed' || taskDetail.status==='cancelled',
+            }"
+            x-text="taskDetail.status==='running' ? '执行中' : (taskDetail.status==='completed' ? (taskDetail.failed_count===0 ? '全部通过' : '部分失败') : taskDetail.status)">
+      </span>
+    </div>
+
+    <!-- 元信息行 -->
+    <div class="flex flex-wrap gap-4 text-xs text-slate-400 mb-4 px-1">
+      <span>环境: <span class="text-slate-200" x-text="taskDetail.env_id"></span></span>
+      <span>并发: <span class="text-slate-200" x-text="taskDetail.concurrency || 3"></span></span>
+      <span x-show="taskDetail.started_at">启动: <span class="text-slate-200" x-text="taskDetail.started_at?.slice(11,19) || ''"></span></span>
+      <span>耗时: <span class="text-slate-200" x-text="(taskDetail.duration_s || 0).toFixed(1) + 's'"></span></span>
+    </div>
+
+    <!-- 进度条 + 统计 -->
+    <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 mb-4">
+      <div class="flex items-center gap-4 mb-3">
+        <div class="flex-1">
+          <div class="h-2.5 bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500"
+                 :class="taskDetail.failed_count > 0 ? 'bg-amber-500' : 'bg-sky-500'"
+                 :style="`width: ${taskDetail.total_count ? Math.round((taskDetail.results?.length || 0) / taskDetail.total_count * 100) : 0}%`">
+            </div>
+          </div>
+        </div>
+        <div class="text-sm font-mono text-slate-300" 
+             x-text="`${taskDetail.results?.length || 0}/${taskDetail.total_count}`"></div>
+      </div>
+      <div class="flex gap-6 text-sm">
+        <span class="text-emerald-400">✓ <span x-text="taskDetail.passed_count || 0"></span> 通过</span>
+        <span class="text-rose-400">✗ <span x-text="taskDetail.failed_count || 0"></span> 失败</span>
+        <span class="text-slate-500">⋯ <span x-text="taskDetail.total_count - (taskDetail.results?.length || 0)"></span> 待执行</span>
+      </div>
+    </div>
+
+    <!-- 用例结果表格 -->
+    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
+          <tr>
+            <th class="text-left px-4 py-2 w-12">#</th>
+            <th class="text-left px-4 py-2">用例</th>
+            <th class="text-left px-4 py-2 w-20">状态</th>
+            <th class="text-left px-4 py-2 w-24">步骤</th>
+            <th class="text-left px-4 py-2 w-20">耗时</th>
+            <th class="text-left px-4 py-2 w-20">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(caseName, idx) in taskDetail.case_names" :key="caseName">
+            <tr class="border-t border-slate-800 hover:bg-slate-800/40">
+              <td class="px-4 py-3 text-slate-500" x-text="idx + 1"></td>
+              <td class="px-4 py-3">
+                <div class="font-medium" x-text="caseName"></div>
+                <div x-show="getTaskCaseResult(caseName)?.error" 
+                     class="text-xs text-rose-400 mt-1 truncate max-w-md"
+                     x-text="getTaskCaseResult(caseName)?.error">
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span x-show="getTaskCaseResult(caseName)?.passed === true" class="text-emerald-400 font-medium">PASS</span>
+                <span x-show="getTaskCaseResult(caseName)?.passed === false" class="text-rose-400 font-medium">FAIL</span>
+                <span x-show="!getTaskCaseResult(caseName) && taskDetail.status==='running'" class="text-sky-400 pulse-dot">● 运行中</span>
+                <span x-show="!getTaskCaseResult(caseName) && taskDetail.status!=='running'" class="text-slate-500">等待中</span>
+              </td>
+              <td class="px-4 py-3 text-slate-300 font-mono text-xs"
+                  x-text="getTaskCaseResult(caseName) ? `${getTaskCaseResult(caseName).step_ok}/${getTaskCaseResult(caseName).step_count}` : '--'">
+              </td>
+              <td class="px-4 py-3 text-slate-300 text-xs"
+                  x-text="getTaskCaseResult(caseName)?.duration_s ? getTaskCaseResult(caseName).duration_s.toFixed(1) + 's' : '--'">
+              </td>
+              <td class="px-4 py-3">
+                <a x-show="getTaskCaseResult(caseName)?.run_id"
+                   :href="'/?run_id=' + encodeURIComponent(getTaskCaseResult(caseName)?.run_id || '') + '&run_case=' + encodeURIComponent(caseName)"
+                   target="_blank"
+                   class="text-xs text-sky-400 hover:text-sky-300">
+                  查看详情
+                </a>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 底部操作区（完成后显示） -->
+    <div x-show="taskDetail.status==='completed'" class="flex justify-end gap-3 mt-4">
+      <button @click="viewTaskReport(taskDetail.task_id)"
+              class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm">
+        📊 查看执行报告
+      </button>
+      <button @click="rerunFailedCases()"
+              class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded text-sm">
+        ▶ 重新运行失败用例
+      </button>
+      <button @click="batchView='list'; batchSubTab='history'; loadTaskHistory()"
+              class="text-slate-400 hover:text-slate-200 px-4 py-2 text-sm">
+        返回列表
+      </button>
+    </div>
+  </div>
+
+  </div><!-- end batchSubTab==='run' -->
+
+  <!-- 子Tab: 任务记录 -->
+  <div x-show="batchSubTab==='history'" class="space-y-3">
+    <!-- 历史统计概览 -->
+    <div class="mb-6">
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+          <div class="text-2xl font-bold text-white" x-text="taskHistory.length"></div>
+          <div class="text-xs text-gray-400 mt-1">总执行次数</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+          <div class="text-2xl font-bold text-green-400" x-text="taskHistory.length ? ((taskHistory.filter(t => t.status==='completed' && (t.pass_rate||0)>=100).length / taskHistory.filter(t => t.status==='completed').length) * 100 || 0).toFixed(0) + '%' : '—'"></div>
+          <div class="text-xs text-gray-400 mt-1">全部通过率</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 text-center border border-gray-700">
+          <div class="text-2xl font-bold text-sky-400" x-text="taskHistory.reduce((sum, t) => sum + (t.total_count || t.case_names?.length || 0), 0)"></div>
+          <div class="text-xs text-gray-400 mt-1">总用例执行数</div>
+        </div>
+      </div>
+      
+      <!-- 通过率趋势图 -->
+      <div x-show="historyTrend && historyTrend.length > 1" class="bg-gray-800/50 rounded-lg p-4 mb-4">
+        <h4 class="text-xs text-gray-400 mb-2">通过率趋势（近14天）</h4>
+        <div style="height: 160px;">
+          <canvas x-ref="historyTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div class="text-sm text-slate-400">
+        历史批量执行任务 · 共 <span x-text="taskHistory.length"></span> 条
+      </div>
+      <button @click="loadTaskHistory()" class="text-xs text-sky-400 hover:text-sky-300">↻ 刷新</button>
+    </div>
+
+    <div x-show="taskHistory.length===0" class="text-slate-500 text-sm py-12 text-center">
+      暂无批量执行记录
+    </div>
+
+    <div class="space-y-2">
+      <template x-for="task in taskHistory" :key="task.task_id">
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700 cursor-pointer"
+             @click="batchSubTab='run'; viewTaskDetail(task.task_id)">
+          <!-- 任务头部 -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <span class="text-xs px-2 py-0.5 rounded"
+                    :class="{
+                      'bg-emerald-900 text-emerald-300': task.status==='completed' && task.passed_count===task.total_count,
+                      'bg-amber-900 text-amber-300': task.status==='completed' && task.passed_count<task.total_count,
+                      'bg-sky-900 text-sky-300': task.status==='running',
+                      'bg-slate-800 text-slate-400': task.status==='pending',
+                    }"
+                    x-text="task.status==='completed' ? (task.passed_count===task.total_count ? '全部通过' : '部分失败') : task.status"></span>
+              <div class="font-medium" x-text="task.name || '批量执行'"></div>
+            </div>
+            <div class="text-xs text-slate-500" x-text="task.created_at?.slice(0, 19).replace('T', ' ') || ''"></div>
+          </div>
+
+          <!-- 统计信息 -->
+          <div class="flex gap-6 text-sm">
+            <div>
+              <span class="text-slate-500">用例：</span>
+              <span class="font-medium" x-text="task.total_count"></span>
+            </div>
+            <div>
+              <span class="text-emerald-400">✓ <span x-text="task.passed_count"></span></span>
+              <span class="text-slate-500 ml-2">通过</span>
+            </div>
+            <div x-show="task.failed_count > 0">
+              <span class="text-rose-400">✗ <span x-text="task.failed_count"></span></span>
+              <span class="text-slate-500 ml-2">失败</span>
+            </div>
+            <div>
+              <span class="text-slate-500">耗时：</span>
+              <span x-text="task.duration_s?.toFixed(1) + 's'"></span>
+            </div>
+            <div>
+              <span class="text-slate-500">通过率：</span>
+              <span :class="task.pass_rate >= 100 ? 'text-emerald-400' : (task.pass_rate >= 50 ? 'text-amber-400' : 'text-rose-400')"
+                    x-text="(task.pass_rate || 0) + '%'"></span>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-800" @click.stop>
+            <button @click="batchSubTab='run'; viewTaskDetail(task.task_id)"
+                    class="text-xs text-sky-400 hover:text-sky-300 px-3 py-1 bg-sky-900/30 rounded">
+              查看详情
+            </button>
+            <button x-show="task.status==='completed'"
+                    @click.stop="viewReport(task.task_id)"
+                    class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded">
+              查看报告
+            </button>
+            <button x-show="task.status==='pending'"
+                    @click="startTaskById(task.task_id)"
+                    class="text-xs text-emerald-400 hover:text-emerald-300 px-3 py-1 bg-emerald-900/30 rounded">
+              ▶ 启动任务
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div><!-- end batchSubTab==='history' -->
+
   </section>
 
   <!-- ========== 配置 ========== -->
@@ -1353,10 +1680,6 @@
         <button class="px-3 py-1"
                 :class="logsTab==='history' ? 'bg-sky-700 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'"
                 @click="switchLogsTab('history')">执行历史</button>
-        <!-- ⭐ 新增：任务历史Tab -->
-        <button class="px-3 py-1"
-                :class="logsTab==='tasks' ? 'bg-purple-700 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'"
-                @click="switchLogsTab('tasks')">任务记录</button>
       </div>
       <div class="flex-1"></div>
     </div>
@@ -1463,87 +1786,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Tab 3: 任务记录（历史批量执行） -->
-    <div x-show="logsTab==='tasks'" class="space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-slate-400">
-          历史批量执行任务 · 共 <span x-text="taskHistory.length"></span> 条
-        </div>
-        <button @click="loadTaskHistory()" class="text-xs text-sky-400 hover:text-sky-300">↻ 刷新</button>
-      </div>
-
-      <div x-show="taskHistory.length===0" class="text-slate-500 text-sm py-12 text-center">
-        暂无批量执行记录
-      </div>
-
-      <div class="space-y-2">
-        <template x-for="task in taskHistory" :key="task.task_id">
-          <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-slate-700">
-            <!-- 任务头部 -->
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <span class="text-xs px-2 py-0.5 rounded"
-                      :class="{
-                        'bg-emerald-900 text-emerald-300': task.status==='completed' && task.passed_count===task.total_count,
-                        'bg-amber-900 text-amber-300': task.status==='completed' && task.passed_count<task.total_count,
-                        'bg-sky-900 text-sky-300': task.status==='running',
-                        'bg-slate-800 text-slate-400': task.status==='pending',
-                      }"
-                      x-text="task.status==='completed' ? (task.passed_count===task.total_count ? '全部通过' : '部分失败') : task.status"></span>
-                <div class="font-medium" x-text="task.name || '批量执行'"></div>
-              </div>
-              <div class="text-xs text-slate-500" x-text="task.created_at?.slice(0, 19).replace('T', ' ') || ''"></div>
-            </div>
-
-            <!-- 统计信息 -->
-            <div class="flex gap-6 text-sm">
-              <div>
-                <span class="text-slate-500">用例：</span>
-                <span class="font-medium" x-text="task.total_count"></span>
-              </div>
-              <div>
-                <span class="text-emerald-400">✓ <span x-text="task.passed_count"></span></span>
-                <span class="text-slate-500 ml-2">通过</span>
-              </div>
-              <div x-show="task.failed_count > 0">
-                <span class="text-rose-400">✗ <span x-text="task.failed_count"></span></span>
-                <span class="text-slate-500 ml-2">失败</span>
-              </div>
-              <div>
-                <span class="text-slate-500">耗时：</span>
-                <span x-text="task.duration_s?.toFixed(1) + 's'"></span>
-              </div>
-              <div>
-                <span class="text-slate-500">通过率：</span>
-                <span :class="task.pass_rate >= 100 ? 'text-emerald-400' : (task.pass_rate >= 50 ? 'text-amber-400' : 'text-rose-400')"
-                      x-text="(task.pass_rate || 0) + '%'"></span>
-              </div>
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-800">
-              <!-- 只有已完成的任务才能查看报告 -->
-              <button x-show="task.status==='completed'"
-                      @click="viewTaskReport(task.task_id)"
-                      class="text-xs text-purple-400 hover:text-purple-300 px-3 py-1 bg-purple-900/30 rounded">
-                📊 查看报告
-              </button>
-              <!-- 运行中的任务显示启动提示 -->
-              <span x-show="task.status==='running'" class="text-xs text-sky-400 px-3 py-1">
-                ⏳ 执行中...
-              </span>
-              <!-- 待执行的任务可以启动 -->
-              <button x-show="task.status==='pending'"
-                      @click="startTaskById(task.task_id)"
-                      class="text-xs text-emerald-400 hover:text-emerald-300 px-3 py-1 bg-emerald-900/30 rounded">
-                ▶ 启动任务
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
   </section>
 
 </main>
@@ -1551,11 +1793,11 @@
 <!-- ⭐ 执行报告弹窗 (全局) -->
 <div x-show="showReportDialog" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" 
      @click.self="showReportDialog=false">
-  <div class="bg-slate-900 border border-slate-700 rounded-lg max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden">
+  <div class="bg-slate-900 border border-slate-700 rounded-lg max-w-5xl w-full mx-4 max-h-[85vh] flex flex-col">
     <template x-if="currentReport">
-      <div>
-        <!-- 报告头部 -->
-        <div class="bg-slate-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex flex-col min-h-0 max-h-full">
+        <!-- 报告头部 (固定) -->
+        <div class="bg-slate-800 px-6 py-4 flex items-center justify-between rounded-t-lg shrink-0">
           <div>
             <h3 class="text-lg font-semibold" x-text="currentReport.task_name || '执行报告'"></h3>
             <div class="text-xs text-slate-400 mt-1" x-text="'环境: ' + currentReport.env + ' | ' + currentReport.generated_at"></div>
@@ -1563,54 +1805,152 @@
           <button @click="showReportDialog=false" class="text-slate-400 hover:text-white text-xl">&times;</button>
         </div>
         
-        <!-- 汇总统计 -->
-        <div class="px-6 py-4 grid grid-cols-4 gap-4 border-b border-slate-800">
-          <div class="text-center">
-            <div class="text-3xl font-bold" x-text="currentReport.summary?.total_cases || 0"></div>
-            <div class="text-xs text-slate-400">总用例</div>
-          </div>
-          <div class="text-center">
-            <div class="text-3xl font-bold text-emerald-400" x-text="currentReport.summary?.passed_cases || 0"></div>
-            <div class="text-xs text-slate-400">通过</div>
-          </div>
-          <div class="text-center">
-            <div class="text-3xl font-bold text-rose-400" x-text="currentReport.summary?.failed_cases || 0"></div>
-            <div class="text-xs text-slate-400">失败</div>
-          </div>
-          <div class="text-center">
-            <div class="text-3xl font-bold text-sky-400" x-text="(currentReport.summary?.pass_rate || 0) + '%'"></div>
-            <div class="text-xs text-slate-400">通过率</div>
+        <!-- 可滚动内容区 -->
+        <div class="overflow-y-auto flex-1 min-h-0">
+        <!-- 关键指标卡片 -->
+        <div class="px-6 py-5 border-b border-slate-700/50">
+          <div class="grid grid-cols-4 gap-5">
+            <div class="bg-gray-800/80 rounded-xl p-4 text-center border border-gray-700/50">
+              <div class="text-2xl font-bold text-white" x-text="currentReport?.summary?.total_cases || 0"></div>
+              <div class="text-xs text-gray-400 mt-1.5">总用例</div>
+            </div>
+            <div class="bg-gray-800/80 rounded-xl p-4 text-center border" 
+                 :class="(currentReport?.summary?.pass_rate||0) >= 1 ? 'border-green-700/50' : ((currentReport?.summary?.pass_rate||0) >= 0.5 ? 'border-amber-700/50' : 'border-red-700/50')">
+              <div class="text-2xl font-bold" :class="(currentReport?.summary?.pass_rate||0) >= 1 ? 'text-green-400' : ((currentReport?.summary?.pass_rate||0) >= 0.5 ? 'text-amber-400' : 'text-rose-400')" 
+                   x-text="((currentReport?.summary?.pass_rate||0)*100).toFixed(1) + '%'"></div>
+              <div class="text-xs text-gray-400 mt-1.5">通过率</div>
+            </div>
+            <div class="bg-gray-800/80 rounded-xl p-4 text-center border border-gray-700/50">
+              <div class="text-2xl font-bold text-sky-400" x-text="(currentReport?.summary?.total_steps || 0)"></div>
+              <div class="text-xs text-gray-400 mt-1.5">总步骤</div>
+            </div>
+            <div class="bg-gray-800/80 rounded-xl p-4 text-center border border-gray-700/50">
+              <div class="text-2xl font-bold text-purple-400" x-text="(currentReport?.summary?.total_duration_s || 0).toFixed(1) + 's'"></div>
+              <div class="text-xs text-gray-400 mt-1.5">总耗时</div>
+            </div>
           </div>
         </div>
         
-        <!-- 执行信息 -->
-        <div class="px-6 py-3 flex gap-6 text-xs text-slate-400 border-b border-slate-800">
-          <span>总耗时: <span class="text-slate-200" x-text="(currentReport.summary?.total_duration_s || 0).toFixed(1) + 's'"></span></span>
-          <span>总步骤: <span class="text-slate-200" x-text="currentReport.summary?.total_steps || 0"></span></span>
-          <span>通过步骤: <span class="text-emerald-400" x-text="currentReport.summary?.passed_steps || 0"></span></span>
-          <span>失败步骤: <span class="text-rose-400" x-text="currentReport.summary?.failed_steps || 0"></span></span>
+        <!-- 错误分类 -->
+        <div x-show="currentReport?.error_breakdown && Object.values(currentReport.error_breakdown).some(v => v > 0)" class="px-6 py-4 border-b border-slate-700/50">
+          <h4 class="text-sm font-medium text-gray-300 mb-3">错误分类</h4>
+          <div class="grid grid-cols-4 gap-3">
+            <div class="bg-amber-900/30 border border-amber-700/50 rounded-lg p-3 text-center">
+              <div class="text-lg font-bold text-amber-400" x-text="currentReport?.error_breakdown?.business || 0"></div>
+              <div class="text-xs text-gray-400">业务断言</div>
+            </div>
+            <div class="bg-red-900/30 border border-red-700/50 rounded-lg p-3 text-center">
+              <div class="text-lg font-bold text-red-400" x-text="currentReport?.error_breakdown?.technical || 0"></div>
+              <div class="text-xs text-gray-400">技术错误</div>
+            </div>
+            <div class="bg-purple-900/30 border border-purple-700/50 rounded-lg p-3 text-center">
+              <div class="text-lg font-bold text-purple-400" x-text="currentReport?.error_breakdown?.environment || 0"></div>
+              <div class="text-xs text-gray-400">环境问题</div>
+            </div>
+            <div class="bg-orange-900/30 border border-orange-700/50 rounded-lg p-3 text-center">
+              <div class="text-lg font-bold text-orange-400" x-text="currentReport?.error_breakdown?.framework || 0"></div>
+              <div class="text-xs text-gray-400">框架异常</div>
+            </div>
+          </div>
         </div>
-        
+
+        <!-- 图表区域 -->
+        <div class="px-6 py-5 border-b border-slate-700/50">
+          <div class="grid grid-cols-2 gap-5 mb-5">
+            <!-- 通过/失败饼图 -->
+            <div class="bg-gray-800/50 rounded-xl p-4">
+              <h4 class="text-xs text-gray-400 mb-2">通过/失败分布</h4>
+              <div style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                <canvas x-ref="passFailChart"></canvas>
+              </div>
+            </div>
+            <!-- 错误分类柱状图 -->
+            <div class="bg-gray-800/50 rounded-xl p-4">
+              <h4 class="text-xs text-gray-400 mb-2">错误分类分布</h4>
+              <div style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                <template x-if="!currentReport?.error_breakdown || !Object.values(currentReport.error_breakdown || {}).some(v => v > 0)">
+                  <div class="text-center">
+                    <div class="text-3xl mb-2">&#10003;</div>
+                    <div class="text-sm text-green-400 font-medium">全部通过，无错误</div>
+                    <div class="text-xs text-gray-500 mt-1">所有用例均执行成功</div>
+                  </div>
+                </template>
+                <template x-if="currentReport?.error_breakdown && Object.values(currentReport.error_breakdown || {}).some(v => v > 0)">
+                  <canvas x-ref="errorCategoryChart" class="w-full h-full"></canvas>
+                </template>
+              </div>
+            </div>
+          </div>
+          <!-- 用例耗时分布 -->
+          <div class="bg-gray-800/50 rounded-xl p-4">
+            <h4 class="text-xs text-gray-400 mb-2">用例耗时分布</h4>
+            <div style="height: 160px;">
+              <canvas x-ref="durationChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 性能概览 -->
+        <div x-show="currentReport?.performance && (currentReport.performance.avg_step_duration_s > 0 || (currentReport.performance.slowest_cases && currentReport.performance.slowest_cases.length > 0))" class="px-6 py-5 border-b border-slate-700/50">
+          <h4 class="text-sm font-medium text-gray-300 mb-3">性能概览</h4>
+          <div class="bg-gray-800/50 rounded-xl p-4">
+            <div class="text-sm text-gray-400 mb-3">
+              平均步骤耗时: <span class="text-white font-medium" x-text="(currentReport?.performance?.avg_step_duration_s || 0).toFixed(3) + 's'"></span>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <!-- 最慢用例 -->
+              <div>
+                <div class="text-xs text-red-400 mb-2 font-medium">最慢 Top 3</div>
+                <template x-for="c in (currentReport?.performance?.slowest_cases || [])" :key="c.name">
+                  <div class="flex justify-between text-xs py-1.5 border-b border-gray-700/50">
+                    <span class="text-gray-300 truncate mr-2" x-text="c.name"></span>
+                    <span class="text-red-300 whitespace-nowrap" x-text="c.duration_s.toFixed(1) + 's'"></span>
+                  </div>
+                </template>
+              </div>
+              <!-- 最快用例 -->
+              <div>
+                <div class="text-xs text-green-400 mb-2 font-medium">最快 Top 3</div>
+                <template x-for="c in (currentReport?.performance?.fastest_cases || [])" :key="c.name">
+                  <div class="flex justify-between text-xs py-1.5 border-b border-gray-700/50">
+                    <span class="text-gray-300 truncate mr-2" x-text="c.name"></span>
+                    <span class="text-green-300 whitespace-nowrap" x-text="c.duration_s.toFixed(1) + 's'"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 通过率趋势 -->
+        <div x-show="reportTrend && reportTrend.length > 1" class="px-6 py-5 border-b border-slate-700/50">
+          <h4 class="text-sm font-medium text-gray-300 mb-3">通过率趋势（近14天）</h4>
+          <div class="bg-gray-800/50 rounded-xl p-4" style="height: 200px;">
+            <canvas x-ref="trendChart"></canvas>
+          </div>
+        </div>
+
         <!-- 用例详情列表 -->
-        <div class="px-6 py-4 overflow-y-auto" style="max-height: 300px;">
-          <div class="text-sm font-medium text-slate-300 mb-2">用例执行详情</div>
+        <div class="px-6 py-5">
+          <div class="text-sm font-medium text-slate-300 mb-3">用例执行详情</div>
           <table class="w-full text-sm">
             <thead class="text-xs text-slate-500">
               <tr>
                 <th class="text-left py-2">用例</th>
-                <th class="text-center py-2 w-16">状态</th>
+                <th @click="sortReportCases('status')" class="text-center py-2 w-16 cursor-pointer hover:text-sky-400">状态 ↕</th>
                 <th class="text-right py-2 w-20">步骤</th>
-                <th class="text-right py-2 w-20">耗时</th>
+                <th @click="sortReportCases('duration')" class="text-right py-2 w-20 cursor-pointer hover:text-sky-400">耗时 ↕</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="r in currentReport.case_results" :key="r.name">
                 <tr class="border-t border-slate-800 hover:bg-slate-800/50">
                   <td class="py-2">
-                    <!-- 用例名称可点击跳转到执行历史 -->
-                    <div class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer underline"
-                         @click="openCaseHistory(r.run_id)"
-                         x-text="r.name"></div>
+                    <!-- 用例名称可点击在新标签页中打开执行历史 -->
+                    <a :href="'/?history_run_id=' + encodeURIComponent(r.run_id)"
+                       target="_blank"
+                       class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer underline"
+                       x-text="r.name"></a>
                     <div x-show="r.error" class="text-xs text-rose-400 truncate mt-1" x-text="r.error"></div>
                   </td>
                   <td class="text-center py-2">
@@ -1626,7 +1966,7 @@
         </div>
         
         <!-- 错误汇总 -->
-        <div x-show="currentReport.errors?.length > 0" class="px-6 py-4 border-t border-slate-800">
+        <div x-show="currentReport.errors?.length > 0" class="px-6 py-4 border-t border-slate-700/50">
           <div class="text-sm font-medium text-rose-400 mb-2">错误汇总</div>
           <div class="space-y-2 text-xs">
             <template x-for="e in currentReport.errors" :key="e.case">
@@ -1636,6 +1976,17 @@
               </div>
             </template>
           </div>
+        </div>
+        </div><!-- end 可滚动内容区 -->
+
+        <!-- 底部操作栏 (固定) -->
+        <div class="px-6 py-4 border-t border-slate-700/50 flex justify-end gap-3 shrink-0">
+          <button @click="exportReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-sm">
+            导出 HTML 报告
+          </button>
+          <button @click="showReportDialog=false" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded text-sm">
+            关闭
+          </button>
         </div>
       </div>
     </template>
@@ -1701,6 +2052,8 @@ function app() {
     caseSearch: '',
     caseSort: 'name',
     caseSortDir: 'asc',
+    casePage: 1,
+    casePageSize: 10,
     dashSelected: new Set(),
 
     // 用例详情增强
@@ -1709,6 +2062,7 @@ function app() {
     // ⭐ 用例名称编辑
     editingCaseName: '',
     editingCaseNameValue: '',
+    editingDesc: '',
 
     // 批量
     batchSelected: new Set(),
@@ -1720,12 +2074,33 @@ function app() {
     batchStats: {pass: 0, fail: 0},
     batchResults: {},
     batchErrors: {},
+    batchPage: 1,
+    batchPageSize: 10,
+    get batchPageCount() {
+      return Math.max(1, Math.ceil(this.cases.length / this.batchPageSize));
+    },
+    get batchPagedCases() {
+      const start = (this.batchPage - 1) * this.batchPageSize;
+      return this.cases.slice(start, start + this.batchPageSize);
+    },
     // ⭐ 任务系统
     currentTaskId: '',
     lastTaskId: '',
     currentReport: null,
     showReportDialog: false,
+    reportTrend: [],
+    trendChart: null,
+    passFailChart: null,
+    errorCategoryChart: null,
+    durationChart: null,
+    reportSortKey: '',
+    reportSortAsc: true,
     taskHistory: [],  // ⭐ 任务历史列表
+    historyTrend: [],
+    historyTrendChart: null,
+    batchView: 'list',    // 'list'=用例选择列表 | 'detail'=任务详情视图
+    batchSubTab: 'run',   // 'run'=批量运行 | 'history'=任务记录
+    taskDetail: null,     // 当前查看的任务详情对象（来自 /api/tasks/{id} 返回）
 
     // 配置
     settingsTab: 'general',
@@ -1753,15 +2128,32 @@ function app() {
       this.applyTheme();
       
       await Promise.all([this.loadCases(), this.loadEnvs()]);
+      this.checkFlakyStatus();
       const cfg = await (await fetch('/api/config')).json();
       this.webuiPrefs = cfg.webui;
       this.webuiDraft = {...cfg.webui};
       this.currentEnv = cfg.webui.default_env;
+      // ⭐ 加载任务执行历史（持久化恢复）
+      await this.loadTaskHistory();
       // 后台订阅日志（badge 计数用）
       this.startLogsSubscription();
       // ⭐ P2-1: 首次访问显示新手引导
       if (!localStorage.getItem('cosmic-replay-guide-done')) {
         this.showGuide = true;
+      }
+
+      // ⭐ 解析 URL 参数，支持从新标签页直接打开用例/执行历史
+      const urlParams = new URLSearchParams(window.location.search);
+      const historyRunId = urlParams.get('history_run_id');
+      const openRunId = urlParams.get('run_id');
+      const openRunCase = urlParams.get('run_case');
+      const openCaseName = urlParams.get('case');
+      if (historyRunId) {
+        this.$nextTick(() => this.openCaseHistory(decodeURIComponent(historyRunId)));
+      } else if (openRunId && openRunCase) {
+        this.$nextTick(() => this.viewRunDetail(decodeURIComponent(openRunId), decodeURIComponent(openRunCase)));
+      } else if (openCaseName) {
+        this.$nextTick(() => this.openCase(decodeURIComponent(openCaseName)));
       }
     },
 
@@ -1796,6 +2188,19 @@ function app() {
 
     async loadCases() {
       this.cases = await (await fetch('/api/cases')).json();
+      // 分页越界修正
+      if (this.batchPage > this.batchPageCount) this.batchPage = this.batchPageCount;
+    },
+
+    async checkFlakyStatus() {
+      for (const c of this.cases) {
+        try {
+          const stability = await (await fetch(`/api/cases/${encodeURIComponent(c.name)}/stability`)).json();
+          c.is_flaky = stability.is_flaky || false;
+        } catch(e) {
+          c.is_flaky = false;
+        }
+      }
     },
     async loadEnvs() {
       const cfg = await (await fetch('/api/config?mask=false')).json();
@@ -1938,29 +2343,72 @@ function app() {
     },
 
     async saveCaseName(caseName) {
-      if (!this.editingCaseNameValue || this.editingCaseNameValue === this.cases.find(c => c.name === caseName)?.display_name) {
+      const newName = (this.editingCaseNameValue || '').trim();
+      if (!newName || newName === caseName) {
         this.cancelEditCaseName();
         return;
       }
 
       try {
-        const resp = await fetch(`/api/cases/${caseName}/display_name`, {
-          method: 'PUT',
+        const resp = await fetch(`/api/cases/${encodeURIComponent(caseName)}/rename`, {
+          method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({display_name: this.editingCaseNameValue})
+          body: JSON.stringify({new_name: newName})
         });
         
-        if (!resp.ok) throw new Error('保存失败');
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || '重命名失败');
+        }
         
-        // 更新本地状态
-        const c = this.cases.find(c => c.name === caseName);
-        if (c) c.display_name = this.editingCaseNameValue;
-        
+        // 直接更新前端数据，确保 Alpine.js 响应式立即刷新 UI
+        const target = this.cases.find(c => c.name === caseName);
+        if (target) {
+          target.name = newName;
+          target.display_name = newName;
+        }
         this.showToast('名称已更新');
       } catch (e) {
-        this.showToast('保存失败: ' + e.message);
+        this.showToast('重命名失败: ' + e.message);
       } finally {
         this.cancelEditCaseName();
+      }
+    },
+
+    // ⭐ 用例描述编辑方法
+    startEditCaseDesc(c) {
+      this.editingDesc = c.name;
+      this.$nextTick(() => {
+        // focus the description input
+        const inputs = document.querySelectorAll('input[x-show="editingDesc === c.name"]');
+        // Use a short delay to let Alpine render
+        setTimeout(() => {
+          const row = event.target.closest('tr');
+          if (row) {
+            const input = row.querySelector('input.text-gray-300');
+            if (input) { input.focus(); input.select(); }
+          }
+        }, 50);
+      });
+    },
+
+    async saveCaseDesc(event, c) {
+      const newDesc = event.target.value.trim();
+      this.editingDesc = '';
+      try {
+        const resp = await fetch(`/api/cases/${encodeURIComponent(c.name)}/description`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({description: newDesc})
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || '更新失败');
+        }
+        c.description = newDesc;
+        this.showToast('描述已更新');
+      } catch(e) {
+        this.showToast('更新描述失败: ' + e.message);
       }
     },
 
@@ -2016,14 +2464,43 @@ function app() {
       this.resolved_vars = {};
       this.lastResults[name] = 'running';
 
-      const resp = await fetch(`/api/cases/${name}/run`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({env_id: this.currentEnv}),
-      });
-      const data = await resp.json();
-      record.runId = data.run_id;
-      this.subscribeRun(data.run_id, name);
+      try {
+        const resp = await fetch(`/api/cases/${name}/run`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({env_id: this.currentEnv}),
+        });
+        if (!resp.ok) {
+          // API 返回错误（如 YAML 解析失败、文件不存在等）
+          let errMsg = `请求失败 (HTTP ${resp.status})`;
+          try {
+            const errData = await resp.json();
+            errMsg = errData.detail || errMsg;
+          } catch (_) {}
+          this.showToast(errMsg, 'error');
+          record.running = false;
+          record.summary = { passed: false, error: errMsg };
+          this.running = false;
+          this.summary = record.summary;
+          this.lastResults[name] = 'fail';
+          // 添加一个错误阶段到 phases 列表
+          record.phases.push({id: 'error:init', label: '初始化失败', detail: errMsg, status: 'fail', duration_ms: 0, errors: [errMsg]});
+          return;
+        }
+        const data = await resp.json();
+        record.runId = data.run_id;
+        this.subscribeRun(data.run_id, name);
+      } catch (err) {
+        // 网络错误等
+        const errMsg = '网络请求失败: ' + (err.message || err);
+        this.showToast(errMsg, 'error');
+        record.running = false;
+        record.summary = { passed: false, error: errMsg };
+        this.running = false;
+        this.summary = record.summary;
+        this.lastResults[name] = 'fail';
+        record.phases.push({id: 'error:network', label: '网络错误', detail: errMsg, status: 'fail', duration_ms: 0, errors: [errMsg]});
+      }
     },
 
     subscribeRun(runId, name) {
@@ -2119,10 +2596,18 @@ function app() {
       });
       es.addEventListener('case_error', (ev) => {
         const d = JSON.parse(ev.data);
-        this.showToast('执行异常: ' + (d.error || '未知'));
+        const errMsg = d.error || '未知执行异常';
+        this.showToast('执行异常: ' + errMsg, 'error');
         this.lastResults[name] = 'fail';
         record.running = false;
-        if (this.currentCase?.name === name) this.running = false;
+        // 设置 summary 使 UI 显示持久的错误状态
+        record.summary = { passed: false, error: errMsg, step_count: record.phases.length, step_ok: 0 };
+        // 添加一个错误阶段到 phases
+        record.phases.push({id: 'error:runtime', label: '执行异常', detail: errMsg, status: 'fail', duration_ms: 0, errors: [errMsg]});
+        if (this.currentCase?.name === name) {
+          this.running = false;
+          this.summary = record.summary;
+        }
       });
       es.addEventListener('close', () => {
         record.running = false;
@@ -2130,7 +2615,24 @@ function app() {
         if (this.sse === es) this.sse = null;
         if (this.currentCase?.name === name) this.running = false;
       });
-      es.onerror = () => {};
+      es.onerror = () => {
+        // SSE 连接错误时确保不会卡在运行中状态
+        if (record.running) {
+          record.running = false;
+          if (!record.summary) {
+            const errMsg = '执行异常中断，请检查用例配置或重试';
+            record.summary = { passed: false, error: errMsg, step_count: 0, step_ok: 0 };
+            record.phases.push({id: 'error:sse', label: '执行异常', detail: errMsg, status: 'fail', duration_ms: 0, errors: [errMsg]});
+          }
+          this.lastResults[name] = 'fail';
+          if (this.currentCase?.name === name) {
+            this.running = false;
+            this.summary = record.summary;
+          }
+        }
+        if (record.sse) { record.sse.close(); record.sse = null; }
+        if (this.sse === es) this.sse = null;
+      };
     },
 
     selectedPhase() { return this.phases.find(p => p.id === this.selectedStep); },
@@ -2297,6 +2799,20 @@ function app() {
       this.batchSelected = new Set(this.cases.map(c => c.name));
     },
     selectNone() { this.batchSelected = new Set(); },
+    batchPaginationRange() {
+      const total = this.batchPageCount;
+      const cur = this.batchPage;
+      if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+      const pages = [];
+      pages.push(1);
+      if (cur > 3) pages.push('...');
+      for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) {
+        pages.push(i);
+      }
+      if (cur < total - 2) pages.push('...');
+      pages.push(total);
+      return pages;
+    },
 
     async runBatch() {
       const names = Array.from(this.batchSelected);
@@ -2333,8 +2849,25 @@ function app() {
         });
         if (!startResp.ok) throw new Error('启动任务失败');
         
-        // 3. 轮询任务状态
-        await this.pollTaskProgress(taskData.task_id, names);
+        // 3. 切换到详情视图
+        this.taskDetail = {
+          task_id: taskData.task_id,
+          name: `批量执行 (${names.length}个用例)`,
+          case_names: names,
+          env_id: this.currentEnv,
+          concurrency: 3,
+          status: 'running',
+          started_at: new Date().toISOString(),
+          total_count: taskData.total_count,
+          passed_count: 0,
+          failed_count: 0,
+          duration_s: 0,
+          results: [],
+        };
+        this.batchView = 'detail';
+
+        // 4. 轮询任务详情
+        this.pollTaskDetail(taskData.task_id);
         
       } catch (e) {
         this.showToast('批量运行失败: ' + e.message);
@@ -2371,6 +2904,8 @@ function app() {
             
             // 加载报告
             await this.loadTaskReport(taskId);
+            // 刷新用例列表以更新最近执行结果
+            await this.loadCases();
             
             this.showToast(`批量运行完成：${this.batchStats.pass}通过 ${this.batchStats.fail}失败`);
             return;
@@ -2404,6 +2939,432 @@ function app() {
         console.error('加载报告失败:', e);
       }
     },
+
+    // 从任务历史直接查看报告
+    async viewReport(taskId) {
+      try {
+        const resp = await fetch(`/api/tasks/${taskId}/report`);
+        if (!resp.ok) throw new Error('获取报告失败');
+        this.currentReport = await resp.json();
+        this.showReportDialog = true;
+        this.loadReportTrend();
+        this.renderReportCharts();
+      } catch (e) {
+        this.showToast('获取报告失败: ' + e.message);
+      }
+    },
+
+    // 导出 HTML 报告
+    exportReport() {
+      if (!this.currentReport?.task_id) return;
+      window.open(`/api/tasks/${this.currentReport.task_id}/report/export?format=html`, '_blank');
+    },
+
+    async loadReportTrend() {
+      try {
+        this.reportTrend = await (await fetch('/api/reports/trend?days=14')).json();
+        this.$nextTick(() => this.renderTrendChart());
+      } catch (e) {
+        this.reportTrend = [];
+      }
+    },
+
+    renderTrendChart() {
+      if (!this.$refs.trendChart || !this.reportTrend.length) return;
+      if (this.trendChart) { this.trendChart.destroy(); }
+      
+      const ctx = this.$refs.trendChart.getContext('2d');
+      const labels = this.reportTrend.map(d => d.date.slice(5));
+      const passRates = this.reportTrend.map(d => (d.pass_rate * 100).toFixed(1));
+      const durations = this.reportTrend.map(d => d.duration_s);
+      
+      this.trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '通过率 (%)',
+              data: passRates,
+              borderColor: '#22c55e',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              tension: 0.3,
+              fill: true,
+              yAxisID: 'y'
+            },
+            {
+              label: '耗时 (s)',
+              data: durations,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              tension: 0.3,
+              fill: false,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { labels: { color: '#9ca3af', font: { size: 11 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+            y: { 
+              type: 'linear', position: 'left',
+              min: 0, max: 100,
+              ticks: { color: '#22c55e', callback: v => v + '%' },
+              grid: { color: '#374151' }
+            },
+            y1: {
+              type: 'linear', position: 'right',
+              ticks: { color: '#38bdf8', callback: v => v + 's' },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+    },
+
+    renderReportCharts() {
+      this.$nextTick(() => {
+        this.renderPassFailChart();
+        this.renderErrorCategoryChart();
+        this.renderDurationChart();
+      });
+    },
+
+    renderPassFailChart() {
+      if (!this.$refs.passFailChart) return;
+      if (this.passFailChart) this.passFailChart.destroy();
+      const passed = this.currentReport?.summary?.passed_cases || 0;
+      const failed = this.currentReport?.summary?.failed_cases || 0;
+      this.passFailChart = new Chart(this.$refs.passFailChart.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['通过', '失败'],
+          datasets: [{
+            data: [passed, failed],
+            backgroundColor: ['#22c55e', '#ef4444'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } }
+          }
+        }
+      });
+    },
+
+    renderErrorCategoryChart() {
+      if (!this.$refs.errorCategoryChart) return;
+      if (this.errorCategoryChart) this.errorCategoryChart.destroy();
+      const bd = this.currentReport?.error_breakdown || {};
+      const categories = ['business', 'technical', 'environment', 'framework'];
+      const labels = ['业务断言', '技术错误', '环境问题', '框架异常'];
+      const data = categories.map(k => bd[k] || 0);
+      if (data.every(v => v === 0)) return;
+      this.errorCategoryChart = new Chart(this.$refs.errorCategoryChart.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: ['#f59e0b', '#ef4444', '#a855f7', '#f97316'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#9ca3af' }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#9ca3af', stepSize: 1 }, grid: { color: '#374151' } }
+          }
+        }
+      });
+    },
+
+    renderDurationChart() {
+      if (!this.$refs.durationChart) return;
+      if (this.durationChart) this.durationChart.destroy();
+      const cases = this.currentReport?.case_results || [];
+      if (!cases.length) return;
+      const labels = cases.map(c => c.name.length > 12 ? c.name.slice(0, 12) + '...' : c.name);
+      const data = cases.map(c => c.duration_s || 0);
+      const colors = cases.map(c => c.passed ? '#22c55e' : '#ef4444');
+      this.durationChart = new Chart(this.$refs.durationChart.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: '耗时 (s)',
+            data,
+            backgroundColor: colors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#9ca3af', callback: v => v + 's' }, grid: { color: '#374151' } },
+            y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
+    },
+
+    sortReportCases(key) {
+      if (this.reportSortKey === key) {
+        this.reportSortAsc = !this.reportSortAsc;
+      } else {
+        this.reportSortKey = key;
+        this.reportSortAsc = true;
+      }
+      const cases = this.currentReport?.case_results;
+      if (!cases) return;
+      cases.sort((a, b) => {
+        let va, vb;
+        if (key === 'status') { va = a.passed ? 1 : 0; vb = b.passed ? 1 : 0; }
+        else if (key === 'duration') { va = a.duration_s; vb = b.duration_s; }
+        else { va = a.name; vb = b.name; }
+        return this.reportSortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+    },
+
+    // 获取某个用例在当前任务中的结果
+    getTaskCaseResult(caseName) {
+      if (!this.taskDetail?.results) return null;
+      return this.taskDetail.results.find(r => r.name === caseName) || null;
+    },
+
+    // 查看任务详情（从任务历史等入口进入）
+    async viewTaskDetail(taskId) {
+      try {
+        const resp = await fetch(`/api/tasks/${taskId}`);
+        if (!resp.ok) throw new Error('获取任务详情失败');
+        this.taskDetail = await resp.json();
+        this.batchView = 'detail';
+        this.view = 'batch';
+        
+        // 如果任务还在运行中，启动轮询
+        if (this.taskDetail.status === 'running') {
+          this.pollTaskDetail(taskId);
+        }
+      } catch (e) {
+        this.showToast('获取任务详情失败: ' + e.message);
+      }
+    },
+
+    // 轮询任务详情（替代原 pollTaskProgress）
+    pollTaskDetail(taskId) {
+      const poll = async () => {
+        try {
+          const resp = await fetch(`/api/tasks/${taskId}`);
+          if (!resp.ok) return;
+          this.taskDetail = await resp.json();
+          
+          // 同时更新 batch 进度状态（兼容旧逻辑）
+          this.batchCurrent = this.taskDetail.results?.length || 0;
+          this.batchTotal = this.taskDetail.total_count;
+          this.batchProgress = Math.round(this.batchCurrent * 100 / (this.batchTotal || 1));
+          this.batchStats.pass = this.taskDetail.passed_count || 0;
+          this.batchStats.fail = this.taskDetail.failed_count || 0;
+          
+          // 更新 batchResults（兼容列表视图的状态指示）
+          for (const r of (this.taskDetail.results || [])) {
+            this.batchResults[r.name] = r.passed ? 'pass' : 'fail';
+            if (!r.passed && r.error) this.batchErrors[r.name] = r.error;
+          }
+          
+          if (this.taskDetail.status === 'completed') {
+            this.batchRunning = false;
+            this.batchDone = true;
+            this.lastTaskId = taskId;
+            await this.loadTaskReport(taskId);
+            this.showToast(`批量运行完成：${this.batchStats.pass}通过 ${this.batchStats.fail}失败`);
+            return;
+          }
+          
+          if (this.taskDetail.status === 'cancelled' || this.taskDetail.status === 'failed') {
+            this.batchRunning = false;
+            this.showToast('任务异常终止');
+            return;
+          }
+          
+          setTimeout(poll, 1000);
+        } catch (e) {
+          console.error('轮询任务详情失败:', e);
+          setTimeout(poll, 2000);
+        }
+      };
+      poll();
+    },
+
+    // 重新运行失败用例
+    async rerunFailedCases() {
+      // 从当前任务详情中筛选失败的用例
+      const results = this.taskDetail.results || [];
+      const failedCases = results
+        .filter(r => r.passed !== true)
+        .map(r => r.name);
+      
+      if (failedCases.length === 0) {
+        this.showToast('所有用例均已通过，无需重新运行');
+        return;
+      }
+
+      try {
+        // 创建新任务，仅包含失败用例
+        const createResp = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            case_names: failedCases,
+            env_id: this.taskDetail.env_id || this.currentEnv,
+            name: `重新运行失败用例 (${failedCases.length}个)`
+          }),
+        });
+        if (!createResp.ok) throw new Error('创建任务失败');
+        const taskData = await createResp.json();
+
+        // 启动任务
+        const startResp = await fetch(`/api/tasks/${taskData.task_id}/start`, {
+          method: 'POST',
+        });
+        if (!startResp.ok) throw new Error('启动任务失败');
+
+        // 更新UI状态
+        this.currentTaskId = taskData.task_id;
+        this.batchRunning = true;
+        this.batchDone = false;
+        this.batchTotal = taskData.total_count;
+        this.batchCurrent = 0;
+        this.batchProgress = 0;
+        this.batchStats = {pass: 0, fail: 0};
+        this.batchResults = {};
+        this.batchErrors = {};
+
+        this.taskDetail = {
+          task_id: taskData.task_id,
+          name: `重新运行失败用例 (${failedCases.length}个)`,
+          case_names: failedCases,
+          env_id: this.taskDetail.env_id || this.currentEnv,
+          concurrency: 3,
+          status: 'running',
+          started_at: new Date().toISOString(),
+          total_count: taskData.total_count,
+          passed_count: 0,
+          failed_count: 0,
+          duration_s: 0,
+          results: [],
+        };
+        this.batchView = 'detail';
+
+        // 轮询任务详情
+        this.pollTaskDetail(taskData.task_id);
+        this.showToast(`已启动重新运行：${failedCases.length}个失败用例`);
+      } catch (e) {
+        this.showToast('重新运行失败: ' + e.message);
+      }
+    },
+
+    // 查看单个运行详情（跳转到用例详情页的执行结果tab）
+    async viewRunDetail(runId, caseName) {
+      await this.openCase(caseName);
+      this.detailTab = 'result';
+
+      // 从后端加载历史事件流并回放
+      try {
+        const resp = await fetch(`/api/run_history/${runId}`);
+        if (!resp.ok) throw new Error('加载运行历史失败');
+        const data = await resp.json();
+        const events = data.events || [];
+
+        // 初始化状态
+        this.phases = [];
+        this.summary = null;
+        this.fixes = [];
+        this.resolved_vars = {};
+        this.running = false;
+
+        // 辅助函数：添加/更新 phase
+        const addPhase = (id, label, detail, status) => {
+          const existing = this.phases.find(p => p.id === id);
+          if (existing) { existing.status = status; return existing; }
+          const p = {id, label, detail, status, duration_ms: null, errors: []};
+          this.phases.push(p);
+          return p;
+        };
+
+        // 遍历事件回放
+        for (const ev of events) {
+          const d = ev.data || {};
+          switch (ev.type) {
+            case 'login_start':
+              addPhase('login', '登录', (d.username || '') + ' @ ' + (d.base_url || ''), 'running');
+              break;
+            case 'login_ok':
+              addPhase('login', '登录', 'userId: ' + (d.user_id || ''), 'ok');
+              break;
+            case 'session_ready':
+              addPhase('session', '会话就绪', 'rootPageId: ' + (d.root_page_id || '').slice(0,20) + '…', 'ok');
+              this.resolved_vars = d.resolved_vars || {};
+              break;
+            case 'step_start': {
+              const p = addPhase('step:'+d.id, d.label || d.id, d.detail, 'running');
+              if (d.resolved_request) p.resolved_request = d.resolved_request;
+              break;
+            }
+            case 'step_ok': {
+              const p = this.phases.find(x => x.id === 'step:'+d.id);
+              if (p) { p.status = 'ok'; p.duration_ms = d.duration_ms; p.response = d.response; }
+              break;
+            }
+            case 'step_fail': {
+              const p = this.phases.find(x => x.id === 'step:'+d.id);
+              if (p) {
+                p.status = 'fail';
+                p.duration_ms = d.duration_ms;
+                p.errors = d.errors || (d.error ? [d.error] : []);
+                p.response = d.response;
+              }
+              break;
+            }
+            case 'assertion_ok':
+              addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'ok');
+              break;
+            case 'assertion_fail': {
+              const p = addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'fail');
+              if (d.msg) p.errors = [d.msg];
+              break;
+            }
+            case 'fixes_ready':
+              this.fixes = d.fixes || [];
+              break;
+            case 'case_done':
+              this.summary = d;
+              break;
+            case 'case_error':
+              // 记录错误并显示在 UI 中
+              this.summary = { passed: false, error: d.error || '执行异常' };
+              addPhase('error:runtime', '执行异常', d.error || '未知错误', 'fail');
+              break;
+          }
+        }
+      } catch (e) {
+        this.showToast('加载运行详情失败: ' + e.message);
+      }
+    },
     
     // ⭐ 简单的循环执行方式（备用）
     async runBatchLegacy() {
@@ -2427,6 +3388,14 @@ function app() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({env_id: this.currentEnv}),
           });
+          if (!resp.ok) {
+            let errMsg = `HTTP ${resp.status}`;
+            try { const ed = await resp.json(); errMsg = ed.detail || errMsg; } catch(_) {}
+            this.batchResults[name] = 'fail';
+            this.batchErrors[name] = errMsg;
+            this.batchStats.fail++;
+            continue;
+          }
           const data = await resp.json();
           await this.waitRunDone(data.run_id, name);
         } catch (e) {
@@ -2466,7 +3435,14 @@ function app() {
           this.batchErrors[name] = d.error || '异常';
           this.batchStats.fail++;
         });
-        es.onerror = () => { es.close(); resolve(); };
+        es.onerror = () => {
+          if (!this.batchResults[name] || this.batchResults[name] === 'running') {
+            this.batchResults[name] = 'fail';
+            this.batchErrors[name] = '执行异常中断，请检查用例配置或重试';
+            this.batchStats.fail++;
+          }
+          es.close(); resolve();
+        };
       });
     },
 
@@ -2614,7 +3590,6 @@ function app() {
     switchLogsTab(tab) {
       this.logsTab = tab;
       if (tab === 'history') this.loadRunHistory();
-      if (tab === 'tasks') this.loadTaskHistory();
     },
 
     async loadTaskHistory() {
@@ -2625,12 +3600,60 @@ function app() {
       }
     },
 
+    async loadHistoryTrend() {
+      try {
+        this.historyTrend = await (await fetch('/api/reports/trend?days=14')).json();
+        this.$nextTick(() => this.renderHistoryTrendChart());
+      } catch(e) {
+        this.historyTrend = [];
+      }
+    },
+
+    renderHistoryTrendChart() {
+      if (!this.$refs.historyTrendChart || !this.historyTrend.length) return;
+      if (this.historyTrendChart) this.historyTrendChart.destroy();
+      
+      const ctx = this.$refs.historyTrendChart.getContext('2d');
+      const labels = this.historyTrend.map(d => d.date.slice(5));
+      const passRates = this.historyTrend.map(d => (d.pass_rate * 100).toFixed(1));
+      
+      this.historyTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: '通过率 (%)',
+            data: passRates,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#22c55e'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+            y: { min: 0, max: 100, ticks: { color: '#9ca3af', callback: v => v + '%' }, grid: { color: '#374151' } }
+          }
+        }
+      });
+    },
+
     async viewTaskReport(taskId) {
       try {
         const resp = await fetch(`/api/tasks/${taskId}/report`);
         if (resp.ok) {
           this.currentReport = await resp.json();
           this.showReportDialog = true;
+          this.loadReportTrend();
+          this.renderReportCharts();
         } else {
           this.showToast('报告不存在');
         }
@@ -2894,6 +3917,15 @@ function app() {
         return this.caseSortDir === 'desc' ? -cmp : cmp;
       });
       return list;
+    },
+
+    get casePageCount() {
+      return Math.ceil(this.filteredCases().length / this.casePageSize);
+    },
+    get pagedCases() {
+      const all = this.filteredCases();
+      const start = (this.casePage - 1) * this.casePageSize;
+      return all.slice(start, start + this.casePageSize);
     },
 
     toggleDashSelect(name) {

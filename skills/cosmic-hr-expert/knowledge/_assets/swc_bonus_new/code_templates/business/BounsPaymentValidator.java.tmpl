@@ -1,0 +1,42 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.util.CollectionUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Author: wanghansheng
+ * Date: 2025/03/13
+ * FileName:
+ * Description: 奖金计划校验
+ */
+public class BounsPaymentValidator extends AbstractValidator {
+    @Override
+    public void validate() {
+        String operateKey = this.getOperateKey();
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+
+        // 奖金代发、奖金终止、奖金发放操作校验
+        if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operateKey) || BounsPaymentUtils.DonothingBonusTermination.equals(operateKey) || BounsPaymentUtils.DonothingBonusPayment.equals(operateKey)){
+            ArrayList<Long> ids = new ArrayList<>();
+            // 收集id
+            Arrays.stream(dataEntities).forEach(item -> {
+                DynamicObject bill = item.getDataEntity();
+                ids.add(bill.getLong("id"));
+            });
+
+            // 校验
+            List<String> errorMsg = BounsPaymentUtils.bounsPaymentvalidtor(ids,operateKey);
+            if (!CollectionUtils.isEmpty(errorMsg)){
+                throw new KDBizException(String.join("",errorMsg));
+            }
+        }
+    }
+}

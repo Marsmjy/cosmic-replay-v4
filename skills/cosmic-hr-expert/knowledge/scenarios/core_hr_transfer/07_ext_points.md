@@ -1,0 +1,3821 @@
+# core_hr_transfer · 扩展点
+
+> **聚合场景**：core_hr_transfer · 包含 2 个 hbss 字典实体（调动管理多单据聚合 · chgaction 大类 = INFO_TRANSFER。实证：TransferEffectOp:318 newEmpJobRel.se...）
+> **占位说明**：本文档为骨架占位 · 待 Agent 深度精修补内容
+> **生成时间**：2026-04-29
+
+## 概述
+
+调动管理多单据聚合 · chgaction 大类 = INFO_TRANSFER。实证：TransferEffectOp:318 newEmpJobRel.set('chgaction', transferBill.get('affaction')) — **调动单据 affaction 字段直接传给新职级职等记录的 chgaction 字段**。字段命名规则实证：a_ = after (目标态) / b_ = before (原态) / ba_a_tid (调后 assignment) / bb_a_tid (调前 assignment) / arealitycompany (调后实际公司) / ajobclass / ajoblevel / ajobgrade (调后职位类/级/等) / b_effectivedate (生效日期)。关键 OP：TransferSaveOp / TransferEffectOp / TransferAfterEffectOp / TransferConfirmOp。标品定时任务：hdm_transfereffect_plan_SKDP_S。ISV 扩展点：IStaffTransferExtPlugin (跳过占编)。
+
+## 涉及实体（2 个）
+
+- `hdm_transferapply`
+- `hdm_transferbatch`
+
+## 标准模式
+
+- **插件模式**：继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)
+- **跨云影响**：高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect
+- **ISV 扩展原则**（PR-001）：禁止继承 HRBaseDataTplEdit · 必须并列挂 HRDataBaseEdit
+
+## 待 Agent 精修要点
+
+1. 每个子实体单独的扩展点章节（2 个）
+2. 反编译 sourceLine 实证（如有 hbss 业务 jar · 需扫 `hrmp-hbss-*.jar`）
+3. 跨云引用真实下游（hbss 是底座 · 76+ 实体被组织/薪酬云引用 · 见 `_org_entity_ref_report.json`）
+
+参见上游脚本：`scripts/complete_aggregate_scenes.py` · 由 P0-1 沉淀。
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit -->
+
+## ISV 扩展指引（基于 HRTemplateBillEdit 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeBindData`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `protected protected void setButtonStatus()`
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `protected protected void setPageStatus(kd.bos.form.events.AfterDoOperationEventArgs)`
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.HRPermCommonEdit -->
+
+## ISV 扩展指引（基于 HRPermCommonEdit 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.HRPermCommonEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseEdit`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: (无)
+
+### 可重写方法（target.java self）
+- `public public void beforeCheckDataPermission(kd.bos.form.events.BeforeDoCheckDataPermissionArgs)`
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.HRPermCommonEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit -->
+
+## ISV 扩展指引（基于 HRBaseDataImportEdit 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: (无)
+
+### 可重写方法（target.java self）
+- `public public void initImportData(kd.bos.entity.datamodel.events.InitImportDataEventArgs)`
+- `public public void beforeImportData(kd.bos.entity.datamodel.events.BeforeImportDataEventArgs)`
+- `public public void afterImportData(kd.bos.entity.datamodel.events.ImportDataEventArgs)`
+- `public public void queryImportBasedata(kd.bos.entity.datamodel.events.QueryImportBasedataEventArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · LogHandlerUtil L158
+```java
+ 156                   DynamicObject logDy = new DynamicObject((DynamicObjectType)dataEntityType);
+ 157                   logDy.set("id", (Object)ids[index]);
+ 158 >                 logDy.set("username", (Object)RequestContext.get().getUserName());
+ 159                   logDy.set("opname", (Object)entityModifyInfo.getOperationKey());
+ 160                   logDy.set("opdate", (Object)now);
+```
+
+**QUERY_BUILDER** · LogHandlerUtil L346
+```java
+ 344                   attachmentIds.add(refBaseObj.getLong("id"));
+ 345               }
+ 346 >             DynamicObject[] attachments = BusinessDataServiceHelper.load((String)"bd_attachment", (String)"id,name,url,createtime", (QFilter[])new QFilter[]{new QFilter("id", "in", (Object)attachmentIds)});
+ 347               Arrays.stream(attachments).forEach(attachment -> attachmentLogInfoList.add(new AttachmentLogInfo("2", (Object)attachment.getLong("id"), Long.valueOf(0L), attachment.getString(displayProp), LogHandlerUtil.getAttachmentFullUrl(URLEncoder.encode(attachment.getString("url"))), attachment.getDate("createtime"), displayProp)));
+ 348           }
+```
+
+**READ_VIA_HELPER** · LogHandlerUtil L208
+```java
+ 206           if (oldDys == null || oldDys.length == 0) {
+ 207               List pks = Stream.of(newDys).map(DataEntityBase::getPkValue).distinct().collect(Collectors.toList());
+ 208 >             objectDynamicObjectMap = Arrays.stream(BusinessDataServiceHelper.load((Object[])pks.toArray(), (DynamicObjectType)dynamicObjectType)).collect(Collectors.toMap(DataEntityBase::getPkValue, dy -> dy));
+ 209           } else {
+ 210               objectDynamicObjectMap = Arrays.stream(oldDys).collect(Collectors.toMap(dy -> dy.get("id"), Function.identity(), (x1, x2) -> x2));
+```
+
+**THROW_BIZ_EXCEPTION** · HisModelCommonService L124
+```java
+ 122                   LOGGER.error((Throwable)exception);
+ 123               }
+ 124 >             throw new KDBizException(String.format(ResManager.loadKDString((String)"\u201c%s\u201d\u7684\u5386\u53f2\u6a21\u578b\u5b9e\u4f53\u914d\u7f6e\u201c\u6a21\u5f0f\u9009\u62e9\u201d\u672a\u914d\u7f6e\uff0c\u8bf7\u5148\u5b8c\u6210\u914d\u7f6e\u3002", (String)"HisModelCommonService_1", (String)"hrmp-hbp-business", (Object[])new Object[0]), entityNumber));
+ 125           }
+ 126           return hisModelEntityConfig;
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRBaseUeEdit -->
+
+## ISV 扩展指引（基于 HRBaseUeEdit 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.template.HRBaseUeEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseUeEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseEdit`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `preOpenForm`
+
+### 可重写方法（target.java self）
+- `public public void preOpenForm(kd.bos.form.events.PreOpenFormEventArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HrEntityCommonService L46
+```java
+  44       public List<String> getParentEntity(String entryEntity) {
+  45           HRBaseServiceHelper helper = new HRBaseServiceHelper("bos_formmeta");
+  46 >         QFilter entityFilter = new QFilter("number", "=", (Object)entryEntity);
+  47           DynamicObject dynamicObject = helper.queryOriginalOne("inheritpath", new QFilter[]{entityFilter});
+  48           String inheritPath = dynamicObject.getString("inheritpath");
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseUeEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRBaseUeEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRBaseUeEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin -->
+
+## ISV 扩展指引（基于 HRHiesButtonSwitchPlugin 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.bos.form.plugin.AbstractFormPlugin`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `afterBindData`
+
+### 可重写方法（target.java self）
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRHiesButtonSwitchPlugin L92
+```java
+  90               if (enableNoPermBtnHide) {
+  91                   String appId = HRPermUtil.getAppIdFromShowParam((FormShowParameter)view.getFormShowParameter());
+  92 >                 long currUserId = RequestContext.get().getCurrUserId();
+  93                   boolean isPerm = PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)billFormId, (String)permItem);
+  94                   LOGGER.info("currUserId:{} appId:{} billFormId:{} permItem:{}", new Object[]{currUserId, appId, billFormId, permItem});
+```
+
+**QUERY_BUILDER** · HRQFilterHelper L17
+```java
+  15   public class HRQFilterHelper {
+  16       public static QFilter buildEql(String filed, Object val) {
+  17 >         return new QFilter(filed, "=", val);
+  18       }
+  19   
+```
+
+**CALL_CROSS_SERVICE** · HRPermUtil L65
+```java
+  63   
+  64       public static Map<String, Object> queryPermConfig(String formId) {
+  65 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"hbss", (String)"IHBSSPermService", (String)"queryPermConfig", (Object[])new Object[]{formId});
+  66       }
+  67   
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgNewBillTplEdit -->
+
+## ISV 扩展指引（基于 PerChgNewBillTplEdit 真实证）
+
+> FQN: `kd.hr.hpfs.formplugin.PerChgNewBillTplEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.bos.bill.AbstractBillPlugIn`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `preOpenForm`, `beforeBindData`, `registerListener`, `propertyChanged`, `beforeDoOperation`, `afterDoOperation`, `beforeF7Select`
+
+### 可重写方法（target.java self）
+- `public public void preOpenForm(kd.bos.form.events.PreOpenFormEventArgs)` ⭐ lifecycle
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void registerListener(java.util.EventObject)` ⭐ lifecycle
+- `public public void propertyChanged(kd.bos.entity.datamodel.events.PropertyChangedArgs)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void beforeF7Select(kd.bos.form.field.events.BeforeF7SelectEvent)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · PerChgNewBillTplEdit L326
+```java
+ 324       private DynamicObject getDefaultAdminOrgFromManageOrgStrategy(long orgId) {
+ 325           long businessField = 1010L;
+ 326 >         Map result = (Map)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrbuFromManageEmpStrategy", (Object[])new Object[]{orgId, 0L, businessField, 0L});
+ 327           LOG.info("Got default adminOrg :{} from HrbuFromManageEmpStrategy with orgId: {}.", (Object)result, (Object)orgId);
+ 328           return (DynamicObject)result.get("hrbu");
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgNewBillTplEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit -->
+
+## ISV 扩展指引（基于 PerChgHdmBillTplEdit 真实证）
+
+> FQN: `kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.bos.bill.AbstractBillPlugIn`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `propertyChanged`
+
+### 可重写方法（target.java self）
+- `public public void propertyChanged(kd.bos.entity.datamodel.events.PropertyChangedArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · HRServiceUtil L49
+```java
+  47               param.put(adminOrgId, Collections.singleton(103010L));
+  48           }
+  49 >         List result = (List)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrBuByBusinessType", (Object[])new Object[]{param, 1010L});
+  50           LOG.info("getHrBuByBusinessType result :{}", (Object)result);
+  51           if (ObjectUtils.isEmpty((Object)result)) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgHdmBillTplEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit -->
+
+## ISV 扩展指引（基于 CommonPermissionEdit 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseEdit`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `registerListener`, `beforeF7Select`, `propertyChanged`
+
+### 可重写方法（target.java self）
+- `public public void registerListener(java.util.EventObject)` ⭐ lifecycle
+- `public public void beforeF7Select(kd.bos.form.field.events.BeforeF7SelectEvent)` ⭐ lifecycle
+- `public public void propertyChanged(kd.bos.entity.datamodel.events.PropertyChangedArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · DataFilterService L70
+```java
+  68               return dimValueResultDto;
+  69           }
+  70 >         DimValueResultWithSub dimValueResultWithSub = (DimValueResultWithSub)HRMServiceHelper.invokeBizService((String)"hrmp", (String)"hrcs", (String)"IHRCSBizDataPermissionService", (String)"getEntityDimValueWithSub", (Object[])new Object[]{RequestContext.getOrCreate().getCurrUserId(), BizAppServiceHelp.getAppIdByFormNum((String)entityNum), entityNum, "47150e89000000ac", "orgdesign"});
+  71           ArrayList<Long> orgIds = new ArrayList<Long>(dimValueResultWithSub.getDimValues().size());
+  72           if (!dimValueResultWithSub.isAll()) {
+```
+
+**QUERY_BUILDER** · DataFilterService L139
+```java
+ 137       public QFilter getQFilterWithJobLevelScm(FieldNameInfo fieldNameInfo) {
+ 138           long jobLevelScmId = (Long)this.getJobLevelGradeScmId((FieldNameInfo)fieldNameInfo).item1;
+ 139 >         return jobLevelScmId == 0L ? null : new QFilter("id", "=", (Object)jobLevelScmId);
+ 140       }
+ 141   
+```
+
+**READ_VIA_HELPER** · DataFilterService L83
+```java
+  81               }
+  82               if (!HRCollUtil.isEmpty(includeSubIds)) {
+  83 >                 List allSubordinateOrgs = OrgUnitServiceHelper.getAllSubordinateOrgs((String)"25", includeSubIds, (boolean)true, (boolean)true);
+  84                   orgIds.addAll(allSubordinateOrgs);
+  85               }
+```
+
+**CALL_CROSS_SERVICE** · BizMserviceInvokeService L56
+```java
+  54               for (List idList : list) {
+  55                   List dataList;
+  56 >                 HrApiResponse result = (HrApiResponse)HRMServiceHelper.invokeHRMPService((String)"hbpm", (String)"IPositionService", (String)"queryStandardPositionByOrg", (Object[])new Object[]{idList, null, true});
+  57                   if (!result.isSuccess() || HRObjectUtils.isEmpty((Object)(dataList = (List)result.getData()))) continue;
+  58                   for (Map data : dataList) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit -->
+
+## ISV 扩展指引（基于 TransferBillHeadEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `afterBindData`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillHeadEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit -->
+
+## ISV 扩展指引（基于 TransferBillPropChangedEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `registerListener`, `propertyChanged`, `beforeF7Select`, `beforeClosed`
+
+### 可重写方法（target.java self）
+- `public public void registerListener(java.util.EventObject)` ⭐ lifecycle
+- `public public void propertyChanged(kd.bos.entity.datamodel.events.PropertyChangedArgs)` ⭐ lifecycle
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+- `public public void beforeF7Select(kd.bos.form.field.events.BeforeF7SelectEvent)` ⭐ lifecycle
+- `public public void beforeClosed(kd.bos.form.events.BeforeClosedEvent)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HdmAppConfigUtil L28
+```java
+  26   
+  27       public static Object getHdmAppParam(String paramKey) {
+  28 >         long orgId = RequestContext.get().getOrgId();
+  29           return HdmAppConfigUtil.getHdmAppParam(paramKey, orgId);
+  30       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · PositionExternalServiceImpl L43
+```java
+  41               return new HashMap<String, Object>(0);
+  42           }
+  43 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"hbpm", (String)"IPositionService", (String)"queryPositionHis", (Object[])new Object[]{positionIdList, date});
+  44       }
+  45   
+```
+
+**THROW_BIZ_EXCEPTION** · EmployeeHRF7Handler L101
+```java
+  99               } else {
+ 100                   LOGGER.info("KEY_BB_PO_TID##KEY_BB_A_TID###IS-NULL");
+ 101 >                 throw new KDBizException(ResManager.loadKDString((String)"\u65e0\u6cd5\u83b7\u53d6\u5230\u4eba\u5458\u5361\u7247\u4fe1\u606f\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"EmployeeHRF7Handler_0", (String)"hr-hdm-formplugin", (Object[])new Object[0]));
+ 102               }
+ 103               if (CollectionUtils.isEmpty((Map)perInfo) || CollectionUtils.isEmpty((Map)((Map)perInfo.get(queryId)))) {
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillPropChangedEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit -->
+
+## ISV 扩展指引（基于 TransferDateEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `closedCallBack`, `beforeDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · EmpJobRelRepository L34
+```java
+  32   
+  33       public DynamicObject[] getEmpJobRelByEmpIds(List<Long> employeeIds, String selectProperties, Date date) {
+  34 >         QFilter filter = new QFilter("employee", "in", employeeIds);
+  35           if (date == null) {
+  36               date = HRDateTimeUtils.curDate();
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · TipsUtil L14
+```java
+  12   public class TipsUtil {
+  13       public static String getPromptById(Long promptId) {
+  14 >         Map contentAndHtmlMap = (Map)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSService", (String)"getContentAndHtml", (Object[])new Object[]{promptId});
+  15           return (String)contentAndHtmlMap.get("content");
+  16       }
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferDateEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit -->
+
+## ISV 扩展指引（基于 TransferBillViewEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `registerListener`, `beforeF7Select`, `beforeBindData`, `afterBindData`, `afterCreateNewData`
+
+### 可重写方法（target.java self）
+- `public public void registerListener(java.util.EventObject)` ⭐ lifecycle
+- `public public void beforeF7Select(kd.bos.form.field.events.BeforeF7SelectEvent)` ⭐ lifecycle
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterCreateNewData(java.util.EventObject)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · JobExternalServiceImpl L52
+```java
+  50               return null;
+  51           }
+  52 >         Lang lang = RequestContext.get().getLang();
+  53           return (HrApiResponse)HRMServiceHelper.invokeHRMPService((String)"hbjm", (String)"IHBJMJobGradeScmService", (String)"queryJobGradeRangeByScmId", (Object[])new Object[]{infos, lang.name()});
+  54       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillViewEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit -->
+
+## ISV 扩展指引（基于 TransferButtonEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `afterBindData`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `protected protected java.lang.String getTransferBillStatus()`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferButtonEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit -->
+
+## ISV 扩展指引（基于 TransferOperationEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeDoOperation`, `closedCallBack`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionValidateUtil L29
+```java
+  27   
+  28       public static boolean checkPermission(String appId, String entityNum, String permItemId) {
+  29 >         long currUserId = RequestContext.get().getCurrUserId();
+  30           return PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)entityNum, (String)permItemId);
+  31       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferOperationEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit -->
+
+## ISV 扩展指引（基于 TransferInViewEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeBindData`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.billin.TransferInViewEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit -->
+
+## ISV 扩展指引（基于 TransferStageInViewEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeBindData`
+
+### 可重写方法（target.java self）
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.billin.TransferStageInViewEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit -->
+
+## ISV 扩展指引（基于 TransferApplyBillEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeDoOperation`, `afterDoOperation`, `beforeClosed`
+
+### 可重写方法（target.java self）
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+- `public public void beforeClosed(kd.bos.form.events.BeforeClosedEvent)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · TransferBillRepository L65
+```java
+  63   
+  64       public DynamicObject[] query(String fields, List<Long> ids) {
+  65 >         QFilter idFilter = new QFilter("id", "in", ids);
+  66           QFilter[] idFilterArray = new QFilter[]{idFilter};
+  67           return this.query(fields, idFilterArray);
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRTemplateBillList -->
+
+## ISV 扩展指引（基于 HRTemplateBillList 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.template.HRTemplateBillList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.template.HRTemplateBillList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.template.HRTemplateBillList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.HRPermCommonList -->
+
+## ISV 扩展指引（基于 HRPermCommonList 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.HRPermCommonList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeF7Select`
+
+### 可重写方法（target.java self）
+- `public public void beforeCheckDataPermission(kd.bos.form.events.BeforeDoCheckDataPermissionArgs)`
+- `public public void initialize()`
+- `public public void beforeF7Select(kd.bos.form.field.events.BeforeFilterF7SelectEvent)` ⭐ lifecycle
+- `protected protected java.lang.String getAdminOrgFilterField()`
+- `protected protected boolean isAdminOrgFilterEnable()`
+- `protected protected java.lang.String getBUFilterEntityName()`
+- `protected protected java.lang.String getBUFilterField()`
+- `protected protected java.lang.String getEmpgrpFilterField()`
+- `protected protected java.lang.String getBUFilterAppId()`
+- `protected protected kd.bos.orm.query.QFilter getCustomFilter()`
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.HRPermCommonList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.HRPermCommonList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgNewBillTplList -->
+
+## ISV 扩展指引（基于 PerChgNewBillTplList 真实证）
+
+> FQN: `kd.hr.hpfs.formplugin.PerChgNewBillTplList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeDoOperation`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · PerChgNewBillTplList L50
+```java
+  48               Object pkVal = this.getSelectedRows().get(0).getPrimaryKeyValue();
+  49               String entityId = ((IListView)this.getView()).getBillFormId();
+  50 >             DynamicObject billDy = RepositoryUtils.queryDynamicObject((String)entityId, (String)"affrecord", (QFilter[])new QFilter[]{new QFilter("id", "=", pkVal)});
+  51               long affRecordId = billDy.getLong("affrecord");
+  52               if (affRecordId == 0L) {
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.PerChgNewBillTplList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.PerChgNewBillTplList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList -->
+
+## ISV 扩展指引（基于 CommonPermissionList 真实证）
+
+> FQN: `kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: (无)
+
+### 可重写方法（target.java self）
+- `public public void filterColumnSetFilter(kd.bos.form.events.SetFilterEvent)`
+- `public public void filterContainerBeforeF7Select(kd.bos.form.field.events.BeforeFilterF7SelectEvent)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · DataFilterService L70
+```java
+  68               return dimValueResultDto;
+  69           }
+  70 >         DimValueResultWithSub dimValueResultWithSub = (DimValueResultWithSub)HRMServiceHelper.invokeBizService((String)"hrmp", (String)"hrcs", (String)"IHRCSBizDataPermissionService", (String)"getEntityDimValueWithSub", (Object[])new Object[]{RequestContext.getOrCreate().getCurrUserId(), BizAppServiceHelp.getAppIdByFormNum((String)entityNum), entityNum, "47150e89000000ac", "orgdesign"});
+  71           ArrayList<Long> orgIds = new ArrayList<Long>(dimValueResultWithSub.getDimValues().size());
+  72           if (!dimValueResultWithSub.isAll()) {
+```
+
+**QUERY_BUILDER** · DataFilterService L139
+```java
+ 137       public QFilter getQFilterWithJobLevelScm(FieldNameInfo fieldNameInfo) {
+ 138           long jobLevelScmId = (Long)this.getJobLevelGradeScmId((FieldNameInfo)fieldNameInfo).item1;
+ 139 >         return jobLevelScmId == 0L ? null : new QFilter("id", "=", (Object)jobLevelScmId);
+ 140       }
+ 141   
+```
+
+**READ_VIA_HELPER** · DataFilterService L83
+```java
+  81               }
+  82               if (!HRCollUtil.isEmpty(includeSubIds)) {
+  83 >                 List allSubordinateOrgs = OrgUnitServiceHelper.getAllSubordinateOrgs((String)"25", includeSubIds, (boolean)true, (boolean)true);
+  84                   orgIds.addAll(allSubordinateOrgs);
+  85               }
+```
+
+**CALL_CROSS_SERVICE** · BizMserviceInvokeService L56
+```java
+  54               for (List idList : list) {
+  55                   List dataList;
+  56 >                 HrApiResponse result = (HrApiResponse)HRMServiceHelper.invokeHRMPService((String)"hbpm", (String)"IPositionService", (String)"queryStandardPositionByOrg", (Object[])new Object[]{idList, null, true});
+  57                   if (!result.isSuccess() || HRObjectUtils.isEmpty((Object)(dataList = (List)result.getData()))) continue;
+  58                   for (Map data : dataList) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.formplugin.web.odc.perm.CommonPermissionList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillList -->
+
+## ISV 扩展指引（基于 TransferBillList 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.common.TransferBillList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `setFilter`, `filterContainerInit`, `beforeDoOperation`, `afterDoOperation`, `closedCallBack`
+
+### 可重写方法（target.java self）
+- `public public void setFilter(kd.bos.form.events.SetFilterEvent)` ⭐ lifecycle
+- `public public void filterContainerBeforeF7Select(kd.bos.form.field.events.BeforeFilterF7SelectEvent)`
+- `public public void filterContainerInit(kd.bos.form.events.FilterContainerInitArgs)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void beforeCreateListColumns(kd.bos.form.events.BeforeCreateListColumnsArgs)`
+- `protected protected java.util.List<java.lang.String> initDefaultFixedColumnList()`
+- `public public void packageData(kd.bos.entity.datamodel.events.PackageDataEvent)`
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionValidateUtil L29
+```java
+  27   
+  28       public static boolean checkPermission(String appId, String entityNum, String permItemId) {
+  29 >         long currUserId = RequestContext.get().getCurrUserId();
+  30           return PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)entityNum, (String)permItemId);
+  31       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.common.TransferBillList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.common.TransferBillList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList -->
+
+## ISV 扩展指引（基于 TransferApplyBillList 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `setFilter`, `beforeBindData`, `beforeDoOperation`, `closedCallBack`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void setFilter(kd.bos.form.events.SetFilterEvent)` ⭐ lifecycle
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void billListHyperLinkClick(kd.bos.form.events.HyperLinkClickArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionValidateUtil L29
+```java
+  27   
+  28       public static boolean checkPermission(String appId, String entityNum, String permItemId) {
+  29 >         long currUserId = RequestContext.get().getCurrUserId();
+  30           return PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)entityNum, (String)permItemId);
+  31       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.apply.TransferApplyBillList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin -->
+
+## ISV 扩展指引（基于 HRCommonListFilterPlugin 真实证）
+
+> FQN: `kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRDataBaseList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `setFilter`
+
+### 可重写方法（target.java self）
+- `public public void setFilter(kd.bos.form.events.SetFilterEvent)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.formplugin.filter.HRCommonListFilterPlugin -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferDeleteOp -->
+
+## ISV 扩展指引（基于 TransferDeleteOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferDeleteOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferDeleteOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferDeleteOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferDeleteOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferDeleteOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp -->
+
+## ISV 扩展指引（基于 PerChgTplSaveOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferSaveOp -->
+
+## ISV 扩展指引（基于 TransferSaveOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferSaveOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferSaveOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HdmAppConfigUtil L28
+```java
+  26   
+  27       public static Object getHdmAppParam(String paramKey) {
+  28 >         long orgId = RequestContext.get().getOrgId();
+  29           return HdmAppConfigUtil.getHdmAppParam(paramKey, orgId);
+  30       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · SihcConfigUtil L20
+```java
+  18       public static Boolean enableSihc() {
+  19           try {
+  20 >             return (Boolean)HRMServiceHelper.invokeHRMPService((String)"soecs", (String)"SystemConfigMService", (String)"enableSihc", (Object[])new Object[0]);
+  21           }
+  22           catch (Exception e) {
+```
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferSaveOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferSaveOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferSaveOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp -->
+
+## ISV 扩展指引（基于 PerChgTplUpdateChgRecordOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+- `public public void onReturnOperation(kd.bos.entity.plugin.args.ReturnOperationArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · HRServiceUtil L49
+```java
+  47               param.put(adminOrgId, Collections.singleton(103010L));
+  48           }
+  49 >         List result = (List)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrBuByBusinessType", (Object[])new Object[]{param, 1010L});
+  50           LOG.info("getHrBuByBusinessType result :{}", (Object)result);
+  51           if (ObjectUtils.isEmpty((Object)result)) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplUpdateChgRecordOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp -->
+
+## ISV 扩展指引（基于 PerChgTplSubmitOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+- `public public void onReturnOperation(kd.bos.entity.plugin.args.ReturnOperationArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · HRServiceUtil L49
+```java
+  47               param.put(adminOrgId, Collections.singleton(103010L));
+  48           }
+  49 >         List result = (List)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrBuByBusinessType", (Object[])new Object[]{param, 1010L});
+  50           LOG.info("getHrBuByBusinessType result :{}", (Object)result);
+  51           if (ObjectUtils.isEmpty((Object)result)) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp -->
+
+## ISV 扩展指引（基于 TransferApplySubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp/`
+
+### 类型与继承
+- 插件类型：**OTHER**
+- 父类: `kd.hr.hdm.opplugin.transfer.TransferSubmitOp`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: (无)
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplySubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp -->
+
+## ISV 扩展指引（基于 PerChgTplDiscardChgRecordOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplDiscardChgRecordOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp -->
+
+## ISV 扩展指引（基于 TransferUnSubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferUnSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.opplugin.web.HRCodeRuleOp -->
+
+## ISV 扩展指引（基于 HRCodeRuleOp 真实证）
+
+> FQN: `kd.hr.hbp.opplugin.web.HRCodeRuleOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hbp.opplugin.web.HRCodeRuleOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.bos.entity.plugin.AbstractOperationServicePlugIn`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onAddValidators`
+
+### 可重写方法（target.java self）
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void onReturnOperation(kd.bos.entity.plugin.args.ReturnOperationArgs)`
+- `protected protected void recycleNumber(kd.bos.dataentity.entity.DynamicObject[])`
+
+### SDK 范式（ISV 抄作业）
+
+**READ_VIA_HELPER** · HRCodeRuleOp L81
+```java
+  79           String orgId;
+  80           String entityId = obj.getDataEntityType().getName();
+  81 >         CodeRuleInfo codeRuleInfo = CodeRuleServiceHelper.getCodeRule((String)entityId, (DynamicObject)obj, (String)(orgId = this.getMainOrgId(obj)));
+  82           if (codeRuleInfo == null) {
+  83               return;
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hbp.opplugin.web.HRCodeRuleOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hbp.opplugin.web.HRCodeRuleOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hbp.opplugin.web.HRCodeRuleOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp -->
+
+## ISV 扩展指引（基于 PerChgTplEffectOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+- `public public void onReturnOperation(kd.bos.entity.plugin.args.ReturnOperationArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**PUBLISH_EVENT** · PerChgTplEffectOp L163
+```java
+ 161           effectChgRecordIds.forEach(effectChgRecordId -> {
+ 162               jsonObject.put("businessKeys", effectChgRecordId);
+ 163 >             EventServiceHelper.triggerEventSubscribe((String)"hpfs_hrnewbillorgtpl.effect", (String)jsonObject.toJSONString());
+ 164           });
+ 165           LOG.info("####PerChgTplEffectOp.endOperationTransaction.triggerEventSubscribes-cost1:{} ms.", (Object)(System.currentTimeMillis() - start2));
+```
+
+**CALL_CROSS_SERVICE** · HRServiceUtil L49
+```java
+  47               param.put(adminOrgId, Collections.singleton(103010L));
+  48           }
+  49 >         List result = (List)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrBuByBusinessType", (Object[])new Object[]{param, 1010L});
+  50           LOG.info("getHrBuByBusinessType result :{}", (Object)result);
+  51           if (ObjectUtils.isEmpty((Object)result)) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp -->
+
+## ISV 扩展指引（基于 PerChgHDMTplEffectOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgHDMTplEffectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp -->
+
+## ISV 扩展指引（基于 PerChgEffectNewPerSerLenOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewPerSerLenOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferEffectOp -->
+
+## ISV 扩展指引（基于 TransferEffectOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferEffectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferEffectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp -->
+
+## ISV 扩展指引（基于 PerChgEffectNewTrialPeriodsOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgEffectNewTrialPeriodsOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp -->
+
+## ISV 扩展指引（基于 PerChgHdmTplFinishSupRelOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgHdmTplFinishSupRelOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp -->
+
+## ISV 扩展指引（基于 TransferApplyAuditingOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `afterExecuteOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void afterExecuteOperationTransaction(kd.bos.entity.plugin.args.AfterOperationArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · JobExternalServiceImpl L52
+```java
+  50               return null;
+  51           }
+  52 >         Lang lang = RequestContext.get().getLang();
+  53           return (HrApiResponse)HRMServiceHelper.invokeHRMPService((String)"hbjm", (String)"IHBJMJobGradeScmService", (String)"queryJobGradeRangeByScmId", (Object[])new Object[]{infos, lang.name()});
+  54       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplyAuditingOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp -->
+
+## ISV 扩展指引（基于 TransferApplyRejectToSubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · TransferOperationServiceImpl L130
+```java
+ 128               dy.set("terminationdesc", dataModel.getValue("terminationdesc"));
+ 129           }
+ 130 >         dy.set("terminationperson", (Object)RequestContext.get().getCurrUserId());
+ 131           dy.set("terminationtime", (Object)new Date());
+ 132           dy.set("billstatus", (Object)"F");
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApplyRejectToSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp -->
+
+## ISV 扩展指引（基于 TransferTerminalDoOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferTerminalDoOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp -->
+
+## ISV 扩展指引（基于 TransferEffectRetryOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.bos.entity.plugin.AbstractOperationServicePlugIn`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferEffectRetryOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp -->
+
+## ISV 扩展指引（基于 TransferFlowTerminalOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferFlowTerminalOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp -->
+
+## ISV 扩展指引（基于 TransferAfterEffectOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PerChgNewBillUtils L54
+```java
+  52       public static void setErrorMsg(DynamicObject billDy, String errorInfo, String code) {
+  53           String errInfo = billDy.getString("errmsg_tag");
+  54 >         String traceId = RequestContext.get().getTraceId();
+  55           HashMap<String, String> detail = new HashMap<String, String>();
+  56           detail.put("codeInfo", errorInfo);
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp -->
+
+## ISV 扩展指引（基于 PerChgTplRollbackOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · ChgUtils L984
+```java
+ 982   
+ 983       public static String getPrivacyPropJson() {
+ 984 >         return (String)HRMServiceHelper.invokeHRMPService((String)"hrpi", (String)"IHRPIDevParamConfigService", (String)"queryChgRecordFieldBlackList", (Object[])new Object[0]);
+ 985       }
+ 986   
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplRollbackOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferRollbackOp -->
+
+## ISV 扩展指引（基于 TransferRollbackOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferRollbackOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRollbackOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.bos.entity.plugin.AbstractOperationServicePlugIn`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · TransferRollbackOp L57
+```java
+  55               dy.set("terminationreason", (Object)rollBackReasonId);
+  56               dy.set("terminationdesc", (Object)option.getVariableValue("termreason", ""));
+  57 >             dy.set("terminationperson", (Object)RequestContext.get().getCurrUserId());
+  58               dy.set("terminationtime", (Object)date);
+  59               dy.set("billstatus", (Object)"F");
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRollbackOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRollbackOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferRollbackOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp -->
+
+## ISV 扩展指引（基于 PerChgTplEffectSyncOp 真实证）
+
+> FQN: `kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`, `afterExecuteOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void afterExecuteOperationTransaction(kd.bos.entity.plugin.args.AfterOperationArgs)` ⭐ lifecycle
+- `public public void onReturnOperation(kd.bos.entity.plugin.args.ReturnOperationArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · HRServiceUtil L49
+```java
+  47               param.put(adminOrgId, Collections.singleton(103010L));
+  48           }
+  49 >         List result = (List)HRMServiceHelper.invokeHRMPService((String)"hrcs", (String)"IHRCSStrategyService", (String)"getHrBuByBusinessType", (Object[])new Object[]{param, 1010L});
+  50           LOG.info("getHrBuByBusinessType result :{}", (Object)result);
+  51           if (ObjectUtils.isEmpty((Object)result)) {
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectSyncOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp -->
+
+## ISV 扩展指引（基于 TransferApprovalAgreeOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferApprovalAgreeOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp -->
+
+## ISV 扩展指引（基于 TransferAfterRollbackOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · TransferAfterRollbackOp L39
+```java
+  37           List idList = Arrays.stream(dataEntities).map(dy -> dy.getLong("id")).collect(Collectors.toList());
+  38           HRBaseServiceHelper serviceHelper = new HRBaseServiceHelper("hdm_transferbasebill");
+  39 >         DynamicObject[] billDys = serviceHelper.loadDynamicObjectArray(new QFilter[]{new QFilter("id", "in", idList), new QFilter("transferstatus", "in", ONTHEWAYSTATUS)});
+  40           new TransferBillApplicationService().discardTransferBills(billDys);
+  41           LOGGER.info("TransferAfterRollbackOp beginOperationTransaction end");
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferAfterRollbackOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferTerminateOp -->
+
+## ISV 扩展指引（基于 TransferTerminateOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferTerminateOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminateOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onAddValidators`, `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · TransferTerminateOp L90
+```java
+  88               dataEntity.set("terminationreason", (Object)terminationReasonId);
+  89               dataEntity.set("terminationdesc", (Object)terminationDesc);
+  90 >             dataEntity.set("terminationperson", (Object)RequestContext.get().getCurrUserId());
+  91               dataEntity.set("terminationtime", (Object)new Date());
+  92               dataEntity.set("billstatus", (Object)"F");
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminateOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferTerminateOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferTerminateOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferRejectOp -->
+
+## ISV 扩展指引（基于 TransferRejectOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferRejectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRejectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · PersonExternalServiceImpl L72
+```java
+  70           LOG.info("IHRPIEmployeeService###queryEmployeeByUserIds###hrApiResponse\uff1a{}", (Object)hrApiResponse.toString());
+  71           if (!hrApiResponse.isSuccess()) {
+  72 >             throw new KDBizException(ResManager.loadKDString((String)"\u83b7\u53d6\u7cfb\u7edf\u4eba\u5458\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"PersonExternalServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+  73           }
+  74           return (Map)hrApiResponse.getData();
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRejectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferRejectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferRejectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferConfirmOp -->
+
+## ISV 扩展指引（基于 TransferConfirmOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.TransferConfirmOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferConfirmOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `endOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void endOperationTransaction(kd.bos.entity.plugin.args.EndOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferConfirmOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.TransferConfirmOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.TransferConfirmOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit -->
+
+## ISV 扩展指引（基于 EntryCommonEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `propertyChanged`, `beforeDoOperation`, `afterDoOperation`, `afterCreateNewData`
+
+### 可重写方法（target.java self）
+- `public public void propertyChanged(kd.bos.entity.datamodel.events.PropertyChangedArgs)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterCreateNewData(java.util.EventObject)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionRepository L48
+```java
+  46               return true;
+  47           }
+  48 >         return PermissionServiceHelper.hasSpecificPerm((long)RequestContext.get().getCurrUserId(), (String)appId, (String)pageId, (String)query.getString("id"));
+  49       }
+  50   
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · PositionExternalServiceImpl L43
+```java
+  41               return new HashMap<String, Object>(0);
+  42           }
+  43 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"hbpm", (String)"IPositionService", (String)"queryPositionHis", (Object[])new Object[]{positionIdList, date});
+  44       }
+  45   
+```
+
+**THROW_BIZ_EXCEPTION** · EmployeeHRF7Handler L101
+```java
+  99               } else {
+ 100                   LOGGER.info("KEY_BB_PO_TID##KEY_BB_A_TID###IS-NULL");
+ 101 >                 throw new KDBizException(ResManager.loadKDString((String)"\u65e0\u6cd5\u83b7\u53d6\u5230\u4eba\u5458\u5361\u7247\u4fe1\u606f\uff0c\u8bf7\u8054\u7cfb\u7ba1\u7406\u5458\u3002", (String)"EmployeeHRF7Handler_0", (String)"hr-hdm-formplugin", (Object[])new Object[0]));
+ 102               }
+ 103               if (CollectionUtils.isEmpty((Map)perInfo) || CollectionUtils.isEmpty((Map)((Map)perInfo.get(queryId)))) {
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.EntryCommonEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit -->
+
+## ISV 扩展指引（基于 BatchTransferEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `beforeBindData`, `afterBindData`, `beforeDoOperation`, `afterDoOperation`, `closedCallBack`
+
+### 可重写方法（target.java self）
+- `public public void beforeBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionValidateUtil L29
+```java
+  27   
+  28       public static boolean checkPermission(String appId, String entityNum, String permItemId) {
+  29 >         long currUserId = RequestContext.get().getCurrUserId();
+  30           return PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)entityNum, (String)permItemId);
+  31       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit -->
+
+## ISV 扩展指引（基于 BatchTransferHeadEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `afterBindData`
+
+### 可重写方法（target.java self）
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferHeadEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit -->
+
+## ISV 扩展指引（基于 BatchTransferButtonEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `afterBindData`
+
+### 可重写方法（target.java self）
+- `public public void afterBindData(java.util.EventObject)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferButtonEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit -->
+
+## ISV 扩展指引（基于 TransferEntryUpdateEdit 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillEdit`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `registerListener`, `beforeItemClick`
+
+### 可重写方法（target.java self）
+- `public public void registerListener(java.util.EventObject)` ⭐ lifecycle
+- `public public void beforeItemClick(kd.bos.form.control.events.BeforeItemClickEvent)` ⭐ lifecycle
+- `public public void hyperLinkClick(kd.bos.form.events.HyperLinkClickEvent)`
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.TransferEntryUpdateEdit -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList -->
+
+## ISV 扩展指引（基于 BatchTransferList 真实证）
+
+> FQN: `kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList/`
+
+### 类型与继承
+- 插件类型：**FORM_PLUGIN**
+- 父类: `kd.hr.hbp.formplugin.web.HRCoreBaseBillList`
+- ISV 可继承: ⚠️ 标品 @SdkInternal·改继承基类
+- 推荐挂载方法: `setFilter`, `beforeDoOperation`, `closedCallBack`, `afterDoOperation`
+
+### 可重写方法（target.java self）
+- `public public void setFilter(kd.bos.form.events.SetFilterEvent)` ⭐ lifecycle
+- `public public void confirmCallBack(kd.bos.form.events.MessageBoxClosedEvent)`
+- `public public void beforeDoOperation(kd.bos.form.events.BeforeDoOperationEventArgs)` ⭐ lifecycle
+- `public public void closedCallBack(kd.bos.form.events.ClosedCallBackEvent)` ⭐ lifecycle
+- `public public void afterDoOperation(kd.bos.form.events.AfterDoOperationEventArgs)` ⭐ lifecycle
+- `public public void billListHyperLinkClick(kd.bos.form.events.HyperLinkClickArgs)`
+- `public public void beforeCreateListDataProvider(kd.bos.form.events.BeforeCreateListDataProviderArgs)`
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · PermissionValidateUtil L29
+```java
+  27   
+  28       public static boolean checkPermission(String appId, String entityNum, String permItemId) {
+  29 >         long currUserId = RequestContext.get().getCurrUserId();
+  30           return PermissionServiceHelper.checkPermission((Long)currUserId, (String)appId, (String)entityNum, (String)permItemId);
+  31       }
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.formplugin.transfer.web.batch.BatchTransferList -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp -->
+
+## ISV 扩展指引（基于 BatchTransferSaveOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRDynamicObjectUtils L337
+```java
+ 335               String adminDivision = "";
+ 336               long adminDivisionId = Long.parseLong(result);
+ 337 >             QFilter idFilter = new QFilter("id", "=", (Object)adminDivisionId);
+ 338               DynamicObject admindivisionDynamic = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])idFilter.toArray());
+ 339               String admindivisionFullName = admindivisionDynamic != null ? admindivisionDynamic.getString("fullname") : result;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSaveOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp -->
+
+## ISV 扩展指引（基于 BatchTransferSubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · TransferBatchRepository L61
+```java
+  59   
+  60       public DynamicObject[] query(String fields, List<Long> ids) {
+  61 >         QFilter idFilter = new QFilter("id", "in", ids);
+  62           QFilter[] idFilterArray = new QFilter[]{idFilter};
+  63           return this.query(fields, idFilterArray);
+```
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp -->
+
+## ISV 扩展指引（基于 BatchTransferUnSubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferUnSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp -->
+
+## ISV 扩展指引（基于 BatchTransferSubmitEffectOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beforeExecuteOperationTransaction`, `beginOperationTransaction`, `afterExecuteOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beforeExecuteOperationTransaction(kd.bos.entity.plugin.args.BeforeOperationArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+- `public public void afterExecuteOperationTransaction(kd.bos.entity.plugin.args.AfterOperationArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · TransferBatchRepository L61
+```java
+  59   
+  60       public DynamicObject[] query(String fields, List<Long> ids) {
+  61 >         QFilter idFilter = new QFilter("id", "in", ids);
+  62           QFilter[] idFilterArray = new QFilter[]{idFilter};
+  63           return this.query(fields, idFilterArray);
+```
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferSubmitEffectOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp -->
+
+## ISV 扩展指引（基于 BatchTransferWfauditingOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferWfauditingOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp -->
+
+## ISV 扩展指引（基于 BatchTransferWfrejectToSubmitOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferWfrejectToSubmitOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp -->
+
+## ISV 扩展指引（基于 BatchTransferTerminateDoOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferTerminateDoOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp -->
+
+## ISV 扩展指引（基于 BatchTransferAuditOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · TransferOperationServiceImpl L130
+```java
+ 128               dy.set("terminationdesc", dataModel.getValue("terminationdesc"));
+ 129           }
+ 130 >         dy.set("terminationperson", (Object)RequestContext.get().getCurrUserId());
+ 131           dy.set("terminationtime", (Object)new Date());
+ 132           dy.set("billstatus", (Object)"F");
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · AdminOrgExternalServiceImpl L35
+```java
+  33               return Collections.emptyMap();
+  34           }
+  35 >         return (Map)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSBatchAdminOrgInfoQueryService", (String)"queryOrgStructToMap", (Object[])new Object[]{param, new Date(), Boolean.TRUE});
+  36       }
+  37   
+```
+
+**THROW_BIZ_EXCEPTION** · OperationServiceUtil L109
+```java
+ 107                   errInfo = operationResult.getMessage();
+ 108               }
+ 109 >             throw new KDBizException(errInfo);
+ 110           }
+ 111       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferAuditOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp -->
+
+## ISV 扩展指引（基于 BatchTransferTerminateOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onAddValidators`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · BatchTransferTerminateOp L91
+```java
+  89               temp.set("terminationreason", (Object)terminationReasonId);
+  90               temp.set("terminationdesc", (Object)finalTerminationDesc);
+  91 >             temp.set("terminationperson", (Object)RequestContext.get().getCurrUserId());
+  92               temp.set("terminationtime", (Object)new Date());
+  93               temp.set("entrybillstatus", (Object)"F");
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferTerminateOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp -->
+
+## ISV 扩展指引（基于 BatchTransferApprovalAgreeOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**CONTEXT_ACCESS** · HRDateTimeUtils L1662
+```java
+1660       public static SimpleDateFormat getUserSettingFormat() {
+1661           IInteService service = (IInteService)ServiceFactory.getService(IInteService.class);
+1662 >         String patternStr = service.getDateFormat(Long.valueOf(RequestContext.get().getCurrUserId()));
+1663           if (HRStringUtils.isEmpty((String)patternStr)) {
+1664               patternStr = YYYY_MM_DD;
+```
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRDateTimeUtils L1410
+```java
+1408       public static Date getSysMaxDate() {
+1409           Date maxDate = null;
+1410 >         DynamicObject configDy = QueryServiceHelper.queryOne((String)"hrcs_sysmaxdateconfig", (String)"maxenddate", (QFilter[])new QFilter[0]);
+1411           if (configDy == null || configDy.getDate("maxenddate") == null) {
+1412               LocalDate localDate = LocalDate.of(2999, 12, 31);
+```
+
+**THROW_BIZ_EXCEPTION** · HRDateTimeUtils L175
+```java
+ 173                   LOGGER.debug("parseDate info:" + str + ",fmt:" + YYYY_MM_DD);
+ 174               }
+ 175 >             throw new KDBizException("parseDate info:" + date + ",fmt:" + YYYY_MM_DD);
+ 176           }
+ 177       }
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferApprovalAgreeOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp -->
+
+## ISV 扩展指引（基于 BatchTransferRollbackOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `onAddValidators`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void onAddValidators(kd.bos.entity.plugin.AddValidatorsEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferRollbackOp -->
+
+<!-- AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp -->
+
+## ISV 扩展指引（基于 BatchTransferFlowTerminateOp 真实证）
+
+> FQN: `kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp`
+> 反编译产物: `_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp/`
+
+### 类型与继承
+- 插件类型：**OP_PLUGIN**
+- 父类: `kd.hr.hbp.opplugin.web.HRDataBaseOp`
+- ISV 可继承: ✅ 推荐继承本父类
+- 推荐挂载方法: `onPreparePropertys`, `beginOperationTransaction`
+
+### 可重写方法（target.java self）
+- `public public void onPreparePropertys(kd.bos.entity.plugin.PreparePropertysEventArgs)` ⭐ lifecycle
+- `public public void beginOperationTransaction(kd.bos.entity.plugin.args.BeginOperationTransactionArgs)` ⭐ lifecycle
+
+### SDK 范式（ISV 抄作业）
+
+**QUERY_BUILDER** · HRObjectUtils L296
+```java
+ 294               String adminDivisionStr = "";
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296 >             QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297               DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+```
+
+**READ_VIA_HELPER** · HRObjectUtils L297
+```java
+ 295               long adminDivisionId = Long.parseLong(resultStr);
+ 296               QFilter filter = new QFilter("id", "=", (Object)adminDivisionId);
+ 297 >             DynamicObject admindivisionDyn = QueryServiceHelper.queryOne((String)"bd_admindivision", (String)"fullname", (QFilter[])filter.toArray());
+ 298               String admindivisionFullName = admindivisionDyn != null ? admindivisionDyn.getString("fullname") : resultStr;
+ 299               String[] admindivisionArray = admindivisionFullName.split("_");
+```
+
+**CALL_CROSS_SERVICE** · TransferStaffServiceImpl L111
+```java
+ 109           }
+ 110           LOGGER.info("getStaffUseInfoDetail staffQueryInParams|{}", staffQueryInParams);
+ 111 >         StaffResponse staffQueryOutParam = (StaffResponse)HRMServiceHelper.invokeHRMPService((String)"haos", (String)"IHAOSStaffService", (String)"getStaffUseInfoDetail", (Object[])new Object[]{staffQueryInParams});
+ 112           LOGGER.info("getStaffUseInfoDetail staffQueryOutParam|{}", (Object)staffQueryOutParam);
+ 113           return staffQueryOutParam;
+```
+
+**THROW_BIZ_EXCEPTION** · TransferStaffServiceImpl L167
+```java
+ 165                   String errorMessage = response.getErrorMessage();
+ 166                   if (!HRStringUtils.isEmpty((String)errorMessage)) {
+ 167 >                     throw new KDBizException(errorMessage);
+ 168                   }
+ 169                   throw new KDBizException(ResManager.loadKDString((String)"\u5360\u7f16\u5f02\u5e38\uff0c\u8bf7\u8054\u7cfb\u7f16\u5236\u7ba1\u7406\u5458\u3002", (String)"TransferStaffServiceImpl_0", (String)"hr-hdm-business", (Object[])new Object[0]));
+```
+
+详细参考：[`_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp/extension_guide.md`](../../_sdk_audit/_decompiled_deep/kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp/extension_guide.md)
+
+<!-- /AUTO-INJECTED-BY-CLASS-RESOLVER · extension_points · kd.hr.hdm.opplugin.transfer.BatchTransferFlowTerminateOp -->

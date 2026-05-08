@@ -1,0 +1,697 @@
+{
+  "formId": "wtpm_signcardlist",
+  "formName": null,
+  "sceneId": "wtpm_signcardlist",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "0H+/G119RC+2",
+  "bizappId": "1O9FSW4YM0ZO",
+  "metaIdTechnical": "2JTA37KK1WTY",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtpm_signcardlist",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtpm_signcardlist.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtpm_signcardlist",
+      "type": "BillEntity",
+      "title": "原始卡申请列表",
+      "physicalTable": null,
+      "fieldCount": 15
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "单据分录",
+      "physicalTable": null,
+      "fieldCount": 10
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "暂存",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#666666"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2X5W1VT/UVWJ"
+        }
+      },
+      "Id": "2KAXI8EXLRP=",
+      "PreCondition": "billid_billstatus ='A'",
+      "Seq": "1"
+    },
+    {
+      "PreDescription": "已提交",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#18BC71"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2X5W1VT/UV7="
+        }
+      },
+      "Id": "2KAXI8EXLSCJ",
+      "PreCondition": "billid_billstatus = 'B'",
+      "Seq": "2"
+    },
+    {
+      "PreDescription": "审批通过",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#18BC71"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2X5W1VT/UVWK"
+        }
+      },
+      "Id": "2KAXQ38IW7ER",
+      "PreCondition": "billid_billstatus = 'C'",
+      "Seq": "3"
+    },
+    {
+      "PreDescription": "审批中",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#5E80EB"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2M4SMS0N9YY6"
+        }
+      },
+      "Id": "2M4R4X+4+HP5",
+      "PreCondition": "billid_billstatus = 'D'",
+      "Seq": "4"
+    },
+    {
+      "PreDescription": "废弃",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#CCCCCC"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2M4SMS0N9Y8Z"
+        }
+      },
+      "Id": "2KAXQ38IW83/",
+      "PreCondition": "billid_billstatus = 'F'",
+      "Seq": "5"
+    },
+    {
+      "PreDescription": "审批不通过",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2M4SMS0N9YY7"
+        }
+      },
+      "Id": "2KAXSL3H/=OZ",
+      "PreCondition": "billid_billstatus = 'E'",
+      "Seq": "6"
+    },
+    {
+      "PreDescription": "重新待提交",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#5E80EB"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2M4SMS0N9Y9+"
+        }
+      },
+      "Id": "2M4R8SWZSVFN",
+      "PreCondition": "billid_billstatus = 'G'",
+      "Seq": "7"
+    },
+    {
+      "PreDescription": "审批通过（异常）",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FB2323"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "5ICYVOPVETP0"
+        }
+      },
+      "Id": "5ICYVK48U7MX",
+      "PreCondition": "billid_billstatus = 'AP'",
+      "Seq": "8"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "单据编号",
+      "physicalColumn": "t_wtpm_signcardlist.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "单据状态",
+      "physicalColumn": "t_wtpm_signcardlist.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtpm_signcardlist",
+      "title": "创建人",
+      "physicalColumn": "t_wtpm_signcardlist.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wtpm_signcardlist",
+      "title": "修改人",
+      "physicalColumn": "t_wtpm_signcardlist.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "wtpm_signcardlist",
+      "title": "审核人",
+      "physicalColumn": "t_wtpm_signcardlist.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "审核日期",
+      "physicalColumn": "t_wtpm_signcardlist.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "修改时间",
+      "physicalColumn": "t_wtpm_signcardlist.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "创建时间",
+      "physicalColumn": "t_wtpm_signcardlist.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "org": {
+      "fieldId": "MwLyMGIJQa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtpm_signcardlist",
+      "title": "考勤管理组织",
+      "physicalColumn": "t_wtpm_signcardlist.forgid",
+      "_fieldApId": "MwLyMGIJQa"
+    },
+    "barcode": {
+      "fieldId": "8fnH4w28dD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "条形码",
+      "physicalColumn": "t_wtpm_signcardlist.fbarcode",
+      "_fieldApId": "8fnH4w28dD"
+    },
+    "inputdevicetype": {
+      "fieldId": "vcRvWS1cQt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "输入设备",
+      "physicalColumn": "t_wtpm_signcardlist.finputdevicetype",
+      "_fieldApId": "vcRvWS1cQt"
+    },
+    "isexistsworkflow": {
+      "fieldId": "ds9gX9jj7Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "是否存在工作流",
+      "physicalColumn": "t_wtpm_signcardlist.fisexistsworkflow",
+      "_fieldApId": "ds9gX9jj7Y"
+    },
+    "auditstatus": {
+      "fieldId": "snD7v1lrWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "数据状态",
+      "physicalColumn": "t_wtpm_signcardlist.fauditstatus",
+      "_fieldApId": "snD7v1lrWb"
+    },
+    "eventeffectdate": {
+      "fieldId": "P37ig11JcQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "—",
+      "_fieldApId": "P37ig11JcQ"
+    },
+    "issubmit": {
+      "fieldId": "rxHyYP8qU1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wtpm_signcardlist",
+      "title": "是否进行过提交(废弃)",
+      "physicalColumn": "t_wtpm_signcardlist.fissubmit",
+      "_fieldApId": "rxHyYP8qU1"
+    },
+    "supsigninfo": {
+      "fieldId": "EoRYh1IGms",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtpm_signcardinfo",
+      "entity": "entryentity",
+      "title": "打卡信息",
+      "physicalColumn": "t_wtpm_signcardlist.fsupsigninfoid",
+      "_fieldApId": "EoRYh1IGms"
+    },
+    "isinworkflow": {
+      "fieldId": "odIr2fzfBE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "是否在流程中",
+      "physicalColumn": "t_wtpm_signcardlist.fisinworkflow",
+      "_fieldApId": "odIr2fzfBE"
+    },
+    "attfile": {
+      "fieldId": "68pOcsIfQ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attfilebase",
+      "entity": "entryentity",
+      "title": "考勤档案",
+      "physicalColumn": "t_wtpm_signcardlist.fattfileid",
+      "_fieldApId": "68pOcsIfQ5"
+    },
+    "card": {
+      "fieldId": "gyWLSXLIPV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "考勤卡号",
+      "physicalColumn": "t_wtpm_signcardlist.fcard",
+      "_fieldApId": "gyWLSXLIPV"
+    },
+    "suppleworktimeshow": {
+      "fieldId": "yI5pODuLXV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "打卡时间列表显示",
+      "physicalColumn": "—",
+      "_fieldApId": "yI5pODuLXV"
+    },
+    "attfilev": {
+      "fieldId": "NNmMgu4gDJ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attfilebase",
+      "entity": "entryentity",
+      "title": "考勤档案版本",
+      "physicalColumn": "t_wtpm_signcardlist.fattfilevid",
+      "_fieldApId": "NNmMgu4gDJ"
+    },
+    "billid": {
+      "fieldId": "KeJHFLPqPD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtpm_signcardapplybs",
+      "entity": "entryentity",
+      "title": "申请单据",
+      "physicalColumn": "t_wtpm_signcardlist.fbillid",
+      "_fieldApId": "KeJHFLPqPD"
+    },
+    "employee": {
+      "fieldId": "x4SwEl8btE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrpi_employee",
+      "entity": "entryentity",
+      "title": "员工",
+      "physicalColumn": "t_wtpm_signcardlist.femployeeid",
+      "_fieldApId": "x4SwEl8btE"
+    },
+    "isvalid": {
+      "fieldId": "nozIs0zzYR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "是否有效",
+      "physicalColumn": "t_wtpm_signcardlist.fisvalid",
+      "_fieldApId": "nozIs0zzYR"
+    },
+    "signdate": {
+      "fieldId": "KSmEBev1Og",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "打卡日期",
+      "physicalColumn": "t_wtpm_signcardlist.fsigndate",
+      "_fieldApId": "KSmEBev1Og"
+    }
+  },
+  "requiredFields": {
+    "wtpm_signcardlist": [],
+    "entryentity": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0H+/G119RC+2_moblist_vMq72P4B",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2JTA37KK1WTY_moblist_eD2GKRkw",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_fnPEMP2c",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1FFZPW9X+X56_UJNRZagg",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2JTA37KK1WTY_MEyFLOqZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_mob_7coBMts2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1FFZPW9X+X56_mob_0Mz9qV6F",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2JTA37KK1WTY_mob_ptFWKozi",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_list_7R6f0bsM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2JTA37KK1WTY_list_1PBuwC4y",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtpm.formplugin.signcardapply.SignCardApplyDetailBillList",
+      "Description": "SignCardApplyDetailBillList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:46",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 25,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 8,
+        "jsPlugins_count": 10,
+        "formPlugins_count": 12
+      }
+    }
+  ]
+}

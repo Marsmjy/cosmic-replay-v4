@@ -1,0 +1,380 @@
+{
+  "formId": "hsas_insurancedata",
+  "formName": null,
+  "sceneId": "hsas_insurancedata",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": null,
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "2OIREBTSA7SK",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_insurancedata",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_insurancedata.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_insurancedata",
+      "type": "BillEntity",
+      "title": "社保业务数据",
+      "physicalTable": null,
+      "fieldCount": 7
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 17
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "filenumber": {
+      "fieldId": "Ztm6TY0dfz",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_insurancedata",
+      "title": "社保档案编号",
+      "physicalColumn": "t_hsas_insurancedata.ffilenumber",
+      "_fieldApId": "Ztm6TY0dfz"
+    },
+    "sinsurperiodnumber": {
+      "fieldId": "IK7BJzL7ib",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_insurancedata",
+      "title": "社保期间",
+      "physicalColumn": "t_hsas_insurancedata.fsinsurperiodnumber",
+      "_fieldApId": "IK7BJzL7ib"
+    },
+    "perioddate": {
+      "fieldId": "0rxbMTDfrm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_insurancedata",
+      "title": "社保所属年月",
+      "physicalColumn": "t_hsas_insurancedata.fperioddate",
+      "_fieldApId": "0rxbMTDfrm"
+    },
+    "batchid": {
+      "fieldId": "EYUK5YBf5Z",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_insurancedata",
+      "title": "推送批次号",
+      "physicalColumn": "t_hsas_insurancedata.fbatchid",
+      "_fieldApId": "EYUK5YBf5Z"
+    },
+    "usestatus": {
+      "fieldId": "YXk0IdDlDE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_insurancedata",
+      "title": "使用状态",
+      "physicalColumn": "t_hsas_insurancedata.fusestatus",
+      "_fieldApId": "YXk0IdDlDE"
+    },
+    "caltask": {
+      "fieldId": "sDpOEyHh86",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsas_calpayrolltask",
+      "entity": "hsas_insurancedata",
+      "title": "薪资核算任务",
+      "physicalColumn": "t_hsas_insurancedata.fcaltaskid",
+      "_fieldApId": "sDpOEyHh86"
+    },
+    "salaryfile": {
+      "fieldId": "NwW84mWhbj",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsas_salaryfile",
+      "entity": "hsas_insurancedata",
+      "title": "个人发薪档案",
+      "physicalColumn": "t_hsas_insurancedata.fsalaryfileid",
+      "_fieldApId": "NwW84mWhbj"
+    },
+    "numvalue": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "数值项目数据",
+      "physicalColumn": "t_hsas_insurancedataent.fnumvalue"
+    },
+    "amountvalue": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "AmountField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "金额",
+      "physicalColumn": "t_hsas_insurancedataent.famountvalue"
+    },
+    "isnull": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "是否为空",
+      "physicalColumn": "t_hsas_insurancedataent.fisnull"
+    },
+    "currency": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CurrencyField",
+      "ref": "bd_currency",
+      "entity": "entryentity",
+      "title": "币种",
+      "physicalColumn": "—"
+    },
+    "storagetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "存储类型",
+      "physicalColumn": "t_hsas_insurancedataent.fstoragetype"
+    },
+    "insuranceitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "险种项目",
+      "physicalColumn": "—"
+    },
+    "calperson": {
+      "fieldId": "21P5Ls2LYu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "核算名单ID",
+      "physicalColumn": "—",
+      "_fieldApId": "21P5Ls2LYu"
+    },
+    "employee": {
+      "fieldId": "EaLk0LO0w2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_employee",
+      "entity": "entryentity",
+      "title": "计薪人员",
+      "physicalColumn": "t_hsas_insurancedata.femployeeid",
+      "_fieldApId": "EaLk0LO0w2"
+    },
+    "withholddate": {
+      "fieldId": "vLj7EJuEB7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "算薪代扣年月",
+      "physicalColumn": "t_hsas_insurancedata.fwithholddate",
+      "_fieldApId": "vLj7EJuEB7"
+    },
+    "withholdtype": {
+      "fieldId": "kxAPCx68gWFjjeBHXl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "代扣方式",
+      "physicalColumn": "t_hsas_insurancedata.fwithholdtype",
+      "_fieldApId": "kxAPCx68gWFjjeBHXl"
+    },
+    "modifier": {
+      "fieldId": "M0S55Usnj5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "entryentity",
+      "title": "修改人",
+      "physicalColumn": "t_hsas_insurancedata.fmodifierid",
+      "_fieldApId": "M0S55Usnj5"
+    },
+    "createtime": {
+      "fieldId": "Nm7JiKwBt4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "创建时间",
+      "physicalColumn": "t_hsas_insurancedata.fcreatetime",
+      "_fieldApId": "Nm7JiKwBt4"
+    },
+    "modifytime": {
+      "fieldId": "beZ2B5LAYT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "修改时间",
+      "physicalColumn": "t_hsas_insurancedata.fmodifytime",
+      "_fieldApId": "beZ2B5LAYT"
+    },
+    "creator": {
+      "fieldId": "SLcgniLTP4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "entryentity",
+      "title": "创建人",
+      "physicalColumn": "t_hsas_insurancedata.fcreatorid",
+      "_fieldApId": "SLcgniLTP4"
+    },
+    "payrollgroup": {
+      "fieldId": "ntS6mlfCLtcQqx73Uo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsas_payrollgrp",
+      "entity": "entryentity",
+      "title": "代扣薪资核算组",
+      "physicalColumn": "t_hsas_insurancedata.fpayrollgroupid",
+      "_fieldApId": "ntS6mlfCLtcQqx73Uo"
+    },
+    "empposorgrel": {
+      "fieldId": "5AJNRhm235",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_empposorgrel",
+      "entity": "entryentity",
+      "title": "关联任职",
+      "physicalColumn": "t_hsas_insurancedata.fempposorgrelid",
+      "_fieldApId": "5AJNRhm235"
+    },
+    "assignment": {
+      "fieldId": "8ALQnTUyq4KkEgBIb6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_assignment",
+      "entity": "entryentity",
+      "title": "工作分配",
+      "physicalColumn": "t_hsas_insurancedata.fassignmentid",
+      "_fieldApId": "8ALQnTUyq4KkEgBIb6"
+    }
+  },
+  "requiredFields": {
+    "hsas_insurancedata": [],
+    "entryentity": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2OIREBTSA7SK_1gu6rino",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2OIREBTSA7SK_list_HSCwiAvN",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.insurancedata.InsuranceDataList",
+      "Description": "社保明细列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 18,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

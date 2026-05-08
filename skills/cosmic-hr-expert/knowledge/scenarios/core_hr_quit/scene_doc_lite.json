@@ -1,0 +1,38 @@
+{
+  "scene": "core_hr_quit",
+  "title": "离职管理（htm · 5 单据 · INFO_QUIT 大类）",
+  "cloud": "core_hr",
+  "description": "离职管理 5 单据聚合 · chgaction 大类 = INFO_QUIT。实证：HtmTplEffectOp 处理 hpfs_chgrecord.paramentry 中的 hrpi_empcadre 等附属底表。调用 ChgRecordOpHelper.setChgRecords + ChgRecordRepository.save 持久化。改 hrpi_empentrel.laborrelstatus + 创建 hrpi_terminationinfo + 终止 hrpi_assignment.enable。关键 OP：HtmTplEffectOp / PerChgTplEffectOp / PerChgTplTerminationAfterEffectOp。继承通用模板：hpfs_hrhtmbillorgtplext。标品定时任务：htm_effectquit_plan_SKDP_S。ISV 扩展点：IStaffQuitExtPlugin (占编入参替换)、IShareTaskExtPlugin (共享中心)、IActivityExtPlugin (离职协作活动)。",
+  "entities": [
+    "htm_quitapply",
+    "htm_quitapplybill"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction → hpfs_chgaction",
+    "chgEvent": "INFO_QUIT",
+    "createsHrpi": [
+      "hrpi_empentrel (laborrelstatus = quit)",
+      "hrpi_terminationinfo (新增离职信息)",
+      "hrpi_assignment (enable = 失效)",
+      "hrpi_empcadre (终结干部身份)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.htm.business.extpoint.IStaffQuitExtPlugin",
+      "kd.sdk.hr.htm.business.extpoint.IShareTaskExtPlugin",
+      "kd.sdk.hr.htm.business.extpoint.IActivityExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hpfs.opplugin.op.htmtpl.HtmTplEffectOp",
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp",
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 2 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

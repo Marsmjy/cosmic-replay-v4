@@ -1,0 +1,1548 @@
+{
+  "formId": "hrcs_permlog",
+  "formName": null,
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "1A3I8S4ADNCO",
+  "bizappId": "15NPDX/GJFOO",
+  "metaIdTechnical": "4/S7EHFPX+IS",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hrcs_permlog",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hrcs_permlog.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·权限审计日志)"
+  },
+  "entities": [
+    {
+      "name": "hrcs_permlog",
+      "type": "BaseEntity",
+      "title": "HR权限日志",
+      "physicalTable": null,
+      "fieldCount": 17
+    },
+    {
+      "name": "baseinfoentry",
+      "type": "EntryEntity",
+      "title": "基本信息变动分录",
+      "physicalTable": null,
+      "fieldCount": 5
+    },
+    {
+      "name": "rolefuncentry",
+      "type": "EntryEntity",
+      "title": "角色功能权限分录",
+      "physicalTable": null,
+      "fieldCount": 4
+    },
+    {
+      "name": "roledimentry",
+      "type": "EntryEntity",
+      "title": "角色维度分录",
+      "physicalTable": null,
+      "fieldCount": 9
+    },
+    {
+      "name": "rangefieldentry",
+      "type": "EntryEntity",
+      "title": "字段权限分录",
+      "physicalTable": null,
+      "fieldCount": 7
+    },
+    {
+      "name": "roleopenentry",
+      "type": "EntryEntity",
+      "title": "角色公开范围分录",
+      "physicalTable": null,
+      "fieldCount": 7
+    },
+    {
+      "name": "influuserentry",
+      "type": "EntryEntity",
+      "title": "影响分配记录分录",
+      "physicalTable": null,
+      "fieldCount": 20
+    },
+    {
+      "name": "rangedrentry",
+      "type": "EntryEntity",
+      "title": "数据规则分录",
+      "physicalTable": null,
+      "fieldCount": 8
+    },
+    {
+      "name": "rangebddrentry",
+      "type": "EntryEntity",
+      "title": "基础资料范围分录",
+      "physicalTable": null,
+      "fieldCount": 9
+    },
+    {
+      "name": "influroleentry",
+      "type": "EntryEntity",
+      "title": "影响角色分录",
+      "physicalTable": null,
+      "fieldCount": 15
+    },
+    {
+      "name": "rangeorgentry",
+      "type": "EntryEntity",
+      "title": "组织范围分录",
+      "physicalTable": null,
+      "fieldCount": 4
+    },
+    {
+      "name": "rangebizentry",
+      "type": "EntryEntity",
+      "title": "业务数据范围分录",
+      "physicalTable": null,
+      "fieldCount": 9
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "creator": {
+      "fieldId": "3X816otBRR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hrcs_permlog",
+      "title": "创建人",
+      "physicalColumn": "t_hrcs_permloginfluuser.fcreatorid",
+      "_fieldApId": "3X816otBRR"
+    },
+    "createtime": {
+      "fieldId": "lCmI2nVrvR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "创建时间",
+      "physicalColumn": "t_hrcs_permloginfluuser.fcreatetime",
+      "_fieldApId": "lCmI2nVrvR"
+    },
+    "modifier": {
+      "fieldId": "zfe0nVqnP7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hrcs_permlog",
+      "title": "修改人",
+      "physicalColumn": "t_hrcs_permlog.fmodifierid",
+      "_fieldApId": "zfe0nVqnP7"
+    },
+    "modifytime": {
+      "fieldId": "1h2H10Ktua",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "修改时间",
+      "physicalColumn": "t_hrcs_permlog.fmodifytime",
+      "_fieldApId": "1h2H10Ktua"
+    },
+    "description": {
+      "fieldId": "Y5886HYCMl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "描述",
+      "physicalColumn": "t_hrcs_permlog_l.fdescription",
+      "_fieldApId": "Y5886HYCMl"
+    },
+    "initdatasource": {
+      "fieldId": "pk916nFXCl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "pk916nFXCl"
+    },
+    "number": {
+      "fieldId": "6E2DeajY4UgIp31Pe0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "编码",
+      "physicalColumn": "t_hrcs_permlog.fnumber",
+      "_fieldApId": "6E2DeajY4UgIp31Pe0"
+    },
+    "logtype": {
+      "fieldId": "rwcThFoU4noqtVrfqU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_permlogtype",
+      "entity": "hrcs_permlog",
+      "title": "日志类型",
+      "physicalColumn": "t_hrcs_permlog.flogtypeid",
+      "_fieldApId": "rwcThFoU4noqtVrfqU"
+    },
+    "operator": {
+      "fieldId": "A180cVC5tL9deLdotz",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrcs_permlog",
+      "title": "操作人",
+      "physicalColumn": "t_hrcs_permlog.foperatorid",
+      "_fieldApId": "A180cVC5tL9deLdotz"
+    },
+    "operationtime": {
+      "fieldId": "IJW0EBKighfzwhCUAV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "操作时间",
+      "physicalColumn": "t_hrcs_permlog.foperationtime",
+      "_fieldApId": "IJW0EBKighfzwhCUAV"
+    },
+    "influusernumber": {
+      "fieldId": "PaA5qhA4UnogC67fub",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "影响用户数",
+      "physicalColumn": "t_hrcs_permlog.finfluusernumber",
+      "_fieldApId": "PaA5qhA4UnogC67fub"
+    },
+    "clienttype": {
+      "fieldId": "iEiNh8eDLcfID8UE3J",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "客户端类型",
+      "physicalColumn": "t_hrcs_permlog.fclienttype",
+      "_fieldApId": "iEiNh8eDLcfID8UE3J"
+    },
+    "mservicename": {
+      "fieldId": "QFVPzNdI1OSY1Yay23",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "微服务接口名",
+      "physicalColumn": "t_hrcs_permlog.fmservicename",
+      "_fieldApId": "QFVPzNdI1OSY1Yay23"
+    },
+    "opentitytype": {
+      "fieldId": "jMI2y4LvL5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "hrcs_permlog",
+      "title": "操作业务对象",
+      "physicalColumn": "t_hrcs_permlog.fopentitytypeid",
+      "_fieldApId": "jMI2y4LvL5"
+    },
+    "opbtnname": {
+      "fieldId": "awIt7k6W1s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "操作名称",
+      "physicalColumn": "t_hrcs_permlog.fopbtnname",
+      "_fieldApId": "awIt7k6W1s"
+    },
+    "beforeopdata": {
+      "fieldId": "As7iVr7J26",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "操作前数据",
+      "physicalColumn": "t_hrcs_permlog.fbeforeopdata",
+      "_fieldApId": "As7iVr7J26"
+    },
+    "afteropdata": {
+      "fieldId": "yALYD2Z7S1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrcs_permlog",
+      "title": "操作后数据",
+      "physicalColumn": "t_hrcs_permlog.fafteropdata",
+      "_fieldApId": "yALYD2Z7S1"
+    },
+    "baseinfo_changefield": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "baseinfoentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "baseinfo_beforedata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "baseinfoentry",
+      "title": "变动前",
+      "physicalColumn": "—"
+    },
+    "baseinfo_afterdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "baseinfoentry",
+      "title": "变动后",
+      "physicalColumn": "—"
+    },
+    "baseinfo_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "baseinfoentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "hashandle": {
+      "fieldId": "VKD3meqsyV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "baseinfoentry",
+      "title": "是否已处理",
+      "physicalColumn": "t_hrcs_permlog.fhashandle",
+      "_fieldApId": "VKD3meqsyV"
+    },
+    "rolefunc_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "rolefuncentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "rolefunc_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "rolefuncentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "rolefunc_permitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_permitem",
+      "entity": "rolefuncentry",
+      "title": "权限项",
+      "physicalColumn": "—"
+    },
+    "rolefunc_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rolefuncentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "roledim_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "roledimentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "roledim_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "roledimentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "roledim_dimension": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_dimension",
+      "entity": "roledimentry",
+      "title": "维度",
+      "physicalColumn": "—"
+    },
+    "roledim_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roledimentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "roledim_bucafunc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_org_biz",
+      "entity": "roledimentry",
+      "title": "职能类型",
+      "physicalColumn": "—"
+    },
+    "roledim_propkey": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roledimentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "roledim_propname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roledimentry",
+      "title": "字段名",
+      "physicalColumn": "—"
+    },
+    "roledim_beforedata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roledimentry",
+      "title": "变动前",
+      "physicalColumn": "—"
+    },
+    "roledim_afterdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roledimentry",
+      "title": "变动后",
+      "physicalColumn": "—"
+    },
+    "rolefield_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "rangefieldentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "rolefield_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "rangefieldentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "rolefield_propkey": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangefieldentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "rolefield_propname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangefieldentry",
+      "title": "字段名",
+      "physicalColumn": "—"
+    },
+    "rolefield_beforedata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangefieldentry",
+      "title": "变动前",
+      "physicalColumn": "—"
+    },
+    "rolefield_afterdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangefieldentry",
+      "title": "变动后",
+      "physicalColumn": "—"
+    },
+    "rolefield_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangefieldentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "roleopen_admingroup": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_admingroup",
+      "entity": "roleopenentry",
+      "title": "管理员分组",
+      "physicalColumn": "—"
+    },
+    "roleopen_beforedata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "变动前",
+      "physicalColumn": "—"
+    },
+    "roleopen_afterdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "变动后",
+      "physicalColumn": "—"
+    },
+    "roleopen_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "roleopen_influadmin": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "影响管理员",
+      "physicalColumn": "—"
+    },
+    "roleopen_admingroupnumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "管理员分组编码",
+      "physicalColumn": "—"
+    },
+    "roleopen_admingroupname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "roleopenentry",
+      "title": "管理员分组名称",
+      "physicalColumn": "—"
+    },
+    "influuser_permfile": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_userpermfile",
+      "entity": "influuserentry",
+      "title": "权限档案",
+      "physicalColumn": "—"
+    },
+    "influuser_validstart": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "有效开始日期",
+      "physicalColumn": "—"
+    },
+    "influuser_validend": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "有效结束日期",
+      "physicalColumn": "—"
+    },
+    "influuser_role": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_role",
+      "entity": "influuserentry",
+      "title": "角色",
+      "physicalColumn": "—"
+    },
+    "influuser_dataproperty": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "成员范围属性",
+      "physicalColumn": "—"
+    },
+    "influuser_creator": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "influuserentry",
+      "title": "管理员",
+      "physicalColumn": "—"
+    },
+    "influuser_createtime": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "分配时间",
+      "physicalColumn": "—"
+    },
+    "influuser_permitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_permitem",
+      "entity": "influuserentry",
+      "title": "权限项",
+      "physicalColumn": "—"
+    },
+    "influuser_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "influuserentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "influuser_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "influuserentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "influuser_propkey": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "influuser_propname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "字段名",
+      "physicalColumn": "—"
+    },
+    "influuser_rolenumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "角色编码",
+      "physicalColumn": "—"
+    },
+    "influuser_rolename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "角色名称",
+      "physicalColumn": "—"
+    },
+    "influuser_isuserforbidden": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "用户禁用",
+      "physicalColumn": "—"
+    },
+    "influuser_schemenumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "动态授权方案编码",
+      "physicalColumn": "—"
+    },
+    "influuser_schemename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "动态授权方案名称",
+      "physicalColumn": "—"
+    },
+    "influuser_fileorgnumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "权限档案组织编码",
+      "physicalColumn": "—"
+    },
+    "influuser_fileorgname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "权限档案组织名称",
+      "physicalColumn": "—"
+    },
+    "influuser_intersection": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "influuserentry",
+      "title": "受角色范围限制",
+      "physicalColumn": "—"
+    },
+    "roledr_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "rangedrentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "roledr_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "rangedrentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "roledr_permitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_permitem",
+      "entity": "rangedrentry",
+      "title": "权限项",
+      "physicalColumn": "—"
+    },
+    "roledr_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangedrentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "roledr_beforedr": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_datarule",
+      "entity": "rangedrentry",
+      "title": "变动前数据规则",
+      "physicalColumn": "—"
+    },
+    "roledr_afterdr": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_datarule",
+      "entity": "rangedrentry",
+      "title": "变动后数据规则",
+      "physicalColumn": "—"
+    },
+    "roledr_beforedrdesc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangedrentry",
+      "title": "变动前数据规则描述",
+      "physicalColumn": "—"
+    },
+    "roledr_afterdrdesc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangedrentry",
+      "title": "变动后数据规则描述",
+      "physicalColumn": "—"
+    },
+    "rolebddr_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "rangebddrentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "rolebddr_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "rangebddrentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "rolebddr_beforedr": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_datarule",
+      "entity": "rangebddrentry",
+      "title": "变动前数据规则",
+      "physicalColumn": "—"
+    },
+    "rolebddr_beforedrdesc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebddrentry",
+      "title": "变动前数据规则描述",
+      "physicalColumn": "—"
+    },
+    "rolebddr_afterdr": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_datarule",
+      "entity": "rangebddrentry",
+      "title": "变动后数据规则",
+      "physicalColumn": "—"
+    },
+    "rolebddr_afterdrdesc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebddrentry",
+      "title": "变动后数据规则描述",
+      "physicalColumn": "—"
+    },
+    "rolebddr_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebddrentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "rolebddr_propkey": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebddrentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "rolebddr_propname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebddrentry",
+      "title": "字段名",
+      "physicalColumn": "—"
+    },
+    "influrole_bizapp": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_devportal_bizapp",
+      "entity": "influroleentry",
+      "title": "应用",
+      "physicalColumn": "—"
+    },
+    "influrole_entitytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "influroleentry",
+      "title": "业务对象",
+      "physicalColumn": "—"
+    },
+    "influrole_permitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_permitem",
+      "entity": "influroleentry",
+      "title": "权限项",
+      "physicalColumn": "—"
+    },
+    "influrole_role": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_role",
+      "entity": "influroleentry",
+      "title": "角色",
+      "physicalColumn": "—"
+    },
+    "influrole_influtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "影响类型",
+      "physicalColumn": "—"
+    },
+    "influrole_propkey": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "字段",
+      "physicalColumn": "—"
+    },
+    "influrole_propname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "字段名",
+      "physicalColumn": "—"
+    },
+    "influrole_bucafunc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_org_biz",
+      "entity": "influroleentry",
+      "title": "职能类型",
+      "physicalColumn": "—"
+    },
+    "influrole_dimension": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_dimension",
+      "entity": "influroleentry",
+      "title": "维度",
+      "physicalColumn": "—"
+    },
+    "influrole_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "influrole_rolenumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "角色编码",
+      "physicalColumn": "—"
+    },
+    "influrole_rolename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "influroleentry",
+      "title": "角色名称",
+      "physicalColumn": "—"
+    },
+    "role": {
+      "fieldId": "LolU54z7wFmujbIAeV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "perm_role",
+      "entity": "influroleentry",
+      "title": "角色",
+      "physicalColumn": "t_hrcs_permloginflurole.froleid",
+      "_fieldApId": "LolU54z7wFmujbIAeV"
+    },
+    "entitytype": {
+      "fieldId": "VwhiXFFBbQC530O5tx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_entityobject",
+      "entity": "influroleentry",
+      "title": "业务对象",
+      "physicalColumn": "t_hrcs_permloginflurole.fentitytypeid",
+      "_fieldApId": "VwhiXFFBbQC530O5tx"
+    },
+    "datarule": {
+      "fieldId": "HLy9CeABHfApe8k4tG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_datarule",
+      "entity": "influroleentry",
+      "title": "数据规则方案",
+      "physicalColumn": "t_hrcs_permlog.fdataruleid",
+      "_fieldApId": "HLy9CeABHfApe8k4tG"
+    },
+    "rangeorg_bucafunc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_org_biz",
+      "entity": "rangeorgentry",
+      "title": "职能类型",
+      "physicalColumn": "—"
+    },
+    "rangeorg_beforeorgs": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangeorgentry",
+      "title": "变动前业务组织",
+      "physicalColumn": "—"
+    },
+    "rangeorg_afterorgs": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangeorgentry",
+      "title": "变动后业务组织",
+      "physicalColumn": "—"
+    },
+    "rangeorg_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangeorgentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "rangebiz_bucafunc": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_org_biz",
+      "entity": "rangebizentry",
+      "title": "职能类型",
+      "physicalColumn": "—"
+    },
+    "rangebiz_beforebizdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "变动前业务数据范围",
+      "physicalColumn": "—"
+    },
+    "rangebiz_afterbizdata": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "变动后业务数据范围",
+      "physicalColumn": "—"
+    },
+    "rangebiz_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "操作描述",
+      "physicalColumn": "—"
+    },
+    "permfile": {
+      "fieldId": "4kjESpxcepVQhpkUrr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_userpermfile",
+      "entity": "rangebizentry",
+      "title": "权限档案",
+      "physicalColumn": "t_hrcs_permloginfluuser.fpermfileid",
+      "_fieldApId": "4kjESpxcepVQhpkUrr"
+    },
+    "datarulenumber": {
+      "fieldId": "T593mM59M14eCb0DR7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "数据规则方案编码",
+      "physicalColumn": "t_hrcs_permlog.fdatarulenumber",
+      "_fieldApId": "T593mM59M14eCb0DR7"
+    },
+    "datarulename": {
+      "fieldId": "YU2dy5Fh6iNq5m4gp7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "数据规则方案名称",
+      "physicalColumn": "t_hrcs_permlog.fdatarulename",
+      "_fieldApId": "YU2dy5Fh6iNq5m4gp7"
+    },
+    "rolenumber": {
+      "fieldId": "V07PciXr06EyE3OfaN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "角色编码",
+      "physicalColumn": "t_hrcs_permloginflurole.frolenumber",
+      "_fieldApId": "V07PciXr06EyE3OfaN"
+    },
+    "rolename": {
+      "fieldId": "Gmn1oGGKm4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "rangebizentry",
+      "title": "角色名称",
+      "physicalColumn": "t_hrcs_permloginflurole.frolename",
+      "_fieldApId": "Gmn1oGGKm4"
+    }
+  },
+  "requiredFields": {
+    "hrcs_permlog": [
+      "opentitytype"
+    ],
+    "baseinfoentry": [],
+    "rolefuncentry": [],
+    "roledimentry": [],
+    "rangefieldentry": [],
+    "roleopenentry": [],
+    "influuserentry": [],
+    "rangedrentry": [],
+    "rangebddrentry": [],
+    "influroleentry": [],
+    "rangeorgentry": [],
+    "rangebizentry": []
+  },
+  "invisibleFields": [],
+  "sceneCategory": "audit_log",
+  "jsPlugins": [
+    {
+      "ClassName": "1A3I8S4ADNCO_VMxq4lnt",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "4/S7EHFPX+IS_jQa8dYBq",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1A3I8S4ADNCO_list_oE5DTSes",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.ForbidUrlOpenPlugin",
+      "Description": "不允许通过url访问插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.perm.hradmin.HRAdminStrictPlugin",
+      "Description": "页面限制非管理员",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.perm.log.PermLogListPlugin",
+      "Description": "HR权限日志列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 26,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 3,
+        "formPlugins_count": 9
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 26,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 3,
+        "formPlugins_count": 9
+      }
+    }
+  ]
+}

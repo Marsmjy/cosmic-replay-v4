@@ -1,0 +1,363 @@
+{
+  "_meta": {
+    "description": "payroll 实体被其他 form 引用反向报告（ADR-009 跨云穿透 L1 数据基础）",
+    "cloud": "payroll",
+    "generatedAt": "2026-04-30",
+    "generator": "scripts/gen_cross_cloud_consumed_by_report.py",
+    "totalEntities": 12,
+    "crossCloudEntities": 2
+  },
+  "entities": [
+    {
+      "entity": "hcf_candidate",
+      "totalRefs": 21,
+      "crossCloudRefs": 5,
+      "ownedScene": null,
+      "byCloud": {
+        "org_dev": [
+          {
+            "form": "haos_orgpersonstaffinfo",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "haos_personstaffinfo",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          }
+        ],
+        "payroll": [
+          {
+            "form": "hcf_canaddress",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canbankcard",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_cancontact",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_cancontactinfo",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_cancre",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_caneduexp",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canfamily",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canlgability",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canocpqual",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canprework",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_canprojectexp",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_cantraining",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_personalarea",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_rsmhobby",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_rsmpatinv",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hcf_rsmproskl",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          }
+        ],
+        "hr_hrmp": [
+          {
+            "form": "hrcs_contractest",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrcs_signflow",
+            "field": "candidateid",
+            "fieldType": "BasedataField"
+          }
+        ],
+        "core_hr": [
+          {
+            "form": "hrpi_empentrel",
+            "field": "candidate",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hsbs_employee",
+      "totalRefs": 1,
+      "crossCloudRefs": 1,
+      "ownedScene": null,
+      "byCloud": {
+        "hr_hrmp": [
+          {
+            "form": "brm_special_list",
+            "field": "entityemp",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_searchobject",
+      "totalRefs": 6,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_essyncscheme",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_schobjentityrel",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_schobjjoinentity",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_schobjqueryfield",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_searchscene",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_syncparam",
+            "field": "searchobj",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_essyncscheme",
+      "totalRefs": 1,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_essynrecord",
+            "field": "essyncschemeid",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_schobjjoinentity",
+      "totalRefs": 4,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_schobjentityrel",
+            "field": "entityid",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_schobjentityrel",
+            "field": "joinentityid",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_searchscene",
+            "field": "searchobjentityid",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_searchweight",
+            "field": "searchobjentityid",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_schobjqueryfield",
+      "totalRefs": 2,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchscene",
+            "field": "queryfield",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_searchscene",
+            "field": "searchobjfield",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_customfilter",
+      "totalRefs": 1,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchscene",
+            "field": "customfilter",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_scenefiltergroup",
+      "totalRefs": 1,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchscene",
+            "field": "group",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_searchscene",
+      "totalRefs": 4,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchweight",
+            "field": "usescene",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_searchwtgrade",
+            "field": "usescene",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_userlastsearchkey",
+            "field": "searchscene",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_usersearchlog",
+            "field": "searchscene",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_aiwordcategory",
+      "totalRefs": 1,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchweight",
+            "field": "aiwordcategory",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_searchwgentries",
+      "totalRefs": 1,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_searchweight",
+            "field": "grade",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    },
+    {
+      "entity": "hrss_searchconfig",
+      "totalRefs": 2,
+      "crossCloudRefs": 0,
+      "ownedScene": null,
+      "byCloud": {
+        "payroll": [
+          {
+            "form": "hrss_userlastsearchkey",
+            "field": "searchpage",
+            "fieldType": "BasedataField"
+          },
+          {
+            "form": "hrss_usersearchlog",
+            "field": "searchpage",
+            "fieldType": "BasedataField"
+          }
+        ]
+      }
+    }
+  ]
+}

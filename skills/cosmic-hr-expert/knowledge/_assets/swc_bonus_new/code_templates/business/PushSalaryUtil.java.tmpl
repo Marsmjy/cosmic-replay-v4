@@ -1,0 +1,57 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util;
+
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/7/22 13:22
+ * FileName: PushSalaryUtil
+ * Description: 推送薪酬的工具类
+ */
+@SuppressWarnings({"unchecked","unused"})
+public class PushSalaryUtil {
+
+    /**
+     * 处理返回结果，将需要的数据重新封装为map集合
+     * @param result 接口推送后的result
+     * @return 重新封装后的map
+     */
+    @NotNull
+    public static HashMap<Long, ArrayList<String>> dealResult(Map<String, Object> result) {
+        ArrayList<HashMap<String,Object>> resultList = (ArrayList<HashMap<String, Object>>) result.get("result");
+        ArrayList<String> uniqueCodeList = new ArrayList<>(); // 保存唯一识别码的集合
+        for (HashMap<String,Object> resultMap : resultList) {
+            String bizDataCode = String.valueOf(resultMap.get("bizdatacode")); // 唯一识别码 --- 可以拆解唯一识别码，进行后续的数据反写
+            String errorMsg = String.valueOf(resultMap.get("errormsg")); // 错误信息
+            // 将失败的信息一同添加到集合里面：如果成果，则拼接为""
+            uniqueCodeList.add(bizDataCode + "-" + errorMsg);
+        }
+
+        // 初始化一个用于拆分单据的hashMap
+        HashMap<Long, ArrayList<String>> billHashMap = new HashMap<>();
+        // 遍历唯一识别码的集合 --- 来拆单反写数据
+        for (String uniqueCode : uniqueCodeList) {
+            /*
+             * 按照"-"进行切割
+             * 切割后的数组: 【"单据id","分录id","当前的单据标识","失败原因"】
+             * 实例: 【1931838068029966336L,1931838068029967360L,"${ISV_FLAG}_person_wages_dis","推送失败"】
+             * */
+            String[] afterSplitBizDataCode = uniqueCode.split("-");
+            // 判断数组的第一位 --- 单据是否为同一张
+            Long billId = Long.parseLong(afterSplitBizDataCode[0]); // 单据id
+            Long entryId = Long.parseLong(afterSplitBizDataCode[1]); // 分录id
+            String billEntry = afterSplitBizDataCode[2]; // 表单标识
+            String failReason = afterSplitBizDataCode[3]; // 失败原因
+            // 获取hashMap中这个key对应的value，如果为空就创建一个空的list
+            ArrayList<String> orDefault = billHashMap.getOrDefault(billId,new ArrayList<>());
+            orDefault.add(entryId + "-" + failReason);
+            // 按照单据id进行保存 --- 单据id对应各自的分录id
+            billHashMap.put(billId,orDefault);
+        }
+        return billHashMap;
+    }
+}

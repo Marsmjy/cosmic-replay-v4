@@ -1,0 +1,4956 @@
+{
+  "scene": "wts_swshiftbill",
+  "formId": "wts_swshiftbill",
+  "description": "rules_chain_all.json · 场景 wts_swshiftbill",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据（按导入模板）",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据（按导入模板）（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "新增（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除（4 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/4",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（6 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 5,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 6,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承）",
+        "❌ 禁继承 AbsOrgBaseOp（非 HR 通用推荐 · 用 HRDataBaseOp 代替）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交（6 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 5,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "printpreview": {
+      "opKey": "printpreview",
+      "name": "打印预览",
+      "opType": "printpreview",
+      "overview": {
+        "scene": "打印预览（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销（4 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/4",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "copy": {
+      "opKey": "copy",
+      "name": "复制",
+      "opType": "copy",
+      "overview": {
+        "scene": "复制（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "print": {
+      "opKey": "print",
+      "name": "打印",
+      "opType": "print",
+      "overview": {
+        "scene": "打印（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "查看（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "printsetting": {
+      "opKey": "printsetting",
+      "name": "打印设置",
+      "opType": "printsetting",
+      "overview": {
+        "scene": "打印设置（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importtemplate": {
+      "opKey": "importtemplate",
+      "name": "设置模板",
+      "opType": "importtemplate",
+      "overview": {
+        "scene": "设置模板（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdata": {
+      "opKey": "importdata",
+      "name": "导入数据",
+      "opType": "importdata",
+      "overview": {
+        "scene": "导入数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdetails": {
+      "opKey": "importdetails",
+      "name": "查看导入结果",
+      "opType": "importdetails",
+      "overview": {
+        "scene": "查看导入结果（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importtemplatelist": {
+      "opKey": "importtemplatelist",
+      "name": "管理模板",
+      "opType": "importtemplatelist",
+      "overview": {
+        "scene": "管理模板（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "返回数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist": {
+      "opKey": "exportlist",
+      "name": "导出数据（按导入模板）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据（按导入模板）（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据（按列表）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据（按列表）（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist_expt": {
+      "opKey": "exportlist_expt",
+      "name": "导出数据（按导出模板）",
+      "opType": "exportlist_expt",
+      "overview": {
+        "scene": "导出数据（按导出模板）（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出结果（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importexport_userset": {
+      "opKey": "importexport_userset",
+      "name": "导入导出个性化设置",
+      "opType": "importexport_userset",
+      "overview": {
+        "scene": "导入导出个性化设置（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarselect": {
+      "opKey": "mobtoolbarselect",
+      "name": "选择",
+      "opType": "mobtoolbarselect",
+      "overview": {
+        "scene": "选择（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarcancel": {
+      "opKey": "mobtoolbarcancel",
+      "name": "取消",
+      "opType": "mobtoolbarcancel",
+      "overview": {
+        "scene": "取消（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewtrash": {
+      "opKey": "viewtrash",
+      "name": "回收站",
+      "opType": "viewtrash",
+      "overview": {
+        "scene": "回收站（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "trash": {
+      "opKey": "trash",
+      "name": "回收数据",
+      "opType": "trash",
+      "overview": {
+        "scene": "回收数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "restoredata": {
+      "opKey": "restoredata",
+      "name": "恢复数据",
+      "opType": "restoredata",
+      "overview": {
+        "scene": "恢复数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "discard": {
+      "opKey": "discard",
+      "name": "废弃",
+      "opType": "discard",
+      "overview": {
+        "scene": "废弃（5 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 5,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/5",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submiteffect": {
+      "opKey": "submiteffect",
+      "name": "提交并生效",
+      "opType": "submiteffect",
+      "overview": {
+        "scene": "提交并生效（6 个插件 · 1 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "重写 1 个方法：onAddValidators（注册校验器）"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 5,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_HRCodeRuleOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "业务重写",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hr.hbp.opplugin.web.HRCodeRuleOp#onAddValidators",
+          "implClass": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L44-L54",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "1/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "wfauditing": {
+      "opKey": "wfauditing",
+      "name": "审批中",
+      "opType": "wfauditing",
+      "overview": {
+        "scene": "审批中（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "wfrejecttosubmit": {
+      "opKey": "wfrejecttosubmit",
+      "name": "驳回至提交人",
+      "opType": "wfrejecttosubmit",
+      "overview": {
+        "scene": "驳回至提交人（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "wfauditnotpass": {
+      "opKey": "wfauditnotpass",
+      "name": "审批不通过",
+      "opType": "wfauditnotpass",
+      "overview": {
+        "scene": "审批不通过（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "wfauditpass": {
+      "opKey": "wfauditpass",
+      "name": "审批通过(废弃)",
+      "opType": "wfauditpass",
+      "overview": {
+        "scene": "审批通过(废弃)（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewflowchart": {
+      "opKey": "viewflowchart",
+      "name": "查看流程图",
+      "opType": "viewflowchart",
+      "overview": {
+        "scene": "查看流程图（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "反审核（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审批通过",
+      "opType": "audit",
+      "overview": {
+        "scene": "审批通过（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "deleteentry": {
+      "opKey": "deleteentry",
+      "name": "删除",
+      "opType": "deleteentry",
+      "overview": {
+        "scene": "删除（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "archivectrlcheck": {
+      "opKey": "archivectrlcheck",
+      "name": "封存管控校验",
+      "opType": "donothing",
+      "overview": {
+        "scene": "封存管控校验（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "wtcreaudit": {
+      "opKey": "wtcreaudit",
+      "name": "恢复核算",
+      "opType": "save",
+      "overview": {
+        "scene": "恢复核算（2 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "tomodpage": {
+      "opKey": "tomodpage",
+      "name": "修改",
+      "opType": "donothing",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "newentry": {
+      "opKey": "newentry",
+      "name": "新增分录",
+      "opType": "newentry",
+      "overview": {
+        "scene": "新增分录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "addentry": {
+      "opKey": "addentry",
+      "name": "添加",
+      "opType": "donothing",
+      "overview": {
+        "scene": "添加（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "editentry": {
+      "opKey": "editentry",
+      "name": "编辑",
+      "opType": "donothing",
+      "overview": {
+        "scene": "编辑（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewentry": {
+      "opKey": "viewentry",
+      "name": "查看",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "newentrymob": {
+      "opKey": "newentrymob",
+      "name": "新增分录",
+      "opType": "newentry",
+      "overview": {
+        "scene": "新增分录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "deleteentrymob": {
+      "opKey": "deleteentrymob",
+      "name": "删除分录",
+      "opType": "deleteentry",
+      "overview": {
+        "scene": "删除分录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewswshift": {
+      "opKey": "viewswshift",
+      "name": "预览",
+      "opType": "donothing",
+      "overview": {
+        "scene": "预览（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returnlist": {
+      "opKey": "returnlist",
+      "name": "查看列表",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看列表（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "WTCBillSelfApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillSelfApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "WTCBillAttFileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillAttFileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "WTCBillOtherApplyOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillOtherApplyOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "WTCBillVerifyStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillVerifyStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "BillTplOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.BillTplOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "SwShiftBillOp",
+          "className": "kd.wtc.wts.opplugin.web.swshift.SwShiftBillOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "WTCBillUpdateAttfileOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillUpdateAttfileOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "HRCodeRuleOp",
+          "className": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "WTCBillChangeStatusOp",
+          "className": "kd.wtc.wtbs.opplugin.web.bill.WTCBillChangeStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "importdata",
+        "importdetails",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "new",
+        "delete",
+        "save",
+        "submit",
+        "close",
+        "refresh",
+        "printpreview",
+        "unsubmit",
+        "copy",
+        "option",
+        "print",
+        "submitandnew",
+        "view",
+        "printsetting",
+        "first",
+        "previous",
+        "next",
+        "last",
+        "importtemplate",
+        "importdata",
+        "importdetails",
+        "importtemplatelist",
+        "returndata",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails",
+        "importexport_userset",
+        "mobtoolbarselect",
+        "mobtoolbarcancel",
+        "viewtrash",
+        "trash",
+        "restoredata",
+        "modify",
+        "discard",
+        "submiteffect",
+        "wfauditing",
+        "wfrejecttosubmit",
+        "wfauditnotpass",
+        "wfauditpass",
+        "viewflowchart",
+        "unaudit",
+        "audit",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr",
+        "deleteentry",
+        "archivectrlcheck",
+        "wtcreaudit",
+        "tomodpage",
+        "newentry",
+        "addentry",
+        "editentry",
+        "viewentry",
+        "newentrymob",
+        "deleteentrymob",
+        "viewswshift",
+        "returnlist"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

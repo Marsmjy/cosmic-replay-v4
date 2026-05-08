@@ -1,0 +1,329 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.operation.BonusApprovalSheetBillSecondPushPlugin;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @Author: donner
+ * @Date: 2025/04/07 17:11
+ * @Description: 奖金反写工具类
+ **/
+public class BonusWriteBackUtil {
+
+    /**
+     * @param checkIdList 核定单的id集合
+     */
+    public static void updateBonusPlanSure(List<Long> checkIdList) {
+        QFilter bonusSureFilter = new QFilter("id", QCP.in, checkIdList);
+        bonusSureFilter.and("billstatus", QFilter.equals, "C");
+        // 奖金核定列表 id，核定总额，奖金计划id，奖金核定汇总单id
+        DynamicObject[] bonusSureList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_approval_2nd", "id,${ISV_FLAG}_approval_total,${ISV_FLAG}_plan_bill_id,${ISV_FLAG}_check_summary", bonusSureFilter.toArray());
+        Map<String, List<DynamicObject>> bonusCheckGroup = Arrays.stream(bonusSureList).collect(Collectors.groupingBy(item -> item.getString("${ISV_FLAG}_plan_bill_id")));
+
+        // 奖金计划id
+        List<Long> planIds = bonusCheckGroup.keySet().stream().map(item -> Long.valueOf(item)).collect(Collectors.toList());
+        QFilter bonusFilter = new QFilter("id", QCP.in, planIds);
+        DynamicObject[] bizdatabills = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_plan", "id,${ISV_FLAG}_app_total_amount,${ISV_FLAG}_sur_total_amonut,${ISV_FLAG}_plan_money,${ISV_FLAG}_over", bonusFilter.toArray());
+
+        // 更新已核定总额
+        for (DynamicObject bizdatabill : bizdatabills) {
+            Long billId = bizdatabill.getLong("id");
+            List<DynamicObject> bonusCheckList = bonusCheckGroup.get(String.valueOf(billId));
+            if (bonusCheckList == null){
+                throw new KDBizException("数据异常，计划对应的核定信息不存在。");
+            }
+            // 核定总额
+            BigDecimal aApprovalTotalAmount = bonusCheckList.stream().map(item -> item.getBigDecimal("${ISV_FLAG}_approval_total")).reduce(BigDecimal.ZERO, BigDecimal::add);
+            // 已核定总额
+            BigDecimal amount = bizdatabill.getBigDecimal("${ISV_FLAG}_app_total_amount") != null ? bizdatabill.getBigDecimal("${ISV_FLAG}_app_total_amount") : BigDecimal.ZERO;
+            BigDecimal checkAmount = aApprovalTotalAmount.add(amount);
+            bizdatabill.set("${ISV_FLAG}_app_total_amount", checkAmount);
+            // 计划总额
+            BigDecimal planMoney = bizdatabill.getBigDecimal("${ISV_FLAG}_plan_money");
+            // 剩余总额
+            BigDecimal suplyToalAmount = bizdatabill.getBigDecimal("${ISV_FLAG}_sur_total_amonut");
+            // 是否超额
+            if (checkAmount.compareTo(planMoney) > 0){
+                bizdatabill.set("${ISV_FLAG}_over","1");
+                bizdatabill.set("${ISV_FLAG}_sur_total_amonut",suplyToalAmount.subtract(aApprovalTotalAmount));
+            }else {
+                bizdatabill.set("${ISV_FLAG}_sur_total_amonut",suplyToalAmount.subtract(aApprovalTotalAmount));
+            }
+        }
+        SaveServiceHelper.save(bizdatabills);
+    }
+
+    /**
+     * 通过hr人员对象获取bosuser
+     * @param subordinate
+     */
+    public static DynamicObject getBosUser(DynamicObject subordinate){
+        String hrNumber = subordinate.getString("empnumber");
+        QFilter bosUserQFilter = new QFilter("number", QCP.equals, hrNumber);
+        DynamicObject bosUser = BusinessDataServiceHelper.loadSingle("bos_user", bosUserQFilter.toArray());
+        return bosUser;
+    }
+
+    /**
+     *
+     * @param dataEntity 实体
+     * @param entryKey 分录key
+     * @param propertyName 列对象key
+     * @param numberKey 属性key
+     * @param entryName 分录名称
+     * @return
+     */
+    public static List<String> checkPsRelationCommon(DynamicObject dataEntity,String entryKey,String propertyName,String numberKey,String entryName){
+        List<String> msgList = new ArrayList<>();
+        DynamicObjectCollection orgCollection = dataEntity.getDynamicObjectCollection(entryKey);
+        // 假定第一层循环均是父级，第二层循环均是子级
+        for(int i = 0; i<orgCollection.size(); i++){
+            // 长编码
+            String structLongNumberI = orgCollection.get(i).getDynamicObject(propertyName).getString(numberKey);
+            for(int j = 0; j<orgCollection.size(); j++){
+                String structLongNumberJ = orgCollection.get(j).getDynamicObject(propertyName).getString(numberKey);
+                if((i != j) && structLongNumberJ.startsWith(structLongNumberI)){
+                    if("${ISV_FLAG}_award_sure_org".equals(entryKey)){
+                        // 核定到组织分录控制调整：原为不允许存在上下级关系，
+                        // 调整为：若存在上下级关系的分录“行政组织类型归属”均等于“公司”时，对应分录行不做控制，其他分录行正常校验
+                        // 行政组织类型归属
+                        String belongNumber = orgCollection.get(j).getDynamicObject(propertyName)
+                                .getString("adminorgtype.number");
+                        // 行政类型归属为公司
+                        if("1020_S".equals(belongNumber)){
+                            continue;
+                        }
+                    }
+                    msgList.add(String.format("%s:%s行和%s行组织存在归属关系，请修改",entryName,(i + 1),(j + 1)));
+                }
+            }
+        }
+        return msgList;
+    }
+
+    /**
+     *
+     * @param dataEntity 实体
+     * @param entryKey 分录key
+     * @param propertyName 列对象key
+     * @param numberKey 属性key
+     * @param entryName 分录名称
+     * @return
+     */
+    public static List<String> checkPsRelationCommonExt(DynamicObject dataEntity,String entryKey,String propertyName,String numberKey,String entryName){
+        List<String> msgList = new ArrayList<>();
+        DynamicObjectCollection orgCollection = dataEntity.getDynamicObjectCollection(entryKey);
+        // 假定第一层循环均是父级，第二层循环均是子级
+        for(int i = 0; i<orgCollection.size(); i++){
+            // 长编码
+            String structLongNumberI = orgCollection.get(i).getDynamicObject(propertyName).getString(numberKey);
+            for(int j = 0; j<orgCollection.size(); j++){
+                String structLongNumberJ = orgCollection.get(j).getDynamicObject(propertyName).getString(numberKey);
+                // 排除重复组织的比较，即允许分录中重复组织的出现
+                if((i != j) && structLongNumberJ.startsWith(structLongNumberI) && !structLongNumberJ.equals(structLongNumberI)){
+                    msgList.add(String.format("%s:%s行和%s行组织存在归属关系，请修改",entryName,(i + 1),(j + 1)));
+                }
+            }
+        }
+        return msgList;
+    }
+
+    /**
+     * 设置分配汇总单单据名称
+     * @param distributeSumDynamicObject
+     */
+    public static void setSumBillName(DynamicObject distributeSumDynamicObject){
+        Date belongPeriodDate = distributeSumDynamicObject.getDate("${ISV_FLAG}_belong_period");
+        String billname = null;
+        if (belongPeriodDate != null) {
+            billname =  new SimpleDateFormat("yyyy-MM").format(belongPeriodDate);
+        }
+        String orgName = distributeSumDynamicObject.getString("${ISV_FLAG}_distribute_org.name");
+        billname = billname + orgName;
+        billname = billname + distributeSumDynamicObject.getString("${ISV_FLAG}_bonus_item.name");
+        distributeSumDynamicObject.set("${ISV_FLAG}_bill_name",billname);
+    }
+
+    /**
+     * 设置分配单的名称
+     * @param distributeSumDynamicObject
+     */
+    public static void setDistributeBillName(DynamicObject distributeSumDynamicObject){
+        Date belongPeriodDate = distributeSumDynamicObject.getDate("${ISV_FLAG}_belong_period");
+        String billname = null;
+        if (belongPeriodDate != null) {
+            billname =  new SimpleDateFormat("yyyy-MM").format(belongPeriodDate);
+        }
+        String orgName = distributeSumDynamicObject.getString("${ISV_FLAG}_distribute_org.name");
+        billname = billname + orgName;
+        billname = billname + distributeSumDynamicObject.getString("${ISV_FLAG}_bonus_item.name")+"分配申请";
+        distributeSumDynamicObject.set("${ISV_FLAG}_name",billname);
+    }
+
+    /**
+     * 设置分配汇总单上级单据信息-核定单
+     * @param distributeSumDynamicObject 分配汇总单
+     * @param bill 上级单据-核定单
+     */
+    public static void setParentFromHd(DynamicObject distributeSumDynamicObject,DynamicObject bill){
+        // 上级单据类型
+        distributeSumDynamicObject.set("${ISV_FLAG}_parent_bill_type", BonusApprovalSheetBillSecondPushPlugin.TYPE_HE_DING);
+        // 上级单据编号
+        distributeSumDynamicObject.set("${ISV_FLAG}_parent_bill_no", bill.get("billno"));
+        // 上级单据名称
+        distributeSumDynamicObject.set("${ISV_FLAG}_parent_bill_name", bill.get("${ISV_FLAG}_approval_name"));
+        // 上级创建人
+        distributeSumDynamicObject.set("${ISV_FLAG}_pt_creator", bill.get("${ISV_FLAG}_dept_person"));
+        // 上级创建人 公司
+        distributeSumDynamicObject.set("${ISV_FLAG}_pt_company", bill.get("${ISV_FLAG}_attribut_company"));
+        // 上级创建人 部门
+        distributeSumDynamicObject.set("${ISV_FLAG}_pt_dept", bill.get("${ISV_FLAG}_attribut_dept"));
+        // 上级创建人 岗位
+        distributeSumDynamicObject.set("${ISV_FLAG}_pt_post", bill.get("${ISV_FLAG}_attribut_post"));
+    }
+
+
+    /**
+     * 获取部门负责人 ids
+     * @param adminOrgId 部门id
+     * @return 部门负责人ids
+     */
+    public static List<Long> listOrgDutyPersonIds(long adminOrgId){
+        DynamicObject[] chargepeople = getChargepeople(adminOrgId);
+        // 根据生效日期逆序
+        List<DynamicObject> chargepeopleList = Arrays.stream(chargepeople).sorted((o1, o2) -> o2.getDate("effdt").compareTo(o1.getDate("effdt"))).collect(Collectors.toList());
+        // 部门负责人ids
+        List<Long> dutyPersonIds = chargepeopleList.stream().map(item ->
+                        item.getLong("chargeperson.person.id")
+                ).collect(Collectors.toList());
+        return dutyPersonIds;
+    }
+
+    private static DynamicObject[] getChargepeople(long adminOrgId) {
+        //查询所有的部门负责人
+        QFilter filter = new QFilter("datastatus",QCP.equals,"1");
+        // 组织id
+        filter.and(new QFilter("adminorg.id",QCP.equals, adminOrgId));
+        // 是否主要负责人
+        filter.and(new QFilter("ismain",QCP.equals,"1"));
+        return getChargepeople(filter);
+    }
+
+    private static DynamicObject[] getChargepeople(QFilter filter) {
+        return BusinessDataServiceHelper.load("hrpi_chargeperson",
+                "id,chargeperson,chargeperson.person,adminorg,effdt"
+                , filter.toArray());
+    }
+
+    /**
+     * 根据组织编码查找生效的组织
+     * @param orgNumberSet
+     * @return
+     */
+    public static DynamicObjectCollection listOrg(Set<String> orgNumberSet){
+        return QueryServiceHelper.query("haos_adminorg"
+                , "id,number,${ISV_FLAG}_haos_companytype.id,company,${ISV_FLAG}_one_admin,org.id,orgtype.number", new QFilter[]{
+                        new QFilter("number", QCP.in, orgNumberSet),
+                        new QFilter("iscurrentversion", QCP.equals, "1"),
+                        new QFilter("datastatus", QCP.equals, "1")
+                });
+    }
+
+    /**
+     * 部门经费，根据组织编码查找生效的组织
+     * @param orgNumberSet
+     * @return
+     */
+    public static DynamicObjectCollection adminKeeplistOrg(Set<String> orgNumberSet){
+        return QueryServiceHelper.query("haos_adminorg"
+                , "id,number,${ISV_FLAG}_haos_companytype.id,company,${ISV_FLAG}_one_admin,org.id,orgtype.number", new QFilter[]{
+                        new QFilter("number", QCP.in, orgNumberSet),
+                        new QFilter("iscurrentversion", QCP.equals, "1"),
+                        new QFilter("datastatus", QCP.equals, "1"),
+                        new QFilter("orgtype.number",QCP.in, Arrays.asList("1040_S","1041_S","1080_S"))
+                });
+    }
+
+    /**
+     * 根据员工编码查找生效的员工-自然人
+     * @param staffNumberSet
+     * @return
+     */
+    public static DynamicObjectCollection listStaff(Set<String> staffNumberSet){
+        return QueryServiceHelper.query("hrpi_person", "id,number,name", new QFilter[]{
+                new QFilter("iscurrentversion",QCP.equals,"1"),
+                new QFilter("datastatus",QCP.equals,"1"),
+                new QFilter("number",QCP.in,staffNumberSet)});
+    }
+
+    /**
+     * 根据任职经历id查询人事档案
+     * @param hrpiEmpposorgrels
+     * @return
+     */
+    public static DynamicObjectCollection queryErmanFile(Set<Long> hrpiEmpposorgrels){
+        // 人事业务档案
+        DynamicObjectCollection hspm_ermanfile = QueryServiceHelper.query("hspm_ermanfile"
+                , "id,org.id,empposrel.id"
+                , new QFilter[]{
+                        new QFilter("empposrel.id", QCP.in, hrpiEmpposorgrels)
+                });
+        return hspm_ermanfile;
+    }
+
+    /**
+     * 通过属性获取json中的string类型值
+     * @param data json对象
+     * @param mainDataKey 主属性
+     * @param fieldName 从属性
+     * @return
+     */
+    public static String getFieldStringValue(JSONObject data, String mainDataKey, String fieldName) {
+        String value = "";
+        if(data != null){
+            if(data.getJSONObject(mainDataKey) != null){
+                value = data.getJSONObject(mainDataKey).get(fieldName).toString();
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 奖金业务类别匹配
+     */
+    public static String mathcValue(String type){
+        if ("0".equals(type)){
+            return "其他";
+        }
+
+        if ("1".equals(type)){
+            return "个性化类";
+        }
+
+        if ("2".equals(type)){
+            return "工程建设类";
+        }
+
+        if ("3".equals(type)){
+            return "重大科创类";
+        }
+
+        if ("4".equals(type)){
+            return "年终奖类";
+        }
+        return "";
+    }
+}

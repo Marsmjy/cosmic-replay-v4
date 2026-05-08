@@ -1,0 +1,35 @@
+package ${ISV_FLAG}.swc.sit.common.util;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+public class PersonOrgUtil {
+
+    /**
+     * 通过上下文中的bosOgrId查询对应的BU
+     *
+     * @param orgId 上下文中的orgId,默认对应的是部门
+     * @return BU对应的DynamicObject
+     */
+    @Deprecated
+    public static DynamicObject getBUByCurrentOrgId(long orgId) {
+        DynamicObject bosOrg = BusinessDataServiceHelper.loadSingle("bos_org", new QFilter("id", QCP.equals, orgId).toArray());
+        // 通过bosOrg去查询HR行政组织
+        QFilter hrOrgQFilter = new QFilter("number", QCP.equals, bosOrg.getString("number"))
+                .and(new QFilter("iscurrentversion", QCP.equals, "1"));
+        DynamicObject hrOrgDynamicObject = BusinessDataServiceHelper.loadSingle("haos_adminorghr", hrOrgQFilter.toArray());
+        // 获取到最上级组织的长编码
+        String firstOrg = hrOrgDynamicObject.getString("structlongnumber").split("!")[0];
+        // 通过查询到的HR行政组织再去查询对应的最上级的集团
+        QFilter firstHrOrgQFilter = new QFilter("structlongnumber", QCP.equals, firstOrg)
+                .and(new QFilter("iscurrentversion", QCP.equals, "1"));
+        DynamicObject firstHrOrgDynamicObject = BusinessDataServiceHelper.loadSingle("haos_adminorghr", firstHrOrgQFilter.toArray());
+        // 通过最上级的HR行政组织反向查找bosOrg的对象
+        QFilter buBosOrg = new QFilter("number", QCP.equals, firstHrOrgDynamicObject.getString("number"))
+                .and(new QFilter("datastatus", QCP.equals, "C"))
+                .and(new QFilter("enable", QCP.equals, "1"));
+        return BusinessDataServiceHelper.loadSingle("bos_org", buBosOrg.toArray());
+    }
+}

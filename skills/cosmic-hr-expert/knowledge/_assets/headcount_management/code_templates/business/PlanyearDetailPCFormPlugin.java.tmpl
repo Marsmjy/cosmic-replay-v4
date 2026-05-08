@@ -1,0 +1,22 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+
+import java.util.EventObject;
+
+/**
+ * @Author: 陈路
+ * @CreateTime: 2024-01-26  13:45
+ * @Description: 年度编制详情PC布局插件
+ */
+public class PlanyearDetailPCFormPlugin extends AbstractBillPlugIn {
+    private static Log logger = LogFactory.getLog(PlanyearDetailPCFormPlugin.class);
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        this.getModel().setValue("${ISV_FLAG}_jobtag",true);
+    }
+}

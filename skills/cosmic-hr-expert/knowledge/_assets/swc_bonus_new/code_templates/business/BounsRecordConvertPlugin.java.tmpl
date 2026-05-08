@@ -1,0 +1,42 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.convert;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.botp.plugin.AbstractConvertPlugIn;
+import kd.bos.entity.botp.plugin.args.AfterConvertEventArgs;
+import kd.bos.entity.botp.plugin.args.AfterGetSourceDataEventArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.util.CollectionUtils;
+import kd.sdk.plugin.Plugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 奖金发放 下推 奖金发放记录
+ * @author wanghansheng
+ */
+public class BounsRecordConvertPlugin extends AbstractConvertPlugIn implements Plugin {
+    @Override
+    public void afterGetSourceData(AfterGetSourceDataEventArgs e) {
+        super.afterGetSourceData(e);
+        List<DynamicObject> sourceRows = e.getSourceRows();
+        List<Long> srcIdList = sourceRows.stream().map(o -> o.getLong("id")).collect(Collectors.toList());
+        List<String> errorMsg = BounsPaymentUtils.bounsPaymentvalidtor(srcIdList,BounsPaymentUtils.DonothingBonusPayment);
+        if (!CollectionUtils.isEmpty(errorMsg)){
+            throw new KDBizException(String.join("",errorMsg));
+        }
+    }
+
+    @Override
+    public void afterConvert(AfterConvertEventArgs e) {
+        ExtendedDataEntity[] billDataEntitys = e.getTargetExtDataEntitySet().FindByEntityKey("${ISV_FLAG}_bouns_record");
+        for (ExtendedDataEntity billDataEntity : billDataEntitys) {
+            DynamicObject bill = billDataEntity.getDataEntity();
+            DynamicObjectCollection entryEntity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            bill.set("${ISV_FLAG}_pay_count",entryEntity.size());
+        }
+    }
+}

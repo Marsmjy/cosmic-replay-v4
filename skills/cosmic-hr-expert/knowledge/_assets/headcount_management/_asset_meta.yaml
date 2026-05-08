@@ -1,0 +1,493 @@
+asset:
+  id: headcount_management
+  name: 编制管理
+  english_name: Headcount Management
+  version: v1.0
+  source_dcs_project: odc-dgdl
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/orghrgroup/odc-dgdl.git
+  source_branch: feature-standard-new
+  source_commit: 22dddc1
+  source_doc: 文档/编制管理复用说明书-V1.0.docx
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: hr_hrmp
+  app: hbss
+  scenario: 编制管理：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 53 个 java 类（12619 LOC）+ 10 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 编制管理
+  - 组织编制
+  - 人员编制控制
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/DateTimeCommon.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/HisAttachmentTool.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanCollectFromPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanmonthBillBzFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanmonthBillFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanPersonFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanPersonsFromPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanyearBillFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanyearDetailFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanyearDetailPCFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanyearSynPersonFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanMonthListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthAdminOrgTreeList.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearAdminOrgTreeList.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanyearDetailListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/AffirmPersonOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanMonthSaveOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanReviseOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanSaveAndEnableOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanSaveOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/CompilationPlanUrgeOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/DeletePlanDetailOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/DeletePlanOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/LockPersonOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/MonthBillCheckOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/MonthBillSaveOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthBzSaveOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearStartOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PositionHrChangeOpPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PositionValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/SavePlanOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/SubmitEffectOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/SycnOnPersonOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/MonthReportExportTask.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthBillCreateTask.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/YearReportExportClickTask.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/YearReportExportTask.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/DeletePlanDetailValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/DeletePlanValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/MonthBillCheckValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/MonthBillSaveValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearSaveValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanYearStartValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanPersonImportOp.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/BatchYearImportEdit.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanImportFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthBillBzFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/odc/homs/PlanMonthBillBzImportPlugin.java
+  datamodel_files:
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_homs_mplantreelist.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_homs_mplantreelist.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_homs_yplantreelist.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_homs_yplantreelist.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect2.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect2.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect3.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect3.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect4.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_plancollect4.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bill.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bill.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bill_base.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bill_base.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bz.dym
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_planmonth_bz.zh_CN.dymx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/hr_hrmp/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - hbss_headcount_management
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 DateTimeCommon 行为
+  location: DateTimeCommon.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: DateTimeCommon 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 HisAttachmentTool 行为
+  location: HisAttachmentTool.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: HisAttachmentTool 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 PlanCollectFromPlugin 行为
+  location: PlanCollectFromPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanCollectFromPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 PlanmonthBillBzFormPlugin 行为
+  location: PlanmonthBillBzFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanmonthBillBzFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 PlanmonthBillFormPlugin 行为
+  location: PlanmonthBillFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanmonthBillFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-06
+  name: 改 PlanMonthFormPlugin 行为
+  location: PlanMonthFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-07
+  name: 改 PlanPersonFormPlugin 行为
+  location: PlanPersonFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanPersonFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-08
+  name: 改 PlanPersonsFromPlugin 行为
+  location: PlanPersonsFromPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanPersonsFromPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-09
+  name: 改 PlanyearBillFormPlugin 行为
+  location: PlanyearBillFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanyearBillFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-10
+  name: 改 PlanyearDetailFormPlugin 行为
+  location: PlanyearDetailFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanyearDetailFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-11
+  name: 改 PlanyearDetailPCFormPlugin 行为
+  location: PlanyearDetailPCFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanyearDetailPCFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-12
+  name: 改 PlanYearFormPlugin 行为
+  location: PlanYearFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearFormPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-13
+  name: 改 PlanyearSynPersonFormPlugin 行为
+  location: PlanyearSynPersonFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanyearSynPersonFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-14
+  name: 改 CompilationPlanListPlugin 行为
+  location: CompilationPlanListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-15
+  name: 改 CompilationPlanMonthListPlugin 行为
+  location: CompilationPlanMonthListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanMonthListPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-16
+  name: 改 PlanMonthAdminOrgTreeList 行为
+  location: PlanMonthAdminOrgTreeList.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthAdminOrgTreeList 继承 AdminOrgTreeListTemplate·扩展时按 SDK 白名单 @Override 重写
+- id: EP-17
+  name: 改 PlanMonthListPlugin 行为
+  location: PlanMonthListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-18
+  name: 改 PlanYearAdminOrgTreeList 行为
+  location: PlanYearAdminOrgTreeList.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearAdminOrgTreeList 继承 AdminOrgTreeListTemplate·扩展时按 SDK 白名单 @Override 重写
+- id: EP-19
+  name: 改 PlanyearDetailListPlugin 行为
+  location: PlanyearDetailListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanyearDetailListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-20
+  name: 改 AffirmPersonOp 行为
+  location: AffirmPersonOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: AffirmPersonOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-21
+  name: 改 CompilationPlanMonthSaveOp 行为
+  location: CompilationPlanMonthSaveOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanMonthSaveOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-22
+  name: 改 CompilationPlanReviseOp 行为
+  location: CompilationPlanReviseOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanReviseOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-23
+  name: 改 CompilationPlanSaveAndEnableOp 行为
+  location: CompilationPlanSaveAndEnableOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanSaveAndEnableOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-24
+  name: 改 CompilationPlanSaveOp 行为
+  location: CompilationPlanSaveOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanSaveOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-25
+  name: 改 CompilationPlanUrgeOp 行为
+  location: CompilationPlanUrgeOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CompilationPlanUrgeOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-26
+  name: 改 DeletePlanDetailOp 行为
+  location: DeletePlanDetailOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: DeletePlanDetailOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-27
+  name: 改 DeletePlanOp 行为
+  location: DeletePlanOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: DeletePlanOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-28
+  name: 改 LockPersonOp 行为
+  location: LockPersonOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: LockPersonOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-29
+  name: 改 MonthBillCheckOp 行为
+  location: MonthBillCheckOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MonthBillCheckOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-30
+  name: 改 MonthBillSaveOp 行为
+  location: MonthBillSaveOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MonthBillSaveOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-31
+  name: 改 PlanMonthBzSaveOp 行为
+  location: PlanMonthBzSaveOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthBzSaveOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-32
+  name: 改 PlanYearOp 行为
+  location: PlanYearOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-33
+  name: 改 PlanYearStartOp 行为
+  location: PlanYearStartOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearStartOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-34
+  name: 改 PositionHrChangeOpPlugin 行为
+  location: PositionHrChangeOpPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PositionHrChangeOpPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-35
+  name: 改 PositionValidator 行为
+  location: PositionValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PositionValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-36
+  name: 改 SavePlanOp 行为
+  location: SavePlanOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SavePlanOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-37
+  name: 改 SubmitEffectOp 行为
+  location: SubmitEffectOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SubmitEffectOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-38
+  name: 改 SycnOnPersonOp 行为
+  location: SycnOnPersonOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SycnOnPersonOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-39
+  name: 改 MonthReportExportTask 行为
+  location: MonthReportExportTask.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MonthReportExportTask 继承 AbstractTask·扩展时按 SDK 白名单 @Override 重写
+- id: EP-40
+  name: 改 PlanMonthBillCreateTask 行为
+  location: PlanMonthBillCreateTask.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthBillCreateTask 继承 AbstractTask·扩展时按 SDK 白名单 @Override 重写
+- id: EP-41
+  name: 改 YearReportExportClickTask 行为
+  location: YearReportExportClickTask.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: YearReportExportClickTask 继承 AbstractTaskClick·扩展时按 SDK 白名单 @Override 重写
+- id: EP-42
+  name: 改 YearReportExportTask 行为
+  location: YearReportExportTask.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: YearReportExportTask 继承 AbstractTask·扩展时按 SDK 白名单 @Override 重写
+- id: EP-43
+  name: 改 DeletePlanDetailValidator 行为
+  location: DeletePlanDetailValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: DeletePlanDetailValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-44
+  name: 改 DeletePlanValidator 行为
+  location: DeletePlanValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: DeletePlanValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-45
+  name: 改 MonthBillCheckValidator 行为
+  location: MonthBillCheckValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MonthBillCheckValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-46
+  name: 改 MonthBillSaveValidator 行为
+  location: MonthBillSaveValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MonthBillSaveValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-47
+  name: 改 PlanYearSaveValidator 行为
+  location: PlanYearSaveValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearSaveValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-48
+  name: 改 PlanYearStartValidator 行为
+  location: PlanYearStartValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanYearStartValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-49
+  name: 改 PlanPersonImportOp 行为
+  location: PlanPersonImportOp.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanPersonImportOp 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-50
+  name: 改 BatchYearImportEdit 行为
+  location: BatchYearImportEdit.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BatchYearImportEdit 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-51
+  name: 改 PlanImportFormPlugin 行为
+  location: PlanImportFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanImportFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-52
+  name: 改 PlanMonthBillBzFormPlugin 行为
+  location: PlanMonthBillBzFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthBillBzFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-53
+  name: 改 PlanMonthBillBzImportPlugin 行为
+  location: PlanMonthBillBzImportPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PlanMonthBillBzImportPlugin 继承 BatchImportPlugin·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: odc/homs
+  multi_module: true
+  primary_module: hjm_ext
+  biz_app_modules:
+  - module_id: hbjm_ext
+    datamodel_app_dir: hbjm_ext/1.5.0/main
+    is_primary: false
+    target_biz_app_pattern: ${ISV_FLAG}_hbjm_ext
+  - module_id: hbss_ext
+    datamodel_app_dir: hbss_ext/1.5.0/main
+    is_primary: false
+    target_biz_app_pattern: ${ISV_FLAG}_hbss_ext
+  - module_id: hjm_ext
+    datamodel_app_dir: hjm_ext/1.5.0/main
+    is_primary: true
+  - module_id: homs_ext
+    datamodel_app_dir: homs_ext/1.5.0/main
+    is_primary: false
+    target_biz_app_pattern: ${ISV_FLAG}_homs_ext
+  schdata_filename: schedule_PlanMonthBillCreateTask.schdata
+  schdata_module_id: homs_ext

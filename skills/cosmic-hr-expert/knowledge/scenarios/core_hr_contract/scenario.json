@@ -1,0 +1,41 @@
+{
+  "scene": "core_hr_contract",
+  "name": "劳动合同 - 新签/续签/变更（hlcm · 4 单据）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "hlcm_contract",
+    "hlcm_contractapply",
+    "hlcm_empprotocol",
+    "hlcm_otheragreements",
+    "hlcm_renewinquery"
+  ],
+  "referenced_entities": [
+    "hlcm_contract",
+    "hlcm_contractapply",
+    "hlcm_empprotocol",
+    "hlcm_otheragreements",
+    "hlcm_renewinquery"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (合同签署相关变动操作)",
+    "chgEvent": "合同新签/续签/变更",
+    "createsHrpi": [
+      "hlcm_contract (档案主表 · 历史模型)",
+      "→ 经定时任务 hlcm_contacttohrpiinfo_task → 同步到 hrpi_contractinfo"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hlcm.business.extpoint.IHLCMTemplateExtPlugin",
+      "kd.sdk.hr.hlcm.business.extpoint.IHLCMAttachmentExtPlugin",
+      "kd.sdk.hr.hlcm.business.extpoint.ISignActivityExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hlcm.opplugin.contract.ContractBaseSaveOp",
+    "kd.hr.hlcm.opplugin.contract.ContractBaseSubmitEffectOp",
+    "kd.hr.hlcm.opplugin.contract.apply.PreSubmitEffectOp"
+  ]
+}

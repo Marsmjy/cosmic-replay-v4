@@ -1,0 +1,39 @@
+{
+  "scene": "core_hr_contract",
+  "title": "劳动合同 - 新签/续签/变更（hlcm · 4 单据）",
+  "cloud": "core_hr",
+  "description": "劳动合同核心 4 单据 + 1 档案聚合。**特点**：标品采用配置化映射（'关联合同协议申请单配置'）实现单据 ↔ 档案双向字段映射，ISV 加扩展字段后无需写代码即可自动落库。关键 OP：ContractBaseSaveOp / ContractBaseSubmitEffectOp / PreSubmitEffectOp / ContractBaseSubmitOp / ContractBaseUnSubmitOp / ContractBaseWfUnSubmitOp。标品定时任务：hlcm_contacttohrpiinfo_task_SKDJ_S 同步合同档案 → hrpi_contractinfo。ISV 扩展点：IHLCMTemplateExtPlugin (合同模板变量替换)、IHLCMAttachmentExtPlugin (附件)、ISignActivityExtPlugin (协作活动)。",
+  "entities": [
+    "hlcm_contract",
+    "hlcm_contractapply",
+    "hlcm_empprotocol",
+    "hlcm_otheragreements",
+    "hlcm_renewinquery"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (合同签署相关变动操作)",
+    "chgEvent": "合同新签/续签/变更",
+    "createsHrpi": [
+      "hlcm_contract (档案主表 · 历史模型)",
+      "→ 经定时任务 hlcm_contacttohrpiinfo_task → 同步到 hrpi_contractinfo"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hlcm.business.extpoint.IHLCMTemplateExtPlugin",
+      "kd.sdk.hr.hlcm.business.extpoint.IHLCMAttachmentExtPlugin",
+      "kd.sdk.hr.hlcm.business.extpoint.ISignActivityExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hlcm.opplugin.contract.ContractBaseSaveOp",
+    "kd.hr.hlcm.opplugin.contract.ContractBaseSubmitEffectOp",
+    "kd.hr.hlcm.opplugin.contract.apply.PreSubmitEffectOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 5 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

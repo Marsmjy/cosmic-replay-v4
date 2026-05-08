@@ -1,0 +1,71 @@
+package ${ISV_FLAG}.swc.hsbm.biz.eip.task.common.util;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.metadata.IDataEntityProperty;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.EntityType;
+import kd.bos.entity.MainEntityType;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public final class CommonUtil {
+    /**
+     * 获取某个元数据的所有字段标识
+     * @param entityName 元数据标识
+     * @return
+     */
+    public static String getAllFields(String entityName){
+        MainEntityType mainEntityType= EntityMetadataCache.getDataEntityType(entityName);
+        Map<String, IDataEntityProperty> allFields = mainEntityType.getAllFields();
+        return allFields.keySet().stream()
+                .collect(Collectors.joining(","));
+    }
+
+    /**
+     * 操作插件中加载所有的字段
+     * @param e PreparePropertysEventArgs
+     * @param obj this对象
+     * @param clazz 当前操作插件的类
+     * @throws Exception 反射中可能出现的异常
+     */
+    public static <T> void onPrepareAllProperty(PreparePropertysEventArgs e, T obj, Class<T> clazz) throws Exception{
+        // 可以使用 clazz 进行类型转换
+        /*if (clazz.isInstance(obj)) {
+            // 进行具体类型的操作
+            T castedObj = clazz.cast(obj);
+            // 获取父类型中的【billEntityType】字段属性
+            Field field = clazz.getSuperclass().getDeclaredField("billEntityType");
+            // 设置允许访问
+            field.setAccessible(true);
+            String name = ((MainEntityType) field.get(castedObj)).getName();
+            String allFields = CommonUtil.getAllFields(name);
+            e.getFieldKeys().addAll(Arrays.asList(allFields.split(",")));
+        }*/
+        if (e == null || obj == null || clazz == null) {
+            throw new IllegalArgumentException("参数e/obj/clazz不能为空");
+        }
+        if (clazz.isInstance(obj) && obj instanceof DynamicObject) {
+            DynamicObject castedObj = (DynamicObject) obj;
+
+            // 标准化获取EntityType（替代billEntityType反射）
+            EntityType entityType = (EntityType) castedObj.getDataEntityType();
+            if (entityType == null || !(entityType instanceof MainEntityType)) {
+                throw new Exception("动态实体EntityType为空或非MainEntityType类型");
+            }
+            MainEntityType mainEntityType = (MainEntityType) entityType;
+            String entityName = mainEntityType.getName();
+
+            if (StringUtils.isBlank(entityName)) {
+                throw new Exception("动态实体名称为空");
+            }
+            String allFields = CommonUtil.getAllFields(entityName);
+            if (StringUtils.isNotBlank(allFields)) {
+                e.getFieldKeys().addAll(Arrays.asList(allFields.split(",")));
+            }
+        }
+    }
+}

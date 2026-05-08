@@ -1,0 +1,143 @@
+asset:
+  id: wtc_marriageverify
+  name: 婚假有效期核验
+  english_name: Marriage Verify
+  version: v1.0
+  source_dcs_project: wtc-marriageverify
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/wtcgroup/wtc-marriageverify.git
+  source_branch: feature-standard-new
+  source_commit: 19c897a
+  source_doc: null
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: attendance
+  app: wtc
+  scenario: 婚假核验：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 5 个 java 类（624 LOC）+ 10 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 婚假核验
+  - 婚假申请
+  - 婚假资格校验
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/wtc/wtabm/MarriageVerifyPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/wtc/wtabm/MobilleMarriageVerifyPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/wtc/wtabm/BatchMarriageDateValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/wtc/wtabm/MarriageDateValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/wtc/wtabm/MarriageDateDealUtil.java
+  datamodel_files:
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvaapp_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvaapp_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvainf_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvainf_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvaupd_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_batchvaupd_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapplymob__ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapplymob__ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapplysel_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapplysel_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapply_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaapply_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vainfosing_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vainfosing_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vainfo_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vainfo_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaupdatese_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaupdatese_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaupdate_ext.dym
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_wtabm_vaupdate_ext.zh_CN.dymx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/attendance/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - attendance_wtc_marriageverify
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 MarriageVerifyPlugin 行为
+  location: MarriageVerifyPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MarriageVerifyPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 MobilleMarriageVerifyPlugin 行为
+  location: MobilleMarriageVerifyPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MobilleMarriageVerifyPlugin 继承 AbstractMobBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 BatchMarriageDateValidator 行为
+  location: BatchMarriageDateValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BatchMarriageDateValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 MarriageDateValidator 行为
+  location: MarriageDateValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MarriageDateValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 MarriageDateDealUtil 行为
+  location: MarriageDateDealUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: MarriageDateDealUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: wtc/wtabm
+  multi_module: false
+  primary_module: wtabm_ext
+  biz_app_modules:
+  - module_id: wtabm_ext
+    datamodel_app_dir: tdkw_wtabm_ext/1.5.0/main
+    is_primary: true

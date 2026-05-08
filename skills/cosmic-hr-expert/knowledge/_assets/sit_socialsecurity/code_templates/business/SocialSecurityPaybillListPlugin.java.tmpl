@@ -1,0 +1,157 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.events.BeforeItemClickEvent;
+import kd.bos.list.IListView;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.sdk.plugin.Plugin;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * 展示当前审批人,实现停止代缴，代缴基数调整功能
+ */
+public class SocialSecurityPaybillListPlugin extends AbstractListPlugin implements Plugin {
+    private String TDKW_STOP_PAY = "${ISV_FLAG}_stop_pay"; //停止代缴
+    private String TDKW_BASE_ADJUST = "${ISV_FLAG}_base_adjust"; //代缴基数调整
+    private String[] SELECTFIELDS = new String[]{"id","org","billstatus","${ISV_FLAG}_payment_service_type","${ISV_FLAG}_payment_service_type.number","${ISV_FLAG}_pay_file","${ISV_FLAG}_payment_insurance"};
+
+    @Override
+    public void beforeItemClick(BeforeItemClickEvent evt) {
+        String itemKey = evt.getItemKey();
+        if (TDKW_STOP_PAY.equals(itemKey) || TDKW_BASE_ADJUST.equals(itemKey)){
+            // 取消停止代缴与基数调整的操作
+            evt.setCancel(true);
+            //列表视图模型
+            IListView listview = (IListView)this.getView();
+            ListSelectedRowCollection selectedRows = listview.getSelectedRows();
+            if (selectedRows.size() == 0){
+                this.getView().showMessage("请选择要执行的数据。");
+                return;
+            }
+
+            //勾选数量大于1，直接给出提示
+            if (selectedRows.size() > 1){
+                this.getView().showMessage("请勾选单张代缴单进行操作。");
+                return;
+            }
+
+            //进行过滤
+            QFilter personFilter = new QFilter("status", QFilter.not_equals2, "E");//数据状态为非已废弃
+            personFilter.and(new QFilter("sinsurstatus", QFilter.equals, "normal"));//“参保状态”为“正常缴纳”
+            personFilter.and(new QFilter("isescrowstaff",QCP.equals,"1"));//代管员工”为“是”
+
+            DynamicObject[] sinsurfile = BusinessDataServiceHelper.load("hcsi_sinsurfile", "id", personFilter.toArray());
+
+            Map<Long, DynamicObject> map = new HashMap<>();
+            List<Long> selectRowIds = new ArrayList<>();
+            for (ListSelectedRow selectedRow : selectedRows) {
+                Long id = (Long) selectedRow.getPrimaryKeyValue();
+                selectRowIds.add(id);
+            }
+            QFilter qFilter = new QFilter("id", QCP.in, selectRowIds);
+            DynamicObjectCollection socialSecurityObjects = QueryServiceHelper.query("${ISV_FLAG}_social_security", String.join(",", SELECTFIELDS), qFilter.toArray());
+            for (DynamicObject social : socialSecurityObjects) {
+                map.put(social.getLong("id"),social);
+            }
+            List<String> typeList = new ArrayList<>();
+            Map<String, DynamicObject> typeMap = new HashMap<>();
+            typeList.add("002");
+            typeList.add("003");
+            QFilter filter = new QFilter("number", QCP.in, typeList);
+            DynamicObjectCollection serviceTypes = QueryServiceHelper.query("${ISV_FLAG}_payment_service_type", "id,number", filter.toArray());
+            for (DynamicObject serviceType : serviceTypes) {
+                String number = serviceType.getString("number");
+                typeMap.put(number,serviceType);
+            }
+
+
+            for (ListSelectedRow selectedRow : selectedRows) {
+                //代缴单的id
+                Long id = (Long) selectedRow.getPrimaryKeyValue();
+                DynamicObject socialSecurity = map.get(id);
+
+                //代缴档案的id
+                Long payFile = socialSecurity.getLong("${ISV_FLAG}_pay_file");
+                if (payFile == null || payFile == 0l){
+                    this.getView().showMessage("代缴单无匹配的代缴档案，请手动新增进行代缴操作。");
+                    return;
+                }
+
+                //判断单据状态是否为已审核
+                String billstatus = socialSecurity.getString("billstatus");
+                if (!"C".equals(billstatus)){
+                    this.getView().showMessage("请选择已审批通过的代缴单。");
+                    return;
+                }
+
+                if (TDKW_BASE_ADJUST.equals(itemKey) || TDKW_STOP_PAY.equals(itemKey)){
+                    if (sinsurfile.length == 0){
+                        this.getView().showMessage("暂无代缴档案。");
+                        return;
+                    }
+                    ArrayList<Long> sinsurfileIds = new ArrayList<>();
+                    for (DynamicObject dynamicObject : sinsurfile) {
+                        sinsurfileIds.add(dynamicObject.getLong("id"));
+                    }
+
+                    if (!sinsurfileIds.contains(socialSecurity.getLong("${ISV_FLAG}_pay_file"))){
+                        if (TDKW_STOP_PAY.equals(itemKey)){
+                            this.getView().showMessage("该单据对应档案已停缴，无法进行停缴");
+                        }
+                        if (TDKW_BASE_ADJUST.equals(itemKey)){
+                            this.getView().showMessage("该单据对应档案已停缴，无法进行基数调整");
+                        }
+                        return;
+                    }
+                }
+
+
+                Long kdcdPayFile = socialSecurity.getLong("${ISV_FLAG}_pay_file");
+                if (kdcdPayFile == null || kdcdPayFile == 0l){
+                    this.getView().showMessage("无匹配的代缴档案，请手动新增。");
+                    return;
+                }
+
+                //代缴业务类型确定
+                DynamicObject paymentServiceType = null;
+                if (TDKW_STOP_PAY.equals(itemKey)){
+                    paymentServiceType = typeMap.get("002");
+                }
+
+                if (TDKW_BASE_ADJUST.equals(itemKey)){
+                    paymentServiceType = typeMap.get("003");
+                }
+
+                //打开代缴页面
+                HashMap<String, Object> paramsMap = new HashMap<>();
+                paramsMap.put("org", socialSecurity.getLong("org")); //社保公积金管理组织
+                if (Objects.nonNull(paymentServiceType)) {
+                    paramsMap.put("${ISV_FLAG}_payment_service_type", paymentServiceType.getLong("id")); //代缴业务类型
+                }
+                paramsMap.put("${ISV_FLAG}_pay_file",socialSecurity.getLong("${ISV_FLAG}_pay_file")); //代缴档案id
+
+                BillShowParameter socialSecurityrForm = new BillShowParameter();
+                socialSecurityrForm.setFormId("${ISV_FLAG}_social_security");
+                socialSecurityrForm.setStatus(OperationStatus.ADDNEW);
+                socialSecurityrForm.setCustomParam("newPageByButton",paramsMap); // 将自定义参数设置到showForm里面
+                socialSecurityrForm.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+                this.getView().showForm(socialSecurityrForm);
+            }
+        }
+    }
+}

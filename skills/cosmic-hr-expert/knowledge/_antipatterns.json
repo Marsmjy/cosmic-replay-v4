@@ -1,0 +1,848 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "1.0.0",
+    "created_at": "2026-05-02",
+    "purpose": "ISV 反模式索引 · LLM/MCP 出代码前对照检查 · 命中则警告",
+    "antipattern_count": 18,
+    "data_source": "knowledge/scenarios/ 198 场景 rules_chain_all.json mines 聚合（17826 条 / 503 去重）+ A 路 8 主表 CS 实证",
+    "schema_ref": "v3_rewrite_plan/specs/knowledge_schema_extension.md §3",
+    "next_step": "v3.1 加 PR / 真实事故 case · 扩到 30+ 条",
+    "total_antipatterns": 27,
+    "last_updated": "2026-05-07",
+    "last_updated_by": "v1.0.7 加 AP-028 防 null 类型脑补"
+  },
+  "antipatterns": [
+    {
+      "id": "AP-001",
+      "pattern": "DynamicObject.set 用显示名而非字段 key",
+      "trigger_keywords": [
+        "DynamicObject.set",
+        "obj.set",
+        "字段名",
+        "字段显示名"
+      ],
+      "trigger_intents": [
+        "写表",
+        "改字段值",
+        "保存数据"
+      ],
+      "why_wrong": "苍穹 ORM 要求 DynamicObject.set 必须用字段 key（如 'number'）而不是显示名（如 '档案编号'）。用显示名静默失败 / 字段不更新但不报错·调试极难。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "总是用字段 key（看 _metadata_rules_form.json::fieldProperties 的 key）· 例如 obj.set(\"${ISV_FLAG}_attregion\", value)"
+      },
+      "if_user_insists": "拒绝。这是平台 ORM 硬要求·没有例外。",
+      "evidence_sources": [
+        "198 场景 mines 4773 次出现",
+        "rules_chain_all.json::opKeys.*.mines"
+      ]
+    },
+    {
+      "id": "AP-002",
+      "pattern": "在 beforeExecuteOperationTransaction 注册自定义 Validator",
+      "trigger_keywords": [
+        "beforeExecuteOperationTransaction",
+        "addValidator",
+        "Validator 注册"
+      ],
+      "trigger_intents": [
+        "加自定义校验",
+        "业务规则校验"
+      ],
+      "why_wrong": "Validator 必须在 onAddValidators 阶段注册。在 beforeExecuteOperationTransaction 注册晚了·标品已经走完业务规则·ISV 校验跑不到。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "继承 HRDataBaseOp / HRBaseDataStatusOp 等 · 重写 onAddValidators(AddValidatorsEventArgs e) · 在内部 e.addValidator(new MyValidator())"
+      },
+      "if_user_insists": "拒绝。这是平台生命周期硬规定·违反则 ISV Validator 完全失效。",
+      "evidence_sources": [
+        "198 场景 mines 4765 次出现",
+        "PR-010"
+      ]
+    },
+    {
+      "id": "AP-003",
+      "pattern": "用 throw RuntimeException 阻断保存",
+      "trigger_keywords": [
+        "throw new RuntimeException",
+        "throw new BizException",
+        "抛异常"
+      ],
+      "trigger_intents": [
+        "阻断保存",
+        "校验失败"
+      ],
+      "why_wrong": "在 beforeExecuteOperationTransaction 抛异常会触发事务回滚·但平台无法收集多个错误一起报给用户。用户改完一个又抱出另一个·体验差。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "用 this.addErrorMessage(extendedDataEntity, \"错误信息\")· 平台会一次性收集所有错误一并显示给用户。"
+      },
+      "if_user_insists": "可以·但要明确告知用户：用 throw 会让平台只能报一个错·改完还会抛下一个。",
+      "evidence_sources": [
+        "198 场景 mines 4704 次出现",
+        "rules_chain_all.json mines"
+      ]
+    },
+    {
+      "id": "AP-004",
+      "pattern": "继承 @SdkInternal 平台内部类（HisModel*）",
+      "trigger_keywords": [
+        "extends HisModelOPCommonPlugin",
+        "extends HisModelFormCommonPlugin",
+        "extends HisModelListCommonPlugin",
+        "extends HisUniqueValidateOp",
+        "继承 HisModel"
+      ],
+      "trigger_intents": [
+        "扩展时态模型",
+        "历史版本逻辑"
+      ],
+      "why_wrong": "HisModel* 系列类带 @SdkInternal 注解·是平台内部历史版本管理实现·签名随平台升级变化。ISV 继承一升级就编译失败 / 运行崩。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "继承 SDK 白名单父类（HRDataBaseOp / HRDataBaseEdit / HRDataBaseList）· 时态行为由父类自动调用 HisModel* 实现"
+      },
+      "if_user_insists": "拒绝。继承内部类是平台架构红线·违反 PR-001。",
+      "evidence_sources": [
+        "198 场景 mines 86+ 次",
+        "cosmic_hr_sdk_whitelist_audit.md"
+      ]
+    },
+    {
+      "id": "AP-005",
+      "pattern": "继承 HRBaseDataTplEdit / HRBaseDataImportEditPlugin（HIES 模板类）",
+      "trigger_keywords": [
+        "extends HRBaseDataTplEdit",
+        "extends HRBaseDataImportEditPlugin",
+        "extends HRHiesButtonSwitchPlugin"
+      ],
+      "trigger_intents": [
+        "扩展基础资料表单",
+        "导入页面定制"
+      ],
+      "why_wrong": "HRBaseDataTplEdit / HRBaseDataImportEditPlugin / HRHiesButtonSwitchPlugin 是 HIES 框架共享类·所有 HR 基础资料默认接入。继承后 ISV 子类被多个 form 共享挂载·一动全乱。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "继承标准 SDK 父类（HRDataBaseEdit / HRCoreBaseBillEdit）·并列挂在目标 form 上·不要继承 HIES 模板"
+      },
+      "if_user_insists": "拒绝。HIES 模板是平台共享层·不允许继承。",
+      "evidence_sources": [
+        "198 场景 mines 192 次",
+        "cosmic_hr_sdk_whitelist_audit.md"
+      ]
+    },
+    {
+      "id": "AP-006",
+      "pattern": "继承 AbsOrgBaseOp",
+      "trigger_keywords": [
+        "extends AbsOrgBaseOp"
+      ],
+      "trigger_intents": [
+        "扩展组织 OP"
+      ],
+      "why_wrong": "AbsOrgBaseOp 是 haos / admin_org 域专属内部类·不在 HR SDK 白名单。ISV 继承会失去通用性 + 平台升级失败。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "继承 HRDataBaseOp · 这是 HR 全域通用的 OP 父类（已在 SDK 白名单）"
+      },
+      "if_user_insists": "拒绝。请改用 HRDataBaseOp · 详见 cosmic_hr_sdk_whitelist_audit.md。",
+      "evidence_sources": [
+        "198 场景 mines 280+ 次",
+        "cosmic_hr_sdk_whitelist_audit.md"
+      ]
+    },
+    {
+      "id": "AP-007",
+      "pattern": "continueOperationTransaction 内调外系接口",
+      "trigger_keywords": [
+        "beforeExecuteOperationTransaction.*invoke",
+        "事务内调外系",
+        "ERP 集成"
+      ],
+      "trigger_intents": [
+        "同步外系",
+        "ERP 集成",
+        "推送下游"
+      ],
+      "why_wrong": "事务未提交·外系接口失败会回滚但外系可能已收到数据·状态不一致。事务提交但外系超时也会让本地以为成功。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "改在 afterExecuteOperationTransaction 调用（事务已提交）· 或走 BEC 异步订阅 / sch_task 异步派单"
+      },
+      "if_user_insists": "拒绝。违反 PR-010 事务边界规则。",
+      "evidence_sources": [
+        "A 路 8 主表 CS 实证",
+        "PR-010"
+      ]
+    },
+    {
+      "id": "AP-008",
+      "pattern": "registerPlugin targetType 写小写",
+      "trigger_keywords": [
+        "targetType.*operation",
+        "targetType.*billform",
+        "targetType.*listform",
+        "registerPlugin 报 invalid"
+      ],
+      "trigger_intents": [
+        "注册插件",
+        "挂插件"
+      ],
+      "why_wrong": "registerPlugin 的 targetType 必须是大写枚举（OPERATION / BILL_FORM / LIST_FORM / MOBILE_BILL_FORM）。写小写'operation'报 targetType invalid·v5.1 R20 已实证。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "OP 插件用 targetType=\"OPERATION\" · 表单插件用 targetType=\"BILL_FORM\" · 列表插件用 targetType=\"LIST_FORM\""
+      },
+      "if_user_insists": "拒绝。这是 OpenAPI 严格要求·没有例外。",
+      "evidence_sources": [
+        "v5.1 R20 实证",
+        "feedback_*.md"
+      ]
+    },
+    {
+      "id": "AP-009",
+      "pattern": "自写 ExcelImportPlugin 解析 xlsx",
+      "trigger_keywords": [
+        "Excel 导入组织",
+        "ExcelImportPlugin",
+        "POI",
+        "xlsx 解析",
+        "上传 Excel 文件",
+        "批量导入变更",
+        "组织 Excel",
+        "组织批量导入"
+      ],
+      "trigger_intents": [
+        "批量导入",
+        "Excel 导入",
+        "数据迁移"
+      ],
+      "why_wrong": "苍穹 HR 平台已有 hies_entity_import 标品零代码导入框架·支持 Excel 模板 / 字段校验 / 部分回滚 / 大数据量分批 / 进度展示。自写 Excel 解析 = 重复发明 + 失去标品所有能力。",
+      "correct_alternative": {
+        "scene": "hies_entity_import",
+        "type": "standard_business",
+        "how_to_use": "用 hies_entity_import 框架 · ISV 想加预/后处理 → 继承 ImportDataPreprocessOp / ImportDataPostprocessOp"
+      },
+      "if_user_insists": "如业务确实有 hies 不能满足的复杂前置校验·扩展 ImportDataPreprocessOp 仍优于自建 Excel 解析。",
+      "evidence_sources": [
+        "hies_entity_import 11md",
+        "wtbd_shift CS-04",
+        "hsas_personchange CS-05"
+      ]
+    },
+    {
+      "id": "AP-010",
+      "pattern": "自建组织变更单据",
+      "trigger_keywords": [
+        "组织变更单据",
+        "组织调整单",
+        "新建组织变更流程"
+      ],
+      "trigger_intents": [
+        "组织批量变更",
+        "组织调整",
+        "组织变更"
+      ],
+      "why_wrong": "homs_orgbatchchgbill 是苍穹 HR 标品组织变更主单据 · 7 entry 涵盖所有组织变动类型（新增/调整上级/信息变更/停用/合并/拆分）· 自建单据失去 setAddOrgNumber 自动编码 / 跨 entry 互斥 / OrgBatchChgBillEffectOp BEC 派单 等核心能力。",
+      "correct_alternative": {
+        "scene": "homs_orgbatchchgbill_maintenance",
+        "type": "isv_extension_ready",
+        "how_to_use": "在 homs_orgbatchchgbill 上做 ISV 扩展 · 见其 06_customization_solutions.md 的 CS 段"
+      },
+      "if_user_insists": "拒绝。这是平台架构红线·不允许绕过。",
+      "evidence_sources": [
+        "homs_orgbatchchgbill_maintenance 11md",
+        "OrgBatchBillSubmitAndEffectiveOp.java"
+      ]
+    },
+    {
+      "id": "AP-011",
+      "pattern": "直接 SaveServiceHelper.save 改时态字段",
+      "trigger_keywords": [
+        "SaveServiceHelper.save",
+        "obj.set.*bsed",
+        "obj.set.*bsled",
+        "obj.set.*iscurrentversion",
+        "obj.set.*hisversion",
+        "改时态"
+      ],
+      "trigger_intents": [
+        "调薪",
+        "调班",
+        "改基础资料生效日期",
+        "时态字段维护"
+      ],
+      "why_wrong": "苍穹时态模型字段（boid/iscurrentversion/hisversion/bsed/bsled）由 HisModel 平台自动维护。直接 SaveServiceHelper.save 改这些字段 → 历史版本错乱（boid 同 / iscurrentversion 多个 true / hisversion 跳号）。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "用 HisModelHelper.changeEffective(formId, oldId, fieldKey, newValue, effectiveDate) · 平台自动 bsled 旧版本 + 生成新版本 + 维护 iscurrentversion"
+      },
+      "if_user_insists": "拒绝。直接改时态字段 = 历史数据污染·算薪 / 考勤 / 报表全错。",
+      "evidence_sources": [
+        "hcdm_salarystandard CS-03",
+        "wtbd_shift CS-03",
+        "wtp_attfilebase CS-05"
+      ]
+    },
+    {
+      "id": "AP-012",
+      "pattern": "不实现 EmployeeCoordService 自己监听 BEC 处理变动",
+      "trigger_keywords": [
+        "监听 BEC.*变动",
+        "订阅员工变动事件",
+        "自建变动协作"
+      ],
+      "trigger_intents": [
+        "接收人员变动",
+        "变动协作",
+        "下游云协作"
+      ],
+      "why_wrong": "员工变动跨云协作 = 标品 EmployeeCoordTask 协作框架（核心人力 → 薪酬/考勤/绩效/权限）。自己监听 BEC 处理 → 失去标品的 失败重试 / 幂等保证 / 死信队列 / 协作进度展示 / sch_task 调度。",
+      "correct_alternative": {
+        "scene": "core_hr_change_collab_overview",
+        "type": "isv_extension_ready",
+        "how_to_use": "实现 kd.hr.hbp.business.coordination.api.EmployeeCoordService 接口 · 复用对应下游云的 *EmployeeCoordTask 协作链（参 5 个 collab 场景的 L7 段）"
+      },
+      "if_user_insists": "拒绝。变动协作不走标品框架 = 整个 HR 域跨云一致性不保证。",
+      "evidence_sources": [
+        "core_hr_change_collab_payroll/attendance/talent_dev/perm/internal_loop",
+        "wtp_attfilebase CS-04"
+      ]
+    },
+    {
+      "id": "AP-013",
+      "pattern": "continue Coord 内不做幂等检查",
+      "trigger_keywords": [
+        "execute.*EmployeeCoordEvent",
+        "Coord 实现"
+      ],
+      "trigger_intents": [
+        "接收变动协作",
+        "重复事件处理"
+      ],
+      "why_wrong": "BEC 事件可能因网络 / 重试机制重复送达。Coord 实现内不做幂等检查 → 同一变动被多次处理·重复写表 / 重复扣薪 / 重复发通知。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "在 execute() 入口检查（empId + effectiveDate + changeType）三元组在本地是否已处理 · 已处理则直接 return"
+      },
+      "if_user_insists": "拒绝。无幂等的协作 = 业务事故。",
+      "evidence_sources": [
+        "hsas_personchange CS-03",
+        "feedback_bec_3layer_async_publish.md"
+      ]
+    },
+    {
+      "id": "AP-014",
+      "pattern": "ISV 自定义字段不带 ISV 前缀",
+      "trigger_keywords": [
+        "element.key.*[^d][^k][^w][^_]",
+        "fieldKey.*没前缀",
+        "字段 key 无前缀"
+      ],
+      "trigger_intents": [
+        "加字段",
+        "modifyMeta",
+        "扩展元数据"
+      ],
+      "why_wrong": "ISV 字段 key 不带 ISV 前缀（如 `${ISV_FLAG}_`）→ 标品下次升级引入同名字段·会被覆盖 / 数据迁移失败。命名空间冲突是元数据扩展的硬规则。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "所有 ISV 加的字段 key 必须带 ISV 前缀（如 ${ISV_FLAG}_、isv_、${ISV_FLAG}_）· 一旦定下来不可改"
+      },
+      "if_user_insists": "拒绝。这是元数据命名空间硬规则。",
+      "evidence_sources": [
+        "isv_ownership_redline.md",
+        "8 主表 CS-01"
+      ]
+    },
+    {
+      "id": "AP-015",
+      "pattern": "ORM 跨字段访问不用点路径",
+      "trigger_keywords": [
+        "getDynamicObject.*get",
+        "getDynamicObject.*getString",
+        "getDynamicObject.*getLong"
+      ],
+      "trigger_intents": [
+        "读关联字段",
+        "跨表查询"
+      ],
+      "why_wrong": "用 obj.getDynamicObject(\"emp\").getString(\"name\") 写法触发额外 ORM 加载（先查 emp 实体·再读字段）。批量场景每行触发 N 次查询·性能差 N 倍。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "用点路径 obj.getString(\"emp.name\") · 平台一次性 join 加载 · 批量场景性能提升 N 倍"
+      },
+      "if_user_insists": "可以·但单条查询性能差 · 千万不要在批量循环中用 getDynamicObject。",
+      "evidence_sources": [
+        "hcdm_salarystandard CS-02",
+        "hsas_personchange CS-02"
+      ]
+    },
+    {
+      "id": "AP-016",
+      "pattern": "数据规则不配置·依赖前端隐藏",
+      "trigger_keywords": [
+        "前端隐藏字段",
+        "JS 隐藏数据",
+        "数据隔离前端实现"
+      ],
+      "trigger_intents": [
+        "数据权限",
+        "数据隔离",
+        "权限控制"
+      ],
+      "why_wrong": "前端隐藏 = 形同虚设。用户 F12 / API 直调 / SQL Console 都能绕过。敏感数据（薪酬 / 个税 / 评估）泄漏 = 严重合规事故。",
+      "correct_alternative": {
+        "scene": "hrcs_datarule",
+        "type": "standard_platform",
+        "how_to_use": "用标品数据规则机制（hrcs_datarule + hrcs_dimension）· 在 ORM 层注入 SQL 过滤条件 · 任何调用都自动隔离"
+      },
+      "if_user_insists": "拒绝。敏感数据必须走数据规则·没有讨论余地。",
+      "evidence_sources": [
+        "hrcs_datarule 11md",
+        "hsas_employeetaxcnlist CS-04",
+        "hsbs_salaryitem CS-05"
+      ]
+    },
+    {
+      "id": "AP-017",
+      "pattern": "自建预警推送·不用 hrcs_warnscene",
+      "trigger_keywords": [
+        "发邮件预警",
+        "钉钉推送预警",
+        "自建预警引擎"
+      ],
+      "trigger_intents": [
+        "业务预警",
+        "异常通知",
+        "提醒员工"
+      ],
+      "why_wrong": "苍穹 HR 已有 hrcs_warnscene + hrcs_warnscheme 预警框架·支持多渠道（消息中心 / 邮件 / 钉钉 / 短信）/ 模板配置 / 推送对象解析（按汇报关系）/ 历史日志（hrcs_warnexeclog）。自建失去全部能力。",
+      "correct_alternative": {
+        "scene": "hrcs_warnscene",
+        "type": "standard_platform",
+        "how_to_use": "在 hrcs_warnscene 配预警场景 · hrcs_warnscheme 配推送方案 · ISV 只负责检测异常调 WarnService.trigger(sceneCode, params)"
+      },
+      "if_user_insists": "拒绝。预警平台是 hr_hrmp 云的统一基础设施。",
+      "evidence_sources": [
+        "hrcs_warnscene 11md",
+        "wtte_calresult CS-04"
+      ]
+    },
+    {
+      "id": "AP-018",
+      "pattern": "大量 SaveServiceHelper.save 不分批",
+      "trigger_keywords": [
+        "SaveServiceHelper.save.*批量",
+        "for.*save",
+        "千行保存"
+      ],
+      "trigger_intents": [
+        "批量写入",
+        "批量导入",
+        "批量改值",
+        "一键排班"
+      ],
+      "why_wrong": "一次 SaveServiceHelper.save 上千行 → ORM 内存爆 / DB 锁竞争 / TX 超时。",
+      "correct_alternative": {
+        "scene": "*",
+        "type": "isv_extension_ready",
+        "how_to_use": "用 BatchSaveServiceHelper · 或自己分批（200 行/批·每批独立 TX）· 性能提升 3-5 倍"
+      },
+      "if_user_insists": "可以但有 OOM / 锁等待 / TX 超时风险·业务量大时一定挂。",
+      "evidence_sources": [
+        "wts_rosterview CS-03",
+        "hsas_personchange CS-05"
+      ]
+    },
+    {
+      "id": "AP-019",
+      "pattern": "自写 transferEffectOp / 调动后自动写档案变更（应用 chgaction filemapmanager 配置）",
+      "why_wrong": "苍穹标品有 chgaction 引擎（hpfs_chgaction + filemapmanager）·零代码配置即可实现单据→hrpi 反写。自写 transferEffectOp 等会绕过 chgaction 引擎·跨云协作就断了",
+      "correct_alternative": "用 chgaction 配置：hpfs_chgaction 定义动作 → filemapmanager 配置字段映射 → 触发即自动反写",
+      "if_user_insists": "可写 ISV 扩展 OP·但必须保留 chgaction 入口·并显式注释 ⚠ '已知有 chgaction 标品方案可替代·客户选 ISV 路径'",
+      "trigger_keywords": [
+        "调动后自动生成",
+        "调动写档案",
+        "transferEffectOp",
+        "自动反写档案",
+        "调动后自动",
+        "档案变更记录",
+        "自实现 chgaction"
+      ],
+      "trigger_intents": [
+        "调动",
+        "chgaction",
+        "档案变更"
+      ]
+    },
+    {
+      "id": "AP-021",
+      "pattern": "在 hrpi_employee 主表加 EntryEntity 当人员档案附表",
+      "trigger_keywords": [
+        "hrpi_employee 主表",
+        "hrpi_employee 主表加",
+        "hrpi_employee 加",
+        "hrpi_employee 加分录",
+        "hrpi_employee.entryentity",
+        "主表加 entry",
+        "主表加 entry 分录",
+        "主表加分录",
+        "主表加证书",
+        "主表加证书 entry",
+        "员工主表加 entry",
+        "员工档案加 entry",
+        "在 hrpi_employee",
+        "在 hrpi_employee 主表加",
+        "我要在 hrpi_employee",
+        "我要在 hrpi_employee 主表加",
+        "档案 EntryEntity",
+        "档案加 EntryEntity",
+        "档案附表用 entryentity",
+        "证书 entry 分录"
+      ],
+      "trigger_intents": [
+        "员工档案加附表",
+        "员工档案扩展",
+        "加证书附表",
+        "加体检附表",
+        "加教育附表",
+        "档案附表"
+      ],
+      "why_wrong": "hrpi_employee 是历史版本表（boid/iscurrentversion/bsed/bsled/hisversion）·主表加 EntryEntity 会导致：①每加一行 entry 触发整张档案出新版本·历史链膨胀；②跨云 chgrecord 反写也会带 entry 镜像·影响调动/转正等业务事件；③标品升级 hrpi_employee 模板时 ISV entry 会冲突；④无法用 HR 业务模型工具的'添加至档案视图'统一挂载。苍穹官方做法是新建独立子实体（继承 6 大附表模板之一）。",
+      "correct_alternative": "用 HR 业务模型工具→添加人员附表→选 6 大模板之一（hrpi_employeetpl / employeedialogtpl / employeetimelinetpl / assigntpl / assigndialogtpl / assigntimelinetpl）→自动建独立物理表+视图挂载。详见 PPT03 第 11 节官方案例 + 第 12 节 ISV 决策树。",
+      "if_user_insists": "拒绝。这是数据模型硬规则。如确实需要在主表加分录·必须先确认：a) 数据生命周期跟主档案完全一致；b) 不需要独立查询/审批；c) 标品 hrpi_employee 升级冲突风险用户认可。99% 场景应该走独立子实体。",
+      "evidence_sources": [
+        "docs/PPT03_DEEP_TRACE.md#L108",
+        "docs/PPT03_DEEP_TRACE.md#L239",
+        "docs/PPT03_DEEP_TRACE.md#L276"
+      ]
+    },
+    {
+      "id": "AP-022",
+      "pattern": "基础扩展类需求·跳过 HR 业务模型工具直接 ISV 编码",
+      "trigger_keywords": [
+        "业务对象扩展",
+        "信息扩展",
+        "修改属性",
+        "修改视图",
+        "入职须知",
+        "关联映射",
+        "分录",
+        "加 ",
+        "加 entry",
+        "加一个",
+        "加体检",
+        "加入职须知",
+        "加分录",
+        "加子表",
+        "加字段",
+        "加岗位说明",
+        "加教育",
+        "加注册地址",
+        "加紧急联系人",
+        "加视图",
+        "加证书",
+        "加附表",
+        "加附表的字段",
+        "单据档案映射",
+        "原因明细",
+        "培训记录附表",
+        "字段",
+        "字段映射",
+        "实体属性",
+        "实体扩展",
+        "审批意见",
+        "岗位说明书",
+        "岗位说明书附件字段",
+        "年龄自动计算",
+        "必填",
+        "扩展字段",
+        "改属性",
+        "改视图",
+        "教育经历附表",
+        "显隐",
+        "档案加",
+        "档案扩展",
+        "档案附表",
+        "注册地址字段",
+        "添加一个",
+        "添加分录",
+        "添加字段",
+        "添加附表",
+        "竞业限制",
+        "组织调整申请单加",
+        "职位序列",
+        "职位序列字段",
+        "联动",
+        "自动计算字段",
+        "自定义入职须知字段",
+        "自定义字段",
+        "调整属性",
+        "调整视图",
+        "违约金字段",
+        "附表",
+        "默认值"
+      ],
+      "trigger_intents": [
+        "员工档案加字段",
+        "员工档案加附表",
+        "档案扩展",
+        "行政组织加字段",
+        "组织加字段",
+        "组织加分录",
+        "组织视图调整",
+        "岗位加字段",
+        "职位扩展",
+        "职级配置",
+        "入职单加字段",
+        "调动单加分录",
+        "离职单扩展",
+        "转正单加字段",
+        "兼职单加字段",
+        "合同档案加字段",
+        "合同申请单扩展",
+        "单据档案映射"
+      ],
+      "scope_clouds": [
+        "org_dev",
+        "core_hr",
+        "hr_hrmp",
+        "attendance",
+        "payroll"
+      ],
+      "scope_modules": [
+        "haos_*",
+        "homs_*",
+        "hbpm_*",
+        "hbjm_*",
+        "hrpi_*",
+        "hspm_*",
+        "hpfs_*",
+        "hdm_*",
+        "hlcm_*",
+        "hom_*",
+        "htm_*",
+        "hreg_*",
+        "wtp_*",
+        "wtc_*",
+        "hsbs_*",
+        "hcdm_*",
+        "hsas_*",
+        "swc_*"
+      ],
+      "why_wrong": "苍穹 HR 金字塔决策第 1 层（PPT01:30）= HR 业务模型工具。任何基础扩展（加字段/加附表/加分录/改属性/改视图/字段映射）能力·PPT01 第 5 节按云分组列了完整清单。跳过 = 重复造轮子（标品已包揽建表/历史版本/视图挂载/跨云联动）+ 升级冲突 + 维护成本高。",
+      "correct_alternative": "1) 先读 PPT01:112 第 5 节对照需求是否在能力清单内·2) 在清单内 → 给配置 SOP（业务模型工具菜单路径 + 字段配置表 + 视图挂载步骤 + 业务规则配置）·0 行 Java；3) 不在清单内 → 才进 ISV 编码（继承业务领域专属父类·如 ERManFileCommonAttPlugin / OrgBatchBillEdit / ChgRecordEffectOp 等）",
+      "if_user_insists": "拒绝默认走 ISV 编码。必须先证明：a) PPT01:112 能力清单确实不含该能力；b) 业务规则配置（零代码）也搞不定；c) 用户接受后续标品升级冲突 + 维护成本。三条都满足才进 ISV 编码路径。",
+      "evidence_sources": [
+        "docs/PPT01_DEEP_TRACE.md#L30",
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT02_DEEP_TRACE.md#L215",
+        "docs/PPT03_DEEP_TRACE.md#L276",
+        "docs/PPT05_DEEP_TRACE.md#L200"
+      ]
+    },
+    {
+      "id": "AP-023",
+      "pattern": "新建退休单/借调单/自定义人事单据·跳过 HR 业务模型工具 6 大模板·从零写",
+      "trigger_keywords": [
+        "退休单",
+        "添加退休单",
+        "新建退休单",
+        "退休办理单",
+        "退休管理",
+        "借调单",
+        "外派单",
+        "停薪留职单",
+        "自定义人事单据",
+        "新建人事单据",
+        "做一个人事单据",
+        "新增单据",
+        "新建单据",
+        "做单据",
+        "我要做一个",
+        "我要添加一个",
+        "我要新建一个",
+        "做退休管理",
+        "做退休"
+      ],
+      "trigger_intents": [
+        "新建人事单据",
+        "退休单",
+        "借调单"
+      ],
+      "why_wrong": "苍穹标品没有专门的'退休单/借调单'·但 HR 业务模型工具提供 6 大可继承通用模板（PPT01:160）：hbp_bd_tpl_all / hbp_bd_tpl_dlg / hbp_bd_orgtpl_all / hbp_bd_orgtpl_dlg / hbp_bd_timelinemintpl / hbp_histimeseqtpl。新建任何人事单据应优先继承这 6 模板·不要从零写实体（会缺审计字段/历史版本/BU 控制等基础设施）。",
+      "correct_alternative": "用苍穹开发平台 → BOS 设计器 → 新建实体 → 继承 6 大 HR 模板之一：①审批型人事单据（如退休/借调）→ 继承 hbp_histimeseqtpl 或 hbp_bd_orgtpl_all（按 BU 受控）；②简单字典 → hbp_bd_tpl_dlg；③时间轴控制 → hbp_bd_timelinemintpl。模板会自动带技术审计字段（创建人/创建时间/修改人/修改时间）+ 历史版本 + BU 受控。详见 PPT01:160 第 6 节。",
+      "if_user_insists": "拒绝从零写实体。先评估 6 大模板中哪个最合适·实在不合适才考虑继承平台基础模板。",
+      "evidence_sources": [
+        "docs/PPT01_DEEP_TRACE.md#L160",
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ]
+    },
+    {
+      "id": "AP-024",
+      "pattern": "选了 HR 导入导出（HIES-Pro）后·没给具体的导入导出模板配置 SOP",
+      "trigger_keywords": [
+        "HIES 导入",
+        "HR 实体导入",
+        "HR 导入导出",
+        "加导入功能",
+        "加批量导入",
+        "员工批量导入",
+        "导入功能",
+        "导入导出模板",
+        "导入模板配置",
+        "已选 HR 导入导出",
+        "我要给组织调整单加导入",
+        "我要给组织调整单加批量",
+        "批量导入",
+        "批量导入功能",
+        "批量导入扩展",
+        "档案批量导入",
+        "组织批量导入",
+        "组织调整单加批量导入",
+        "组织调整单批量",
+        "走 HIES"
+      ],
+      "trigger_intents": [
+        "组织批量导入",
+        "数据导入导出",
+        "HR 实体导入"
+      ],
+      "why_wrong": "选 HIES-Pro 后·必须给完整的 4 步配置 SOP：①扩展点配置 hies_diaesysparam 注册业务对象 / ②模板配置 hies_diaetplconf 定义字段映射 / ③HR 业务模型工具'通用配置'菜单挂导入按钮 / ④运行时 hies_taskinfo 监控任务。仅说'用 HIES-Pro' = 没落地·客户依然不会用。",
+      "correct_alternative": "走 hies_entity_import 场景的 06_customization_solutions.md 的 CS-00 完整 SOP（v1.0.3 加）·必须含：①hies_diaesysparam 注册步骤 / ②hies_diaetplconf 模板字段映射 / ③HR 业务模型工具配置导入按钮 / ④hies_taskinfo 监控任务。",
+      "if_user_insists": "强制要求出 4 步 SOP·不允许只丢一句'用 HIES-Pro'。",
+      "evidence_sources": [
+        "knowledge/scenarios/hies_entity_import/06_customization_solutions.md",
+        "knowledge/scenarios/hies_diaesysparam/scene_doc_lite.json",
+        "knowledge/scenarios/hies_diaetplconf/scene_doc_lite.json"
+      ]
+    },
+    {
+      "id": "AP-025",
+      "pattern": "新建人事单据·模板选择不按 PPT01:155 三档铁律（业务领域 → hbp 通用 → 平台基础）",
+      "trigger_keywords": [
+        "继承 hbp_bd_tpl_all 做单据",
+        "继承 hbp_histimeseqtpl 做单据",
+        "新建单据 直接选 hbp",
+        "新建单据 直接 hbp",
+        "退休单 不评估 chgaction",
+        "退休单 不评估 标品",
+        "无视模板继承顺序",
+        "跳过业务领域模板",
+        "选择继承模板.*hbp_histimeseqtpl",
+        "推荐模板.*hbp_histimeseqtpl",
+        "继承 hbp_histimeseqtpl",
+        "选择 hbp_histimeseqtpl",
+        "不评估 chgaction",
+        "不评估 第.档",
+        "不检查 第.档"
+      ],
+      "trigger_intents": [
+        "新建人事单据",
+        "退休单",
+        "调动单",
+        "入职单"
+      ],
+      "why_wrong": "PPT01:155 模板继承铁律是【3 档优先级】：①业务领域专属（hpfs_*/htm_quit/hom_onboard）→②hbp 通用 6 大模板（hbp_bd_*/hbp_histimeseqtpl）→③平台基础。错的不是'用 hbp_histimeseqtpl 做退休单'本身（这是合法的第②档兜底）·错的是【跳过第①档评估·或不评估 chgaction 等替代路径】。LLM 不能简化成'退休单 = hbp_histimeseqtpl'·要按完整决策树走。",
+      "correct_alternative": "1) 先评估 chgaction 路径（人员变动事件·标品 hpfs_chgaction 配置）·2) 评估业务领域专属模板是否存在（如苍穹是否有退休单领域模板·当前没有则跳）·3) 评估扩展标品同类单据（如 htm_quit 离职单·若退休本质是离职变种）·4) 都不合适才用 hbp 6 大通用模板（hbp_histimeseqtpl 适合需要历史版本的人事档案/单据·这是合法选择）·5) 配合 chgaction + 业务规则平台 + 工作流·全 0 代码",
+      "if_user_insists": "用户坚持选 hbp_histimeseqtpl 时·不需要拒绝（合法）·但要确认 1-3 档已评估过·避免 LLM 简化推理。",
+      "evidence_sources": [
+        "docs/PPT01_DEEP_TRACE.md#L141",
+        "docs/PPT01_DEEP_TRACE.md#L155",
+        "docs/PPT01_DEEP_TRACE.md#L160"
+      ]
+    },
+    {
+      "id": "AP-026",
+      "pattern": "业务规则平台公式·LLM 凭空给函数名（YEARFRAC / DATEDIF 等 Excel 函数）",
+      "trigger_keywords": [
+        "YEARFRAC",
+        "DATEDIF",
+        "DATEDIFF",
+        "业务规则公式",
+        "公式引擎",
+        "退休时年龄 = ",
+        "退休时年龄 =",
+        "退休时年龄=",
+        "周岁计算公式",
+        "苍穹公式引擎语法",
+        "DATEDIF(",
+        "YEARFRAC(",
+        "YEAR({ISV}_",
+        "DATE({ISV}_",
+        "MONTH({ISV}_",
+        "IF({ISV}_",
+        "计算字段=YEAR"
+      ],
+      "trigger_intents": [],
+      "why_wrong": "苍穹业务规则平台的公式引擎函数清单·**当前知识包没沉淀**·LLM 给的 YEARFRAC / DATEDIF / YEAR / DATE / MONTH / IF 等任何具体函数名都是 Excel 函数或编造的·苍穹公式引擎不是 Excel·函数名可能完全不同·甚至可能不支持文本公式（只支持可视化拖拽）。给客户假函数名 = 客户配进去发现报错·信任崩塌。",
+      "correct_alternative": "绝不写任何具体函数名——包括 YEAR/MONTH/IF 等看似'常见'的函数也不行。告诉客户：'去苍穹业务规则平台 → 公式编辑器 → 点击插入函数按钮·查看当前环境实际支持的函数列表'。只描述业务逻辑（如'计算出生日期到退休日期的周岁差值'），不描述语法。用自然语言写校验条件（如'如果男性且退休时年龄不足法定值则阻断'），让客户用自己的公式编辑器实现。",
+      "if_user_insists": "再次强调函数清单需在客户环境核实·skill 不能保证语法准确。",
+      "evidence_sources": []
+    },
+    {
+      "id": "AP-027",
+      "pattern": "退休年龄校验硬编码 60/55/50·没考虑 2025 渐进式延迟退休政策",
+      "trigger_keywords": [
+        "男性 60 周岁",
+        "女干部 55 周岁",
+        "女工人 50 周岁",
+        "法定退休年龄 60",
+        "法定退休年龄 55",
+        "法定退休年龄 50",
+        "退休年龄阈值",
+        "退休年龄 60",
+        "退休年龄 55",
+        "退休年龄 50",
+        "年龄 < 60",
+        "年龄 < 55",
+        "年龄 < 50",
+        "退休时年龄 <",
+        "当前退休日期时年龄不足",
+        "AND 退休时年龄"
+      ],
+      "trigger_intents": [
+        "退休单",
+        "退休管理"
+      ],
+      "why_wrong": "中国 2025 起开始渐进式延迟退休·**不是固定阈值 60/55/50**·真实需要按出生年月查表（每年延几个月）。LLM 给客户简化承诺'修改阈值数字即可'是错的。",
+      "correct_alternative": "建议客户用基础资料表存'出生年代 → 退休年龄'映射表·按员工出生年代查表得出对应退休年龄·这样政策变化时只改基础资料数据·不改公式。或显式标注'当前规则按 60/55/50 简化·政策更新时需调整'让客户知情。",
+      "if_user_insists": "提醒客户后果·写在交付物里。",
+      "evidence_sources": []
+    },
+    {
+      "id": "AP-028",
+      "pattern": "看资产模板里 new Object[]{...,null} 调用·脑补 null 参数类型",
+      "trigger_keywords": [
+        "selectFields=null",
+        "selectFields = null",
+        "String selectFields",
+        "脑补参数类型",
+        "new Object[]",
+        "invokeHRMPService",
+        "invokeMservice"
+      ],
+      "trigger_intents": [],
+      "why_wrong": "资产模板里很多 `new Object[]{...}` 调用·参数全 null·LLM 看不出真实类型容易脑补错。最经典案例：`querySubOrgToList(List<Long>, Date, null)` 第 3 参数实际是 `Integer level`（层级·null=所有层级）·LLM 脑补成 `String selectFields`（字段过滤）完全错。客户照搬到代码里·编译器不报错（Object[]）·但运行时类型转换异常。",
+      "correct_alternative": "1) 优先查接口反编译 `_sdk_audit/_decompiled/` 里的 `*ServiceImpl.java` 拿真实签名 / 2) 查 `curated_sdk.json` 卡片的 signature 字段 / 3) 都没有时·明确告诉客户'此处第 N 参数类型未在知识包·请查接口源码确认'·不要脑补",
+      "if_user_insists": "强制要求 LLM 给真实类型证据（反编译 file:line 或 SDK 文档引用）·不许凭印象。",
+      "evidence_sources": [
+        "knowledge/scenarios/admin_org_quick_maintenance/curated_sdk.json"
+      ]
+    }
+  ]
+}

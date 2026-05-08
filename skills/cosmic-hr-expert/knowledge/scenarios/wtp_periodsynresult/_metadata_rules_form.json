@@ -1,0 +1,431 @@
+{
+  "formId": "wtp_periodsynresult",
+  "formName": null,
+  "sceneId": "wtp_periodsynresult",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1EJ2BFSE71/I",
+  "bizappId": "1O9FOLRY18YW",
+  "metaIdTechnical": "3FWT7CHRAU0X",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtp_periodsynresult",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtp_periodsynresult.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtp_periodsynresult",
+      "type": "BaseEntity",
+      "title": "期间同步日志",
+      "physicalTable": null,
+      "fieldCount": 12
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "同步状态为未执行",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#999999"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3G+EHLF5MR8A"
+        }
+      },
+      "Id": "3G+=UMASV6HV",
+      "PreCondition": "synstatus = 'NOTEXECUTE'"
+    },
+    {
+      "PreDescription": "同步状态为执行中",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#276FF5"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3G+EHLF5MRXK"
+        }
+      },
+      "Id": "3G+ED9496CKU",
+      "PreCondition": "synstatus = 'RUNNING'"
+    },
+    {
+      "PreDescription": "同步状态为成功",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#1BA854"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3G+EHLF5MR8B"
+        }
+      },
+      "Id": "3G+ED9496D92",
+      "PreCondition": "synstatus = 'SUCCESS'"
+    },
+    {
+      "PreDescription": "同步状态为失败",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FB2323"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3G+EHLF5MRXL"
+        }
+      },
+      "Id": "3G+ED9496CKV",
+      "PreCondition": "synstatus = 'ERROR'"
+    },
+    {
+      "PreDescription": "同步状态为部分成功",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FF991C"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3G+EHLF5MR8C"
+        }
+      },
+      "Id": "3G+ED9496D93",
+      "PreCondition": "synstatus = 'HALF'"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "creator": {
+      "fieldId": "3X816otBRR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtp_periodsynresult",
+      "title": "创建人",
+      "physicalColumn": "t_wtp_periodsynresult.fcreatorid",
+      "_fieldApId": "3X816otBRR"
+    },
+    "createtime": {
+      "fieldId": "lCmI2nVrvR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "创建时间",
+      "physicalColumn": "t_wtp_periodsynresult.fcreatetime",
+      "_fieldApId": "lCmI2nVrvR"
+    },
+    "modifier": {
+      "fieldId": "zfe0nVqnP7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wtp_periodsynresult",
+      "title": "修改人",
+      "physicalColumn": "t_wtp_periodsynresult.fmodifierid",
+      "_fieldApId": "zfe0nVqnP7"
+    },
+    "modifytime": {
+      "fieldId": "1h2H10Ktua",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "修改时间",
+      "physicalColumn": "t_wtp_periodsynresult.fmodifytime",
+      "_fieldApId": "1h2H10Ktua"
+    },
+    "initdatasource": {
+      "fieldId": "ssudmMLrFI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "ssudmMLrFI"
+    },
+    "org": {
+      "fieldId": "AUXvuzZB3W",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtp_periodsynresult",
+      "title": "考勤管理组织",
+      "physicalColumn": "t_wtp_periodsynresult.forg",
+      "_fieldApId": "AUXvuzZB3W"
+    },
+    "synstatus": {
+      "fieldId": "g5QLvV47x3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "同步状态",
+      "physicalColumn": "t_wtp_periodsynresult.fsynstatus",
+      "_fieldApId": "g5QLvV47x3"
+    },
+    "periodsyntask": {
+      "fieldId": "Gbp26ygnxr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_periodtask",
+      "entity": "wtp_periodsynresult",
+      "title": "期间同步任务",
+      "physicalColumn": "t_wtp_periodsynresult.fperiodsyntaskid",
+      "_fieldApId": "Gbp26ygnxr"
+    },
+    "number": {
+      "fieldId": "hFQtGjlHaG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "任务号",
+      "physicalColumn": "t_wtp_periodsynresult.fnumber",
+      "_fieldApId": "hFQtGjlHaG"
+    },
+    "startdate": {
+      "fieldId": "PdpdwAf7rW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "开始日期",
+      "physicalColumn": "t_wtp_periodsynresult.fstartdate",
+      "_fieldApId": "PdpdwAf7rW"
+    },
+    "enddate": {
+      "fieldId": "MyaaTLyuu2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "结束日期",
+      "physicalColumn": "t_wtp_periodsynresult.fenddate",
+      "_fieldApId": "MyaaTLyuu2"
+    },
+    "costtime": {
+      "fieldId": "O2qecEha7s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtp_periodsynresult",
+      "title": "耗时",
+      "physicalColumn": "—",
+      "_fieldApId": "O2qecEha7s"
+    }
+  },
+  "requiredFields": {
+    "wtp_periodsynresult": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0NKB12K4VH2O_4ZMOdMlW",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_XEUgcbXJ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "3FWT7CHRAU0X_3B3aJLzO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0NKB12K4VH2O_list_vGsmSsP2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_list_bsYnUZEm",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "3FWT7CHRAU0X_list_yJSRMYUA",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.prompt.WTCTipsPlugin",
+      "Description": "提示语插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtp.formplugin.web.attperiod.PerAttPeriodSynResultList",
+      "Description": "期间同步日志列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:34",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 12,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 5,
+        "jsPlugins_count": 6,
+        "formPlugins_count": 8
+      }
+    }
+  ]
+}

@@ -1,0 +1,715 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import com.google.common.collect.ImmutableBiMap;
+import kd.bos.bill.AbstractMobBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.form.cardentry.CardEntry;
+import kd.bos.form.control.Label;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QFilter;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import ${ISV_FLAG}.odc.homs.utils.DynamicObjectUtils;
+import ${ISV_FLAG}.odc.homs.utils.OrgBatchBillInfoHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author ningjie
+ * @version 1.0
+ * @description: 组织调整单移动端插件（${ISV_FLAG}_orgbatchchgmobile）
+ * @date 2025/8/12 9:52
+ */
+public class AdminOrgShowMobBillPlugin extends AbstractMobBillPlugIn {
+
+    private static final Log Logger = LogFactory.getLog(AdminOrgShowMobBillPlugin.class);
+
+    //变动类型为haos_orgchangetype实体中的数据
+    private List<OrgChgBillMobileBo> entryType2ChangeType = new ArrayList() {
+        {
+            this.add(new OrgChgBillMobileBo("${ISV_FLAG}_add", "entryentity_add", "1010_S"));
+            this.add(new OrgChgBillMobileBo("${ISV_FLAG}_parent", "entryentity_parent", "1020_S"));
+            this.add(new OrgChgBillMobileBo("${ISV_FLAG}_info", "entryentity_info", "1030_S"));
+            this.add(new OrgChgBillMobileBo("${ISV_FLAG}_disable", "entryentity_disable", "1040_S"));
+        }
+    };
+
+
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        this.updateTabPageText();
+    }
+
+
+    /**
+     * @description: 渲染卡片分录数据
+     * @param: []
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 10:21
+     */
+    private void updateTabPageText() {
+
+        Long billId = this.getModel().getDataEntity().getLong("id");
+        QFilter billIdFilter = new QFilter("billid", "=", billId);
+        Set<String> changeTypeNumberSet = entryType2ChangeType.stream().map(OrgChgBillMobileBo::getChangeTypeNumber).collect(Collectors.toSet());
+        QFilter changeTypeFilter = new QFilter("changetype.number", "in", changeTypeNumberSet);
+        HRBaseServiceHelper batchOrgEntityHelper = new HRBaseServiceHelper("homs_batchorgentity");
+        //查询当前单据且在需要展示的变动类型数据
+        DynamicObject[] batchOrgEntryEntityDynArr = batchOrgEntityHelper.loadDynamicObjectArray(new QFilter[]{billIdFilter, changeTypeFilter});
+        if (ObjectUtils.isEmpty(batchOrgEntryEntityDynArr)) return;
+
+        Map<String, List<DynamicObject>> entryMap =
+                Arrays.stream(batchOrgEntryEntityDynArr).collect(Collectors.groupingBy(data -> data.getString("changetype.number")));
+
+        entryType2ChangeType.stream().forEach(data -> {
+            List<DynamicObject> entryData = entryMap.get(data.getChangeTypeNumber());
+            dealChangeTypeData(data, entryData);
+        });
+
+    }
+
+    /**
+     * @description: 数据处理
+     * @param: [orgChgBillMobileBo, entryData]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 10:40
+     */
+    private void dealChangeTypeData(OrgChgBillMobileBo orgChgBillMobileBo, List<DynamicObject> entryData) {
+        //如果此类型分录数据为空，则隐藏此分录，如果有数据则显示
+        this.getView().setVisible(!ObjectUtils.isEmpty(entryData), orgChgBillMobileBo.getContentFlexCoin());
+
+        if (ObjectUtils.isEmpty(entryData)) return;
+        //渲染各个变动类型分录数据
+        switch (orgChgBillMobileBo.changeTypeNumber) {
+            //新增
+            case "1010_S":
+                this.showAddEntryData(orgChgBillMobileBo, entryData);
+                break;
+            //调整上级
+            case "1020_S":
+                this.showParentEntryData(orgChgBillMobileBo, entryData);
+                break;
+            //信息变更
+            case "1030_S":
+                this.showInfoEntryData(orgChgBillMobileBo, entryData);
+                break;
+            //禁用
+            case "1040_S":
+                this.showDisabledEntryData(orgChgBillMobileBo, entryData);
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    /**
+     * @description: 展示组织新增分录数据
+     * @param: [orgChgBillMobileBo, entryData]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 14:35
+     */
+    private void showAddEntryData(OrgChgBillMobileBo orgChgBillMobileBo, List<DynamicObject> entryData) {
+
+        CardEntry cardEntry = this.getControl(orgChgBillMobileBo.getEntryCoin());
+
+        //设置分录title中的数量值
+        Label titleLabel = this.getControl("${ISV_FLAG}_addlablenum");
+        titleLabel.setText("（" + entryData.size() + "）");
+
+        entryData.stream().forEach(dynamicObject -> {
+
+            int index = this.getModel().createNewEntryRow(orgChgBillMobileBo.getEntryCoin());
+
+            this.getModel().setValue("add_name", dynamicObject.getString("name"), index);
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_add_number", ImmutableBiMap.of("text", dynamicObject.getString("number")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_add_adminorgtype", ImmutableBiMap.of("text", dynamicObject.getString("adminorgtype") == null ? "-" : dynamicObject.getString("adminorgtype.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_add_parentorg", ImmutableBiMap.of("text", dynamicObject.getString("parentorg") == null ? "-" : dynamicObject.getString("parentorg.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_add_establishmentdat", ImmutableBiMap.of("text", dynamicObject.getString("establishmentdate") == null ? "-" : dynamicObject.getString("establishmentdate")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_add_changedescriptio", ImmutableBiMap.of("text", dynamicObject.getString("changedescription") == null ? "-" : dynamicObject.getString("changedescription")));
+
+        });
+
+    }
+
+    /**
+     * @description: 展示调整上级分录信息
+     * @param: [orgChgBillMobileBo, entryData]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 14:36
+     */
+    private void showParentEntryData(OrgChgBillMobileBo orgChgBillMobileBo, List<DynamicObject> entryData) {
+
+        CardEntry cardEntry = this.getControl(orgChgBillMobileBo.getEntryCoin());
+
+        //设置分录title中的数量值
+        Label titleLabel = this.getControl("${ISV_FLAG}_parentlablenum");
+        titleLabel.setText("（" + entryData.size() + "）");
+
+        // 查询所有组织当前版本对应的历史版本id
+        Set<Long> orgHisDataIdSet = entryData.stream().map(data -> data.getLong("${ISV_FLAG}_chgsourcevid")).collect(Collectors.toSet());
+        DynamicObject[] orgDataArr = OrgBatchBillInfoHelper.getAllDataByIdSet(orgHisDataIdSet);
+        Map<Long, DynamicObject> hisOrgMap =
+                Arrays.stream(orgDataArr).collect(Collectors.toMap(data -> data.getLong("id"), data -> data, (v1, v2) -> v2));
+
+
+        entryData.stream().forEach(dynamicObject -> {
+
+            int index = this.getModel().createNewEntryRow(orgChgBillMobileBo.getEntryCoin());
+
+            this.getModel().setValue("parent_name", dynamicObject.getString("name"), index);
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_number", ImmutableBiMap.of("text", dynamicObject.getString("number")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_adminorgtype", ImmutableBiMap.of("text", dynamicObject.getString("adminorgtype") == null ? "-" : dynamicObject.getString("adminorgtype.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_parentorg", ImmutableBiMap.of("text", dynamicObject.getString("parentorg") == null ? "-" : dynamicObject.getString("parentorg.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_establishment", ImmutableBiMap.of("text", dynamicObject.getString("establishmentdate") == null ? "-" : dynamicObject.getString("establishmentdate")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_changedescrip", ImmutableBiMap.of("text", dynamicObject.getString("changedescription") == null ? "-" : dynamicObject.getString("changedescription")));
+
+            Long vId = dynamicObject.getLong("${ISV_FLAG}_chgsourcevid");
+            if (hisOrgMap.get(vId) == null) return;
+            DynamicObject org = hisOrgMap.get(vId);
+
+            //展示变更前后对比信息
+            showParentChgEntryData(cardEntry, index, dynamicObject, org);
+
+        });
+
+    }
+
+    /**
+     * @description: 展示信息变更分录数据
+     * @param: [orgChgBillMobileBo, entryData]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 14:36
+     */
+    private void showInfoEntryData(OrgChgBillMobileBo orgChgBillMobileBo, List<DynamicObject> entryData) {
+
+        CardEntry cardEntry = this.getControl(orgChgBillMobileBo.getEntryCoin());
+
+        //设置分录title中的数量值
+        Label titleLabel = this.getControl("${ISV_FLAG}_infolablenum");
+        titleLabel.setText("（" + entryData.size() + "）");
+
+        // 查询所有组织当前版本对应的历史版本id
+        Set<Long> orgHisDataIdSet = entryData.stream().map(data -> data.getLong("${ISV_FLAG}_chgsourcevid")).collect(Collectors.toSet());
+        DynamicObject[] orgDataArr = OrgBatchBillInfoHelper.getAllDataByIdSet(orgHisDataIdSet);
+        Map<Long, DynamicObject> hisOrgMap =
+                Arrays.stream(orgDataArr).collect(Collectors.toMap(data -> data.getLong("id"), data -> data, (v1, v2) -> v2));
+
+        entryData.stream().forEach(dynamicObject -> {
+
+            int index = this.getModel().createNewEntryRow(orgChgBillMobileBo.getEntryCoin());
+
+            this.getModel().setValue("info_name", dynamicObject.getString("name"), index);
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_number", ImmutableBiMap.of("text", dynamicObject.getString("number")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_parentorg", ImmutableBiMap.of("text", dynamicObject.getString("parentorg") == null ? "-" : dynamicObject.getString("parentorg.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_changedescrip", ImmutableBiMap.of("text", dynamicObject.getString("changedescription") == null ? "-" : dynamicObject.getString("changedescription")));
+
+            Long vId = dynamicObject.getLong("${ISV_FLAG}_chgsourcevid");
+            if (hisOrgMap.get(vId) == null) return;
+            DynamicObject org = hisOrgMap.get(vId);
+
+            //展示变更前后对比信息
+            showInfoChgEntryData(cardEntry, index, dynamicObject, org);
+
+        });
+    }
+
+    /**
+     * @description: 展示组织禁用分录数据
+     * @param: [orgChgBillMobileBo, entryData]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/12 14:36
+     */
+    private void showDisabledEntryData(OrgChgBillMobileBo orgChgBillMobileBo, List<DynamicObject> entryData) {
+
+        CardEntry cardEntry = this.getControl(orgChgBillMobileBo.getEntryCoin());
+
+        //设置分录title中的数量值
+        Label titleLabel = this.getControl("${ISV_FLAG}_disablelablenum");
+        titleLabel.setText("（" + entryData.size() + "）");
+
+        entryData.stream().forEach(dynamicObject -> {
+
+            int index = this.getModel().createNewEntryRow(orgChgBillMobileBo.getEntryCoin());
+
+            this.getModel().setValue("disable_name", dynamicObject.getString("name"), index);
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_disable_number", ImmutableBiMap.of("text", dynamicObject.getString("number")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_disable_adminorgtype", ImmutableBiMap.of("text", dynamicObject.getString("adminorgtype") == null ? "-" : dynamicObject.getString("adminorgtype.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_disable_parentorg", ImmutableBiMap.of("text", dynamicObject.getString("parentorg") == null ? "-" : dynamicObject.getString("parentorg.name")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_disable_establishmen", ImmutableBiMap.of("text", dynamicObject.getString("establishmentdate") == null ? "-" : dynamicObject.getString("establishmentdate")));
+
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_disable_changedescri", ImmutableBiMap.of("text", dynamicObject.getString("changedescription") == null ? "-" : dynamicObject.getString("changedescription")));
+
+        });
+    }
+
+    private void addCardEntryData(CardEntry cardEntry, int index, String dataKey, Map<String, Object> dataVal) {
+        Map mapNewNumber = new HashMap<>();
+        mapNewNumber.put(dataKey, dataVal);
+        cardEntry.setCustomProperties(cardEntry.getKey(), index, mapNewNumber);
+    }
+
+    private void showInfoChgEntryData(CardEntry cardEntry, int index, DynamicObject dynamicObject, DynamicObject org) {
+
+        //名称
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("name"), org.getString("name"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_name_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_name_b", ImmutableBiMap.of("text", org.getString("name") == null ? "-" : org.getString("name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_name_a", ImmutableBiMap.of("text", dynamicObject.getString("name") == null ? "-" : dynamicObject.getString("name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_name_card");
+        }
+
+        //编码
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("number"), org.getString("number"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_number_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_number_b", ImmutableBiMap.of("text", org.getString("number") == null ? "-" : org.getString("number")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_number_a", ImmutableBiMap.of("text", dynamicObject.getString("number") == null ? "-" : dynamicObject.getString("number")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_number_card");
+        }
+
+        //简称
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("simplename"), org.getString("simplename"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_sname_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_sname_b", ImmutableBiMap.of("text", org.getString("name") == null ? "-" : org.getString("name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_sname_a", ImmutableBiMap.of("text", dynamicObject.getString("name") == null ? "-" : dynamicObject.getString("name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_sname_card");
+        }
+
+        //组织类型
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorgtype"), org.getDynamicObject("adminorgtype"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_orgtype_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_orgtype_b", ImmutableBiMap.of("text", org.getString("adminorgtype") == null ? "-" : org.getString("adminorgtype.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_orgtype_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorgtype") == null ? "-" : dynamicObject.getString("adminorgtype.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_orgtype_card");
+        }
+
+        //成立日期
+        if (!DynamicObjectUtils.compareDateField(dynamicObject.getDate("establishmentdate"), org.getDate("establishmentdate"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_esdate_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_esdate_b", ImmutableBiMap.of("text",
+                    org.getString("establishmentdate") == null ? "-" : HRDateTimeUtils.format(org.getDate("establishmentdate"), HRDateTimeUtils.YYYY_MM_DD)));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_esdate_a", ImmutableBiMap.of("text", dynamicObject.getString("establishmentdate") == null ? "-" :
+                    HRDateTimeUtils.format(dynamicObject.getDate("establishmentdate"), HRDateTimeUtils.YYYY_MM_DD)));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_esdate_card");
+        }
+
+        //法律实体
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("corporateorg"), org.getDynamicObject("corporateorg"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_coorg_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_coorg_b", ImmutableBiMap.of("text", org.getString("corporateorg") == null ? "-" : org.getString("corporateorg.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_coorg_a", ImmutableBiMap.of("text", dynamicObject.getString("corporateorg") == null ? "-" : dynamicObject.getString("corporateorg.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_coorg_card");
+        }
+
+        //所属公司
+//        if(!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("belongcompany"),org.getDynamicObject("belongcompany"))){
+//            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_belongcom_card");
+//            addCardEntryData(cardEntry,index ,"${ISV_FLAG}_info_belongcom_b",ImmutableBiMap.of("text",org.getString("belongcompany.name")==null?"-":org.getString("belongcompany.name")));
+//            addCardEntryData(cardEntry,index ,"${ISV_FLAG}_info_belongcom_a",ImmutableBiMap.of("text",dynamicObject.getString("belongcompany.name")==null?"-":dynamicObject.getString("belongcompany.name")));
+//        }else{
+//            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_belongcom_card");
+//        }
+
+        //组织层级
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorglayer"), org.getDynamicObject("adminorglayer"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_orglayer_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_orglayer_b", ImmutableBiMap.of("text", org.getString("adminorglayer") == null ? "-" : org.getString("adminorglayer.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_orglayer_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorglayer") == null ? "-" : dynamicObject.getString("adminorglayer.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_orglayer_card");
+        }
+
+        //组织职能
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorgfunction"), org.getDynamicObject("adminorgfunction"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_aorgfunc_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_aorgfunc_b", ImmutableBiMap.of("text", org.getString("adminorgfunction") == null ? "-" : org.getString("adminorgfunction.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_aorgfunc_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorgfunction") == null ? "-" : dynamicObject.getString("adminorgfunction.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_aorgfunc_card");
+        }
+
+        //行业类别
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("industrytype"), org.getDynamicObject("industrytype"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_industype_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_industype_b", ImmutableBiMap.of("text", org.getString("industrytype") == null ? "-" : org.getString("industrytype.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_industype_a", ImmutableBiMap.of("text", dynamicObject.getString("industrytype") == null ? "-" : dynamicObject.getString("industrytype.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_industype_card");
+        }
+
+        //国家地区
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("companyarea"), org.getDynamicObject("companyarea"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_comarea_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_comarea_b", ImmutableBiMap.of("text", org.getString("companyarea") == null ? "-" : org.getString("companyarea.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_comarea_a", ImmutableBiMap.of("text", dynamicObject.getString("companyarea") == null ? "-" : dynamicObject.getString("companyarea.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_comarea_card");
+        }
+
+        //城市
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("city"), org.getDynamicObject("city"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_city_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_city_b", ImmutableBiMap.of("text", org.getString("city") == null ? "-" : org.getString("city.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_city_a", ImmutableBiMap.of("text", dynamicObject.getString("city") == null ? "-" : dynamicObject.getString("city.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_city_card");
+        }
+
+        //工作地
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("workplace"), org.getDynamicObject("workplace"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_workplace_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_workplace_b", ImmutableBiMap.of("text", org.getString("workplace") == null ? "-" : org.getString("workplace.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_workplace_a", ImmutableBiMap.of("text", dynamicObject.getString("workplace") == null ? "-" : dynamicObject.getString("workplace.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_workplace_card");
+        }
+
+        //详细地址
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("detailaddress"), org.getString("detailaddress"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_deaddr_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_deaddr_b", ImmutableBiMap.of("text", org.getString("detailaddress") == null ? "-" : org.getString("detailaddress")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_deaddr_a", ImmutableBiMap.of("text", dynamicObject.getString("detailaddress") == null ? "-" : dynamicObject.getString("detailaddress")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_deaddr_card");
+        }
+
+        //描述
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("description"), org.getString("description"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_desc_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_desc_b", ImmutableBiMap.of("text", org.getString("description") == null ? "-" : org.getString("description")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_desc_a", ImmutableBiMap.of("text", dynamicObject.getString("description") == null ? "-" : dynamicObject.getString("description")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_desc_card");
+        }
+
+        //排序号
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("index"), org.getString("index"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_index_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_index_b", ImmutableBiMap.of("text", org.getString("index") == null ? "-" : org.getString("index")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_index_a", ImmutableBiMap.of("text", dynamicObject.getString("index") == null ? "-" : dynamicObject.getString("index")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_index_card");
+        }
+
+        //定位
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("positioning"), org.getString("positioning"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_posing_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_posing_b", ImmutableBiMap.of("text", org.getString("positioning") == null ? "-" : org.getString("positioning")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_posing_a", ImmutableBiMap.of("text", dynamicObject.getString("positioning") == null ? "-" : dynamicObject.getString("positioning")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_posing_card");
+        }
+
+        //主要职责
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("mainduty"), org.getString("mainduty"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_info_mainduty_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_mainduty_b", ImmutableBiMap.of("text", org.getString("mainduty") == null ? "-" : org.getString("mainduty")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_info_mainduty_a", ImmutableBiMap.of("text", dynamicObject.getString("mainduty") == null ? "-" : dynamicObject.getString("mainduty")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_info_mainduty_card");
+        }
+
+
+    }
+
+    private void showParentChgEntryData(CardEntry cardEntry, int index, DynamicObject dynamicObject, DynamicObject org) {
+
+        //上级组织
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("parentorg"), org.getDynamicObject("parentorg"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_porg_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_porg_b", ImmutableBiMap.of("text", org.getString("parentorg") == null ? "-" : org.getString("parentorg.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_porg_a", ImmutableBiMap.of("text", dynamicObject.getString("parentorg") == null ? "-" : dynamicObject.getString("parentorg.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_porg_card");
+        }
+
+        //名称
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("name"), org.getString("name"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_name_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_name_b", ImmutableBiMap.of("text", org.getString("name") == null ? "-" : org.getString("name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_name_a", ImmutableBiMap.of("text", dynamicObject.getString("name") == null ? "-" : dynamicObject.getString("name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_name_card");
+        }
+
+        //编码
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("number"), org.getString("number"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_number_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_number_b", ImmutableBiMap.of("text", org.getString("number") == null ? "-" : org.getString("number")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_number_a", ImmutableBiMap.of("text", dynamicObject.getString("number") == null ? "-" : dynamicObject.getString("number")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_number_card");
+        }
+
+        //简称
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("simplename"), org.getString("simplename"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_sname_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_sname_b", ImmutableBiMap.of("text", org.getString("name") == null ? "-" : org.getString("name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_sname_a", ImmutableBiMap.of("text", dynamicObject.getString("name") == null ? "-" : dynamicObject.getString("name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_sname_card");
+        }
+
+        //组织类型
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorgtype"), org.getDynamicObject("adminorgtype"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_orgtype_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_orgtype_b", ImmutableBiMap.of("text", org.getString("adminorgtype") == null ? "-" : org.getString("adminorgtype.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_orgtype_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorgtype") == null ? "-" : dynamicObject.getString("adminorgtype.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_orgtype_card");
+        }
+
+        //成立日期
+        if (!DynamicObjectUtils.compareDateField(dynamicObject.getDate("establishmentdate"), org.getDate("establishmentdate"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_esdate_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_esdate_b", ImmutableBiMap.of("text",
+                    org.getString("establishmentdate") == null ? "-" : HRDateTimeUtils.format(org.getDate("establishmentdate"), HRDateTimeUtils.YYYY_MM_DD)));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_esdate_a", ImmutableBiMap.of("text", dynamicObject.getString("establishmentdate") == null ? "-" :
+                    HRDateTimeUtils.format(dynamicObject.getDate("establishmentdate"), HRDateTimeUtils.YYYY_MM_DD)));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_esdate_card");
+        }
+
+        //法律实体
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("corporateorg"), org.getDynamicObject("corporateorg"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_coorg_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_coorg_b", ImmutableBiMap.of("text", org.getString("corporateorg") == null ? "-" : org.getString("corporateorg.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_coorg_a", ImmutableBiMap.of("text", dynamicObject.getString("corporateorg") == null ? "-" : dynamicObject.getString("corporateorg.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_coorg_card");
+        }
+
+        //所属公司
+//        if(!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("belongcompany"),org.getDynamicObject("belongcompany"))){
+//            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_belongco_card");
+//            addCardEntryData(cardEntry,index ,"${ISV_FLAG}_parent_belongcom_b",ImmutableBiMap.of("text",org.getString("belongcompany")==null?"-":org.getString("belongcompany.name")));
+//            addCardEntryData(cardEntry,index ,"${ISV_FLAG}_parent_belongcom_a",ImmutableBiMap.of("text",dynamicObject.getString("belongcompany")==null?"-":dynamicObject.getString("belongcompany.name")));
+//        }else{
+//            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_belongco_card");
+//        }
+
+        //组织层级
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorglayer"), org.getDynamicObject("adminorglayer"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_orglayer_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_orglayer_b", ImmutableBiMap.of("text", org.getString("adminorglayer") == null ? "-" : org.getString("adminorglayer.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_orglayer_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorglayer") == null ? "-" : dynamicObject.getString("adminorglayer.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_orglayer_card");
+        }
+
+        //组织职能
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("adminorgfunction"), org.getDynamicObject("adminorgfunction"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_aorgfunc_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_aorgfunc_b", ImmutableBiMap.of("text", org.getString("adminorgfunction") == null ? "-" : org.getString("adminorgfunction.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_aorgfunc_a", ImmutableBiMap.of("text", dynamicObject.getString("adminorgfunction") == null ? "-" : dynamicObject.getString("adminorgfunction.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_aorgfunc_card");
+        }
+
+        //行业类别
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("industrytype"), org.getDynamicObject("industrytype"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_indutype_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_industype_b", ImmutableBiMap.of("text", org.getString("industrytype") == null ? "-" : org.getString("industrytype.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_industype_a", ImmutableBiMap.of("text", dynamicObject.getString("industrytype") == null ? "-" : dynamicObject.getString("industrytype.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_indutype_card");
+        }
+
+        //国家地区
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("companyarea"), org.getDynamicObject("companyarea"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_comarea_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_comarea_b", ImmutableBiMap.of("text", org.getString("companyarea") == null ? "-" : org.getString("companyarea.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_comarea_a", ImmutableBiMap.of("text", dynamicObject.getString("companyarea") == null ? "-" : dynamicObject.getString("companyarea.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_comarea_card");
+        }
+
+        //城市
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("city"), org.getDynamicObject("city"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_city_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_city_b", ImmutableBiMap.of("text", org.getString("city") == null ? "-" : org.getString("city.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_city_a", ImmutableBiMap.of("text", dynamicObject.getString("city") == null ? "-" : dynamicObject.getString("city.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_city_card");
+        }
+
+        //工作地
+        if (!DynamicObjectUtils.compareBaseEditField(dynamicObject.getDynamicObject("workplace"), org.getDynamicObject("workplace"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_workpla_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_workplace_b", ImmutableBiMap.of("text", org.getString("workplace") == null ? "-" : org.getString("workplace.name")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_workplace_a", ImmutableBiMap.of("text", dynamicObject.getString("workplace") == null ? "-" : dynamicObject.getString("workplace.name")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_workpla_card");
+        }
+
+        //详细地址
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("detailaddress"), org.getString("detailaddress"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_deaddr_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_deaddr_b", ImmutableBiMap.of("text", org.getString("detailaddress") == null ? "-" : org.getString("detailaddress")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_deaddr_a", ImmutableBiMap.of("text", dynamicObject.getString("detailaddress") == null ? "-" : dynamicObject.getString("detailaddress")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_deaddr_card");
+        }
+
+        //描述
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("description"), org.getString("description"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_desc_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_desc_b", ImmutableBiMap.of("text", org.getString("description") == null ? "-" : org.getString("description")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_desc_a", ImmutableBiMap.of("text", dynamicObject.getString("description") == null ? "-" : dynamicObject.getString("description")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_desc_card");
+        }
+
+        //排序号
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("index"), org.getString("index"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_index_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_index_b", ImmutableBiMap.of("text", org.getString("index") == null ? "-" : org.getString("index")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_index_a", ImmutableBiMap.of("text", dynamicObject.getString("index") == null ? "-" : dynamicObject.getString("index")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_index_card");
+        }
+
+        //定位
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("positioning"), org.getString("positioning"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_posing_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_posing_b", ImmutableBiMap.of("text", org.getString("positioning") == null ? "-" : org.getString("positioning")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_posing_a", ImmutableBiMap.of("text", dynamicObject.getString("positioning") == null ? "-" : dynamicObject.getString("positioning")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_posing_card");
+        }
+
+        //主要职责
+        if (!DynamicObjectUtils.compareStringField(dynamicObject.getString("mainduty"), org.getString("mainduty"))) {
+            cardEntry.setChildVisible(true, index, "${ISV_FLAG}_parent_mainduty_card");
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_mainduty_b", ImmutableBiMap.of("text", org.getString("mainduty") == null ? "-" : org.getString("mainduty")));
+            addCardEntryData(cardEntry, index, "${ISV_FLAG}_parent_mainduty_a", ImmutableBiMap.of("text", dynamicObject.getString("mainduty") == null ? "-" : dynamicObject.getString("mainduty")));
+        } else {
+            cardEntry.setChildVisible(false, index, "${ISV_FLAG}_parent_mainduty_card");
+        }
+
+
+    }
+
+    static class OrgChgBillMobileBo {
+        /**
+         * flex区域标识
+         */
+        private String contentFlexCoin;
+        /**
+         * 卡片分录标识
+         */
+        private String entryCoin;
+        /**
+         * 变动类型编码
+         */
+        private String changeTypeNumber;
+
+        OrgChgBillMobileBo(String contentFlexCoin, String entryCoin, String changeTypeNumber) {
+            this.contentFlexCoin = contentFlexCoin;
+            this.entryCoin = entryCoin;
+            this.changeTypeNumber = changeTypeNumber;
+        }
+
+        public String getContentFlexCoin() {
+            return contentFlexCoin;
+        }
+
+        public void setContentFlexCoin(String contentFlexCoin) {
+            this.contentFlexCoin = contentFlexCoin;
+        }
+
+        public String getEntryCoin() {
+            return entryCoin;
+        }
+
+        public void setEntryCoin(String entryCoin) {
+            this.entryCoin = entryCoin;
+        }
+
+        public String getChangeTypeNumber() {
+            return changeTypeNumber;
+        }
+
+        public void setChangeTypeNumber(String changeTypeNumber) {
+            this.changeTypeNumber = changeTypeNumber;
+        }
+    }
+
+    static class EntryChgBo {
+        /**
+         * 卡片布局容器标识，用来控制整体显示隐藏
+         */
+        private String cardInfoCoin;
+        /**
+         * 变动前标识
+         */
+        private String chgBefore;
+        /**
+         * 变动后标识
+         */
+        private String chgAfter;
+
+        EntryChgBo(String cardInfoCoin, String chgBefore, String chgAfter) {
+            this.cardInfoCoin = cardInfoCoin;
+            this.chgBefore = chgBefore;
+            this.chgAfter = chgAfter;
+        }
+
+        public String getCardInfoCoin() {
+            return cardInfoCoin;
+        }
+
+        public void setCardInfoCoin(String cardInfoCoin) {
+            this.cardInfoCoin = cardInfoCoin;
+        }
+
+        public String getChgBefore() {
+            return chgBefore;
+        }
+
+        public void setChgBefore(String chgBefore) {
+            this.chgBefore = chgBefore;
+        }
+
+        public String getChgAfter() {
+            return chgAfter;
+        }
+
+        public void setChgAfter(String chgAfter) {
+            this.chgAfter = chgAfter;
+        }
+    }
+
+}

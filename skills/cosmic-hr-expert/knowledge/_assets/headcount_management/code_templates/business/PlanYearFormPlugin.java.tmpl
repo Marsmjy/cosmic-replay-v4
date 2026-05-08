@@ -1,0 +1,93 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.ILocaleString;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.*;
+
+
+/**
+ * @author 姚帅
+ * @version 1.0
+ * @date 2024/1/11 13:36
+ * @description: 年度编制计划表单插件
+ **/
+public class PlanYearFormPlugin extends AbstractBillPlugIn {
+
+    private static Log logger = LogFactory.getLog(PlanYearFormPlugin.class);
+
+    /**
+     * 编制管理
+     */
+    private final static String YEAR_BILL = "${ISV_FLAG}_planyear_bill";
+
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        this.addItemClickListeners("tbmain");
+    }
+
+
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        IDataModel model = this.getModel();
+        String filedName = e.getProperty().getName();
+        if ("${ISV_FLAG}_orgfield".equals(filedName)) {
+            DynamicObject org = (DynamicObject) model.getValue("${ISV_FLAG}_orgfield");
+            if (Objects.nonNull(org)) {
+                logger.info("PlanPersonFormPlugin组织id=" + org.getPkValue());
+                model.setValue("${ISV_FLAG}_org", org.getPkValue());
+            }
+        } else if ("${ISV_FLAG}_year".equals(filedName)) {
+            //指定年的最后一天
+            Date year = (Date)model.getValue("${ISV_FLAG}_year");
+            SimpleDateFormat sim = new SimpleDateFormat("yyyy");
+            model.setValue("${ISV_FLAG}_year_str", sim.format(year));
+            //获取年
+            int formatYear = Integer.parseInt(sim.format(year));
+            LocalDate date = LocalDate.of(formatYear, Month.DECEMBER, 31);
+            model.setValue("${ISV_FLAG}_endmonth", date);
+
+        }
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        IDataModel model = this.getModel();
+        logger.info("开始执行afterBindData");
+
+        //编制计划单位
+        DynamicObject org = (DynamicObject) model.getValue("${ISV_FLAG}_org");
+        //名称
+        ILocaleString localeString = (ILocaleString) getModel().getValue("name");
+        // 简体
+        String name = localeString.getLocaleValue_zh_CN();
+        if (Objects.nonNull(org)) {
+            Object orgId = org.getPkValue();
+            QFilter qFilter = new QFilter("${ISV_FLAG}_planyear.${ISV_FLAG}_org.id", QCP.equals, orgId)
+                    .and("${ISV_FLAG}_planyear.name", QCP.equals, name);
+            DynamicObject dynamicObject = BusinessDataServiceHelper.loadSingle(YEAR_BILL, "id", qFilter.toArray());
+            if (Objects.nonNull(dynamicObject)) {
+                this.getView().setEnable(false, "${ISV_FLAG}_org", "number", "${ISV_FLAG}_year", "${ISV_FLAG}_startmonth", "${ISV_FLAG}_endmonth",
+                        "${ISV_FLAG}_orghierarchy", "${ISV_FLAG}_plantype", "${ISV_FLAG}_labeldimension", "${ISV_FLAG}_useworktype", "description", "changedescription");
+            }
+        }
+    }
+
+
+}

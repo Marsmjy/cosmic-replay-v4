@@ -1,0 +1,515 @@
+{
+  "formId": "wtte_qtcalculate",
+  "formName": null,
+  "sceneId": "wtte_qtcalculate",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "1EJ2BFSE71/I",
+  "bizappId": "1C8H4/N38LCY",
+  "metaIdTechnical": "35NHFS484+XY",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtte_qtcalculate",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtte_qtcalculate.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtte_qtcalculate",
+      "type": "BaseEntity",
+      "title": "定额生成",
+      "physicalTable": null,
+      "fieldCount": 20
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "calstatus = 'SUCCESS'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#1BA854"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2OM7L5SULLWG"
+        }
+      },
+      "Id": "28IJ2GSE=X6L",
+      "PreCondition": "calstatus= 'SUCCESS'"
+    },
+    {
+      "PreDescription": "calstatus = 'ERROR'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#FB2323"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2N3S=UU5ZW08"
+        }
+      },
+      "Id": "28IJ2GSE=UHK",
+      "PreCondition": "calstatus = 'ERROR'"
+    },
+    {
+      "PreDescription": "calstatus = 'HALF'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#FF991C"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2N3S=UU5ZVC/"
+        }
+      },
+      "Id": "28IJ2GSE=X6M",
+      "PreCondition": "calstatus = 'HALF'"
+    },
+    {
+      "PreDescription": "calstatus = 'RUNNING'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#276FF5"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2N3S=UU5ZW09"
+        }
+      },
+      "Id": "28IJ2GSE=UHL",
+      "PreCondition": "calstatus = 'RUNNING'"
+    },
+    {
+      "PreDescription": "calstatus = 'NOTEXECTUE'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#999999"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "37X6EKPJHS38"
+        }
+      },
+      "Id": "37X6EESZZ3PZ",
+      "PreCondition": "calstatus = 'NOTEXECUTE'"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "creator": {
+      "fieldId": "3X816otBRR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtte_qtcalculate",
+      "title": "创建人",
+      "physicalColumn": "t_wtte_qtcalculate.fcreatorid",
+      "_fieldApId": "3X816otBRR"
+    },
+    "createtime": {
+      "fieldId": "lCmI2nVrvR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "创建时间",
+      "physicalColumn": "t_wtte_qtcalculate.fcreatetime",
+      "_fieldApId": "lCmI2nVrvR"
+    },
+    "modifier": {
+      "fieldId": "zfe0nVqnP7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wtte_qtcalculate",
+      "title": "修改人",
+      "physicalColumn": "t_wtte_qtcalculate.fmodifierid",
+      "_fieldApId": "zfe0nVqnP7"
+    },
+    "modifytime": {
+      "fieldId": "1h2H10Ktua",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "修改时间",
+      "physicalColumn": "t_wtte_qtcalculate.fmodifytime",
+      "_fieldApId": "1h2H10Ktua"
+    },
+    "initdatasource": {
+      "fieldId": "ssudmMLrFI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "ssudmMLrFI"
+    },
+    "version": {
+      "fieldId": "0kIGVtGzPS",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "任务号",
+      "physicalColumn": "t_wtte_qtcalculate.fversion",
+      "_fieldApId": "0kIGVtGzPS"
+    },
+    "begindate": {
+      "fieldId": "5jTV263SIo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "核算开始日期",
+      "physicalColumn": "t_wtte_qtcalculate.fbegindate",
+      "_fieldApId": "5jTV263SIo"
+    },
+    "enddate": {
+      "fieldId": "NSRswdS5Cw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "核算结束日期",
+      "physicalColumn": "t_wtte_qtcalculate.fenddate",
+      "_fieldApId": "NSRswdS5Cw"
+    },
+    "taskid": {
+      "fieldId": "FNAA2s8ebf",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtte_qttietask",
+      "entity": "wtte_qtcalculate",
+      "title": "核算任务",
+      "physicalColumn": "t_wtte_qtcalculate.ftaskid",
+      "_fieldApId": "FNAA2s8ebf"
+    },
+    "savestep": {
+      "fieldId": "a4kazpPTP4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "存储核算步骤",
+      "physicalColumn": "t_wtte_qtcalculate.fsavestep",
+      "_fieldApId": "a4kazpPTP4"
+    },
+    "cost": {
+      "fieldId": "zB1p43EMhb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "耗时",
+      "physicalColumn": "t_wtte_qtcalculate.fcost",
+      "_fieldApId": "zB1p43EMhb"
+    },
+    "totaskpage": {
+      "fieldId": "LcnC6AM8AN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "占位",
+      "physicalColumn": "—",
+      "_fieldApId": "LcnC6AM8AN"
+    },
+    "calstatus": {
+      "fieldId": "rHji1020h9",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "核算状态",
+      "physicalColumn": "t_wtte_qtcalculate.fcalstatus",
+      "_fieldApId": "rHji1020h9"
+    },
+    "tietaskstatus": {
+      "fieldId": "vtKrfX9x3z",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "任务状态",
+      "physicalColumn": "t_wtte_qtcalculate.ftietaskstatus",
+      "_fieldApId": "vtKrfX9x3z"
+    },
+    "planid": {
+      "fieldId": "MRIpGbyN6i",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_accountplan",
+      "entity": "wtte_qtcalculate",
+      "title": "核算方案",
+      "physicalColumn": "t_wtte_qtcalculate.fplanid",
+      "_fieldApId": "MRIpGbyN6i"
+    },
+    "org": {
+      "fieldId": "a4XKKX1mR0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtte_qtcalculate",
+      "title": "考勤管理组织",
+      "physicalColumn": "t_wtte_qtcalculate.forgid",
+      "_fieldApId": "a4XKKX1mR0"
+    },
+    "dyqttype": {
+      "fieldId": "e4hA3Etf63",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "动态生成-定额类型",
+      "physicalColumn": "—",
+      "_fieldApId": "e4hA3Etf63"
+    },
+    "qttype": {
+      "fieldId": "02C7HCli3b",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "固定生成-定额类型",
+      "physicalColumn": "—",
+      "_fieldApId": "02C7HCli3b"
+    },
+    "tieplanid": {
+      "fieldId": "7F1XrMuBvw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_accountplan",
+      "entity": "wtte_qtcalculate",
+      "title": "单据核算方案",
+      "physicalColumn": "t_wtte_qtcalculate.ftieplanid",
+      "_fieldApId": "7F1XrMuBvw"
+    },
+    "caldatemonth": {
+      "fieldId": "iea0JMTt45ltV54yzt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtte_qtcalculate",
+      "title": "核算月份",
+      "physicalColumn": "t_wtte_qtcalculate.fcaldatemonth",
+      "_fieldApId": "iea0JMTt45ltV54yzt"
+    }
+  },
+  "requiredFields": {
+    "wtte_qtcalculate": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0NKB12K4VH2O_4ZMOdMlW",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_XEUgcbXJ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "35NHFS484+XY_Ea5YZvgK",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0NKB12K4VH2O_list_vGsmSsP2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2BFSE71/I_list_bsYnUZEm",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "35NHFS484+XY_list_mBFM53x7",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.prompt.WTCTipsPlugin",
+      "Description": "提示语插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Description": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtte.formplugin.web.qtcal.QTCalculateListPlugin",
+      "Description": "定额核算插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:26",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 20,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 5,
+        "jsPlugins_count": 6,
+        "formPlugins_count": 8
+      }
+    }
+  ]
+}

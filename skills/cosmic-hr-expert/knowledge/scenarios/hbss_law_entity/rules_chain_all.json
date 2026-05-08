@@ -1,0 +1,273 @@
+{
+  "scene": "hbss_law_entity",
+  "formId": "hbss_law_entity",
+  "description": "HR 基础服务云 · 法律实体与聘用单位场景。核心实体：hbss_lawentity（法律实体，BaseEntity+EntryEntity，约50字段，最复杂的 hbss 实体）。相关实体：hbss_signcompany（聘用单位）、hbss_taxunit（纳税单位）、hbss_enterprise（用人单位）、hbss_signcompanyhis（聘用单位历史）。hbss_lawentity 被核心人力云引用 6 次，是跨云影响最大的 hbss 实体之一（总引用 13 次）。含 issyspreset=1 系统预置数据，ISV 不得修改预置法律实体（PR-007）。",
+  "generatedAt": "2026-04-28",
+  "cloud": "hr_hrmp",
+  "entities": [
+    "hbss_lawentity",
+    "hbss_lawentityuse",
+    "hbss_lawentityvrinf",
+    "hbss_signcompany",
+    "hbss_signcompanyhis",
+    "hbss_taxunit",
+    "hbss_enterprise",
+    "hbss_payrollacrelation"
+  ],
+  "opKeys": {
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "hbss 字典 save"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）",
+        "❌ 禁继承 HRBaseDataTplEdit（标品基础资料模板 · ISV 应并列挂 HRDataBaseEdit · PR-001）",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "hbss 字典 delete"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "hbss 字典 audit"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "hbss 字典 disable"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "hbss 字典 enable"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "hbss 字典 submit"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataTplEdit（HR 基础资料模板 · ISV 应 @SdkPlugin 并列挂不继承）",
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES 导入专用 · @SdkInternal）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES 按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理 OP · 用 HRDataBaseOp 替代）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "importdata_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES importdata_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR 基础资料模板编辑插件（hbss 字典共用）"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "show_import_record_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES show_import_record_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "export_from_list_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES export_from_list_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "export_from_impttpl_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES export_from_impttpl_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "export_from_expttpl_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES export_from_expttpl_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "show_export_record_hr",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES show_export_record_hr（全域通用）"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    }
+  },
+  "_meta": {
+    "note": "hbss_law_entity 是 HR 基础服务云聚合场景，包含 8 个 hbss_* 字典实体。跨云影响：高——法律实体被核心人力云(6次)引用，薪酬云中薪酬主体依赖法律实体。ISV 扩展必须 @SdkPlugin 并列挂（PR-001）。"
+  }
+}

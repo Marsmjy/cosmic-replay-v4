@@ -1,0 +1,305 @@
+package ${ISV_FLAG}.hspm.wordprint.formplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.serialization.SerializationUtils;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.Tips;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.OpenStyle;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.Label;
+import kd.bos.form.control.Vector;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.metadata.form.control.VectorAp;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.hspm.CustomFileHeadHelper;
+
+import java.util.*;
+
+/**
+ * @Metadata： XX
+ * @Description ： XX
+ * @ClassName ：PersonFileDownloadFormPlugin
+ * @author xxx
+ * @Date ：2023/8/16 11:48
+ * @Version: 1.0
+ */
+public class PersonFileDownloadFormPlugin extends AbstractFormPlugin {
+    private static final Log Logger = LogFactory.getLog(PersonFileDownloadFormPlugin.class);
+    private static final Map<String, String> VECTORAP_FIELD;
+    private static final List<String> MAIN_ERFILE_LIST;
+
+    static {
+        Map<String, String> tempMap = new HashMap<>();
+        tempMap.put("gender", "kdfont kdfont-kehu4");
+        tempMap.put("company", "kdfont kdfont-gongsi");
+        tempMap.put("adminorg", "kdfont kdfont-bumen2");
+        tempMap.put("position", "kdfont kdfont-gongwenbao");
+        tempMap.put("stdposition", "kdfont kdfont-gongwenbao");
+        tempMap.put("job", "kdfont kdfont-gongwenbao");
+        tempMap.put("location", "kdfont kdfont-gongzuodi3");
+        tempMap.put("phone", "kdfont kdfont-dianhua2");
+        tempMap.put("peremail", "kdfont kdfont-youjian");
+        VECTORAP_FIELD = Collections.unmodifiableMap(tempMap);
+
+        List<String> tempList = new ArrayList<>();
+        tempList.add("1110_S");
+        tempList.add("1010_S");
+        tempList.add("1150_S");
+        tempList.add("1190_S");
+        tempList.add("1070_S");
+        MAIN_ERFILE_LIST = Collections.unmodifiableList(tempList);
+    }
+
+
+    private Map<String, DynamicObject> data;
+    private int vectorApRowIndex = 4;
+
+    @Override
+    public void afterCreateNewData(EventObject e) {
+        super.afterCreateNewData(e);
+        //2023.08.17，暂时不做显示控制
+        // setIsShow();
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        String headInfos = (String) this.getView().getFormShowParameter().getCustomParam("params");
+        List<Map<String, Object>> headInfoList = (List) SerializationUtils.fromJsonString(headInfos, List.class);
+        this.data = this.isEmployee() ? this.queryDataFromDb(headInfoList) : CustomFileHeadHelper.queryDataFromDb(headInfoList, this.getView().getFormShowParameter());
+        Iterator var8 = headInfoList.iterator();
+        while (var8.hasNext()) {
+            Map<String, Object> field = (Map) var8.next();
+            this.handleField(field);
+        }
+    }
+
+    private void handleField(Map<String, Object> field) {
+        if (Boolean.TRUE.equals(field.get("configurable"))) {
+            this.handleConfigurableField(field);
+        }
+
+    }
+
+    private Map<String, DynamicObject> queryDataFromDb(List<Map<String, Object>> headFieldList) {
+        Optional optional = headFieldList.stream().filter((val) -> {
+            return "apositiontype".equals(val.get("number"));
+        }).findAny();
+        Map<String, Object> typeMap = null;
+        if (!optional.isPresent()) {
+            typeMap = new HashMap(2);
+            typeMap.put("number", "apositiontype");
+            typeMap.put("source", "hrpi_empposorgrel");
+            headFieldList.add(typeMap);
+        }
+
+        Map<String, DynamicObject> dbData = CustomFileHeadHelper.queryDataFromDb(headFieldList, this.getView().getFormShowParameter());
+        Set<String> delKeys = new HashSet<String>() {
+            {
+                this.add("stdposition");
+                this.add("position");
+                this.add("job");
+            }
+        };
+        if (typeMap != null) {
+            delKeys.add("apositiontype");
+        }
+
+        DynamicObject empposorgrelDy = (DynamicObject) dbData.get("hrpi_empposorgrel");
+        if (empposorgrelDy != null) {
+            String apositonType = empposorgrelDy.getString("apositiontype");
+            if ("0".equals(apositonType)) {
+                delKeys.remove("stdposition");
+            } else if ("1".equals(apositonType)) {
+                delKeys.remove("position");
+            } else if ("2".equals(apositonType)) {
+                delKeys.remove("job");
+            }
+        }
+
+        headFieldList.removeIf((val) -> {
+            return delKeys.contains(val.get("number"));
+        });
+        return dbData;
+    }
+
+    private void handleConfigurableField(Map<String, Object> field) {
+        String number = "position";
+        if (!field.get("number").equals(number)) {
+            return;
+        }
+        String key;
+        String value;
+        String fontClass;
+        Label contextLabel;
+        if (Objects.nonNull(fontClass = (String) VECTORAP_FIELD.get(number))) {
+            key = "vectorap" + this.vectorApRowIndex;
+            String labKey = "vectoraplab" + this.vectorApRowIndex;
+            if (this.getControl(key) instanceof Vector && this.getControl(labKey) instanceof Label) {
+                value = this.getData(this.data, field);
+                if (HRStringUtils.isNotEmpty(value)) {
+                    Vector vector = (Vector) this.getControl(key);
+                    vector.setFontClass(fontClass);
+                    contextLabel = (Label) this.getControl(labKey);
+                    /*String displayValue = BusinessDataServiceHelper.loadSingle(data.get("hrpi_empposorgrel")
+                            .getLong("position.id"), "hbpm_positionhr").getString("${ISV_FLAG}_displayvalue");*/
+                    String displayValue = null;
+                    String postname = displayValue != null && !displayValue.isEmpty() ? displayValue :
+                            data.get("hrpi_empposorgrel").getString("position.name");
+                    contextLabel.setText(postname);
+                    this.setTips(key, (String) field.get("name"));
+                    ++this.vectorApRowIndex;
+                }
+            }
+        }
+
+
+    }
+
+    private void setTips(String key, String content) {
+        VectorAp vectorAp = new VectorAp();
+        vectorAp.setKey(key);
+        Tips ctlTips = new Tips();
+        ctlTips.setType("text");
+        ctlTips.setContent(new LocaleString(content));
+        ctlTips.setShowIcon(false);
+        ctlTips.setTriggerType("hover");
+        vectorAp.setCtlTips(ctlTips);
+        this.getView().updateControlMetadata(key, vectorAp.createControl());
+    }
+
+    private boolean isEmployee() {
+        return Objects.nonNull(this.getView().getParentView()) && "hspm_myermanfile".equals(this.getView().getParentView().getEntityId());
+    }
+
+    private String getData(Map<String, DynamicObject> data, Map<String, Object> headField) {
+        if ("preview".equals(this.getView().getFormShowParameter().getCustomParam("preview"))) {
+            String number = (String) headField.get("number");
+            if ("headsculpture".equals(number)) {
+                return null;
+            } else {
+                return "servicelength".equals(number) ? "0.5" : (String) headField.get("name");
+            }
+        } else {
+            return CustomFileHeadHelper.getData(data, headField);
+        }
+    }
+
+
+
+
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        FormOperate source = (FormOperate) args.getSource();
+        String operateKey = source.getOperateKey();
+        if (StringUtils.equals("wordconversion", operateKey)) {
+            DynamicObjectCollection perProWordTempDy = queryPerProWord();
+            if (ObjectUtils.isEmpty(perProWordTempDy)) {
+                this.getView().showErrorNotification("未找到对应模板！！！");
+                args.setCancel(true);
+            }
+        }
+
+    }
+
+
+    public void afterDoOperation(AfterDoOperationEventArgs e) {
+        super.afterDoOperation(e);
+        String operateKey = e.getOperateKey();
+        if (StringUtils.equals(operateKey, "wordconversion")) {
+            DynamicObjectCollection perProWordTempDy = queryPerProWord();
+            List<Long> pkIds = this.getErmanFileIds();
+
+            //查询组织分配 人员employid  分配id
+            QFilter qFilter = new QFilter("id", QCP.in, pkIds);
+            DynamicObjectCollection employeeColl = QueryServiceHelper.query("hrpi_assignment", "id,employee.id,employee.name", qFilter.toArray());
+
+
+            FormShowParameter showParameter = new FormShowParameter();
+            OpenStyle openStyle = showParameter.getOpenStyle();
+            openStyle.setShowType(ShowType.Modal);
+            showParameter.setFormId("${ISV_FLAG}_hspm_wordtempprin");
+            showParameter.setCloseCallBack(new CloseCallBack(this, "wordconversion"));
+            showParameter.setCustomParam("wordTemplate", perProWordTempDy);
+            showParameter.setCustomParam("ermanFile", employeeColl);
+            showParameter.setCaption("请选择简历下载模板");
+            this.getView().showForm(showParameter);
+        }
+
+    }
+
+
+    public void closedCallBack(ClosedCallBackEvent close) {
+        super.closedCallBack(close);
+        String actionId = close.getActionId();
+        if (StringUtils.equals("wordconversion", actionId)) {
+            Map<String, Object> returnData = (Map) close.getReturnData();
+            if (!ObjectUtils.isEmpty(returnData)) {
+                try {
+                    this.getView().download((String) returnData.get("url"));
+                    this.getView().showSuccessNotification("下载成功");
+                    Logger.info("人员完整度简历，简历下载成功：ids" + getErmanFileIds());
+
+                } catch (Exception e) {
+                    Logger.error("人员完整度简历，简历下载失败，原因：" + e.getMessage());
+                    this.getView().showErrorNotification("下载失败，请联系管理员！");
+                }
+            }
+        }
+    }
+
+    private static DynamicObjectCollection queryPerProWord() {
+        QFilter qFilter = new QFilter("status", "=", "C");
+        qFilter.and("enable", "=", "1");
+        return QueryServiceHelper.query("${ISV_FLAG}_hspm_wordconversion", "id,name,number", qFilter.toArray());
+    }
+
+    /**
+     * 获取人事业务档案id
+     *
+     * @return
+     */
+    public List<Long> getErmanFileIds() {
+        List<Long> pkIds = new ArrayList();
+
+//        Map<String, Object> customParams = this.getView().getParentView().getFormShowParameter().getCustomParams();
+//        if(customParams.containsKey("ermanFileIds")){
+//            pkIds = (List<Long>) customParams.get("ermanFileIds");
+//        }
+        Map<String, Object> customParams_Self = this.getView().getFormShowParameter().getCustomParams();
+        if (customParams_Self.containsKey("erfileid")) {
+            long erFileId = (long) customParams_Self.get("erfileid");
+            pkIds.add(erFileId);
+        }
+
+        return pkIds;
+    }
+
+    /**
+     * 控制简历下载按钮显示隐藏
+     */
+    public void setIsShow() {
+        Map<String, Object> customParams = this.getView().getParentView().getFormShowParameter().getCustomParams();
+        if (customParams.containsKey("ermanFileIds")) {
+            this.getView().setVisible(true, "${ISV_FLAG}_wordconversion");
+        } else {
+            this.getView().setVisible(false, "${ISV_FLAG}_wordconversion");
+
+        }
+    }
+
+}

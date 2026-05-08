@@ -1,0 +1,1090 @@
+{
+  "formId": "hsas_accumulator",
+  "formName": null,
+  "sceneId": "hsas_accumulator",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "/YVM7+55GWF+",
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "1V058M7EV7JX",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_accumulator",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_accumulator.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_accumulator",
+      "type": "BaseEntity",
+      "title": "累加器",
+      "physicalTable": null,
+      "fieldCount": 40
+    },
+    {
+      "name": "accdimitementry",
+      "type": "EntryEntity",
+      "title": "累加维度",
+      "physicalTable": null,
+      "fieldCount": 3
+    },
+    {
+      "name": "accmemberentry",
+      "type": "EntryEntity",
+      "title": "累加成员",
+      "physicalTable": null,
+      "fieldCount": 17
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "编码",
+      "physicalColumn": "t_hsas_accumulator.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "名称",
+      "physicalColumn": "t_hsas_accumulator_l.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "数据状态",
+      "physicalColumn": "t_hsas_accumulator.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hsas_accumulator",
+      "title": "创建人",
+      "physicalColumn": "t_hsas_accumulator.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hsas_accumulator",
+      "title": "修改人",
+      "physicalColumn": "t_hsas_accumulator.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "使用状态",
+      "physicalColumn": "t_hsas_accumulator.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "创建时间",
+      "physicalColumn": "t_hsas_accumulator.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "修改时间",
+      "physicalColumn": "t_hsas_accumulator.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "主数据内码",
+      "physicalColumn": "t_hsas_accumulator.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "createorg": {
+      "fieldId": "YgMJgrpUsm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_accumulator",
+      "title": "创建组织",
+      "physicalColumn": "t_hsas_accumulator.fcreateorgid",
+      "_fieldApId": "YgMJgrpUsm"
+    },
+    "org": {
+      "fieldId": "2y6WC8v9a5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_accumulator",
+      "title": "管理组织",
+      "physicalColumn": "t_hsas_accumulator.forgid",
+      "_fieldApId": "2y6WC8v9a5"
+    },
+    "useorg": {
+      "fieldId": "AdVIkjJWrL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_accumulator",
+      "title": "使用组织",
+      "physicalColumn": "t_hsas_accumulator.fuseorgid",
+      "_fieldApId": "AdVIkjJWrL"
+    },
+    "ctrlstrategy": {
+      "fieldId": "7WAfe0bdMp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "控制策略",
+      "physicalColumn": "t_hsas_accumulator.fctrlstrategy",
+      "_fieldApId": "7WAfe0bdMp"
+    },
+    "sourcedata": {
+      "fieldId": "VGMs5W9kgy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "原资料id",
+      "physicalColumn": "—",
+      "_fieldApId": "VGMs5W9kgy"
+    },
+    "bitindex": {
+      "fieldId": "Z9zssSoYI1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "位图",
+      "physicalColumn": "t_hsas_accumulator.fbitindex",
+      "_fieldApId": "Z9zssSoYI1"
+    },
+    "srcindex": {
+      "fieldId": "KPOe3NMluU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "原资料位图",
+      "physicalColumn": "—",
+      "_fieldApId": "KPOe3NMluU"
+    },
+    "srccreateorg": {
+      "fieldId": "1JSQmoJSAF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_accumulator",
+      "title": "原创建组织",
+      "physicalColumn": "t_hsas_accumulator.fsrccreateorgid",
+      "_fieldApId": "1JSQmoJSAF"
+    },
+    "index": {
+      "fieldId": "lCXdqxaqjI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "排序号",
+      "physicalColumn": "t_hsas_accumulator.findex",
+      "_fieldApId": "lCXdqxaqjI"
+    },
+    "simplename": {
+      "fieldId": "Ypwb324S6X",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "简称",
+      "physicalColumn": "t_hsas_accumulator_l.fsimplename",
+      "_fieldApId": "Ypwb324S6X"
+    },
+    "description": {
+      "fieldId": "xSqhCEZeWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "描述",
+      "physicalColumn": "t_hsas_accumulator_l.fdescription",
+      "_fieldApId": "xSqhCEZeWb"
+    },
+    "issyspreset": {
+      "fieldId": "YM4ENbMZdc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "系统预置",
+      "physicalColumn": "t_hsas_accumulator.fissyspreset",
+      "_fieldApId": "YM4ENbMZdc"
+    },
+    "disabler": {
+      "fieldId": "0O1EyH58Z6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hsas_accumulator",
+      "title": "禁用人",
+      "physicalColumn": "t_hsas_accumulator.fdisablerid",
+      "_fieldApId": "0O1EyH58Z6"
+    },
+    "disabledate": {
+      "fieldId": "uRIWPWS2SP",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "禁用时间",
+      "physicalColumn": "t_hsas_accumulator.fdisabledate",
+      "_fieldApId": "uRIWPWS2SP"
+    },
+    "initdatasource": {
+      "fieldId": "exOPnkSVp5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "exOPnkSVp5"
+    },
+    "orinumber": {
+      "fieldId": "AMQQU5rq5I",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "出厂编码",
+      "physicalColumn": "—",
+      "_fieldApId": "AMQQU5rq5I"
+    },
+    "oristatus": {
+      "fieldId": "iIekn43NoU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "—",
+      "_fieldApId": "iIekn43NoU"
+    },
+    "oriname": {
+      "fieldId": "5A4PDjLBv7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "出厂名称",
+      "physicalColumn": "—",
+      "_fieldApId": "5A4PDjLBv7"
+    },
+    "areatype": {
+      "fieldId": "viBVhwBJwc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "国家/地区类型",
+      "physicalColumn": "t_hsas_accumulator.fareatype",
+      "_fieldApId": "viBVhwBJwc"
+    },
+    "country": {
+      "fieldId": "CEYfGsI5F7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "hsas_accumulator",
+      "title": "国家/地区",
+      "physicalColumn": "t_hsas_accumulator.fcountryid",
+      "_fieldApId": "CEYfGsI5F7"
+    },
+    "dataround": {
+      "fieldId": "WxMNv60wQB",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_dataround",
+      "entity": "hsas_accumulator",
+      "title": "精度尾差处理",
+      "physicalColumn": "t_hsas_accumulator.fdataroundid",
+      "_fieldApId": "WxMNv60wQB"
+    },
+    "datatype": {
+      "fieldId": "l8aBFs79Gh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_datatype",
+      "entity": "hsas_accumulator",
+      "title": "数据类型",
+      "physicalColumn": "t_hsas_accumulator.fdatatypeid",
+      "_fieldApId": "l8aBFs79Gh"
+    },
+    "dataprecision": {
+      "fieldId": "hvA8gb4aap",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_dataprecision",
+      "entity": "hsas_accumulator",
+      "title": "数据精度",
+      "physicalColumn": "t_hsas_accumulator.fdataprecisionid",
+      "_fieldApId": "hvA8gb4aap"
+    },
+    "updatestrategy": {
+      "fieldId": "Lo2mpqn6AD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "累加器更新策略",
+      "physicalColumn": "t_hsas_accumulator.fupdatestrategy",
+      "_fieldApId": "Lo2mpqn6AD"
+    },
+    "periodtype": {
+      "fieldId": "3HLHtsPvMY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "累加频度",
+      "physicalColumn": "t_hsas_accumulator.fperiodtype",
+      "_fieldApId": "3HLHtsPvMY"
+    },
+    "startdatetype": {
+      "fieldId": "h2C1e3hUEF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "开始日期类型",
+      "physicalColumn": "t_hsas_accumulator.fstartdatetype",
+      "_fieldApId": "h2C1e3hUEF"
+    },
+    "startdate": {
+      "fieldId": "fzuIaskGtw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "开始日期",
+      "physicalColumn": "t_hsas_accumulator.fstartdate",
+      "_fieldApId": "fzuIaskGtw"
+    },
+    "startmonth": {
+      "fieldId": "tjC2wfVicA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "开始月值",
+      "physicalColumn": "t_hsas_accumulator.fstartmonth",
+      "_fieldApId": "tjC2wfVicA"
+    },
+    "startday": {
+      "fieldId": "MyCZuKy5ey",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "开始日值",
+      "physicalColumn": "t_hsas_accumulator.fstartday",
+      "_fieldApId": "MyCZuKy5ey"
+    },
+    "bsedstrategy": {
+      "fieldId": "amEFD5fbDi",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "累加生效策略",
+      "physicalColumn": "t_hsas_accumulator.fbsedstrategy",
+      "_fieldApId": "amEFD5fbDi"
+    },
+    "accdimension": {
+      "fieldId": "VkJ9hiAZuL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_accumulator",
+      "title": "累加维度",
+      "physicalColumn": "t_hsas_accumulator.faccdimension",
+      "_fieldApId": "VkJ9hiAZuL"
+    },
+    "dimitemtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "accdimitementry",
+      "title": "累加子维度项目类型",
+      "physicalColumn": "t_hsas_dimensionentry.fdimitemtype"
+    },
+    "dimitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "accdimitementry",
+      "title": "累加子维度项目名称",
+      "physicalColumn": "—"
+    },
+    "fetchitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_fetchitem",
+      "entity": "accdimitementry",
+      "title": "取数项目",
+      "physicalColumn": "t_hsas_dimensionentry.ffetchitemid"
+    },
+    "membertype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "累加成员项目类型",
+      "physicalColumn": "t_hsas_cumulatemember.fmembertype"
+    },
+    "salaryitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_salaryitem",
+      "entity": "accmemberentry",
+      "title": "薪酬项目",
+      "physicalColumn": "t_hsas_cumulatemember.fsalaryitemid"
+    },
+    "bizitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_bizitem",
+      "entity": "accmemberentry",
+      "title": "业务项目",
+      "physicalColumn": "t_hsas_cumulatemember.fbizitemid"
+    },
+    "accmemstartdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "开始日期",
+      "physicalColumn": "t_hsas_cumulatemember.faccmemstartdate"
+    },
+    "accmemenddate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "结束日期",
+      "physicalColumn": "t_hsas_cumulatemember.faccmemenddate"
+    },
+    "operator": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "运算符号",
+      "physicalColumn": "t_hsas_cumulatemember.foperator"
+    },
+    "accpercenttype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "累加百分比类型",
+      "physicalColumn": "t_hsas_cumulatemember.faccpercenttype"
+    },
+    "percentfixval": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "百分比固定值",
+      "physicalColumn": "t_hsas_cumulatemember.fpercentfixval"
+    },
+    "accmemberitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "累加成员项目名称",
+      "physicalColumn": "—"
+    },
+    "memuniquecode": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "累加成员序号",
+      "physicalColumn": "—"
+    },
+    "formula": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsas_formula",
+      "entity": "accmemberentry",
+      "title": "计算公式",
+      "physicalColumn": "—"
+    },
+    "fixparam": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "固定参数",
+      "physicalColumn": "t_hsas_cumulatemember.ffixparam"
+    },
+    "accpercent": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "累加百分比",
+      "physicalColumn": "—"
+    },
+    "uniquecode": {
+      "fieldId": "VwhHDSjmKv",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "唯一编码",
+      "physicalColumn": "t_hsas_cumulatemember.funiquecode",
+      "_fieldApId": "VwhHDSjmKv"
+    },
+    "startdateitem": {
+      "fieldId": "jdpVp1Ip6G",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_fetchitem",
+      "entity": "accmemberentry",
+      "title": "开始日期项目",
+      "physicalColumn": "t_hsas_accumulator.fstartdateitemid",
+      "_fieldApId": "jdpVp1Ip6G"
+    },
+    "isorgcontrol": {
+      "fieldId": "zMjsDX1y5vmNSO4HC7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "计算时基于组织进行管控",
+      "physicalColumn": "t_hsas_accumulator.fisorgcontrol",
+      "_fieldApId": "zMjsDX1y5vmNSO4HC7"
+    },
+    "isacccalnoorder": {
+      "fieldId": "ri2Us9U9w6wn1t1ywM",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "accmemberentry",
+      "title": "运行时不校验累加计算顺序",
+      "physicalColumn": "t_hsas_accumulator.fisacccalnoorder",
+      "_fieldApId": "ri2Us9U9w6wn1t1ywM"
+    }
+  },
+  "requiredFields": {
+    "hsas_accumulator": [
+      "number",
+      "name",
+      "createorg",
+      "ctrlstrategy",
+      "areatype",
+      "dataround",
+      "datatype",
+      "updatestrategy",
+      "periodtype",
+      "accdimension"
+    ],
+    "accdimitementry": [
+      "dimitemtype"
+    ],
+    "accmemberentry": [
+      "membertype",
+      "accmemstartdate",
+      "operator",
+      "accpercenttype"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "ab7efc31000015ac_moblist_XsneyOOQ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_moblist_8He2gnXF",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/YVM7+55GWF+_moblist_V4ZI6m44",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1V058M7EV7JX_moblist_heuDFRnK",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_mZFcYYTH",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_CI5GW115",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/YVM7+55GWF+_aXPtBKfz",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1V058M7EV7JX_jpkDuoxp",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_mob_3GzL16VC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_mob_H2SGnlPD",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/YVM7+55GWF+_mob_E4BcOHDr",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1V058M7EV7JX_mob_ljQeJCOy",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "ab7efc31000015ac_list_HzvMMKKY",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QPVWEP=LYN_list_BTUexbVC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "/YVM7+55GWF+_list_yPRPkhE7",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1V058M7EV7JX_list_X8m2bjsY",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataCreateOrgPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataFormPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.accumulator.AccumulatorBaseEdit",
+      "Description": "累加器表单插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.accumulator.AccumulatorPlugin",
+      "Description": "累加器表单操作插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataMobListPlugin",
+      "Description": "kd.bos.form.plugin.bdctrl.BaseDataMobListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicListPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataNewPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataListPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.accumulator.AccumulatorListPlugin",
+      "Description": "累加器列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 44,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 2,
+        "jsPlugins_count": 16,
+        "formPlugins_count": 21
+      }
+    }
+  ]
+}

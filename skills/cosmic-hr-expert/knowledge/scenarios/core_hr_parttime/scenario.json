@@ -1,0 +1,37 @@
+{
+  "scene": "core_hr_parttime",
+  "name": "调配管理 - 兼职（hdm · 5 单据）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "hdm_parttimeapplybill",
+    "hdm_parttimeendbill",
+    "hdm_batchparttime",
+    "hdm_parttimebatch"
+  ],
+  "referenced_entities": [
+    "hdm_parttimeapplybill",
+    "hdm_parttimeendbill",
+    "hdm_batchparttime",
+    "hdm_parttimebatch"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction",
+    "chgEvent": "INFO_TRANSFER (兼职子类)",
+    "createsHrpi": [
+      "副 hrpi_assignment (isprimary=false)",
+      "新 hrpi_empposorgrel",
+      "（兼职终止）副 assignment.enddate"
+    ],
+    "isvExtPoints": []
+  },
+  "_decompile_anchors": [
+    "kd.hr.hdm.opplugin.parttime.PartSaveOp",
+    "kd.hr.hdm.opplugin.parttime.PartTimeEffectOp",
+    "kd.hr.hdm.opplugin.parttime.PartBillSubmitAndEffectOp",
+    "kd.hr.hdm.opplugin.parttime.PartTimeEndAfterEffectOp"
+  ]
+}

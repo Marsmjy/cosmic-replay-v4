@@ -1,0 +1,1457 @@
+package ${ISV_FLAG}.hspm.wordprint.business.impl;
+
+import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.config.ConfigureBuilder;
+import com.deepoove.poi.data.PictureType;
+import com.deepoove.poi.data.Pictures;
+import com.deepoove.poi.data.TextRenderData;
+import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import kd.bos.cache.CacheFactory;
+import kd.bos.cache.TempFileCache;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.dataentity.metadata.IDataEntityProperty;
+import kd.bos.dataentity.metadata.clr.DataEntityPropertyCollection;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.MainEntityType;
+import kd.bos.entity.ValueMapItem;
+import kd.bos.entity.property.ComboProp;
+import kd.bos.fileservice.FileService;
+import kd.bos.fileservice.FileServiceFactory;
+import kd.bos.fileservice.extension.FileServiceExtFactory;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import ${ISV_FLAG}.hspm.wordprint.business.FileConversionService;
+
+import java.io.*;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author xx
+ * @ClassName FileConversionImpl
+ * @description: 文件转换实现类
+ * @ModifiedBy: （填入修改人）
+ * @ModifyTime: （修改时间）
+ * @date 2023年07月07日
+ * @version: 1.0
+ */
+public class FileConversionImpl implements FileConversionService {
+    /**
+     * 颜色
+     */
+    private static final String COLOR = "000000";
+    private static final String WORDCONVERSIONMCNUM = "constant.hr.hspm.${ISV_FLAG}_hspm_wordconversion.defaultnumber";
+    private static final Log LOGGER = LogFactory.getLog(FileConversionImpl.class);
+
+
+    @Override
+    public Map<String, Object> fileConversion(Long employeeId,Long assignmentId, String personName, String templateNumber) {
+
+        return buildDate(employeeId,assignmentId, personName, templateNumber);
+    }
+
+    @Override
+    public Map<String, Object> assembleWordFile(Map<String, Object> allDataMap, String fileName, String templateEncoding, List<String> configNameList) {
+        Map<String, Object> resultMap = new HashMap<>(8);
+        //查询模板
+        DynamicObject perProWordTempDy = queryPerProWord("number", templateEncoding, "${ISV_FLAG}_hspm_wordconversion", "id");
+        if (!ObjectUtils.isEmpty(perProWordTempDy)) {
+            //获取附件信息
+            DynamicObject attachmentDy = queryPerProWord("finterid", perProWordTempDy.getString("id"), "bos_attachment", "ffileid");
+            if (!ObjectUtils.isEmpty(attachmentDy)) {
+                String url = attachmentDy.getString("ffileid");
+                FileService attachmentFileService = FileServiceFactory.getAttachmentFileService();
+                InputStream inputStream = attachmentFileService.getInputStream(url);
+                // 行循环实例
+                LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
+                //这里可以指定一个config类，用来指定一些规则，也可以改变模板中{{}}的这种格式
+                ConfigureBuilder builder = Configure.builder();
+                for (String configName : configNameList) {
+                    builder.bind(configName, policy);
+                }
+                XWPFTemplate compile = XWPFTemplate.compile(inputStream, builder.build());
+                return buildResultMap(allDataMap, fileName, resultMap, compile);
+            }
+        }
+        return resultMap;
+    }
+
+    /**
+     * @param allDataMap 全部数据
+     * @param fileName   文件名称
+     * @param resultMap  返回Map
+     * @param compile    XWPFTemplate
+     * @return java.util.Map<java.lang.String, java.lang.Object>
+     * @description 构架返回Map
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/17 16:45
+     */
+    private Map<String, Object> buildResultMap(Map<String, Object> allDataMap, String fileName, Map<String, Object> resultMap, XWPFTemplate compile) {
+        compile.render(allDataMap);
+        try {
+            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            compile.writeAndClose(outStream);
+            byte[] bytes = outStream.toByteArray();
+            InputStream inputStream = new ByteArrayInputStream(bytes);
+            TempFileCache cache = CacheFactory.getCommonCacheFactory().getTempFileCache();
+            String fullUrl = cache.saveAsFullUrl(fileName, new BufferedInputStream(inputStream), 30 * 3);
+            fullUrl = FileServiceExtFactory.getAttachFileServiceExt().getRealPath(URLDecoder.decode(fullUrl, "UTF-8"));
+            //先上传到苍穹的缓存中
+            resultMap.put("url", fullUrl);
+            resultMap.put("size", bytes.length);
+            resultMap.put("name", fileName);
+            resultMap.put("outStream",outStream);
+            return resultMap;
+        } catch (IOException e) {
+            LOGGER.error("文件构建出错原因" + e.getMessage());
+            LOGGER.error("文件构建出错详细信息" + Arrays.toString(e.getStackTrace()));
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Map<String, Object> buildDate(Long employeeId,Long assignmentId, String personName, String templateNumber) {
+
+        Map<String, Object> allMap = new HashMap<>(8);
+        StringBuilder filedStr = new StringBuilder();
+        //区域信息-附表
+        currencyBuildMap(employeeId, "hrpi_perregion", "", allMap, filedStr, templateNumber);
+
+        //特长与爱好-附表
+        currencyBuildMap(employeeId, "hrpi_perhobby", "", allMap, filedStr, templateNumber);
+
+        //联系方式-附表
+        currencyBuildMap(employeeId, "hrpi_percontact", "", allMap, filedStr, templateNumber);
+
+        //证件信息-附表
+        perCreBuildMap(employeeId, allMap, templateNumber);
+
+        //人员地址-附表
+        perAddressBuildMap(employeeId, allMap, templateNumber);
+
+        //前工作经历-附表
+        currencyBuildMap(employeeId, "hrpi_preworkexp", "startdate desc", allMap, filedStr, templateNumber);
+
+        //家庭成员信息-附表
+        familymembBuildMap(employeeId, "hrpi_familymemb", "", allMap, filedStr, templateNumber);
+
+        //语言能力-附表
+        currencyBuildMap(employeeId, "hrpi_perlgability", "certissuedate desc", allMap, filedStr, templateNumber);
+
+        //职称信息-附表
+        perprotitleBuildMap(employeeId, "hrpi_perprotitle", "awardtime desc", allMap, filedStr, templateNumber);
+
+        //职业资格信息-附表
+        currencyBuildMap(employeeId, "hrpi_perocpqual", "gettime desc", allMap, filedStr, templateNumber);
+        
+        //奖惩信息 (分组)-附表
+        Map<String, List<DynamicObject>> groupByCompany = perPreCordGroupBy(employeeId, allMap);
+
+        //惩罚信息-附表
+        punishmentBuildMap(allMap, groupByCompany, templateNumber);
+
+        //奖励信息-附表
+        rewardBuildMap(allMap, groupByCompany, templateNumber);
+
+        //奖惩信息-附表
+        currencyBuildMap(employeeId, "hrpi_perrprecord", "rewarddate desc", allMap, filedStr, templateNumber);
+
+        //紧急联系人-附表
+        emrgcontactBuildMap(employeeId, "hrpi_emrgcontact", "", allMap, filedStr, templateNumber);
+
+        //培训信息-附表
+        currencyBuildMap(employeeId, "hrpi_emptrainfile", "", allMap, filedStr, templateNumber);
+
+        //教育经历-附表
+        pereduexpBuildMap(employeeId, "hrpi_pereduexp", "admissiondate desc", allMap, filedStr, templateNumber);
+
+        //培训经历-附表
+        currencyBuildMap(employeeId, "hrpi_emptrainfile", "startdate asc", allMap, filedStr, templateNumber);
+
+        //服务年限-组织分配
+        perserlenBuildMapByAssign(assignmentId, allMap, templateNumber);
+
+        //任职经历-组织分配
+        empposorgrelBuildMapByAssign(assignmentId, allMap, templateNumber);
+
+        //任职经历总表-组织分配
+        emporgrelallBuildMapByAssign(assignmentId, allMap, templateNumber,employeeId,filedStr);
+
+        //合同协议源页面-组织分配
+        contractsourceBuildMapByAssign(assignmentId, allMap, templateNumber);
+
+        // 员工-附表
+        perNonTsPropBuildMap(employeeId, allMap, templateNumber);
+
+        allMap.put("name", new TextRenderData(COLOR, personName));
+
+        //构建文件
+        return buildWordFile(allMap, personName, templateNumber);
+    }
+
+
+
+    /**
+     * 处理任职总经历
+     *
+     * @param empOrgRelAllColl 任职经历记录
+     * @return 处理后任职经历
+     */
+    private List<DynamicObject> empOrgRelAllHandle(DynamicObject[] empOrgRelAllColl) {
+        // 过滤掉开始或结束时间为空、虚拟兼职数据
+        List<DynamicObject> empOrgRelList = Arrays.stream(empOrgRelAllColl).filter(f -> {
+            if (StringUtils.isNotBlank(f.getString("startdate")) && StringUtils.isNotBlank(f.getString("enddate"))) {
+                return true;
+            }
+            return false;
+        }).collect(Collectors.toList());
+
+        // 根据公司、部门、岗位进行分组 company、adminorg、position
+        Map<String, List<DynamicObject>> disEmpOrgRelMap = new HashMap<>(empOrgRelList.size());
+        for (DynamicObject dynamicObject : empOrgRelList) {
+            String company = dynamicObject.getString("company");
+            String adminOrg = dynamicObject.getString("adminorg");
+            String position = dynamicObject.getString("position");
+            String key = company + "-" + adminOrg + "-" + position;
+            if (disEmpOrgRelMap.containsKey(key)) {
+                List<DynamicObject> dynamicObjects = disEmpOrgRelMap.get(key);
+                dynamicObjects.add(dynamicObject);
+            } else {
+                List<DynamicObject> dynamicObjects = new ArrayList<>(1);
+                dynamicObjects.add(dynamicObject);
+                disEmpOrgRelMap.put(key, dynamicObjects);
+            }
+        }
+        List<DynamicObject> newEmpOrgRelList = new ArrayList<>(disEmpOrgRelMap.size());
+        for (String key : disEmpOrgRelMap.keySet()) {
+            List<DynamicObject> dynamicObjects = disEmpOrgRelMap.get(key);
+            if (dynamicObjects.size() < 2) {
+                newEmpOrgRelList.addAll(dynamicObjects);
+                continue;
+            }
+            // 根据结束时间降序、异动类型（将主职排前面）进行排序
+            List<DynamicObject> endDateSortList = dynamicObjects.stream().sorted((t1, t2) -> {
+                String endDate1 = t1.getString("enddate");
+                String endDate2 = t2.getString("enddate");
+                if (endDate1.compareTo(endDate2) == 0) {
+                    String startDate1 = t1.getString("startdate");
+                    String startDate2 = t2.getString("startdate");
+
+                    return startDate1.compareTo(startDate2);
+                } else {
+                    return endDate2.compareTo(endDate1);
+                }
+            }).collect(Collectors.toList());
+
+            DynamicObject tempDy = new DynamicObject();
+            Date minStartDate = null;
+            for (int i = 0; i < endDateSortList.size(); i++) {
+                DynamicObject dynamicObject = endDateSortList.get(i);
+                // 第一条数据进行赋值
+                if (i == 0) {
+                    tempDy = dynamicObject;
+                    minStartDate = tempDy.getDate("startdate");
+                    continue;
+                }
+                // 判断是否断档，上一条开始日期晚于当前的结束日期+1小于为断档
+                Date endDate = DateUtils.addDays(dynamicObject.getDate("enddate"), 1);
+                if (minStartDate.after(endDate)) {
+                    newEmpOrgRelList.add(tempDy);
+                    tempDy = dynamicObject;
+                    minStartDate = tempDy.getDate("startdate");
+                } else {
+                    // 未断档，判断上一条开始日期晚于当前开始日期，如果是就重新赋值
+                    Date currentStartDate = dynamicObject.getDate("startdate");
+                    if (minStartDate.after(currentStartDate)) {
+                        minStartDate = currentStartDate;
+                        tempDy.set("startdate", currentStartDate);
+                    }
+                }
+                // 判断是否最后一条，如果最后一条将数据添加
+                if (i == endDateSortList.size() - 1) {
+                    newEmpOrgRelList.add(tempDy);
+                }
+            }
+        }
+        return newEmpOrgRelList;
+    }
+
+    /**
+     * @return void
+     * @description 任职经历总表及前工作经历特殊字段处理
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/21 11:03
+     */
+    private static void specialEmpPreWork(Map<String, Object> allMap, List<DynamicObject> empPreList, List<Object> perEduList, StringBuilder filedStr, String templateNumber) {
+        if (!ObjectUtils.isEmpty(empPreList)) {
+            List<DynamicObject> startdate = empPreList.stream().filter(dy -> dy.getDate("startdate") != null).sorted(Comparator.comparing(dy -> dy.getDate("startdate"))).collect(Collectors.toList());
+            String replace = "";
+            String replaceWorkUnitName = "";
+            String replaceAdminorg = "";
+            String replacePositionname = "";
+            for (DynamicObject empOrgRelAllDy : startdate) {
+                String name = empOrgRelAllDy.getDataEntityType().getName();
+                if (StringUtils.equals("hrpi_emporgrelall", name)) {
+
+                    Map<String, Object> empOrgRelAlMap = new HashMap<>(8);
+                    Date startDate = empOrgRelAllDy.getDate("startdate");
+                    Date endDate = empOrgRelAllDy.getDate("enddate");
+                    String strByStartDate = getDateString(startDate);
+                    String strByEndDate = getDateString(endDate);
+                    if (strByEndDate.contains("2999")) {
+                        strByEndDate = "至今";
+                    }
+                    //行政组织
+                    String adminOrgName = empOrgRelAllDy.getString("adminorg");
+                    //所属公司
+                    String companyName = empOrgRelAllDy.getString("company");
+//                    LOGGER.error("zyx_companyName" + companyName);
+                    //岗位
+                    String positionName = empOrgRelAllDy.getString("position");
+                    String companyAndPosition = companyName + "  " + adminOrgName + "  " + positionName;
+                    if (StringUtils.equals(companyName, "待业") || StringUtils.equals(positionName, "待业") || StringUtils.equals("待业", adminOrgName)) {
+                        companyAndPosition = "待业";
+                    }
+                    //起止日期
+                    empOrgRelAlMap.put("startAndEndDate", new TextRenderData(COLOR, strByStartDate + " - " + strByEndDate));
+                    //公司及职务
+                    empOrgRelAlMap.put("companyandposition", new TextRenderData(COLOR, companyAndPosition));
+                    //工作单位名称
+                    empOrgRelAlMap.put("workunitname", new TextRenderData(COLOR, companyName));
+                    //部门
+                    empOrgRelAlMap.put("adminorg", new TextRenderData(COLOR, adminOrgName));
+                    //岗位
+                    empOrgRelAlMap.put("positionname", new TextRenderData(COLOR, positionName));
+
+
+                    filedStr.append(strByStartDate + " - " + strByEndDate);
+                    filedStr.append("  ");
+                    filedStr.append(companyAndPosition);
+                    filedStr.append("\n");
+                    perEduList.add(empOrgRelAlMap);
+                } else {
+                    Map<String, Object> preWorkExpMap = new HashMap<>(8);
+                    //工作单位
+                    String unitName = empOrgRelAllDy.getString("unitname");
+                    //任职岗位
+                    String position = empOrgRelAllDy.getString("position");
+                    //任职部门
+                    String department = empOrgRelAllDy.getString("department");
+//                    LOGGER.error("zyx_department" + department);
+                    String companyAndPosition = unitName + "  " + department + "  " + position;
+                    if (StringUtils.equals(unitName, "待业") || StringUtils.equals(position, "待业") || StringUtils.equals("待业", department)) {
+                        companyAndPosition = "待业";
+                    }
+                    //开始时间
+                    String startDate = getDateString(empOrgRelAllDy.getDate("startdate"));
+                    //结束时间
+                    String endDate = getDateString(empOrgRelAllDy.getDate("enddate"));
+                    if (endDate.contains("2999")) {
+                        endDate = "至今";
+                    }
+                    preWorkExpMap.put("companyandposition", new TextRenderData(COLOR, companyAndPosition));
+                    preWorkExpMap.put("startAndEndDate", new TextRenderData(COLOR, startDate + " - " + endDate));
+                    //工作单位名称
+                    preWorkExpMap.put("workunitname", new TextRenderData(COLOR, unitName));
+                    //部门
+                    preWorkExpMap.put("adminorg", new TextRenderData(COLOR, department));
+                    //岗位
+                    preWorkExpMap.put("positionname", new TextRenderData(COLOR, position));
+                    filedStr.append(startDate + " - " + endDate);
+                    filedStr.append("  ");
+                    filedStr.append(companyAndPosition);
+                    filedStr.append("\n");
+                    perEduList.add(preWorkExpMap);
+                }
+            }
+
+        }
+        if (!StringUtils.isEmpty(filedStr)) {
+            filedStr = new StringBuilder(filedStr.toString().replace("null", ""));
+            allMap.put("perempemprgprework", new TextRenderData(COLOR, filedStr.toString().replace("null", "")));
+        }
+        allMap.put("emprgprework", perEduList);
+    }
+
+    private static boolean equals(String startDate, String endData) {
+        String[] start = startDate.split("\\.");
+        String[] end = endData.split("\\.");
+        if (start[0].equals(end[0]) && (Long.parseLong(start[1]) - 1) == Long.parseLong(end[1])) {
+            return true;
+        } else
+            return (Long.parseLong(start[0]) - 1) == Long.parseLong(end[0]) && end[1].equals("12") && start[1].equals("01");
+    }
+
+    private static void currencyBuildMap(Long billId, String entityName, String orderByFiled, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(billId, entityName, orderByFiled);
+        universalConversion(allMap, attendRecordsColl, entityName, templateNumber);
+    }
+
+    /**
+     * @param query
+     * @return java.util.List<kd.bos.dataentity.entity.DynamicObject>
+     * @description 家庭成员信息排序
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/9/2 15:02
+     */
+    private static List<DynamicObject> sortFamilyMemberDy(DynamicObject[] query) {
+        //主要家庭成员及社会关系排序List集合
+        List<String> familymembSortList = familymembSort();
+        List<DynamicObject> allSortFamilyMemberList = new ArrayList<>();
+        //存在在集合中的数据
+        Map<String, List<DynamicObject>> inFamilyMemberMap = Arrays.stream(query).filter(dy -> !ObjectUtils.isEmpty(dy.getDynamicObject("familymembship")) && familymembSortList.contains(dy.getString("familymembship.number"))).collect(Collectors.groupingBy(dy -> dy.getString("familymembship.number")));
+        for (String familyMemberSort : familymembSortList) {
+            List<DynamicObject> familyMemberList = inFamilyMemberMap.get(familyMemberSort);
+            if (!ObjectUtils.isEmpty(familyMemberList)) {
+                allSortFamilyMemberList.addAll(familyMemberList);
+            }
+        }
+        //不存在familymembSortList集合中的数据
+        List<DynamicObject> notInFamilyMemberList = Arrays.stream(query).filter(dy -> !ObjectUtils.isEmpty(dy.getDynamicObject("familymembship")) && !familymembSortList.contains(dy.getString("familymembship.number"))).collect(Collectors.toList());
+
+        //不在familymembSortList集合中的数据排在后面
+        if (!ObjectUtils.isEmpty(notInFamilyMemberList)) {
+            allSortFamilyMemberList.addAll(notInFamilyMemberList);
+        }
+        //家庭成员关系为空的排最后 避免报错
+        List<DynamicObject> familyMemberShipList = Arrays.stream(query).filter(dy -> ObjectUtils.isEmpty(dy.getDynamicObject("familymembship"))).collect(Collectors.toList());
+        if (!ObjectUtils.isEmpty(familyMemberShipList)) {
+            allSortFamilyMemberList.addAll(familyMemberShipList);
+        }
+
+        return allSortFamilyMemberList;
+    }
+
+    /**
+     * @Description 主要家庭成员及社会关系  需要按照父亲、母亲、岳父/公公、岳母/婆婆、配偶/丈夫/妻子、儿子、女儿、哥哥、姐姐、弟弟、妹妹的顺序展示
+     * @author LuZhiBin
+     * @date 2023/8/31 10:13
+     */
+    private static List<String> familymembSort() {
+        List<String> familymembSortList = new ArrayList<>();
+        //父亲
+        String father = returnStr("constant.hr.hbss.hbss_familymemberrel.father", "1020_S");
+        familymembSortList.add(father);
+        //母亲
+        String mother = returnStr("constant.hr.hbss.hbss_familymemberrel.mother", "1030_S");
+        familymembSortList.add(mother);
+        //公公
+        String grandpa = returnStr("constant.hr.hbss.hbss_familymemberrel.grandpa", "1120_S");
+        familymembSortList.add(grandpa);
+        //婆婆
+        String grandma = returnStr("constant.hr.hbss.hbss_familymemberrel.grandma", "1130_S");
+        familymembSortList.add(grandma);
+        //配偶
+        String spouse = returnStr("constant.hr.hbss.hbss_familymemberrel.spouse", "1010_S");
+        familymembSortList.add(spouse);
+        //儿子
+        String son = returnStr("constant.hr.hbss.hbss_familymemberrel.son", "1050_S");
+        familymembSortList.add(son);
+        //女儿
+        String daughter = returnStr("constant.hr.hbss.hbss_familymemberrel.daughter", "1040_S");
+        familymembSortList.add(daughter);
+        //哥哥
+        String elderbrother = returnStr("constant.hr.hbss.hbss_familymemberrel.elderbrother", "1060_S");
+        familymembSortList.add(elderbrother);
+        //姐姐
+        String eldersister = returnStr("constant.hr.hbss.hbss_familymemberrel.eldersister", "1070_S");
+        familymembSortList.add(eldersister);
+        //弟弟
+        String youngerbrother = returnStr("constant.hr.hbss.hbss_familymemberrel.youngerbrother", "1080_S");
+        familymembSortList.add(youngerbrother);
+        //妹妹
+        String sis = returnStr("constant.hr.hbss.hbss_familymemberrel.sis", "1090_S");
+        familymembSortList.add(sis);
+        return familymembSortList;
+    }
+
+    /**
+     * @Description mc配置编码
+     * @author LuZhiBin
+     * @date 2023/7/18 15:48
+     */
+    public static String returnStr(String strPro, String returnStr) {
+        String returnStrs = System.getProperty(strPro);
+        if ("".equals(returnStrs) || returnStrs == null) {
+            returnStrs = returnStr;
+        }
+        return returnStrs;
+    }
+
+    private static void specialEmrgContact(String entityName, Map<String, Object> allMap, DynamicObject[] attendRecordsColl) {
+        if (StringUtils.equals("hrpi_emrgcontact", entityName)) {
+            if (!ObjectUtils.isEmpty(attendRecordsColl)) {
+                List<String> emPhoneList = Arrays.stream(attendRecordsColl)/*.filter(dy -> dy.getBoolean("${ISV_FLAG}_primarycontact"))*/
+                        .map(dy -> dy.getString("emrgphone")).collect(Collectors.toList());
+                if (!ObjectUtils.isEmpty(emPhoneList)) {
+                    allMap.put("mainemrgphone", new TextRenderData(COLOR, emPhoneList.get(0)));
+                }
+            }
+        }
+    }
+
+    private static void specialPerEduExp(Long billId, String entityName, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        if (StringUtils.equals("hrpi_pereduexp", entityName)) {
+            DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(billId, entityName, "admissiondate");
+            if (!ObjectUtils.isEmpty(attendRecordsColl)) {
+                for (DynamicObject pereExpDy : attendRecordsColl) {
+                    //学历名称
+                    String educationName = pereExpDy.getString("education.name");
+//                    LOGGER.info("模板编码：" + templateNumber);
+                    /*if (HRStringUtils.isNotEmpty(educationName) && (educationName.equals("高中") || educationName.equals("职高/中专/技校") || educationName.equals("初中")
+                            || educationName.equals("小学")) && templateNumber.equals("GBRMB_01")) {
+                        continue;
+                    }*/
+                    //学位
+                    String degreeName = pereExpDy.getString("degree.name");
+                    //毕业院校
+                    String graduateSchoolName = pereExpDy.getString("graduateschool.name");
+                    //如果“毕业院校”学校远了其他院校，需展示其他院校的值
+                    String graduateSchoolNumber = pereExpDy.getString("graduateschool.number");
+                    if (StringUtils.equals(getChgeEventNumber("constant.hrmp.hbss.hbss_college.otherschool", "XY03397"), graduateSchoolNumber)) {
+                        //其他院校
+                        graduateSchoolName = pereExpDy.getString("schoolrecord");
+                    }
+                    //专业
+                    String major = pereExpDy.getString("major");
+                    //全日制最高学历
+                    boolean highestDegree = pereExpDy.getBoolean("ishighestdegree");
+                    //在职最高学历
+//                    boolean jobHighestEducation = pereExpDy.getBoolean("${ISV_FLAG}_jobhighesteducation");
+                    boolean isHighestDegree = pereExpDy.getBoolean("ishighestdegree");
+                    //入学日期
+                    filedStr.append(getDateString(pereExpDy.getDate("admissiondate")));
+                    filedStr.append(" - ");
+                    filedStr.append(getDateString(pereExpDy.getDate("gradutiondate")));
+                    filedStr.append("  ");
+                    filedStr.append(graduateSchoolName);
+                    filedStr.append("  ");
+                    if (templateNumber.equals("GBRMB_01")) {
+                        filedStr.append(pereExpDy.getString("major") + "学习");
+                    } else {
+                        filedStr.append(pereExpDy.getString("major"));
+                    }
+                    filedStr.append("\n");
+                    if (highestDegree) {
+                        allMap.put("higheducation", new TextRenderData(COLOR, educationName));
+                        allMap.put("highedegree", new TextRenderData(COLOR, degreeName));
+                        allMap.put("highgraduateschool", new TextRenderData(COLOR, graduateSchoolName));
+                        allMap.put("highmajor", new TextRenderData(COLOR, major));
+                    }
+                    if (highestDegree) {
+                        allMap.put("jobhigheducation", new TextRenderData(COLOR, educationName));
+                        allMap.put("jobhighedegree", new TextRenderData(COLOR, degreeName));
+                        allMap.put("jobhighgraduateschool", new TextRenderData(COLOR, graduateSchoolName));
+                        allMap.put("jobhighmajor", new TextRenderData(COLOR, major));
+                    }
+                    if (isHighestDegree) {
+                        allMap.put("thehighesteducationlevel", new TextRenderData(COLOR, educationName));
+                        allMap.put("highestdegree", new TextRenderData(COLOR, degreeName));
+                    }
+
+                }
+            }
+        }
+    }
+
+    private static void specialEmpPosOrgRel(String entityName, Map<String, Object> allMap, DynamicObject[] attendRecordsColl) {
+        if (StringUtils.equals("hrpi_empposorgrel", entityName)) {
+            if (!ObjectUtils.isEmpty(attendRecordsColl)) {
+                //拿到主任职经历数据
+                Map<String, String> empMap = new HashMap<>();
+                //取出最大时间的那条
+                StringBuilder currentPositionCurr = new StringBuilder();
+                empPosOrgHandle(attendRecordsColl, empMap, allMap, currentPositionCurr);
+                if (!StringUtils.isEmpty(currentPositionCurr)) {
+                    //现任职务
+                    String post = currentPositionCurr.toString();
+                    LOGGER.info("现任岗位:" + post);
+                    allMap.put("currentposition", new TextRenderData(COLOR, post.trim()));
+                }
+                //所属公司
+                allMap.put("empcompanyname", new TextRenderData(COLOR, empMap.get("company")));
+                //岗位
+                allMap.put("emppositionname", new TextRenderData(COLOR, empMap.get("position")));
+                allMap.put("adminorg", new TextRenderData(COLOR, empMap.get("adminorg")));
+            }
+        }
+    }
+
+    private static void empPosOrgHandle(DynamicObject[] attendRecordsColl, Map<String, String> empMap, Map<String, Object> allMap, StringBuilder currentPositionCurr) {
+        Date startDate = null;
+        Date endDate = null;
+        for (DynamicObject isPrimaryDy : attendRecordsColl) {
+            String isPrimary = isPrimaryDy.getString("isprimary");
+            String companySimpleName = isPrimaryDy.getString("company.name");
+            String adminOrgName = isPrimaryDy.getString("adminorg.name");
+            String positionName = isPrimaryDy.getString("position.name");
+            if (StringUtils.equals("1", isPrimary)) {
+                //业务状态 = 生效中
+                if (StringUtils.equals("1", isPrimaryDy.getString("businessstatus"))) {
+                    setCurrentPosition(allMap, companySimpleName, adminOrgName, positionName, currentPositionCurr);
+                }
+
+                if (startDate == null) {
+                    startDate = isPrimaryDy.getDate("startdate");
+                    endDate = isPrimaryDy.getDate("enddate");
+                    empMap.put("company", companySimpleName);
+                    empMap.put("position", positionName);
+                    empMap.put("adminorg", adminOrgName);
+                    continue;
+                }
+                // 如果开始时间相等，比较结束时间，取结束时间晚的任职记录信息
+                if (startDate.equals(isPrimaryDy.getDate("startdate")) && endDate.before(isPrimaryDy.getDate("enddate"))) {
+                    startDate = isPrimaryDy.getDate("startdate");
+                    empMap.put("company", companySimpleName);
+                    empMap.put("position", positionName);
+                    empMap.put("adminorg", adminOrgName);
+                    continue;
+                }
+                if (startDate.before(isPrimaryDy.getDate("startdate"))) {
+                    startDate = isPrimaryDy.getDate("startdate");
+                    empMap.put("company", companySimpleName);
+                    empMap.put("position", positionName);
+                    empMap.put("adminorg", adminOrgName);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param allMap
+     * @param companySimpleName
+     * @param adminOrgName
+     * @param positionName
+     * @return void
+     * @description 特殊处理现任职务
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/26 11:47
+     */
+    private static void setCurrentPosition(Map<String, Object> allMap, String companySimpleName, String adminOrgName, String positionName, StringBuilder currentPositionCurr) {
+        if (!StringUtils.isEmpty(companySimpleName)) {
+            currentPositionCurr.append(companySimpleName);
+        }
+        if (!StringUtils.isEmpty(adminOrgName)) {
+            currentPositionCurr.append(adminOrgName);
+        }
+        if (!StringUtils.isEmpty(positionName)) {
+            currentPositionCurr.append(positionName);
+        }
+        currentPositionCurr.append("\n");
+    }
+
+    private static void specialPerproTitle(String entityName, Map<String, Object> allMap, DynamicObject[] attendRecordsColl) {
+        if (StringUtils.equals("hrpi_perprotitle", entityName)) {
+            //专业技术职务 特殊处理字段
+            if (!ObjectUtils.isEmpty(attendRecordsColl)) {
+                List<String> professionalNameList = Arrays.stream(attendRecordsColl).filter(dy -> dy.getBoolean("ishigh"))
+                        .map(dy -> dy.getString("professional.name")).collect(Collectors.toList());
+                if (!ObjectUtils.isEmpty(professionalNameList)) {
+                    //专业技术职务
+                    allMap.put("highestproname", new TextRenderData(COLOR, professionalNameList.get(0)));
+                }
+            }
+        }
+    }
+
+    /**
+     * @param billId 人员ID
+     * @return java.util.Map<java.lang.String, java.util.List < kd.bos.dataentity.entity.DynamicObject>>
+     * @description 奖惩信息根据奖惩标识进行分组
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:17
+     */
+    private static Map<String, List<DynamicObject>> perPreCordGroupBy(Long billId, Map<String, Object> allMap) {
+        //奖惩信息
+        DynamicObject[] perPreCordColl = getAllQuerySelectFiledColl(billId, "hrpi_perrprecord", "rewarddate desc");
+        DynamicObject[] perPreCordCollAsc = getAllQuerySelectFiledColl(billId, "hrpi_perrprecord", "rewarddate");
+        //奖惩情况
+        StringBuilder perPreCordStr = new StringBuilder();
+        if (ObjectUtils.isEmpty(perPreCordColl)) {
+            return null;
+        }
+        for (DynamicObject perPreCordDy : perPreCordCollAsc) {
+            perPreCordStr.append(getDateString(perPreCordDy.getDate("rewarddate")));
+            perPreCordStr.append("被");
+            perPreCordStr.append(perPreCordDy.getString("unit"));
+            perPreCordStr.append("给予");
+            perPreCordStr.append(perPreCordDy.getString("content"));
+            perPreCordStr.append("\n");
+        }
+        if (!StringUtils.isEmpty(perPreCordStr)) {
+            allMap.put("rewardspunishments", perPreCordStr.toString());
+        }
+        //根据奖惩标识 分组
+        return Arrays.stream(perPreCordColl).collect(Collectors.groupingBy(per -> per.getString("flag")));
+    }
+
+    /**
+     * @param allMap 构建的map
+     * @return void
+     * @description 构建返回文件
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:17
+     */
+    private Map<String, Object> buildWordFile(Map<String, Object> allMap, String personName, String templateNumber) {
+        DynamicObject perProWordTempDy;
+        //传入的模板编码为空的话 就是默认编码 用于其他单据进行生成附件
+        //不为空的话 则查询指定模板  用于人员档案选择模板下载
+        if (StringUtils.isEmpty(templateNumber)) {
+            //查询模板
+            perProWordTempDy = queryPerProWord("number", getChgeEventNumber(WORDCONVERSIONMCNUM, "XY0001"), "${ISV_FLAG}_hspm_wordconversion", "id,name");
+            personName = personName + "人员履历.docx";
+        } else {
+            perProWordTempDy = queryPerProWord("number", templateNumber, "${ISV_FLAG}_hspm_wordconversion", "id,name");
+            personName = personName + perProWordTempDy.getString("name") + ".docx";
+        }
+        Map<String, Object> resultMap = new HashMap<>();
+
+        if (!ObjectUtils.isEmpty(perProWordTempDy)) {
+            //获取附件信息
+            DynamicObject attachmentDy = queryPerProWord("finterid", perProWordTempDy.getString("id"), "bos_attachment", "ffileid");
+            if (!ObjectUtils.isEmpty(attachmentDy)) {
+                String url = attachmentDy.getString("ffileid");
+                FileService attachmentFileService = FileServiceFactory.getAttachmentFileService();
+                InputStream inputStream = attachmentFileService.getInputStream(url);
+                // 行循环实例
+                LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
+                //这里可以指定一个config类，用来指定一些规则，也可以改变模板中{{}}的这种格式
+                Configure config = Configure.builder().bind("hrpi_pereduexp", policy).bind("hrpi_preworkexp", policy)
+                         .bind("hrpi_familymemb", policy).bind("hrpi_languageskills", policy)
+                        .bind("hrpi_perprotitle", policy).bind("hrpi_perocpqual", policy)
+                        .bind("punishment", policy).bind("reward", policy)
+                        /*.bind("${ISV_FLAG}_hrpi_skillidentify", policy).bind("${ISV_FLAG}_hrpi_attendrecords", policy)*/
+                        /*.bind("${ISV_FLAG}_hrpi_otheremployinf", policy).bind("${ISV_FLAG}_hrpi_casualtyinfor", policy)*/
+                        .bind("hrpi_empposorgrel", policy).bind("hrpi_emrgcontact", policy)
+                        .bind("hrpi_emptrainfile", policy).bind("contractinformation", policy)
+                        .bind("emprgprework", policy).bind("hrpi_perrprecord", policy).build();
+                XWPFTemplate compile = XWPFTemplate.compile(inputStream, config);
+                return buildResultMap(allMap, personName, resultMap, compile);
+            }
+        }
+        return resultMap;
+    }
+
+    /**
+     * @return kd.bos.dataentity.entity.DynamicObject
+     * @description 查询对应信息公用类
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/7/3 17:54
+     */
+    private static DynamicObject queryPerProWord(String number, String filterNum, String entityName, String id) {
+        QFilter qFilter = new QFilter(number, QCP.equals, filterNum);
+        return QueryServiceHelper.queryOne(entityName, id, qFilter.toArray());
+    }
+
+    /**
+     * @param allMap         全部字段的map
+     * @param groupByCompany 奖励信息分组数据
+     * @return void
+     * @description 构建奖励信息map
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:18
+     */
+    private static void rewardBuildMap(Map<String, Object> allMap, Map<String, List<DynamicObject>> groupByCompany, String templateNumber) {
+        if (ObjectUtils.isEmpty(groupByCompany)) {
+            return;
+        }
+        //奖励信息
+        List<DynamicObject> rewardDyList = groupByCompany.get("1");
+        if (ObjectUtils.isEmpty(rewardDyList)) {
+            return;
+        }
+        universalConversion(allMap, rewardDyList.toArray(new DynamicObject[0]), "hrpi_perrprecord", templateNumber);
+    }
+
+    /**
+     * @param allMap         全部字段map
+     * @param groupByCompany 惩罚信息分组数据
+     * @return void
+     * @description 构建惩罚信息map
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:19
+     */
+    private static void punishmentBuildMap(Map<String, Object> allMap, Map<String, List<DynamicObject>> groupByCompany, String templateNumber) {
+        if (ObjectUtils.isEmpty(groupByCompany)) {
+            return;
+        }
+        //惩罚信息
+        List<DynamicObject> punishmentDyList = groupByCompany.get("0");
+        if (ObjectUtils.isEmpty(punishmentDyList)) {
+            return;
+        }
+        universalConversion(allMap, punishmentDyList.toArray(new DynamicObject[0]), "hrpi_perrprecord", templateNumber);
+    }
+
+    /**
+     * @param billId 人员ID
+     * @param allMap 全部字段map
+     * @return void
+     * @description 构建人员非时序性
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:23
+     */
+    private static void perNonTsPropBuildMap(Long billId, Map<String, Object> allMap, String templateNumber) {
+        //根据人员查询基本信息
+        DynamicObject[] perNonTsPropColl = getAllQuerySelectFiledColl(billId, "hrpi_employee", "");
+        universalConversion(allMap, perNonTsPropColl, "hrpi_employee", templateNumber);
+        if (!ObjectUtils.isEmpty(perNonTsPropColl)) {
+            for (DynamicObject perNonTsPropDy : perNonTsPropColl) {
+                //头像
+                String headScuPicture = perNonTsPropDy.getString("headsculpture");
+                try {
+                    //员工简历和培训简历
+                    allMap.put("headsculpture", Pictures.ofBytes(urlToByte(headScuPicture), PictureType.PNG).sizeInCm(3.79, 5.12).create());
+                    //员工履历
+                    allMap.put("headsculpture2", Pictures.ofBytes(urlToByte(headScuPicture), PictureType.PNG).sizeInCm(4.15, 6.56).create());
+                    //干部任免表
+                    allMap.put("headsculpture1", Pictures.ofBytes(urlToByte(headScuPicture), PictureType.PNG).sizeInCm(3.75, 4.9).create());
+                } catch (Exception e) {
+//                    LOGGER.error("头像转换问题原因" + e.getMessage());
+//                    LOGGER.error("头像转换问题详细信息" + Arrays.toString(e.getStackTrace()));
+                }
+                //血型
+                String bloodType = perNonTsPropDy.getString("nbloodtype");
+                allMap.put("bloodtype", new TextRenderData(COLOR, bloodType));
+            }
+        }
+    }
+
+    /**
+     * @description 图片url转byte[]数组
+     * @date 2023/6/30
+     */
+    static byte[] urlToByte(String path) {
+        try {
+            path = URLDecoder.decode(path, StandardCharsets.UTF_8.name());
+            // 使用更高效的方式处理多个连续斜杠
+            path = path.replaceAll("/+", "/");
+            // 安全检查：防止路径遍历攻击
+            if (path.contains("../") || path.contains("..\\") || path.startsWith("~/")) {
+                throw new SecurityException("Invalid path containing traversal sequences: " + path);
+            }
+        } catch (UnsupportedEncodingException e) {
+//            LOGGER.error("图片url解码出错: {}", e.getMessage());
+//            LOGGER.error("图片url解码出错，path: {}", path);
+        } catch (SecurityException e) {
+//            LOGGER.error("图片url安全检查失败: {}", e.getMessage());
+        }
+
+        FileService attachmentFileService = FileServiceFactory.getImageFileService();
+//        LOGGER.info("文件地址：{}  ", path);
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        attachmentFileService.download(path, outStream, null);
+        return outStream.toByteArray();
+
+    }
+
+    /**
+     * @param billId 人员ID
+     * @param allMap 全部字段map
+     * @return void
+     * @description 构建人员地址
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:23
+     */
+    private static void perAddressBuildMap(Long billId, Map<String, Object> allMap, String templateNumber) {
+        //人员地址
+        DynamicObject[] perCreColl = getAllQuerySelectFiledColl(billId, "hrpi_peraddress", "");
+        universalConversion(allMap, perCreColl, "hrpi_peraddress", templateNumber);
+        if (!ObjectUtils.isEmpty(perCreColl)) {
+            for (DynamicObject perAddressDy : perCreColl) {
+                getAddressInfo(allMap, perAddressDy);
+            }
+        }
+    }
+
+    /**
+     * @param billId 人员ID
+     * @param allMap 全部字段map
+     * @return void
+     * @description 构建证件信息
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:23
+     */
+    private static void perCreBuildMap(Long billId, Map<String, Object> allMap, String templateNumber) {
+        //证件信息
+        DynamicObject[] perCreColl = getAllQuerySelectFiledColl(billId, "hrpi_percre", "");
+        universalConversion(allMap, perCreColl, "hrpi_percre", templateNumber);
+        if (!ObjectUtils.isEmpty(perCreColl)) {
+            for (DynamicObject perCreDy : perCreColl) {
+                if (perCreDy.getBoolean("ismajor")) {
+                    //证件类型名称
+                    String credentialsTypeName = perCreDy.getString("credentialstype.name");
+                    //证件号码
+                    String number = perCreDy.getString("number");
+                    allMap.put("credentialsnumber", new TextRenderData(COLOR, credentialsTypeName + "  " + number));
+                    //身份证号码
+                    allMap.put("IDcardnumber", new TextRenderData(COLOR, perCreDy.getString("number")));
+                }
+            }
+        }
+    }
+
+    private static void universalConversion(Map<String, Object> allMap, DynamicObject[] perRegionColl, String entityName, String templateNumber) {
+        if (!ObjectUtils.isEmpty(perRegionColl)) {
+            List<Object> perEduList = new ArrayList<>();
+            List<Object> punishmentList = new ArrayList<>();
+            List<Object> rewardList = new ArrayList<>();
+            for (DynamicObject perRegionDy : perRegionColl) {
+                DataEntityPropertyCollection perRegionFiledList = perRegionDy.getDataEntityType().getProperties();
+                Map<String, Object> perEduExpMap = new HashMap<>(8);
+                for (IDataEntityProperty iDataEntityProperty : perRegionFiledList) {
+                    String propertyName = iDataEntityProperty.getName();
+                    if (StringUtils.equals("headsculpture", propertyName)) {
+                        continue;
+                    }
+
+                    //特殊处理字段  服务年限
+                    if (StringUtils.equals("hrpi_perserlen", entityName)) {
+                        if (StringUtils.equals("employee", propertyName)) {
+                            allMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".empnumber")));
+                            perEduExpMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".empnumber")));
+                            continue;
+                        }
+                        // 本次加入集团日期
+                        if (StringUtils.equals("joincomdate", propertyName)) {
+                            String format = HRDateTimeUtils.format(perRegionDy.getDate(propertyName), "yyyy-MM-dd");
+                            // 加入公司日期
+                            allMap.put("${ISV_FLAG}_joindate", new TextRenderData(COLOR, format));
+                            perEduExpMap.put("${ISV_FLAG}_joindate", new TextRenderData(COLOR, format));
+                            // 本次加入集团日期
+                            allMap.put(propertyName, new TextRenderData(COLOR, format));
+                            perEduExpMap.put(propertyName, new TextRenderData(COLOR, format));
+                            continue;
+                        }
+                        // 参加工作日期
+                        if (StringUtils.equals("joinworktime", propertyName)) {
+                            String format = HRDateTimeUtils.format(perRegionDy.getDate(propertyName), "yyyy-MM-dd");
+                            allMap.put("beginservicedate", new TextRenderData(COLOR, format));
+                            perEduExpMap.put("beginservicedate", new TextRenderData(COLOR, format));
+                            continue;
+                        }
+
+
+                    }
+                    //任职经历
+                    if (StringUtils.equals("hrpi_empposorgrel", entityName)) {
+                        if (StringUtils.equals("employee", propertyName)) {
+                            allMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".empnumber")));
+                            perEduExpMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".empnumber")));
+                            continue;
+                        }
+                        if (StringUtils.equals("adminorg", propertyName) || StringUtils.equals("adminorg", propertyName)) {
+                            String isPrimary = perRegionDy.getString("isprimary");
+                            if (!StringUtils.equals("1", isPrimary)) {
+                                continue;
+                            }
+                        }
+
+                    }
+                    if (StringUtils.equals("hrpi_perregion", entityName)) {
+                        // 籍贯
+                        if (StringUtils.equals("nativeplace", propertyName)) {
+                            allMap.put("${ISV_FLAG}_origin", new TextRenderData(COLOR, perRegionDy.getString("nativeplace")));
+                            perEduExpMap.put("${ISV_FLAG}_origin", new TextRenderData(COLOR, perRegionDy.getString("nativeplace")));
+                            continue;
+                        }
+                        // 出生地
+                        if ("birthplace".equals(propertyName)) {
+                            //出生地
+                            allMap.put("${ISV_FLAG}_administrative", new TextRenderData(COLOR, perRegionDy.getString("birthplace")));
+                            perEduExpMap.put("${ISV_FLAG}_administrative", new TextRenderData(COLOR, perRegionDy.getString("birthplace")));
+                            continue;
+                        }
+                    }
+                    //人员
+                    if (StringUtils.equals("hrpi_employee", entityName)) {
+                        if (StringUtils.equals("birthday", propertyName)) {
+                            Date date = perRegionDy.getDate(propertyName);
+                            allMap.put(propertyName, new TextRenderData(COLOR, getDateString(date)));
+                            perEduExpMap.put(propertyName, new TextRenderData(COLOR, getDateString(date)));
+                            if (!ObjectUtils.isEmpty(date)) {
+                                Calendar cal = Calendar.getInstance();
+                                cal.setTime(date);
+                                int year = cal.get(Calendar.YEAR);
+                                int month = cal.get(Calendar.MONTH) + 1;
+                                String birthday;
+                                if (month < 10) {
+                                    birthday = year + ".0" + month;
+                                } else {
+                                    birthday = year + "." + month;
+                                }
+                                allMap.put("specialbirthday", new TextRenderData(COLOR, birthday));
+                                perEduExpMap.put("specialbirthday", new TextRenderData(COLOR, birthday));
+                            }
+                            continue;
+                        }
+                    }
+                    //培训经历
+                    if (pereduExpSpecialtreatment("hrpi_emptrainfile", entityName, "startdate", propertyName, perRegionDy, "enddate", perEduExpMap)) {
+                        continue;
+                    }
+                    //前工作经历
+                    if (pereduExpSpecialtreatment("hrpi_preworkexp", entityName, "startdate", propertyName, perRegionDy, "enddate", perEduExpMap)) {
+                        continue;
+                    }
+                    //教育经历
+                    if (pereduExpSpecialtreatment("hrpi_pereduexp", entityName, "admissiondate", propertyName, perRegionDy, "gradutiondate", perEduExpMap)) {
+                        continue;
+                    }
+
+                    Class<?> propertyType = iDataEntityProperty.getPropertyType();
+                    if (ObjectUtils.isEmpty(propertyType)) {
+                        continue;
+                    }
+                    String className = propertyType.getName();
+                    if (otherFieldProcessing(allMap, perRegionDy, propertyName, className, perEduExpMap)) {
+                        continue;
+                    }
+                    allMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName)));
+                    perEduExpMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName)));
+                }
+                perEduList.add(perEduExpMap);
+                //奖惩信息
+                if (StringUtils.equals("hrpi_perrprecord", entityName)) {
+                    String flag = perRegionDy.getString("flag");
+                    if (StringUtils.equals("0", flag)) {
+                        punishmentList.add(perEduExpMap);
+                    } else {
+                        rewardList.add(perEduExpMap);
+                    }
+                }
+            }
+            if (StringUtils.equals("hlcm_empprotocol", entityName) || StringUtils.equals("hlcm_contract", entityName)) {
+                allMap.put("contractinformation", perEduList);
+            }
+            if (StringUtils.equals("hrpi_perrprecord", entityName)) {
+                allMap.put("punishment", punishmentList);
+                allMap.put("reward", rewardList);
+            }
+            allMap.put(entityName, perEduList);
+
+        }
+    }
+
+    /**
+     * @Description 递归拼接出生地
+     * @author LuZhiBin
+     * @date 2023/10/25 16:51
+     */
+    public static String retAdmin(DynamicObject admindivision, String strAdmin) {
+        admindivision = BusinessDataServiceHelper.loadSingle(admindivision.getPkValue(), "bd_admindivision");
+        //上级行政区划
+        DynamicObject parent = admindivision.getDynamicObject("parent");
+        if (ObjectUtils.isEmpty(parent) || admindivision.equals(parent)) {
+            return strAdmin;
+        }
+        strAdmin = parent.getString("name") + strAdmin;
+        return retAdmin(parent, strAdmin);
+    }
+
+    /**
+     * @Description 递归拼接出生地
+     * @author LuZhiBin
+     * @date 2023/10/25 16:51
+     */
+    public static String retAdminGM(DynamicObject admindivision, String strAdmin) {
+        strAdmin = strAdmin.replace("省", "").replace("市", "");
+        if (strAdmin.contains("北京") || strAdmin.contains("上海") || strAdmin.contains("天津") || strAdmin.contains("重庆")) {
+            return strAdmin;
+        }
+        admindivision = BusinessDataServiceHelper.loadSingle(admindivision.getPkValue(), "bd_admindivision");
+        DynamicObject basedatafield = admindivision.getDynamicObject("basedatafield");
+        //上级行政区划
+        DynamicObject parent = admindivision.getDynamicObject("parent");
+        if (ObjectUtils.isEmpty(parent) || admindivision.equals(parent)) {
+            return strAdmin;
+        }
+        if (basedatafield.getString("number").equals("003")) {
+            strAdmin = parent.getString("name");
+            return retAdminGM(parent, strAdmin);
+        }
+        strAdmin = parent.getString("name") + strAdmin;
+        return retAdminGM(parent, strAdmin);
+    }
+
+
+    /**
+     * @Description 将yyyy-mm-dd转换成yyyy.mm
+     * @author LuZhiBin
+     * @date 2023/9/18 10:10
+     */
+    public static String getDateString(Date date) {
+        if (!ObjectUtils.isEmpty(date)) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(date);
+            int year = cal.get(Calendar.YEAR);
+            int month = cal.get(Calendar.MONTH) + 1;
+            String strDate;
+            if (month < 10) {
+                strDate = year + ".0" + month;
+            } else {
+                strDate = year + "." + month;
+            }
+            return strDate;
+        }
+        return "";
+    }
+
+    /**
+     * 根据出生年月日计算年龄
+     *
+     * @param birthday
+     * @module
+     * @author SJT
+     * @date 2022/8/31
+     * @return: int
+     */
+    public static int getAgeByBirth(Date birthday) {
+        if (ObjectUtils.isEmpty(birthday)) {
+            return 0;
+        }
+
+        //获取当前时间${ISV_FLAG}.hr.hspm.formplugin.PersonBaseInfoAssignMentPlugin
+        Calendar cal = Calendar.getInstance();
+
+        //获取出生日期的Calendar对象
+        Calendar bir = Calendar.getInstance();
+        bir.setTime(birthday);
+        //如果出生日期大于当前日期，则返回0
+        if (cal.before(birthday)) {
+            return 0;
+        }
+        //取出当前年月日
+        int nowYear = cal.get(Calendar.YEAR);
+        int nowMonth = cal.get(Calendar.MONTH);
+        int nowDay = cal.get(Calendar.DAY_OF_MONTH);
+
+        //取出出生日期的年月日
+        int birthYear = bir.get(Calendar.YEAR);
+        int birthMonth = bir.get(Calendar.MONTH);
+        int birthDay = bir.get(Calendar.DAY_OF_MONTH);
+
+        //计算年份
+        int age = nowYear - birthYear;
+
+        //计算月份和日，看看是否大于当前月日，如果小于则减去一岁
+        if (nowMonth < birthMonth || (nowMonth == birthMonth && nowDay < birthDay)) {
+            age--;
+        }
+        return age;
+    }
+
+
+    private static boolean pereduExpSpecialtreatment(String hrpi_pereduexp, String entityName, String admissiondate, String propertyName, DynamicObject perRegionDy, String gradutiondate, Map<String, Object> perEduExpMap) {
+        if (StringUtils.equals(hrpi_pereduexp, entityName)) {
+            if (StringUtils.equals(admissiondate, propertyName)) {
+                //开始时间
+                Date admissionDate = perRegionDy.getDate(admissiondate);
+                //毕业时间
+                Date graduationDate = perRegionDy.getDate(gradutiondate);
+                String admissionDateStr = getDateString(admissionDate);
+                String graduationDateStr = getDateString(graduationDate);
+                //起止日期
+                perEduExpMap.put("startAndEndDate", new TextRenderData(COLOR, admissionDateStr + " - " + graduationDateStr));
+                return true;
+            }
+            if (StringUtils.equals("graduateschool", propertyName)) {
+                String graduateSchoolNumber = perRegionDy.getString("graduateschool.number");
+                if (StringUtils.equals(getChgeEventNumber("constant.hrmp.hbss.hbss_college.otherschool", "XY03397"), graduateSchoolNumber)) {
+                    //其他院校 特殊处理
+                    perEduExpMap.put("graduateschool", new TextRenderData(COLOR, perRegionDy.getString("schoolrecord")));
+                    return true;
+                }
+            }
+            if (StringUtils.equals("name", propertyName) && StringUtils.equals("hrpi_emptrainfile", entityName)) {
+                String name = perRegionDy.getString("name");
+                perEduExpMap.put("name", new TextRenderData(COLOR, name));
+                //开始时间
+                Date admissionDate = perRegionDy.getDate(admissiondate);
+                //毕业时间
+                Date graduationDate = perRegionDy.getDate(gradutiondate);
+                String admissionDateStr = getDateString(admissionDate);
+                String graduationDateStr = getDateString(graduationDate);
+                //起止日期
+                perEduExpMap.put("startAndEndDate", new TextRenderData(COLOR, admissionDateStr + " - " + graduationDateStr));
+            }
+        }
+        return false;
+    }
+
+    private static boolean otherFieldProcessing(Map<String, Object> allMap, DynamicObject perRegionDy, String propertyName, String className, Map<String, Object> perEduExpMap) {
+        Object propertyDy = perRegionDy.get(propertyName);
+        if (StringUtils.equals("kd.bos.dataentity.entity.DynamicObject", className)) {
+            if (propertyDy instanceof DynamicObject) {
+                if (perRegionDy.getDynamicObjectType().getProperties().containsKey(propertyName)
+                        && perRegionDy.getDynamicObject(propertyName).getDynamicObjectType().getProperties().containsKey("name")) {
+                    allMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".name")));
+                    perEduExpMap.put(propertyName, new TextRenderData(COLOR, perRegionDy.getString(propertyName + ".name")));
+                    return true;
+                }
+            } else if (propertyDy instanceof DynamicObjectCollection) {
+                StringBuilder hobbyTypeBuild = new StringBuilder();
+                DynamicObjectCollection mainHobbyTypeColl = perRegionDy.getDynamicObjectCollection(propertyName);
+                if (!ObjectUtils.isEmpty(mainHobbyTypeColl)) {
+                    for (DynamicObject mainHobbyDy : mainHobbyTypeColl) {
+                        DynamicObject fBaseDataDy = mainHobbyDy.getDynamicObject("fbasedataid");
+                        if (!ObjectUtils.isEmpty(fBaseDataDy)) {
+                            String name = fBaseDataDy.getString("name");
+                            hobbyTypeBuild.append(name);
+                            hobbyTypeBuild.append(",");
+                        }
+                    }
+                    if (!StringUtils.isEmpty(hobbyTypeBuild)) {
+                        allMap.put(propertyName, new TextRenderData(COLOR, hobbyTypeBuild.substring(0, hobbyTypeBuild.lastIndexOf(","))));
+                        perEduExpMap.put(propertyName, new TextRenderData(COLOR, hobbyTypeBuild.substring(0, hobbyTypeBuild.lastIndexOf(","))));
+                    } else {
+                        allMap.put(propertyName, new TextRenderData(COLOR, ""));
+                        perEduExpMap.put(propertyName, new TextRenderData(COLOR, ""));
+                    }
+                }
+                return true;
+            }
+            return true;
+        } else if (StringUtils.equals("java.util.Date", className)) {
+            //将时间转换成yyyy.mm
+            String strDate = getDateString(perRegionDy.getDate(propertyName));
+
+            allMap.put(propertyName, new TextRenderData(COLOR, strDate));
+            perEduExpMap.put(propertyName, new TextRenderData(COLOR, strDate));
+            return true;
+        } else if (StringUtils.equals("boolean", className)) {
+            boolean string = perRegionDy.getBoolean(propertyName);
+            String booleanStr = "否";
+            if (string) {
+                booleanStr = "是";
+            }
+            allMap.put(propertyName, new TextRenderData(COLOR, booleanStr));
+            perEduExpMap.put(propertyName, new TextRenderData(COLOR, booleanStr));
+            return true;
+        } else if (StringUtils.equals("java.lang.String", className)) {
+            Object iDataEntityProperty = perRegionDy.getDataEntityType().getProperties().get(propertyName);
+            //下拉列表特殊处理
+            if (iDataEntityProperty instanceof ComboProp) {
+                ComboProp ComboPropProperty = (ComboProp) perRegionDy.getDataEntityType().getProperties().get(propertyName);
+                for (ValueMapItem comboItem : ComboPropProperty.getComboItems()) {
+                    LocaleString name = comboItem.getName();
+                    if (!ObjectUtils.isEmpty(name)) {
+                        String comboName = perRegionDy.getString(propertyName);
+                        if (!StringUtils.isEmpty(comboName)) {
+                            allMap.put(propertyName, new TextRenderData(COLOR, name.getLocaleValue_zh_CN()));
+                            perEduExpMap.put(propertyName, new TextRenderData(COLOR, name.getLocaleValue_zh_CN()));
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param allMap       全部字段map
+     * @param perAddressDy 地址实体
+     * @return void
+     * @description 获取地址
+     * @author ZhouPingHai
+     * @lastModifiedBy: （填入修改人）
+     * @lastModifyTime: （修改时间）
+     * @Date 2023/6/30 19:26
+     */
+    private static void getAddressInfo(Map<String, Object> allMap, DynamicObject perAddressDy) {
+        String addressNumber = perAddressDy.getString("addresstype.number");
+        String addressTypeNum = getChgeEventNumber("constant.hr.hbss.hbss_addresstype.number", "1030_S");
+        String familyAddressTypeNum = getChgeEventNumber("constant.hr.hbss.hbss_addresstype.familyaddress", "1010_S");
+        String houRegAddressTypeNum = getChgeEventNumber("constant.hr.hbss.hbss_addresstype.housregaddress", "1020_S");
+        if (StringUtils.equals(addressNumber, addressTypeNum)) {
+            //常住地址
+            allMap.put("peresiaddress", new TextRenderData(COLOR, perAddressDy.getString("addressinfo")));
+        } else if (StringUtils.equals(addressNumber, familyAddressTypeNum)) {
+            //家庭地址
+            allMap.put("familyaddress", new TextRenderData(COLOR, perAddressDy.getString("addressinfo")));
+        } else if (StringUtils.equals(addressNumber, houRegAddressTypeNum)) {
+            //户口所在地
+            allMap.put("housregaddress", new TextRenderData(COLOR, perAddressDy.getString("addressinfo")));
+        }
+    }
+
+    private static String getChgeEventNumber(String propertyName, String number) {
+        //变动大类离职的编码
+        String addressTypeNumber = System.getProperty(propertyName);
+        if (StringUtils.isEmpty(addressTypeNumber)) {
+            addressTypeNumber = number;
+        }
+        return addressTypeNumber;
+    }
+
+
+    private static DynamicObject[] getAllQuerySelectFiledColl(Long billId, String entityName, String orderByFiled) {
+        QFilter qFilter = new QFilter("employee.id", QCP.equals, billId);
+        DynamicObjectCollection queryColl = QueryServiceHelper.query(entityName, "id", qFilter.toArray(), orderByFiled);
+        if (!ObjectUtils.isEmpty(queryColl)) {
+            List<Long> idList = queryColl.stream().map(dy -> dy.getLong("id")).collect(Collectors.toList());
+            MainEntityType entityType = EntityMetadataCache.getDataEntityType(entityName);
+            return BusinessDataServiceHelper.load(idList.toArray(), entityType);
+        }
+        return null;
+    }
+
+    private static DynamicObject[] getAllQuerySelectFiledCollByAssign(Long assignmentId, String entityName, String orderByFiled) {
+        // 组织分配过滤
+        QFilter assignmentFilter = new QFilter("assignment.id", QCP.equals, assignmentId);
+//        QFilter qFilter = new QFilter("iscurrentdata", QCP.equals, true);
+//        qFilter.and(assignmentFilter);
+
+        DynamicObjectCollection queryColl = QueryServiceHelper.query(entityName, "id", assignmentFilter.toArray(), orderByFiled);
+        if (!ObjectUtils.isEmpty(queryColl)) {
+            List<Long> idList = queryColl.stream().map(dy -> dy.getLong("id")).collect(Collectors.toList());
+            MainEntityType entityType = EntityMetadataCache.getDataEntityType(entityName);
+            return BusinessDataServiceHelper.load(idList.toArray(), entityType);
+        }
+        return null;
+    }
+
+
+    private static DynamicObject[] getAllEmporgrelAll(Long employeeId, String entityName, String orderByFiled) {
+        //查询员工信息
+        QFilter employeeFilter = new QFilter("employee.id", "=", employeeId);
+        QFilter qFilter = new QFilter("iscurrentdata", QCP.equals, true);
+
+        qFilter.and(employeeFilter);
+
+        DynamicObjectCollection queryColl = QueryServiceHelper.query(entityName, "id", qFilter.toArray(), orderByFiled);
+        if (!ObjectUtils.isEmpty(queryColl)) {
+            List<Long> idList = queryColl.stream().map(dy -> dy.getLong("id")).collect(Collectors.toList());
+            MainEntityType entityType = EntityMetadataCache.getDataEntityType(entityName);
+            return BusinessDataServiceHelper.load(idList.toArray(), entityType);
+        }
+        return null;
+    }
+
+
+
+    private static void perserlenBuildMapByAssign(Long assignmentId, Map<String, Object> allMap, String templateNumber) {
+        // 服务年限
+        DynamicObject[] dynamicObjects = getAllQuerySelectFiledCollByAssign(assignmentId, "hrpi_perserlen", "");
+        universalConversion(allMap, dynamicObjects, "hrpi_perserlen", templateNumber);
+    }
+
+    private static void empposorgrelBuildMapByAssign(Long assignmentId, Map<String, Object> allMap, String templateNumber) {
+        // 任职经历
+        DynamicObject[] dynamicObjects = getAllQuerySelectFiledCollByAssign(assignmentId, "hrpi_empposorgrel", "");
+        universalConversion(allMap, dynamicObjects, "hrpi_empposorgrel", templateNumber);
+
+        //任职经历
+        specialEmpPosOrgRel("hrpi_empposorgrel", allMap, dynamicObjects);
+    }
+
+    private void emporgrelallBuildMapByAssign(Long assignmentId, Map<String, Object> allMap, String templateNumber,Long employeeId,StringBuilder filedStr) {
+        // 任职经历总表
+        List<DynamicObject> empPreList = new ArrayList<>();
+        DynamicObject[] empOrgRelAllColl = getAllQuerySelectFiledCollByAssign(assignmentId, "hrpi_emporgrelall", "");
+        List<Object> perEduList = new ArrayList<>();
+        if (!ObjectUtils.isEmpty(empOrgRelAllColl)) {
+            empPreList.addAll(empOrgRelAllHandle(empOrgRelAllColl));
+        }
+
+        //前工作经历-附表
+        DynamicObject[] preWorkExpColl = getAllQuerySelectFiledColl(employeeId, "hrpi_preworkexp", "");
+        if (!ObjectUtils.isEmpty(preWorkExpColl)) {
+            empPreList.addAll(Arrays.asList(preWorkExpColl));
+        }
+        specialEmpPreWork(allMap, empPreList, perEduList, filedStr, templateNumber);
+    }
+
+    private void contractsourceBuildMapByAssign(Long assignmentId, Map<String, Object> allMap, String templateNumber) {
+        //是否生效
+        QFilter qFilter = new QFilter("contractstatus", QCP.equals, "1");
+        //是否已经签订
+        qFilter.and("signstatus", QCP.equals, "1");
+        //是否当前版本
+        qFilter.and("iscurrentversion", QCP.equals, "1");
+        qFilter.and("assignment.id", QCP.equals, assignmentId);
+
+        DynamicObjectCollection contractSourceColl = QueryServiceHelper.query("hlcm_contractsource", "id", qFilter.toArray());
+        if (!ObjectUtils.isEmpty(contractSourceColl)) {
+            List<Long> idList = contractSourceColl.stream().map(dy -> dy.getLong("id")).collect(Collectors.toList());
+            MainEntityType entityType = EntityMetadataCache.getDataEntityType("hlcm_contractsource");
+            DynamicObject[] contractDyColl = BusinessDataServiceHelper.load(idList.toArray(), entityType);
+            universalConversion(allMap, contractDyColl, "hlcm_contractsource", templateNumber);
+        }
+    }
+
+    private static void emrgcontactBuildMap(Long employeeId, String entityName, String orderByFiled, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        // 紧急联系人
+        DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(employeeId, entityName, orderByFiled);
+        universalConversion(allMap, attendRecordsColl, entityName, templateNumber);
+        specialEmrgContact(entityName, allMap, attendRecordsColl);
+    }
+
+    private void pereduexpBuildMap(Long employeeId, String entityName, String orderByFiled, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        // 教育经历
+        DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(employeeId, entityName, orderByFiled);
+        universalConversion(allMap, attendRecordsColl, entityName, templateNumber);
+        specialPerEduExp(employeeId, entityName, allMap, filedStr, templateNumber);
+    }
+
+    private void perprotitleBuildMap(Long employeeId, String entityName, String orderByFiled, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        //职称信息
+        DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(employeeId, entityName, orderByFiled);
+        universalConversion(allMap, attendRecordsColl, entityName, templateNumber);
+        specialPerproTitle(entityName, allMap, attendRecordsColl);
+    }
+
+
+    private void familymembBuildMap(Long employeeId, String entityName, String orderByFiled, Map<String, Object> allMap, StringBuilder filedStr, String templateNumber) {
+        // 家庭成员
+        DynamicObject[] attendRecordsColl = getAllQuerySelectFiledColl(employeeId, entityName, orderByFiled);
+        //主要家庭成员及社会关系排序List集合
+        //家庭成员数据排序处理
+        if (!ObjectUtils.isEmpty(attendRecordsColl)) {
+            List<DynamicObject> familyMemberList = sortFamilyMemberDy(attendRecordsColl);
+            if (!ObjectUtils.isEmpty(familyMemberList)) {
+                universalConversion(allMap, familyMemberList.toArray(new DynamicObject[0]), entityName, templateNumber);
+            }
+        }
+
+    }
+
+}

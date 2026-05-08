@@ -1,0 +1,158 @@
+asset:
+  id: downermanfileword
+  name: 人员履历Word打印
+  english_name: Employee File Word Export
+  version: v1.0
+  source_dcs_project: downermanfileword
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/orghrgroup/downermanfileword.git
+  source_branch: feature-standard
+  source_commit: a971686
+  source_doc: null
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: core_hr
+  app: hspm
+  scenario: 员工档案 word 导出：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 8 个 java 类（2651 LOC）+ 5 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 员工档案 word 导出
+  - 人事档案 word
+  - 档案 word 模板
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/CustomFileHeadHelper.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/CustomPersonModelUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/CustomValueConvertHelper.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/ErmanFileReusePlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/PersonFileDownloadFormPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/PersonFileDownloadRptPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/WordPrintSelectTemplatePlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hspm/FileConversionImpl.java
+  datamodel_files:
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_assignmentl_ext.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_assignmentl_ext.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_assignmentq_ext.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_assignmentq_ext.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_wordconversion.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_wordconversion.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_wordtempprin.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hspm_wordtempprin.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hrpi_assignment_ext.dym
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hrpi_assignment_ext.zh_CN.dymx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/core_hr/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - core_hr_downermanfileword
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 CustomFileHeadHelper 行为
+  location: CustomFileHeadHelper.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CustomFileHeadHelper 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 CustomPersonModelUtil 行为
+  location: CustomPersonModelUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CustomPersonModelUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 CustomValueConvertHelper 行为
+  location: CustomValueConvertHelper.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CustomValueConvertHelper 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 ErmanFileReusePlugin 行为
+  location: ErmanFileReusePlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: ErmanFileReusePlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 PersonFileDownloadFormPlugin 行为
+  location: PersonFileDownloadFormPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PersonFileDownloadFormPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-06
+  name: 改 PersonFileDownloadRptPlugin 行为
+  location: PersonFileDownloadRptPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PersonFileDownloadRptPlugin 继承 AbstractReportFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-07
+  name: 改 WordPrintSelectTemplatePlugin 行为
+  location: WordPrintSelectTemplatePlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: WordPrintSelectTemplatePlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-08
+  name: 改 FileConversionImpl 行为
+  location: FileConversionImpl.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: FileConversionImpl 继承 独立·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: hspm
+  multi_module: true
+  primary_module: hrpi_ext
+  biz_app_modules:
+  - module_id: hrpi_ext
+    datamodel_app_dir: tdkw_hrpi_ext/1.5.0/main
+    is_primary: true
+  - module_id: hspm_ext
+    datamodel_app_dir: tdkw_hspm_ext/1.5.0/main
+    is_primary: false
+    target_biz_app_pattern: ${ISV_FLAG}_hspm_ext

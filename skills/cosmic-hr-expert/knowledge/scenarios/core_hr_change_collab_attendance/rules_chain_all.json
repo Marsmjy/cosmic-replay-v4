@@ -1,0 +1,32 @@
+{
+  "scene": "core_hr_change_collab_attendance",
+  "opKeys": {
+    "coord_link_overview": {
+      "opKey": "coord_link_overview",
+      "name": "协作链路总览（非核心 opKey · 仅作 mines 承载）",
+      "opType": "overview",
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.business.coordination.impl.AbstractHrDataCoordTask",
+          "description": "协作模板基类·所有下游云 EmployeeCoordTask 的 super.execute()"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_COLLAB_LINK",
+          "name": "BEC → sch_job → 真处理类 6 层闭环",
+          "definition": "core_hr 上游事件 → 订阅类 → pullJobNumber() → sch_job → classname → 真处理类 → AbstractHrDataCoordTask.execute() → service.pullAndGenerate()"
+        }
+      ],
+      "validators": [],
+      "mines": [
+        "❌ 禁继承标品订阅类入口（如 HpdiEmployeeCoordEventServicePlugin）· @SdkPlugin 内部·会破坏 ServiceFactory 注册机制",
+        "❌ 禁继承 AbstractEmployeeCoordTask · hbp 协作模板基类·应实现 EmployeeCoordService 接口扩展",
+        "❌ 禁继承 AbstractHrDataCoordTask · hbp 真核心模板·改 execute 会破坏所有下游协作",
+        "❌ 禁继承 AbstractEmployeeCoordSubService · hbp 订阅子服务基类·ISV 应另起炉灶实现 IEventServicePlugin",
+        "❌ 不允许 ISV 修改 sch_job 标品调度作业·应建自己的 sch_job + sch_schedule 配置"
+      ]
+    }
+  }
+}

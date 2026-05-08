@@ -1,0 +1,124 @@
+package ${ISV_FLAG}.hspm;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import kd.sdk.hr.hspm.common.utils.PropertyHelper;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CustomPersonModelUtil {
+    private static Log LOGGER = LogFactory.getLog(CustomPersonModelUtil.class);
+    private static final HRBaseServiceHelper PERSONENTITYCONF_HEPLER = new HRBaseServiceHelper("hrpi_personentityconf");
+    private static final Map<String, Object> PERSONMODEL_CACHE = new HashMap();
+
+
+    public static QFilter getQFilterForHeadArea(String pageNumber, Map<String, Object> values) {
+
+
+
+        if (HRStringUtils.isNotEmpty(pageNumber) && !CollectionUtils.isEmpty(values)) {
+            CustomPersonModelClassificationEnum CustomPersonModelClassificationEnum = getClassification(pageNumber);
+            Long dataId;
+            if (CustomPersonModelClassificationEnum.DEPEMPATTACHED == CustomPersonModelClassificationEnum) {
+                if (validate(pageNumber, values, "depemp")) {
+                    dataId = Long.valueOf(values.get("depemp").toString());
+                    return new QFilter("depemp", "=", dataId);
+                }
+            } else if (CustomPersonModelClassificationEnum.CMPEMPATTACHED == CustomPersonModelClassificationEnum) {
+                if (validate(pageNumber, values, "cmpemp")) {
+                    dataId = Long.valueOf(values.get("cmpemp").toString());
+                    return new QFilter("cmpemp", "=", dataId);
+                }
+            } else if (CustomPersonModelClassificationEnum.EMPATTACHED == CustomPersonModelClassificationEnum) {
+                if (validate(pageNumber, values, "employee")) {
+                    dataId = Long.valueOf(values.get("employee").toString());
+                    return new QFilter("employee", "=", dataId);
+                }
+            } else if (CustomPersonModelClassificationEnum.PERATTACHED == CustomPersonModelClassificationEnum) {
+                if (validate(pageNumber, values, "person")) {
+                    dataId = Long.valueOf(values.get("person").toString());
+                    return new QFilter("person", "=", dataId);
+                }
+            } else if (CustomPersonModelClassificationEnum.PERSONMODEL == CustomPersonModelClassificationEnum) {
+                if ("hrpi_person".equals(pageNumber) && validateData(values, "person")) {
+                    dataId = Long.valueOf(values.get("person").toString());
+                    return new QFilter("id", "=", dataId);
+                }
+
+                if ("hrpi_employee".equals(pageNumber) && validateData(values, "hrpi_employee")) {
+                    dataId = Long.valueOf(values.get("employee").toString());
+                    return new QFilter("id", "=", dataId);
+                }
+
+                if ("hrpi_cmpemp".equals(pageNumber) && validateData(values, "cmpemp")) {
+                    dataId = Long.valueOf(values.get("cmpemp").toString());
+                    return new QFilter("id", "=", dataId);
+                }
+
+                if ("hrpi_depemp".equals(pageNumber) && validateData(values, "depemp")) {
+                    dataId = Long.valueOf(values.get("depemp").toString());
+                    return new QFilter("id", "=", dataId);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean validateData(Map<String, Object> values, String key) {
+        return values.get(key) != null && Long.parseLong(values.get(key).toString()) > 0L;
+    }
+
+    private static boolean validate(String pageNumber, Map<String, Object> values, String key) {
+        return validateData(values, key) && PropertyHelper.existProperty(pageNumber, key);
+    }
+
+    public static CustomPersonModelClassificationEnum getClassification(String pageNumber) {
+        if (HRStringUtils.isNotEmpty(pageNumber)) {
+            String cacheKey = "PERSONMODELCLASSIFICATION_CACHEKEY:" + pageNumber;
+            String deadlineKey = "PERSONMODELCLASSIFICATION_CACHEKEY:deadline";
+            Date deadline = (Date)PERSONMODEL_CACHE.get(deadlineKey);
+            if (deadline != null && deadline.after(new Date())) {
+                String classify = (String)PERSONMODEL_CACHE.get(cacheKey);
+                if (classify != null) {
+                    return CustomPersonModelClassificationEnum.getByCode(classify);
+                }
+            }
+
+            QFilter entityFilter = new QFilter("id", ">", 0L);
+            DynamicObject[] dyArray = PERSONENTITYCONF_HEPLER.query("entity,classify", new QFilter[]{entityFilter}, "id");
+            PERSONMODEL_CACHE.put(deadlineKey, HRDateTimeUtils.addHour(new Date(), 2L));
+            if (dyArray != null && dyArray.length > 0) {
+                if (dyArray.length >= 500) {
+                    LOGGER.warn("Maybe more than MAX_QUERY_PERSONENTITYCONF");
+                }
+
+                DynamicObject[] var6 = dyArray;
+                int var7 = dyArray.length;
+
+                for(int var8 = 0; var8 < var7; ++var8) {
+                    DynamicObject dy = var6[var8];
+                    String classify = dy.getString("classify");
+                    PERSONMODEL_CACHE.put("PERSONMODELCLASSIFICATION_CACHEKEY:" + dy.getString("entity"), classify);
+                }
+
+                String classify = (String)PERSONMODEL_CACHE.get(cacheKey);
+                if (classify != null) {
+                    return CustomPersonModelClassificationEnum.getByCode(classify);
+                }
+            } else {
+                PERSONMODEL_CACHE.put(cacheKey, "");
+            }
+        }
+
+        return null;
+    }
+}

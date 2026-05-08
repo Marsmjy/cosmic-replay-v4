@@ -1,0 +1,204 @@
+{
+  "formId": "wtte_dailydetailslist",
+  "formName": null,
+  "sceneId": "wtte_dailydetailslist",
+  "isv": "kingdee",
+  "modelType": "ReportFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1b760aa100003bac",
+  "bizappId": "1C8H4/N38LCY",
+  "metaIdTechnical": "1PADOB=H7YB9",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtte_dailydetailslist",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtte_dailydetailslist.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtte_dailydetailslist",
+      "type": "ReportEntity",
+      "title": "考勤记录-日明细",
+      "physicalTable": null,
+      "fieldCount": 8
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "grandtotal > '' 总计行",
+      "TrueActions": {
+        "SetRowStyleAction": {
+          "RET": "134",
+          "ActionType": "SetRowStyleAction",
+          "RowStyles": {
+            "RowStyle": {
+              "BackgroundColor": "#FFF8E1",
+              "Degree": "100",
+              "Id": "5GI46T46VXWF",
+              "ForeColor": "#FC8555"
+            }
+          },
+          "Description": "设置行样式",
+          "Id": "5GI4II5MP3YI"
+        }
+      },
+      "Id": "16XRPM9H0=BC",
+      "PreCondition": "grandtotal > ''",
+      "Seq": "1"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "attperinf": {
+      "fieldId": "Ysu0UJWFeN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_dailydetailslist",
+      "title": "人员",
+      "physicalColumn": "—",
+      "_fieldApId": "Ysu0UJWFeN"
+    },
+    "attperiodentry": {
+      "fieldId": "nCI6m8SqHL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attperiodentry",
+      "entity": "wtte_dailydetailslist",
+      "title": "考勤期间",
+      "physicalColumn": "—",
+      "_fieldApId": "nCI6m8SqHL"
+    },
+    "owndate": {
+      "fieldId": "8u8bjc7QUe",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateRangeField",
+      "ref": null,
+      "entity": "wtte_dailydetailslist",
+      "title": "归属日期",
+      "physicalColumn": "—",
+      "_fieldApId": "8u8bjc7QUe"
+    },
+    "con_adminorg": {
+      "fieldId": "4agK4JC63j",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "wtte_dailydetailslist",
+      "title": "行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "4agK4JC63j"
+    },
+    "con_empgroup": {
+      "fieldId": "Gk5n52mk41",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_dailydetailslist",
+      "title": "考勤档案分组",
+      "physicalColumn": "—",
+      "_fieldApId": "Gk5n52mk41"
+    },
+    "con_affiliateadminorg": {
+      "fieldId": "wWqtNp374b",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "wtte_dailydetailslist",
+      "title": "挂靠行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "wWqtNp374b"
+    },
+    "con_showplan": {
+      "fieldId": "rBPJ42bISw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "wtte_dailydetscheme",
+      "entity": "wtte_dailydetailslist",
+      "title": "显示方案",
+      "physicalColumn": "—",
+      "_fieldApId": "rBPJ42bISw"
+    },
+    "con_org": {
+      "fieldId": "zAucCKuVCB",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtte_dailydetailslist",
+      "title": "考勤管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "zAucCKuVCB"
+    }
+  },
+  "requiredFields": {
+    "wtte_dailydetailslist": [
+      "con_showplan",
+      "con_org"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "1PADOB=H7YB9_EaQh7YGf",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.wtc.wtte.formplugin.web.report.RecordSumDayListRFPlugin",
+      "Description": "kd.wtc.wtte.formplugin.web.report.RecordSumDayListRFPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:07",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 8,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 1,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

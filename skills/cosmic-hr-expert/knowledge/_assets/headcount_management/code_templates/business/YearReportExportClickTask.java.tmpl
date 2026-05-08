@@ -1,0 +1,38 @@
+package ${ISV_FLAG}.odc.homs.task;
+
+import kd.bos.form.IFormView;
+import kd.bos.schedule.api.TaskInfo;
+import kd.bos.schedule.form.AbstractTaskClick;
+import kd.bos.schedule.form.event.ClickEventArgs;
+
+
+/**
+ * @Author 姚帅
+ * @Date 2024/03/07 13:40
+ * @Version 1.0
+ * 任务提醒面板
+ */
+public class YearReportExportClickTask extends AbstractTaskClick {
+
+    /**
+     * 用户点击了前端任务提醒面板上的任务
+     */
+    @Override
+    public void click(ClickEventArgs e) {
+        // 获取任务执行结果
+        TaskInfo taskInfo = this.queryTask();
+        // 获取发起任务的页面（如果用户已经关闭了发起任务的页面，返回null）
+        IFormView parentView = this.getParentView();
+        if (taskInfo.isTaskEnd()) {
+            // 任务已经结束
+            e.setClearTask(true); // 通知平台，清除前端任务提醒图标
+            this.getMainView().showMessage("任务已经结束，可以在此处打开结果查看界面");
+        } else {
+            // 任务没有结束，重新打开进度界面
+            if (parentView == null) {
+                this.getMainView().showMessage("启动任务的页面已经关闭，不能再打开进度界面");
+            }
+        }
+    }
+
+}

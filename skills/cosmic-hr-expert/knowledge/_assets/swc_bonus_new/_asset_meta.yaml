@@ -1,0 +1,493 @@
+asset:
+  id: swc_bonus_new
+  name: 奖金管理
+  english_name: Bonus Management
+  version: v1.0
+  source_dcs_project: swc-bonusnew
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/swcgroup/swc-bonusnew.git
+  source_branch: feature-standard-new
+  source_commit: 6e61183
+  source_doc: 文档/奖金管理复用说明书.docx
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: payroll
+  app: swc
+  scenario: 奖金新版：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 55 个 java 类（12428 LOC）+ 10 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 奖金管理新版
+  - 奖金核算
+  - 奖金发放
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/PersonOrgUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/SWCI18NParam.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/PushSalaryUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/TdkwSendMessageUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisSumAllPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDistributeSumOperatePlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusSumApprovalOperatePlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/OperateDistributeCacheUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDistributeSumValidatePlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDistributeBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDistributeSumListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPaymentBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPaymentImportPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsPaymentListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsPaymentUtils.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanImportPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/CreateApproval.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/FilterItemByType.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanApprovalBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanApprovalOperationPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsAgentApproveBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsImportBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsRecodBillPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/PayrollPushUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsRecordOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsImportOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsEndApproveOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsAgentApproveOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanConvertPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanOtherOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusPlanValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsAgentConvertPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsEndConvertPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsRecordConvertPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsPaymentAgentOperation.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BounsPaymentValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisRejectPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisSecondPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/TransferToHandleDisTask.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisSecondPushPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusDisSecValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalSheetBillListPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalSheetBillSecondFlowPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalSheetBillSecondPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusWriteBackUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalConvertPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalAuditPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalSheetBillSecondPushPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/BonusApprovalSecValidator.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/CalendarUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/ObjectUtils.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsbm/PersonOrgUtil.java
+  datamodel_files:
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_approval_2nd.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_approval_2nd.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_approval_flow.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_approval_flow.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_distribute_sum.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_distribute_sum.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_dis_detail.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_dis_detail.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_items.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_items.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_payment.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_payment.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_plan.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_plan.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_plan_approval.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_plan_approval.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_sum_approval.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_sum_approval.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_types.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_bonus_types.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - payroll_swc_bonus_new
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 PersonOrgUtil 行为
+  location: PersonOrgUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PersonOrgUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 SWCI18NParam 行为
+  location: SWCI18NParam.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SWCI18NParam 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 BonusUtil 行为
+  location: BonusUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 PushSalaryUtil 行为
+  location: PushSalaryUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PushSalaryUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 TdkwSendMessageUtil 行为
+  location: TdkwSendMessageUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: TdkwSendMessageUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-06
+  name: 改 BonusDisSumAllPlugin 行为
+  location: BonusDisSumAllPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisSumAllPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-07
+  name: 改 BonusDistributeSumOperatePlugin 行为
+  location: BonusDistributeSumOperatePlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDistributeSumOperatePlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-08
+  name: 改 BonusSumApprovalOperatePlugin 行为
+  location: BonusSumApprovalOperatePlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusSumApprovalOperatePlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-09
+  name: 改 OperateDistributeCacheUtil 行为
+  location: OperateDistributeCacheUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: OperateDistributeCacheUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-10
+  name: 改 BonusDistributeSumValidatePlugin 行为
+  location: BonusDistributeSumValidatePlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDistributeSumValidatePlugin 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-11
+  name: 改 BonusDistributeBillPlugin 行为
+  location: BonusDistributeBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDistributeBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-12
+  name: 改 BonusDistributeSumListPlugin 行为
+  location: BonusDistributeSumListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDistributeSumListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-13
+  name: 改 BonusPaymentBillPlugin 行为
+  location: BonusPaymentBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPaymentBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-14
+  name: 改 BonusPaymentImportPlugin 行为
+  location: BonusPaymentImportPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPaymentImportPlugin 继承 BatchImportPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-15
+  name: 改 BounsPaymentListPlugin 行为
+  location: BounsPaymentListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsPaymentListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-16
+  name: 改 BounsPaymentUtils 行为
+  location: BounsPaymentUtils.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsPaymentUtils 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-17
+  name: 改 BonusPlanImportPlugin 行为
+  location: BonusPlanImportPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanImportPlugin 继承 BatchImportPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-18
+  name: 改 CreateApproval 行为
+  location: CreateApproval.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CreateApproval 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-19
+  name: 改 FilterItemByType 行为
+  location: FilterItemByType.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: FilterItemByType 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-20
+  name: 改 BonusPlanApprovalBillPlugin 行为
+  location: BonusPlanApprovalBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanApprovalBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-21
+  name: 改 BonusPlanApprovalOperationPlugin 行为
+  location: BonusPlanApprovalOperationPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanApprovalOperationPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-22
+  name: 改 BounsAgentApproveBillPlugin 行为
+  location: BounsAgentApproveBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsAgentApproveBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-23
+  name: 改 BounsImportBillPlugin 行为
+  location: BounsImportBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsImportBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-24
+  name: 改 BounsRecodBillPlugin 行为
+  location: BounsRecodBillPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsRecodBillPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-25
+  name: 改 PayrollPushUtil 行为
+  location: PayrollPushUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PayrollPushUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-26
+  name: 改 BounsRecordOperation 行为
+  location: BounsRecordOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsRecordOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-27
+  name: 改 BounsImportOperation 行为
+  location: BounsImportOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsImportOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-28
+  name: 改 BounsEndApproveOperation 行为
+  location: BounsEndApproveOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsEndApproveOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-29
+  name: 改 BounsAgentApproveOperation 行为
+  location: BounsAgentApproveOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsAgentApproveOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-30
+  name: 改 BonusPlanConvertPlugin 行为
+  location: BonusPlanConvertPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanConvertPlugin 继承 AbstractConvertPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-31
+  name: 改 BonusPlanOperation 行为
+  location: BonusPlanOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-32
+  name: 改 BonusPlanOtherOperation 行为
+  location: BonusPlanOtherOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanOtherOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-33
+  name: 改 BonusPlanValidator 行为
+  location: BonusPlanValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusPlanValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-34
+  name: 改 BounsAgentConvertPlugin 行为
+  location: BounsAgentConvertPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsAgentConvertPlugin 继承 AbstractConvertPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-35
+  name: 改 BounsEndConvertPlugin 行为
+  location: BounsEndConvertPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsEndConvertPlugin 继承 AbstractConvertPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-36
+  name: 改 BounsRecordConvertPlugin 行为
+  location: BounsRecordConvertPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsRecordConvertPlugin 继承 AbstractConvertPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-37
+  name: 改 BounsPaymentAgentOperation 行为
+  location: BounsPaymentAgentOperation.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsPaymentAgentOperation 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-38
+  name: 改 BounsPaymentValidator 行为
+  location: BounsPaymentValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BounsPaymentValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-39
+  name: 改 BonusDisListPlugin 行为
+  location: BonusDisListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-40
+  name: 改 BonusDisRejectPlugin 行为
+  location: BonusDisRejectPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisRejectPlugin 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-41
+  name: 改 BonusDisSecondPlugin 行为
+  location: BonusDisSecondPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisSecondPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-42
+  name: 改 TransferToHandleDisTask 行为
+  location: TransferToHandleDisTask.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: TransferToHandleDisTask 继承 AbstractFormPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-43
+  name: 改 BonusDisSecondPushPlugin 行为
+  location: BonusDisSecondPushPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisSecondPushPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-44
+  name: 改 BonusDisSecValidator 行为
+  location: BonusDisSecValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusDisSecValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-45
+  name: 改 BonusApprovalSheetBillListPlugin 行为
+  location: BonusApprovalSheetBillListPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalSheetBillListPlugin 继承 AbstractListPlugin·扩展时按 SDK 白名单 @Override 重写
+- id: EP-46
+  name: 改 BonusApprovalSheetBillSecondFlowPlugin 行为
+  location: BonusApprovalSheetBillSecondFlowPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalSheetBillSecondFlowPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-47
+  name: 改 BonusApprovalSheetBillSecondPlugin 行为
+  location: BonusApprovalSheetBillSecondPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalSheetBillSecondPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-48
+  name: 改 BonusWriteBackUtil 行为
+  location: BonusWriteBackUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusWriteBackUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-49
+  name: 改 BonusApprovalConvertPlugin 行为
+  location: BonusApprovalConvertPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalConvertPlugin 继承 AbstractConvertPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-50
+  name: 改 BonusApprovalAuditPlugin 行为
+  location: BonusApprovalAuditPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalAuditPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-51
+  name: 改 BonusApprovalSheetBillSecondPushPlugin 行为
+  location: BonusApprovalSheetBillSecondPushPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalSheetBillSecondPushPlugin 继承 AbstractOperationServicePlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-52
+  name: 改 BonusApprovalSecValidator 行为
+  location: BonusApprovalSecValidator.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: BonusApprovalSecValidator 继承 AbstractValidator·扩展时按 SDK 白名单 @Override 重写
+- id: EP-53
+  name: 改 CalendarUtil 行为
+  location: CalendarUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: CalendarUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-54
+  name: 改 ObjectUtils 行为
+  location: ObjectUtils.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: ObjectUtils 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-55
+  name: 改 PersonOrgUtil 行为
+  location: PersonOrgUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PersonOrgUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: swc/hsbm
+  multi_module: false
+  primary_module: swc_ext
+  biz_app_modules:
+  - module_id: swc_ext
+    datamodel_app_dir: tdkw_swc_ext/1.5.0/main
+    is_primary: true

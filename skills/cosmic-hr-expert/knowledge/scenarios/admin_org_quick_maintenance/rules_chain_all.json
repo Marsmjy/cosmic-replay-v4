@@ -1,0 +1,3640 @@
+{
+  "scene": "admin_org_quick_maintenance",
+  "formId": "haos_adminorg",
+  "description": "行政组织快速维护 · 14 opKey 的完整执行链（OpPlugin + FormPlugin 前置/后置），全部基于 cfr 反编译实证",
+  "auditedAt": "2026-04-21",
+  "dataSource": "L2 反编译 · knowledge/_sdk_audit/_decompiled/",
+  "decompiledClasses": [
+    "AbsOrgBaseOp.java",
+    "AdminOrgDetailEditPlugin.java",
+    "AdminOrgDetailListPlugin.java",
+    "AdminOrgFastAuditOp.java",
+    "AdminOrgFastDisableOrgOp.java",
+    "AdminOrgFastEnableOrgOp.java",
+    "AdminOrgFastParentChangeOp.java",
+    "AdminOrgFastSaveOp.java",
+    "AdminOrgInitSaveOp.java",
+    "AdminOrgRootResetOp.java",
+    "BatchAdminOrgAuditOpService.java",
+    "BatchAdminOrgChangeParentOpService.java",
+    "BatchAdminOrgNewOpService.java",
+    "BdVersionSaveServicePlugin.java",
+    "CodeRuleDeleteOp.java",
+    "CodeRuleOp.java",
+    "HisModelFormCommonPlugin.java",
+    "HisModelListCommonPlugin.java",
+    "HisModelOPCommonPlugin.java",
+    "HisUniqueValidateOp.java",
+    "HRBaseDataEnableOp.java",
+    "HRBaseDataLogOp.java",
+    "HRBaseDataStatusOp.java",
+    "HRBaseOriginalOp.java",
+    "NewAdminorgDetailEditPlugin.java",
+    "OrgDetailList.java"
+  ],
+  "opKeys": {
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "新增组织 或 更新当前版本",
+        "frequency": "最高频",
+        "stateTransition": "草稿 → 生效（启用审核时 -> status=A 待审核；不启用审核时 -> status=C 已审核）",
+        "extValue": 3
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_save_1",
+          "source": "AdminOrgDetailEditPlugin.beforeDoOperation",
+          "when": "opKey=refresh（唯一判断）；save 在该类里无分支，无拦截",
+          "logic": "仅对 refresh 清除 customParam adminorg_operation；save 直接放行到 OpPlugin 链",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin"
+        },
+        {
+          "id": "FB_save_2",
+          "source": "HisModelFormCommonPlugin.beforeDoOperation",
+          "when": "opKey=save",
+          "logic": "1) 把 attachmentPanelLogInfo 从 pageCache 注入 op.getOption 用于附件变更日志；2) 如果当前页是 REVISE_VERSION_PAGE（修订），校验：非断档模型且同一 boid 已有 2 条版本 & bsled != TimeLineServiceUtil.getMaxEffEndDate 则阻止并提示'失效日期不能早于 xxx'；否则 setReviseSave=true 写进 hisOpParam；3) 其他页调 HisModelValidateProcessor.validateForSave()；校验失败 args.setCancel(true)；通过则把 CodeRuleProcessor 生成的 number 和 hisOpParam（boChange 是否在变更页）写入 opOption",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则生成：onAddValidators 里调 generateNumber 为新记录填 number；若 importtag_of_datasource 才追加 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "名称版本化：beginOperationTransaction 如果实体有 name$version 子表则把 name 变更写历史"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "使用状态：beforeExecuteOperationTransaction 按 HRBaseDataConfigUtil.getAudit(formId) 设 status=A（需审核）或 status=C（免审核）；forceNoAudit=true 可跳过"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "【未启用】变更日志：HRBaseDataConfigUtil.getRecordLog(formId) 是 true 才工作；begin 阶段 init 脏数据管理器，after 阶段批量写日志",
+          "enabled": false
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "使用状态：beforeExecuteOperationTransaction 按 HRBaseDataConfigUtil.getEnableStatus(formId) 为新记录设 enable（'10' or '1'）；ignoreResetEnable=true 可跳过"
+        },
+        {
+          "order": 6,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型通用 OP：beforeExecuteOperationTransaction 处理 importtype，清理非当前版本的 id；beginOperationTransaction 调 IHisModelOPHandler.save 或 revise（取决于 hisOpParam.isReviseSave）生成版本记录、序列化 hisVersionChangeInfo 到 option；afterExecuteOperationTransaction 事务外写 HisModelAttachmentService 附件",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "系统预置数据改动标记：如果是时序模型（isInheritHisModelTemplate）则直接跳过；否则对 issyspreset=true 且 dirty 的记录设 oristatus='1'"
+        },
+        {
+          "order": 8,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "历史版本感知唯一性：onAddValidators 把所有 CompositePKValidator 替换为 HisGrpFieldsUniqueValidator，并追加末尾兜底 HisGrpFieldsUniqueValidatorLast（priority=Last）",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 9,
+          "plugin": "AdminOrgFastSaveOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastSaveOp",
+          "role": "行政组织保存主业务：AbsOrgBaseOp.initBatchOrgOpService 钩子返回 BatchAdminOrgNewOpService。该 Service 在 execute 阶段 删除旧协作关系 -> CoopRelHelper.buildOrgAddCoopRelDys 生成新协作 -> TimeLineHelper.saveTimelineDys 写 haos_orgteamcooprel；endDoChangeOp 写 adminChangeMsg + adminOrgChangeLog；afterTransDoOp 区分已存在 vs 新组织 分别 OrgUnitHelper.syncOrgUnit / syncOrgChgUnit，最后 handleChangeMsg 异步通知（batchApply / importtype 时跳过）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_save_1",
+          "name": "字段必填合规性校验",
+          "type": "MustInput",
+          "phase": "onAddValidators",
+          "definition": "表单规则 id=6096194600001fac，苍穹元数据里配置的 MustInput 规则",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_save_2",
+          "name": "HR 基础资料配置校验器",
+          "type": "HRDataBaseConfig",
+          "phase": "onAddValidators（由 HRBaseDataStatusOp 注入）",
+          "definition": "HRDataBaseConfigValidator；根据 HRBaseDataConfigUtil 判断基础资料配置（是否允许删改禁等）",
+          "impl": "kd.hr.hbp.opplugin.validator.HRDataBaseConfigValidator",
+          "extensible": "config",
+          "implClass": "kd.hr.hbp.opplugin.validator.HRDataBaseConfigValidator",
+          "name_cn": "HR 基础资料增删改控制校验",
+          "algorithm": "仅对 operateKey in {save,delete} 生效。先 HisModelServiceHelper.queryEntityModelType(formId) 判断 hasHis，再 HRBaseDataConfigUtil.getAudit(formId) 判断 audit；二者成立时进入 addMessage 细判 status/enable。forceNoAudit=true 时整体跳过。",
+          "triggerCondition": "operateKey ∈ {save, delete} 且 hasHis=true 或 audit=true 且 forceNoAudit!=true",
+          "impactedFields": [
+            "status",
+            "enable",
+            "iscurrentversion"
+          ],
+          "errorMessages": [
+            "只能删除暂存的数据。(HRDataBaseConfigValidator_0)",
+            "只能修改暂存的数据。(HRDataBaseConfigValidator_1)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HRDataBaseConfigValidator.java"
+        },
+        {
+          "id": "V_save_3",
+          "name": "历史模型导入校验（First 优先级）",
+          "type": "HisModelImport",
+          "phase": "onAddValidators（HisModelOPCommonPlugin 注入）",
+          "definition": "HisModelImportOPValidator setValidatePriority(First)；拦截导入时的历史模型字段合法性",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelImportOPValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelImportOPValidator",
+          "name_cn": "历史模型导入校验",
+          "algorithm": "1) 读 option.importtype 为空则直接退出；2) handleNewDataForOverrideNewImport：overridenew 把未入库新数据标 iscurrentversion=true；3) copyDataForImport：非 new 的把已入库行 copyTempVersionDy 生成暂存副本、id 改 boId；4) handleStatusAndEnable：已审核(status=C)且已生效(enable=10) 的不允许改 status/改 enable 为 '10'；5) validateImportPolicy：update 非新数据时，若库里存在 bsed 大于当前 bsed 的“待生效版本”则拒绝；6) validateEffStartDate：变更生效日期必须 ≥ 当前生效日期。",
+          "triggerCondition": "option.importtype ∈ {new, overridenew, override} 且 operateKey 触发导入链",
+          "impactedFields": [
+            "status",
+            "enable",
+            "iscurrentversion",
+            "datastatus",
+            "bsed",
+            "bsled",
+            "boid",
+            "masterid"
+          ],
+          "errorMessages": [
+            "数据已记录历史，不允许变更数据状态，也不允许变更使用状态为“待启用”。(HisModelImportOPValidator_1)",
+            "数据已记录历史，不允许变更数据状态。(HisModelImportOPValidator_2)",
+            "数据已记录历史，不允许变更使用状态为“待启用”。(HisModelImportOPValidator_3)",
+            "系统数据在变更生效日期后，存在“待生效”版本，不执行更新操作。(HisModelImportOPValidator_4)",
+            "变更生效日期应晚于或等于当前生效日期“%s”。(HisModelImportOPValidator_5)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisModelImportOPValidator.java"
+        },
+        {
+          "id": "V_save_4",
+          "name": "历史模型变更校验（First 优先级）",
+          "type": "HisModelChange",
+          "phase": "onAddValidators",
+          "definition": "HisModelChangeOPValidator setValidatePriority(First)；拦截变更时的生效日期合法性",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelChangeOPValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelChangeOPValidator",
+          "name_cn": "历史模型变更/保存处理器（预写入版本数据）",
+          "algorithm": "1) handleCodeRule：若 option.hisCurrentNumberCode 不空，把它塞回 billNo 字段（可选标记 bizChanged=false）；2) handleBuDisable：disable 且 isBaseDataCtrl=true 时把当前 enable 序列化进 option.dataEnableMap 供后置链使用；3) copyVersionForChangeOption：save → hisCopy 置 iscurrentversion=false/datastatus=TEMP/status=A/生成新 id；confirmchange → 依 ModelType 走 initNewEffectVersion 或 initNewNonLineVersion，按 today 起效。",
+          "triggerCondition": "hisOpParam.isFromChangePageOp()=true 或 isBoChange()=true",
+          "impactedFields": [
+            "iscurrentversion",
+            "datastatus",
+            "sourcevid",
+            "hisversion",
+            "firstbsed",
+            "status",
+            "id",
+            "creator",
+            "createtime",
+            "bsed"
+          ],
+          "errorMessages": [],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisModelChangeOPValidator.java",
+          "notes": "@SdkInternal — 仅内部用。实际错误抛出在 HisModelGeneralService / HisModelAttachmentService 里。"
+        },
+        {
+          "id": "V_save_5",
+          "name": "历史模型通用校验",
+          "type": "HisModelCommon",
+          "phase": "onAddValidators",
+          "definition": "HisModelOPCommonValidator；校验时序字段 bsed/bsled 连续不重叠、iscurrentversion 等",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator",
+          "name_cn": "历史模型通用操作校验（按 opKey 分流）",
+          "algorithm": "1) validateEntryBoID：对所有 EntryType 子分录跑 HRHisEntryObjectUtils.validateEntryForProp；2) validateTempVersionSave：save 且 ModelType=NO_INTERRUPTION_NO_OVERLAP 时，补齐 id 再 validateTempVersionsOverlapForOp；3) switch operateKey：save/submit/audit → validateDate（start 非空 + 范围）；confirmchange → validateConfirmChange + validateDate；disable → validateDisable（non-line 走 Common，line 走 Line.validateDisableDate）；enable → validateEnable；delete → validateDeleteVersion；unaudit → enable!='10' && status=='C' 时拒绝。",
+          "triggerCondition": "历史模型实体的任何写操作",
+          "impactedFields": [
+            "bsed",
+            "bsled",
+            "iscurrentversion",
+            "boid",
+            "datastatus",
+            "status",
+            "enable"
+          ],
+          "errorMessages": [
+            "反审核失败，数据已记录历史，不允许反审核。(HisModelOPCommonValidator_1)",
+            "(其余来自 HisModelLineValidateService / HisModelCommonValidateService)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisModelOPCommonValidator.java"
+        },
+        {
+          "id": "V_save_6",
+          "name": "历史版本组合字段唯一性（按版本分组）",
+          "type": "UniqueValidate",
+          "phase": "onAddValidators（HisUniqueValidateOp 替换 CompositePKValidator 产生）",
+          "definition": "HisGrpFieldsUniqueValidator；按 boid/hisversion 分组做编码唯一性校验；最后还会运行 HisGrpFieldsUniqueValidatorLast (priority=Last) 兜底",
+          "impl": "kd.hr.hbp.opplugin.web.history.uniquevolidator.HisGrpFieldsUniqueValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.uniquevolidator.HisGrpFieldsUniqueValidator",
+          "name_cn": "历史模型分组字段唯一性校验",
+          "algorithm": "1) initializeConfiguration 构造 GroupKeyBuilder，读取 validation.fields / isCheckAllEntity(ignoreDB) / isCheckEmptyValue(ignoreBlank) / isCheckMultilang / description；2) 若 billNo 字段配了 CodeRule 会自动 ignoreBlank=true 跳过空值；3) checkRepeatedInMemory 用 GroupKey 分组；4) 非 ignoreDB 再 checkRepeatedInDB（1 字段走 IN，多字段走 OR 笛卡尔）；5) 同一 boid 的历史版本视为同一资料；6) 多语言字段额外 QueryServiceHelper 查多语言表。",
+          "triggerCondition": "配置 validation.id=GroupFieldsUniqueValidator 且 validation.fields 非空",
+          "impactedFields": [
+            "(由 validation.fields 配置决定)",
+            "boid",
+            "multilang 字段"
+          ],
+          "errorMessages": [
+            "%1$s-%2$s，%3$s：配置错误，%4$s (HisGrpFieldsUniqueValidator_0)",
+            "与基础资料“%1$s”历史版本的“%2$s”的组合值重复，请至少修改一项。(HisGrpFieldsUniqueValidator_4)",
+            "数据校验异常。(HisGrpFieldsUniqueValidator_5)",
+            "“%1$s” 值 “%2$s” 已存在，请输入其他值。(HisGrpFieldsUniqueValidator_6)",
+            "“%1$s” 值 “%2$s” 与基础资料“%3$s”历史版本的“%1$s” 字段重复。(HisGrpFieldsUniqueValidator_7)",
+            "%s 已存在。(HisGrpFieldsUniqueValidator_8)",
+            "多语言字段唯一性校验出错，查询多语言表出错，请联系管理员。(HisGrpFieldsUniqueValidator_9)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisGrpFieldsUniqueValidator.java"
+        },
+        {
+          "id": "V_save_7",
+          "name": "编码唯一性校验（导入场景）",
+          "type": "NumberValidator",
+          "phase": "onAddValidators（CodeRuleOp 条件注入）",
+          "definition": "importtag_of_datasource=true 时 CodeRuleOp 追加 numberValidator",
+          "impl": "kd.bos.business.plugin.CodeRuleNumberValidator#validate",
+          "extensible": false,
+          "implClass": "kd.bos.business.plugin.CodeRuleNumberValidator",
+          "name_cn": "编码规则格式校验（numberValidator）",
+          "algorithm": "1) 外层 AbstractCodeRuleOp.onAddValidators 往 e.addValidator 挂 numberValidator 并 setVerifyData + setBillNoProp；2) CodeRuleNumberValidator.validate：verifyData 非空时遍历每个 DynamicObjectDTO → codeRuleInfo.isCheckNumber=true 且 checkNumberFormat 返回 false → 根据对象找 ExtendedDataEntity → 报错。",
+          "triggerCondition": "实体挂了编码规则且 CodeRuleInfo.isCheckNumber=true",
+          "impactedFields": [
+            "billNo（实体 BillEntityType.getBillNo）"
+          ],
+          "errorMessages": [
+            "“%1$s”的格式与系统生成编码的格式不一致，请参考编码格式“%2$s”修改或关闭“校验编码格式”参数。(CodeRuleNumberValidator_0)"
+          ],
+          "source_evidence": "_shared/_decompiled/bos_common/AbstractCodeRuleOp.java (字段声明 L122) + _shared/_decompiled/bos_common/CodeRuleNumberValidator.java (核心逻辑)",
+          "notes": "严格说 numberValidator 是 AbstractCodeRuleOp 的字段（类型是 CodeRuleNumberValidator 顶层类，不是真正意义的内部类），原任务描述所谓“内部类”为误称。"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_save_1",
+          "order": 1,
+          "name": "编码自动生成",
+          "type": "字段计算",
+          "definition": "CodeRuleOp.onAddValidators 内调 generateNumber，按 CodeRuleInfo 配置填 number 字段（如 XZ-BJ-001）",
+          "phase": "onAddValidators",
+          "impl": "kd.bos.business.plugin.CodeRuleOp#generateNumber",
+          "writeFields": [
+            "number"
+          ],
+          "readFields": [],
+          "edgeCase": "编码规则需要在元数据里先配置",
+          "implClass": "kd.bos.business.plugin.CodeRuleOp"
+        },
+        {
+          "id": "B_save_2",
+          "order": 2,
+          "name": "名称历史版本化",
+          "type": "数据持久化",
+          "definition": "BdVersionSaveServicePlugin.beginOperationTransaction 如果实体有 name$version 子表，把 name 变更记录写入子表历史",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.bos.base.bdversion.BdVersionSaveServicePlugin#createNameHistory",
+          "writeFields": [
+            "name$version 子表"
+          ],
+          "readFields": [
+            "name",
+            "today"
+          ],
+          "edgeCase": "实体没有 name$version 子表时直接跳过",
+          "implClass": "kd.bos.base.bdversion.BdVersionSaveServicePlugin"
+        },
+        {
+          "id": "B_save_3",
+          "order": 3,
+          "name": "使用状态自动设置（新增）",
+          "type": "字段计算",
+          "definition": "HRBaseDataStatusOp.beforeExecuteOperationTransaction：只处理非 fromDatabase 的新记录；needAudit=true 时 status=A（待审核），false 时 status=C（已审核）；forceNoAudit=true 可强制跳过",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "writeFields": [
+            "status"
+          ],
+          "readFields": [
+            "dataEntityState.fromDatabase",
+            "option.forceNoAudit"
+          ],
+          "edgeCase": "已审核 HR 基础资料不会被改",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp"
+        },
+        {
+          "id": "B_save_4",
+          "order": 4,
+          "name": "启用状态自动设置（新增）",
+          "type": "字段计算",
+          "definition": "HRBaseDataEnableOp.beforeExecuteOperationTransaction：只处理非 fromDatabase 的新记录；按 HRBaseDataConfigUtil.getEnableStatus 决定 enable=10 或 1；ignoreResetEnable=true 可跳过",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "writeFields": [
+            "enable"
+          ],
+          "readFields": [
+            "dataEntityState.fromDatabase",
+            "option.ignoreResetEnable"
+          ],
+          "edgeCase": "已有记录不会被重置",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp"
+        },
+        {
+          "id": "B_save_5",
+          "order": 5,
+          "name": "清理 id（导入非 new 场景）",
+          "type": "数据准备",
+          "definition": "HisModelOPCommonPlugin.beforeExecuteOperationTransaction 如果是 importtype 非 new 且不是 iscurrentversion，把 id 设为 0L（让后续按新增处理）",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#clearPkForUpdateImport",
+          "writeFields": [
+            "id"
+          ],
+          "readFields": [
+            "iscurrentversion",
+            "option.importtype"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        },
+        {
+          "id": "B_save_6",
+          "order": 6,
+          "name": "历史版本处理（核心）",
+          "type": "数据持久化",
+          "definition": "HisModelOPCommonPlugin.beginOperationTransaction 根据 hisOpParam.isReviseSave 调 handler.revise 或 handler.save（IHisModelOPHandler 的具体实现按实体 entityNumber 路由），生成/更新时序版本，写 addVersionIds/updateVersionIds/coverVersionIds 到 option.hisVersionChangeInfo",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#beginOperationTransaction",
+          "writeFields": [
+            "所有时序字段 boid/iscurrentversion/bsed/bsled/firstbsed/datastatus/sourcevid/hisversion"
+          ],
+          "readFields": [
+            "hisOpParam",
+            "fromListOperate"
+          ],
+          "edgeCase": "ReviseSave=true 时不创建新版本只修改现有",
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        },
+        {
+          "id": "B_save_7",
+          "order": 7,
+          "name": "预置数据改动标记",
+          "type": "字段计算",
+          "definition": "HRBaseOriginalOp.beforeExecuteOperationTransaction 非时序模型下：若实体有 oristatus/orinumber/oriname 三字段且 alias 非空，对 issyspreset=true 且 dirty 的记录设 oristatus='1'",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "writeFields": [
+            "oristatus"
+          ],
+          "readFields": [
+            "issyspreset",
+            "dataEntityDirty"
+          ],
+          "edgeCase": "时序模型（如 haos_adminorg）该插件会直接 return 不生效",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp"
+        },
+        {
+          "id": "B_save_8",
+          "order": 8,
+          "name": "行政组织新增主逻辑 - 协作关系时间线",
+          "type": "数据持久化",
+          "definition": "BatchAdminOrgNewOpService.execute：查 orgBoIds 对应的旧 haos_orgteamcooprel，TimeLineHelper.deleteTimelineDys 删旧，CoopRelHelper.buildOrgAddCoopRelDys 构造新的，TimeLineHelper.saveTimelineDys 存新",
+          "phase": "beginOperationTransaction (父类 AbsOrgBaseOp.beginOperationTransaction -> opService.doChangeOp -> execute)",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService#execute",
+          "writeFields": [
+            "haos_orgteamcooprel 时间线"
+          ],
+          "readFields": [
+            "orgBoIds"
+          ],
+          "edgeCase": "isAddTempTag=true 时跳过",
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService"
+        },
+        {
+          "id": "B_save_9",
+          "order": 9,
+          "name": "行政组织变更消息 + 变更日志",
+          "type": "数据持久化",
+          "definition": "BatchAdminOrgNewOpService.endDoChangeOp：对非 TO_BE_EFFECT 数据用 AdminChangeMsgService.assembleMsgDy 组装消息明细；AdminOrgChangeLogService.addAdminOrgChangeLog 写变更日志（如果来自 future 相关 op 则用 updateAdminOrgChangeLog）",
+          "phase": "endOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService#endDoChangeOp",
+          "writeFields": [
+            "hr_adminchangemsgdetail",
+            "haos_adminorgchangelog"
+          ],
+          "readFields": [
+            "datastatus",
+            "isFromFutureModifyOp/isFromFutureEffectOp"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService"
+        },
+        {
+          "id": "B_save_10",
+          "order": 10,
+          "name": "组织架构单元同步",
+          "type": "数据持久化/同步",
+          "definition": "BatchAdminOrgNewOpService.afterTransDoOp：从 AdminOrgAddSetter.getUnitOrgExistIds 判断是已有 orgunit 还是新建，分别 OrgUnitHelper.syncOrgChgUnit / syncOrgUnit；batchApply 或 importtype 变量下跳过最后的 handleChangeMsg",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService#afterTransDoOp",
+          "writeFields": [
+            "bos_org 组织单元表"
+          ],
+          "readFields": [
+            "AdminOrgAddSetter.unitOrgExistIds"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgNewOpService"
+        },
+        {
+          "id": "B_save_11",
+          "order": 11,
+          "name": "附件变更事务外保存",
+          "type": "数据持久化",
+          "definition": "HisModelOPCommonPlugin.afterExecuteOperationTransaction 使用 TX.requiresNew() 新开事务调 HisModelAttachmentService.saveAttachments",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#afterExecuteOperationTransaction",
+          "writeFields": [
+            "bos_attachment"
+          ],
+          "readFields": [
+            "option.hisModelAttachmentInfo"
+          ],
+          "edgeCase": "异常时 tx.markRollback，只回滚附件事务",
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_save_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey=save & success",
+          "logic": "如果当前是 CHANGE_PAGE（变更页）则 invokeOperation('refresh')；resetHisPageForHisOp / handleBtnOrFieldVisible / handlePageStatusForEdit / updateHisFieldVal（刷新按钮、页面状态和历史字段显示值）",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        },
+        {
+          "id": "FA_save_2",
+          "source": "NewAdminorgDetailEditPlugin.afterDoOperation",
+          "when": "opKey in (save, confirmchange, confirmchangenoaudit) & success",
+          "logic": "1) 如果 bsed 在未来（未生效）：调 AdminOrgDetailHelper.haveFuturePageViewPerm；父页 showSuccessNotification('保存成功')；有权限则 showFutureViewPage 打开未来视图，否则 close；2) 如果 bsed 是今天/过去且 opKey=save：invokeOperation('refresh')",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin"
+        }
+      ],
+      "writeFields": [
+        "number",
+        "status",
+        "enable",
+        "oristatus",
+        "所有时序字段",
+        "haos_orgteamcooprel 时间线",
+        "hr_adminchangemsgdetail",
+        "haos_adminorgchangelog",
+        "bos_org",
+        "bos_attachment",
+        "name$version"
+      ],
+      "readFields": [
+        "iscurrentversion",
+        "boid",
+        "datastatus",
+        "issyspreset",
+        "changescene",
+        "changereason",
+        "changetype"
+      ],
+      "events": [
+        "AdminChangeMsgService.handleChangeMsg 异步通知（经 EventServiceHelper 发送业务事件）"
+      ],
+      "mines": [
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal）",
+        "❌ 禁直接 modifyMeta 改 haos_adminorg 字段（ISV 归属规则，参见 isv_ownership_redline.md）",
+        "⚠ HRBaseOriginalOp 对时序实体自动 return，不要指望它给 haos_adminorg 生效",
+        "⚠ HRBaseDataLogOp 默认 enabled=false，需要在 HRBaseDataConfigUtil 配置 recordLog=true 才会工作"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "47156aff000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "6096194600001fac",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "levelId": 2,
+            "errorMessage": "字段值合规性校验"
+          }
+        ]
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除行政组织（通常仅删除临时版本或空版本）",
+        "stateTransition": "生效/草稿 → 已删除",
+        "note": "目前 haos_adminorg 的 delete 链没有 AdminOrgFastDeleteOp，主逻辑全在 HisModelOPCommonPlugin.handler.delete"
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_delete_1",
+          "source": "HisModelListCommonPlugin.beforeDoOperation",
+          "when": "opKey=delete",
+          "logic": "设 op.getOption.fromListOperate='true'；构造 HisModelOPParam.setDeleteVersion = (当前是 VERSION_LIST_PAGE)；序列化到 option.hisOpParam（区分'删版本'还是'删整条业务对象'）",
+          "impl": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "编码回收：onPreparePropertys 按编码规则注入必需字段；beginOperationTransaction 执行 CodeRuleServiceHelper 回收编号到垃圾桶"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "删除时也会经过（但 status 分支只处理新增情况，删除路径里其实只是 validator 挂载）"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "【未启用】删除日志",
+          "enabled": false
+        },
+        {
+          "order": 4,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型删除：beginOperationTransaction 调 handler.delete(args)；若 hisOpParam.isDeleteVersion=true 还会移除 HRDataBaseConfigValidator 允许删历史版本",
+          "sdkAnnotation": "@SdkInternal"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_delete_1",
+          "name": "合法性校验（元数据 FormValidate f789ca66000000ac）",
+          "type": "FormValidate",
+          "phase": "元数据内置",
+          "definition": "数据已经禁用，不能删除（已启用）",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_delete_2",
+          "name": "HR 基础资料删除校验",
+          "type": "hrbddeletevalidator",
+          "phase": "元数据内置",
+          "definition": "2+RE4J37K857：HR 基础资料删除校验（标准套件）",
+          "impl": "平台注册",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_delete_3",
+          "name": "历史模型删除校验",
+          "type": "HisModelDelete",
+          "phase": "onAddValidators（由 HisModelOPCommonPlugin 注入）",
+          "definition": "HisModelDeleteOPValidator：校验是否允许删除（非当前生效、非被引用等）",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelDeleteOPValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "extensible": false,
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelDeleteOPValidator",
+          "name_cn": "历史模型删除校验",
+          "algorithm": "过滤 dataEntities 中 iscurrentversion=true 的 DynamicObject 组成 boDataList；调 HisModelCommonValidateService.validateDeleteBo(boDataList, errorMsgMap)；按 id 把错误回填到对应 ExtendedDataEntity。",
+          "triggerCondition": "operateKey = 'delete'",
+          "impactedFields": [
+            "iscurrentversion",
+            "id"
+          ],
+          "errorMessages": [
+            "(由 HisModelCommonValidateService.validateDeleteBo 返回)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisModelDeleteOPValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_delete_1",
+          "order": 1,
+          "name": "编码回收",
+          "type": "数据持久化",
+          "definition": "CodeRuleDeleteOp.beginOperationTransaction：若 isMoveRecycleNumber=true，调 CodeRuleServiceHelper.recycleCodeRule 回收 number",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.bos.coderule.CodeRuleDeleteOp",
+          "writeFields": [
+            "coderule 回收表"
+          ],
+          "readFields": [
+            "number"
+          ],
+          "implClass": "kd.bos.coderule.CodeRuleDeleteOp"
+        },
+        {
+          "id": "B_delete_2",
+          "order": 2,
+          "name": "历史版本删除处理",
+          "type": "数据持久化",
+          "definition": "HisModelOPCommonPlugin.beginOperationTransaction -> IHisModelOPHandler.delete 按实体路由；删除临时版本 / 单版本；若 hisOpParam.isDeleteVersion=true 则移除 HRDataBaseConfigValidator 避免基础资料删除校验拦截",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#beginOperationTransaction",
+          "writeFields": [
+            "haos_adminorg 对应版本"
+          ],
+          "readFields": [
+            "hisOpParam.isDeleteVersion"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "haos_adminorg 对应版本",
+        "coderule 回收表"
+      ],
+      "readFields": [
+        "number",
+        "iscurrentversion"
+      ],
+      "events": [],
+      "mines": [
+        "❌ 生效版本不能随意删，需要走禁用流程"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "DelParameter",
+          "DraftValidReference": true,
+          "OperationKey": "next",
+          "ListDelScope": "seldata"
+        },
+        "permissionItemId": "4715e1f1000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "1cc0054f000016ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": false,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "f789ca66000000ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "数据已经禁用，不能删除。",
+            "levelId": 2,
+            "errorMessage": "数据已经禁用，不能删除。"
+          },
+          {
+            "id": "2+RE4J37K857",
+            "ruleType": "hrbddeletevalidator",
+            "_type": "CustValidation",
+            "enabled": true,
+            "description": "HR基础资料删除校验",
+            "levelId": 2,
+            "errorMessage": "HR基础资料删除校验"
+          }
+        ]
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "审核行政组织（status 草稿/已保存 → 已审核）",
+        "stateTransition": "A（待审核） → C（已审核）",
+        "note": "走的是 HisModel + AdminOrgFastAuditOp 双保险"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "【未启用】",
+          "enabled": false
+        },
+        {
+          "order": 2,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "audit 分支：loadDataForListOperate 重新 load（fromListOperate 场景会把 status 置 C）；IHisModelOPHandler.audit",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 3,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "行政组织审核主业务：AbsOrgBaseOp.initBatchOrgOpService 钩子返回 BatchAdminOrgAuditOpService（继承 BatchAdminOrgNewOpService，execute 只调 super.execute，OrgSetter 改用原始的 OrgSetter 不是 AdminOrgAddSetter 避免做新增动作）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_audit_1",
+          "name": "合法性校验（元数据 FormValidate 1cc0054f000018ac）",
+          "type": "FormValidate",
+          "phase": "元数据内置",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_audit_2",
+          "name": "合法性校验（元数据 FormValidate f2843bab0000bfac）",
+          "type": "FormValidate",
+          "phase": "元数据内置",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "extensible": false,
+          "implClass": ""
+        },
+        {
+          "id": "V_audit_3",
+          "name": "基础资料在流程中校验",
+          "type": "InProcess",
+          "phase": "元数据内置",
+          "definition": "2W/BRWU+MXP7（未启用，已被 disabled）",
+          "impl": "平台",
+          "extensible": false,
+          "note": "默认关闭",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_audit_1",
+          "order": 1,
+          "name": "status 置为已审核",
+          "type": "字段计算",
+          "definition": "HisModelOPCommonPlugin.loadDataForListOperate 当 fromListOperate=true 且 opKey=audit，查库 loadDys 并批量 set status='C'",
+          "phase": "beginOperationTransaction（loadData 阶段）",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#loadDataForListOperate",
+          "writeFields": [
+            "status"
+          ],
+          "readFields": [
+            "fromListOperate"
+          ],
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        },
+        {
+          "id": "B_audit_2",
+          "order": 2,
+          "name": "历史模型审核处理",
+          "type": "数据持久化",
+          "definition": "IHisModelOPHandler.audit：更新时序版本的 status 到生效",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#beginOperationTransaction",
+          "writeFields": [
+            "haos_adminorg status"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_audit_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey=audit & success",
+          "logic": "handleBtnOrFieldVisible / updateHisFieldVal（按钮和字段值刷新）",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        }
+      ],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ AdminOrgFastAuditOp 只是一层薄皮，核心审核逻辑在 HisModelOPCommonPlugin 和 BatchAdminOrgNewOpService"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "AuditParameter",
+          "Value": "C",
+          "StatusFieldId": "AkId5S4yTs",
+          "CommentFieldId": "h736cFwZ6e"
+        },
+        "permissionItemId": "47162f66000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "1cc0054f000018ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "f2843bab0000bfac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "2W/BRWU+MXP7",
+            "ruleType": "InProcess",
+            "_type": "CustValidation",
+            "enabled": false,
+            "description": "基础资料在流程中校验",
+            "levelId": null,
+            "errorMessage": "基础资料在流程中校验"
+          }
+        ]
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "撤销审核，把 status 从 C 回到 A",
+        "stateTransition": "C → A"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "【未启用】",
+          "enabled": false
+        },
+        {
+          "order": 2,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "unaudit 在 switch 里没有 case，走默认（无历史模型动作），仅靠元数据的 FormValidate 校验和标品 status 回退",
+          "sdkAnnotation": "@SdkInternal"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_unaudit_1",
+          "name": "合法性校验 1cc0054f000019ac",
+          "type": "FormValidate",
+          "phase": "元数据内置",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        },
+        {
+          "id": "V_unaudit_2",
+          "name": "合法性校验 f2843bab0000c0ac",
+          "type": "FormValidate",
+          "phase": "元数据内置",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [
+        "status"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ unaudit 在 HisModelOPCommonPlugin.beginOperationTransaction 的 switch 里没对应分支，无自定义业务"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "UnAuditParameter",
+          "Value": "A",
+          "StatusFieldId": "AkId5S4yTs",
+          "CommentFieldId": "h736cFwZ6e"
+        },
+        "permissionItemId": "47165e8e000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "1cc0054f000019ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "f2843bab0000c0ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "2W/BU/L+T3I2",
+            "ruleType": "InProcess",
+            "_type": "CustValidation",
+            "enabled": false,
+            "description": "基础资料在流程中校验",
+            "levelId": null,
+            "errorMessage": "基础资料在流程中校验"
+          }
+        ]
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "禁用行政组织（基础资料层面禁用；与 disableorg 不同，disableorg 是业务上'停用组织'的扩展）",
+        "stateTransition": "enable 1 → 0"
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_disable_1",
+          "source": "HisModelFormCommonPlugin.beforeDoOperation",
+          "when": "opKey=disable",
+          "logic": "调 disableProcessor.showSetDisableDatePage(args) 弹出'设置失效日期'页；根据用户选择关 args.setCancel",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin#disableProcessor",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        },
+        {
+          "id": "FB_disable_2",
+          "source": "HisModelListCommonPlugin.beforeDoOperation",
+          "when": "opKey=disable",
+          "logic": "在列表页同样调 disableProcessor.showSetDisableDatePage(args) 弹日期选择页；option.fromListOperate=true",
+          "impl": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "disable 分支：resetEnable 按 option.dataEnableMap 恢复多条 enable 值；loadDataForListOperate 查库并按模型类型决定立即置 enable=0 还是延迟；调 handler.disable",
+          "sdkAnnotation": "@SdkInternal"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_disable_1",
+          "name": "合法性校验 f2843bab0000baac",
+          "type": "FormValidate",
+          "phase": "元数据",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        },
+        {
+          "id": "V_disable_2",
+          "name": "历史模型禁用校验",
+          "type": "HisModelDisable",
+          "phase": "onAddValidators",
+          "definition": "HisModelDisableOpValidator：校验是否允许禁用（有下级 / 被引用等）",
+          "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelDisableOpValidator",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.opplugin.web.history.validator.HisModelDisableOpValidator",
+          "name_cn": "历史模型禁用校验",
+          "algorithm": "1) 只处理 operateKey='disable'；2) 取 entityConfig，如果 ModelType=ONLY_ONE_EFFECT_VERSION 走 validateEnableForNonLine（仅检查 enable=='0'）；3) 线性版本：读 option.hisOpParam 里的 disableDate，调 HisModelLineValidateService.validateDisable(disableDate, dataList, errorMsgMap)；4) 先跑 validateEnableForLine（status=B && enable=0 视为已禁用）；5) 回填错误。",
+          "triggerCondition": "operateKey = 'disable'",
+          "impactedFields": [
+            "enable",
+            "status",
+            "bsed",
+            "bsled"
+          ],
+          "errorMessages": [
+            "数据已为禁用状态。(HisModelDisableOpValidator_1)"
+          ],
+          "source_evidence": "_shared/_decompiled/hbp_common/HisModelDisableOpValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_disable_1",
+          "order": 1,
+          "name": "enable 字段重置（批量）",
+          "type": "字段计算",
+          "definition": "HisModelOPCommonPlugin.resetEnable：从 option.dataEnableMap (Map<id, enable>) 批量 set enable；仅对 status='C' 的生效",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#resetEnable",
+          "writeFields": [
+            "enable"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        },
+        {
+          "id": "B_disable_2",
+          "order": 2,
+          "name": "按模型类型置 enable=0",
+          "type": "字段计算",
+          "definition": "loadDataForListOperate: NO_INTERRUPTION_NO_OVERLAP 模型且 disableDate<=今天 才立即 set enable='0'；其他模型直接 set enable='0'",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#loadDataForListOperate",
+          "writeFields": [
+            "enable"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_disable_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey in (enable, disable) & success",
+          "logic": "handleBtnOrFieldVisible 重绘按钮；如果是 NO_INTERRUPTION_NO_OVERLAP 模型额外 invokeOperation('refresh')",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        }
+      ],
+      "writeFields": [
+        "enable"
+      ],
+      "readFields": [
+        "status",
+        "disableDate"
+      ],
+      "events": [],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "Value": "0",
+          "StatusFieldId": "ac5Y5Dax1q"
+        },
+        "permissionItemId": "47160c2b000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "f2843bab0000baac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          }
+        ]
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用行政组织（基础资料层面启用）",
+        "stateTransition": "enable 0 → 1"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "enable 分支：loadDataForListOperate fromListOperate 时查库 set enable='1'；调 handler.enable",
+          "sdkAnnotation": "@SdkInternal"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_enable_1",
+          "name": "合法性校验 f2843bab0000bcac",
+          "type": "FormValidate",
+          "phase": "元数据",
+          "definition": "未启用",
+          "impl": "元数据规则",
+          "enabled": false,
+          "implClass": ""
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_enable_1",
+          "order": 1,
+          "name": "enable 批量置 1",
+          "type": "字段计算",
+          "definition": "HisModelOPCommonPlugin.loadDataForListOperate 对 loadDys 批量 set enable='1'",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin#loadDataForListOperate",
+          "writeFields": [
+            "enable"
+          ],
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_enable_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey=enable & success",
+          "logic": "见 disable 同逻辑（共享 case）",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        }
+      ],
+      "writeFields": [
+        "enable"
+      ],
+      "readFields": [],
+      "events": [],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "Value": "1",
+          "StatusFieldId": "ac5Y5Dax1q"
+        },
+        "permissionItemId": "4730fc5d000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "f2843bab0000bcac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": false,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          }
+        ]
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交行政组织（与 save 功能接近但走提交流程，部分场景独立）",
+        "note": "submit 的 HisModelOPCommonPlugin switch 里直接复用 handler.save(args) — 即 submit 和 save 走同样的历史版本处理"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码生成"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "名称版本化"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "【未启用】",
+          "enabled": false
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "enable 字段默认值"
+        },
+        {
+          "order": 5,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "历史版本唯一性",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "预置数据改动标记"
+        },
+        {
+          "order": 7,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "submit case 里直接 handler.save（和 save 合流）",
+          "sdkAnnotation": "@SdkInternal"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_submit_1",
+          "name": "合法性校验 1cc0054f000017ac",
+          "type": "FormValidate",
+          "phase": "元数据",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        },
+        {
+          "id": "V_submit_2",
+          "name": "字段必填合规性 RS=E9QE25UN",
+          "type": "MustInput",
+          "phase": "元数据",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_submit_1",
+          "order": 1,
+          "name": "等同 save 主逻辑",
+          "type": "数据持久化",
+          "definition": "HisModelOPCommonPlugin 的 switch 中 submit case 直接 handler.save，所以写库逻辑与 save 一致",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "number",
+        "status",
+        "enable",
+        "所有时序字段"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ submit 在 haos_adminorg 链里实际未自定义任何新动作，与 save 合流"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "Value": "B",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "804f6478000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "1cc0054f000017ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "RS=E9QE25UN",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "levelId": 2,
+            "errorMessage": "字段值合规性校验"
+          }
+        ]
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销提交，把提交状态撤回",
+        "note": "链内只有 HRBaseDataLogOp(未启用) 和 FormValidate 校验"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "变更日志（若 HRBaseDataConfigUtil.getRecordLog 开启）",
+          "enabled": true
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_unsubmit_1",
+          "name": "合法性校验 3bdba4470000d3ac",
+          "type": "FormValidate",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        },
+        {
+          "id": "V_unsubmit_2",
+          "name": "合法性校验 f789ca66000001ac",
+          "type": "FormValidate",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "Value": "A",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "80513207000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "3bdba4470000d3ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          },
+          {
+            "id": "f789ca66000001ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          }
+        ]
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交当前记录并打开新增页",
+        "note": "plugins 为空，仅有元数据校验；UI 层打开新增页的跳转由客户端处理"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "AdminOrgFastSaveOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "AdminOrgFastParentChangeOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastParentChangeOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 11,
+          "plugin": "AdminOrgFastDisableOrgOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 12,
+          "plugin": "AdminOrgFastEnableOrgOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 13,
+          "plugin": "AdminOrgRootResetOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_submitandnew_1",
+          "name": "组合字段唯一性",
+          "type": "GroupFieldUnique",
+          "phase": "元数据",
+          "definition": "2f5773ca0001b5ac，已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        },
+        {
+          "id": "V_submitandnew_2",
+          "name": "合法性校验",
+          "type": "FormValidate",
+          "definition": "2f5773ca0001b6ac，已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "Value": "B",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "804f6478000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "2f5773ca0001b5ac",
+            "ruleType": "GroupFieldUnique",
+            "_type": "GrpfieldsuniqueValidation",
+            "enabled": true,
+            "description": "组合字段唯一性校验",
+            "levelId": 2,
+            "errorMessage": "组合字段唯一性校验"
+          },
+          {
+            "id": "2f5773ca0001b6ac",
+            "ruleType": "FormValidate",
+            "_type": "ConditionValidation",
+            "enabled": true,
+            "description": "合法性校验",
+            "levelId": 2,
+            "errorMessage": "合法性校验"
+          }
+        ]
+      }
+    },
+    "confirmchange": {
+      "opKey": "confirmchange",
+      "name": "确认变更",
+      "opType": "save",
+      "overview": {
+        "scene": "在组织变更页（信息变更 / 上级变更）点击'确认变更'",
+        "stateTransition": "临时版本 → 正式时序版本",
+        "extValue": 3
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_confirmchange_1",
+          "source": "AdminOrgDetailEditPlugin.beforeItemClick",
+          "when": "opKey in (confirmchange, confirmchangenoaudit)",
+          "logic": "AsyncEffectingReformHelper.showConfirm 判断是否需要异步生效确认；需要则 evt.setCancel(true)；否则 pageCache.skipChangeTips='true'",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin#beforeItemClick",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin"
+        },
+        {
+          "id": "FB_confirmchange_2",
+          "source": "HisModelFormCommonPlugin.beforeDoOperation",
+          "when": "opKey=confirmchange",
+          "logic": "validateProcessor.validateForChange() 失败 或 tipsProcessor.beforeChangeTip 判断有变更提示需要拦截则 args.setCancel(true)；否则把 hisOpParam.setBoChange 写入 option",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        },
+        {
+          "id": "FB_confirmchange_3",
+          "source": "HisModelListCommonPlugin.beforeDoOperation",
+          "when": "opKey=confirmchange",
+          "logic": "case 是空 break；仅通过 fromListOperate=true 设置统一标记",
+          "impl": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "confirmchange 分支：clearPkForUpdateImport（begin 阶段）；beginOperationTransaction 调 handler.confirmChange(args) 把临时版本提升为正式版本",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 2,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "历史版本唯一性",
+          "sdkAnnotation": "@SdkInternal"
+        },
+        {
+          "order": 3,
+          "plugin": "AdminOrgFastParentChangeOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastParentChangeOp",
+          "role": "行政组织变更主业务：AbsOrgBaseOp.initBatchOrgOpService 返回 BatchAdminOrgChangeParentOpService；若 option.async_save=true 则构造 AsyncEffectingMultiCaster 做异步生效"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_confirmchange_1",
+          "name": "字段必填合规性 4UXPTMTC=NCR",
+          "type": "MustInput",
+          "phase": "元数据",
+          "definition": "已启用",
+          "impl": "元数据规则",
+          "implClass": ""
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_confirmchange_1",
+          "order": 1,
+          "name": "上级组织变更 - 结构树分类处理",
+          "type": "数据准备",
+          "definition": "BatchAdminOrgChangeParentOpService.beforeTransDoOp：查 struct_project_entry 的 structproject 各结构，结合 oldOrgMap.bsled 得到 compareDate 找有效期内的 struct；initListData 把每条 org 根据 newParent==oldParent 决定进 changeOrgStructList / addOrgStructList / deleteOrgStructList",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#beforeTransDoOp",
+          "readFields": [
+            "struct_project_entry.struct_project",
+            "struct_project_entry.struct_parent_org",
+            "parentorg",
+            "bsled"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        },
+        {
+          "id": "B_confirmchange_2",
+          "order": 2,
+          "name": "异步生效日志标记",
+          "type": "事件/日志",
+          "definition": "execute 开头 asyncLog AsyncEffectingSaveAdminEvent::resetToStartSecondStep；结尾 asyncLog ::resetToEndSecondStep（追踪异步生效进度）",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#execute",
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        },
+        {
+          "id": "B_confirmchange_3",
+          "order": 3,
+          "name": "添加/变更/删除结构节点",
+          "type": "数据持久化",
+          "definition": "handleAddStruct: OrgStructHelper.buildAddOrgStructDys 构造并 TimeLineHelper.saveTimelineDys 写入 haos_adminorgstruct；handleChangeStruct: buildStructNodeMapByRootId + buildAndSaveStructDys；handleDeleteStruct 同理",
+          "phase": "beginOperationTransaction#execute",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#handleAddStruct/handleChangeStruct/handleDeleteStruct",
+          "writeFields": [
+            "haos_adminorgstruct 时间线",
+            "结构树 parentorg/structlongnumber"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        },
+        {
+          "id": "B_confirmchange_4",
+          "order": 4,
+          "name": "重置结构组织字段 + 变更消息 + 变更日志",
+          "type": "数据持久化",
+          "definition": "endDoChangeOp: resetStructOrgFields；AdminChangeMsgService.saveChgAdminOrgMsgDetail(opData, oldOrgMap) 写变更明细；AdminOrgChangeLogService.addAdminOrgChangeLog(opData, oldOrgMap, false)",
+          "phase": "endOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#endDoChangeOp",
+          "writeFields": [
+            "hr_adminchangemsgdetail",
+            "haos_adminorgchangelog"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        },
+        {
+          "id": "B_confirmchange_5",
+          "order": 5,
+          "name": "异步消息推送（条件跳过 disableorg/enableorg）",
+          "type": "事件",
+          "definition": "afterTransDoOp: batchApply/importtype 跳过；adminorg_operation in (disableorg,enableorg) 也跳过；否则 new AdminChangeMsgService().handleChangeMsg() 推送变更事件",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#afterTransDoOp",
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        },
+        {
+          "id": "B_confirmchange_6",
+          "order": 6,
+          "name": "下级所属公司更新（级联）",
+          "type": "数据持久化",
+          "definition": "handleChangeStruct 调 changeChildBelongCompany(orgDy, orgTreeNodeMap.keySet())：只在 structProject=ADMINORG_STRUCT 且 datastatus!=TO_BE_EFFECT 时级联更新下级 belongcompany",
+          "phase": "beginOperationTransaction#execute",
+          "impl": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService#changeChildBelongCompany",
+          "writeFields": [
+            "下级 haos_adminorg.belongcompany"
+          ],
+          "implClass": "kd.hr.haos.business.domain.org.service.BatchAdminOrgChangeParentOpService"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "id": "FA_confirmchange_1",
+          "source": "HisModelFormCommonPlugin.afterDoOperation",
+          "when": "opKey=confirmchange & success",
+          "logic": "若 CHANGE_PAGE 则 invokeOperation('refresh')；resetHisPageForHisOp；handleBtnOrFieldVisible/handlePageStatusForEdit/updateHisFieldVal",
+          "impl": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "sdkAnnotation": "@SdkInternal",
+          "implClass": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin"
+        },
+        {
+          "id": "FA_confirmchange_2",
+          "source": "NewAdminorgDetailEditPlugin.afterDoOperation",
+          "when": "opKey in (confirmchange, confirmchangenoaudit) & success",
+          "logic": "bsed 在未来时开 future 视图并关当前窗（见 save 的相同分支）；bsed 当下时自动刷新（save 专属）",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin"
+        }
+      ],
+      "writeFields": [
+        "haos_adminorgstruct",
+        "下级 belongcompany",
+        "hr_adminchangemsgdetail",
+        "haos_adminorgchangelog"
+      ],
+      "readFields": [
+        "parentorg",
+        "struct_project_entry",
+        "bsled",
+        "datastatus"
+      ],
+      "events": [
+        "AdminChangeMsgService.handleChangeMsg（条件跳过）",
+        "AsyncEffectingSaveAdminEvent（异步日志）"
+      ],
+      "mines": [
+        "⚠ 上级变更会级联修改下级 belongcompany —— 扩展时要评估是否和你的逻辑冲突",
+        "⚠ async_save 变量打开时会走异步生效 caster，记得在插件里判断 containsVariable('async_save')"
+      ],
+      "metadataConfig": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": [
+          {
+            "id": "4UXPTMTC=NCR",
+            "ruleType": "MustInput",
+            "_type": "MustInputValidation",
+            "enabled": true,
+            "description": "字段值合规性校验",
+            "levelId": 2,
+            "errorMessage": "字段值合规性校验"
+          }
+        ]
+      }
+    },
+    "his_save": {
+      "opKey": "his_save",
+      "name": "历史补录",
+      "opType": "donothing",
+      "overview": {
+        "scene": "把历史版本数据补录进来（用于初始化）",
+        "note": "opType=donothing 意味着不走标品保存链，全由 AdminOrgInitSaveOp 自主处理"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "组织历史补录：onAddValidators 挂 10 个专用校验器；endOperationTransaction 按 bsed 排序 → IOrgHisVerInitService.saveOrgHisVersion 批量写历史版本"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_his_save_1",
+          "name": "失效日期校验",
+          "type": "HisEndDate",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEndDateValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEndDateValidator",
+          "name_cn": "最后一版失效日期非空校验",
+          "definition": "每个 boid 排序后的最后一个历史版本的 bsled（失效日期）不能为 null。",
+          "algorithm": "按 boid 分组按 bsed 排序 → 取 list.get(size-1) → 若 lastHisVerDyn.getDate('bsled') == null → 报错。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "bsed",
+            "bsled"
+          ],
+          "errorMessages": [
+            "组织：{0}的最后一个数据版本：{1}结束日期不能为空，请检查！(AdminOrgInitTipsEnum_2, ADMIN_ORG_END_DATE_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisEndDateValidator.java + OrgHisInitValidServiceImpl.validEndDate (L93-107)"
+        },
+        {
+          "id": "V_his_save_2",
+          "name": "失效日期范围校验",
+          "type": "HisEndDateRange",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEndDateRangeValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEndDateRangeValidator",
+          "name_cn": "历史失效日期范围校验（对齐手动建的当前数据）",
+          "definition": "如果 DB 已有该 boid 的 initdatasource=0（手动）版本，则历史版本的 bsled 必须早于手动版本的 bsed（即迁移的历史版本不能盖住手动当前版本）。",
+          "algorithm": "按 boid 分组 → dbEffOrgVerDynListMap.get(boId) 过滤 initdatasource='0' 得 manualDbEffOrgDynList → 逐条 hisDyn：若 hisBsled != null 且 hisBsled ≥ dbManualStartDate → 报错。",
+          "triggerCondition": "his_save 操作链触发 且 该 boid 存在手动建的当前版本",
+          "impactedFields": [
+            "boid",
+            "bsled",
+            "bsed",
+            "initdatasource"
+          ],
+          "errorMessages": [
+            "%1$s后行政组织已经在页面发生了调整，历史版本的失效日需要早于%2$s。(AdminOrgInitTipsEnum_3, ADMIN_ORG_START_DATE_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisEndDateRangeValidator.java + OrgHisInitValidServiceImpl.validEndDateRange/compareHisEndVsManualStartDate (L109-136)"
+        },
+        {
+          "id": "V_his_save_3",
+          "name": "生效日期连续性校验",
+          "type": "HisEffDateContinuity",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEffDateContinuityValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEffDateContinuityValidator",
+          "name_cn": "生效日期连续性校验（含 start<end 前置）",
+          "definition": "同一 boid 的多历史版本按 bsed 排序后相邻两条必须连续（下一版 bsed - 上一版 bsled ≤ 1 天）；同时每条记录内部 bsed ≤ bsled。",
+          "algorithm": "按 boid 分组 → 组内按 bsed 升序 → 遍历相邻两条，若 nextStart - prevEnd > 86400000ms 报错。先调 validStartDateLessEndDate 再调 validEffDateContinuity。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "bsed",
+            "bsled"
+          ],
+          "errorMessages": [
+            "生效日期不能晚于失效日期。(AdminOrgInitTipsEnum_9, ADMIN_ORG_START_LESS_END_DATE_ERR)",
+            "组织：{0}的数据版本：{1}的生效/失效日期：{2}与版本：{3}的生效/失效日期：{4}不连续，请检查！(AdminOrgInitTipsEnum_5, ADMIN_ORG_DISCONTINUOUS_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisEffDateContinuityValidator.java + OrgHisInitValidServiceImpl.validEffDateContinuity (L62-91) + validStartDateLessEndDate (L270-284)"
+        },
+        {
+          "id": "V_his_save_4",
+          "name": "已迁移校验",
+          "type": "HisMigrated",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisMigratedValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisMigratedValidator",
+          "name_cn": "历史迁移幂等校验",
+          "definition": "防止同一个行政组织 boid 被重复迁移历史版本：判定“尚未被迁移”的条件是 dbEffAndDiscardOrgVerMap 中 initdatasource='1' 的版本数 ≤2 且带 parent 的 initdatasource='1' 版本数 ≤1。",
+          "algorithm": "遍历 dbEffAndDiscardOrgVerMap：按 boid 聚合，统计 initdatasource='1' 的版本数和含 parentorg.id 的 initdatasource='1' 版本数；任一过阈值则视为已迁移。对每条 hisDyn：boid 不在 dbAllBoIdSet → 报“未迁移”；boid 不在 notHisMigratedOrgBoIdSet（已迁移）→ 报“已迁移”。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "initdatasource",
+            "parentorg.id"
+          ],
+          "errorMessages": [
+            "行政组织%s已经迁移过历史版本，不支持再次迁移或补充迁移。(AdminOrgInitTipsEnum_15, ADMIN_ORG_VERIFY_HIS_MIGRATED)",
+            "行政组织%s的当前版本还没有迁移。(AdminOrgInitTipsEnum_16, ADMIN_ORG_VERIFY_HIS_BO_EXISTED)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisMigratedValidator.java + OrgHisInitValidServiceImpl.verifyHistoryMigrated (L286-310)"
+        },
+        {
+          "id": "V_his_save_5",
+          "name": "生效日期合法性校验",
+          "type": "HisEffDateLegitimacy",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEffDateLegitimacyValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisEffDateLegitimacyValidator",
+          "name_cn": "最早生效日期合法性校验",
+          "definition": "每个 boid 的所有历史版本 bsed 不能早于业务主版本的 firstbsed（最早生效日期）超过 1 天。",
+          "algorithm": "按 boid 分组 → 取 dbEffBizBoDynMap.get(boId).firstbsed 作为最早基准 → 逐条 historicalDyn 检查 (firstbsed - hisBsed) > 86400000ms 报错。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "bsed",
+            "firstbsed"
+          ],
+          "errorMessages": [
+            "组织：{0}的数据版本：{1}的生效日期：{2}早于bo组织最早生效日期：{3}，请检查！(AdminOrgInitTipsEnum_4, ADMIN_ORG_EARLIEST_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisEffDateLegitimacyValidator.java + OrgHisInitValidServiceImpl.validEffDateLegitimacy (L138-151)"
+        },
+        {
+          "id": "V_his_save_6",
+          "name": "首次生效日期一致性校验",
+          "type": "HisFirstEffDateConsistency",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisFirstEffDateConsistencyValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisFirstEffDateConsistencyValidator",
+          "name_cn": "首版生效日期与主数据一致性校验",
+          "definition": "每个 boid 的第一个历史版本 bsed 必须等于主数据 firstbsed（按天比较）。",
+          "algorithm": "按 boid 分组按 bsed 排序 → firstHisVerDyn = boDynList.get(0) → 与 dbEffBizBoDynMap.get(boId).firstbsed 做 HRDateTimeUtils.dayEquals；不等报错。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "bsed",
+            "firstbsed"
+          ],
+          "errorMessages": [
+            "组织：{0}的第一个数据版本：{1}生效日期：{2}与最早生效日期：{3}不一致，请检查！(AdminOrgInitTipsEnum_1, ADMIN_ORG_FIRST_START_DATE_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisFirstEffDateConsistencyValidator.java + OrgHisInitValidServiceImpl.validFirstEffDateConsistency (L153-165)"
+        },
+        {
+          "id": "V_his_save_7",
+          "name": "归属公司校验",
+          "type": "HisBelongCompany",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisBelongCompanyValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisBelongCompanyValidator",
+          "name_cn": "所属公司校验",
+          "definition": "行政组织历史版本所属公司(belongcompany)必须存在，且该公司的 adminorgtype.adminorgtypestd 必须属于 ADMIN_ORG_TYPE_COMPANY_AND_GROUP（集团或公司）。",
+          "algorithm": "收集所有 belongcompany.id → 查 haos_adminorg（iscurrentversion=true）→ 空抛 KDBizException；再按 adminorgtype.id 查 haos_adminorgtype 拿 adminorgtypestd.id；逐条比对 orgTypeVsStdMap.get(company.adminorgtype.id) 是否在 ADMIN_ORG_TYPE_COMPANY_AND_GROUP 集合里。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "belongcompany.id",
+            "adminorgtype.id",
+            "adminorgtypestd.id"
+          ],
+          "errorMessages": [
+            "所属公司不存在,请检查! (AdminOrgInitTipsEnum_11, ADMIN_COMPANY_ERR)",
+            "组织：{0}的数据版本：{1}的行政组织所属公司：{2}的类型归属不为集团或公司，请检查！(AdminOrgInitTipsEnum_7, ADMIN_ORG_COMPANY_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisBelongCompanyValidator.java + IOrgHisInitValidService.validBelongCompany (OrgHisInitValidServiceImpl.java L249-268)"
+        },
+        {
+          "id": "V_his_save_8",
+          "name": "上级组织校验",
+          "type": "HisOrgParent",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgParentValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgParentValidator",
+          "name_cn": "上级组织生效性校验（非首版 + 首版 bsled）",
+          "definition": "两条规则：(1) 非首个历史版本的 bsed 必须 ≥ 其 parentorg 的 firstbsed；(2) 第一个历史版本的 bsled 必须 ≥ parentorg.firstbsed（否则历史起止段完全早于上级存在期）。",
+          "algorithm": "先收集 hisOrgDynList 里所有 parentorg.id → 查 haos_adminorg iscurrentversion='1' 得 parentBoMap；按 boid 分组历史版本按 bsed 排序 → validOrgParent：从 index=1 起逐条比 bsed vs parentBo.firstbsed；validFirstVersionParent：index=0 比 bsled vs parentBo.firstbsed。",
+          "triggerCondition": "his_save 操作链触发",
+          "impactedFields": [
+            "boid",
+            "bsed",
+            "bsled",
+            "parentorg.id",
+            "firstbsed"
+          ],
+          "errorMessages": [
+            "历史版本的生效日期%1$s要晚于或等于上级行政组织%2$s的最早生效日期%3$s。(AdminOrgInitTipsEnum_13, ADMIN_ORG_PARENT_ERR)",
+            "第一个历史版本结束日期%1$s要晚于或等于上级行政组织%2$s的最早生效日期%3$s。(AdminOrgInitTipsEnum_12, ADMIN_ORG_FIRST_HIS_PARENT_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisOrgParentValidator.java + OrgHisInitValidServiceImpl.validOrgParent/validFirstVersionParent (L174-217)"
+        },
+        {
+          "id": "V_his_save_9",
+          "name": "当前版本父组织校验",
+          "type": "HisOrgCurrVerParent",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgCurrVerParentValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgCurrVerParentValidator",
+          "name_cn": "最后历史版本 vs 当前版本上级校验",
+          "definition": "若当前版本 initdatasource='1'（历史迁移），则其最后一个历史版本的 bsled 必须 ≥ 当前版本上级组织的 firstbsed。",
+          "algorithm": "按 boid 聚合当前版本的 parentorg.id → 查这些上级的当前版本 firstbsed 得 currBoParentBoMap；按 boid 分组历史版本按 bsed 排序 → 取最后一条 lastHisDyn，若其对应的 currentBo.initdatasource!='1' 跳过；取 currentBo.parentorg.id 对应的 parentBo.firstbsed；若 lastHisDyn.bsled < parentFirstBsed → 报错。",
+          "triggerCondition": "his_save 操作链触发 且 当前版本 initdatasource='1'",
+          "impactedFields": [
+            "boid",
+            "bsled",
+            "parentorg.id",
+            "firstbsed",
+            "initdatasource"
+          ],
+          "errorMessages": [
+            "最后一个历史版本的失效日%1$s期需要晚于或等于当前版本的上级行政组织%2$s最早生效日期%3$s。(AdminOrgInitTipsEnum_14, ADMIN_ORG_INIT_CURR_PARENT_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisOrgCurrVerParentValidator.java + OrgHisInitValidServiceImpl.validCurrVersonParent (L219-247)"
+        },
+        {
+          "id": "V_his_save_10",
+          "name": "组织错误校验",
+          "type": "HisOrgErr",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgErrValidator",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.validate.OrgHisOrgErrValidator",
+          "name_cn": "同 boid 连带错误标记",
+          "definition": "同一个 boid 只要有任一历史版本产生了校验错误，则该 boid 下所有历史版本都需要被标记错误（加一条汇总错误提示），防止部分通过造成历史链损坏。",
+          "algorithm": "从 validErrMap 中筛出已有非空错误的 hisDyn.id → 得它们的 boid 集合 validErrBoIdSet → 再取所有 boid ∈ validErrBoIdSet 的 hisDyn.id 集合 allFailIdSet → addHisOrgErrMsg 批量加 ADMIN_ORG_BO_ERR；最后 resetData。",
+          "triggerCondition": "his_save 前面几个校验已经填充 validErrMap",
+          "impactedFields": [
+            "id",
+            "boid"
+          ],
+          "errorMessages": [
+            "组织:{0}的其他版本存在错误,请检查! (AdminOrgInitTipsEnum_10, ADMIN_ORG_BO_ERR)"
+          ],
+          "source_evidence": "_sdk_audit/_decompiled/scenarios/admin_org/OrgHisOrgErrValidator.java"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_his_save_1",
+          "order": 1,
+          "name": "批量写历史版本",
+          "type": "数据持久化",
+          "definition": "endOperationTransaction：validDataList 按 bsed 升序排序 → ServiceFactory.getService(IOrgHisVerInitService).saveOrgHisVersion(validDataList)",
+          "phase": "endOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#endOperationTransaction",
+          "writeFields": [
+            "haos_adminorg 各历史版本"
+          ],
+          "edgeCase": "beforeExecuteOperationTransaction/beginOperationTransaction 都是空实现 —— 不走标品链",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "haos_adminorg 各历史版本"
+      ],
+      "readFields": [
+        "bsed"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 此 op 不走标品 save/confirmchange 链，校验和写库全自管，扩展时不要按常规 Op 思路插入",
+        "⚠ 10 个 Validator 依赖关系严格，扩展校验要仔细评估覆盖顺序"
+      ],
+      "metadataConfig": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "disableorg": {
+      "opKey": "disableorg",
+      "name": "停用组织",
+      "opType": "donothing",
+      "overview": {
+        "scene": "业务层面停用行政组织（不同于 disable 基础资料禁用）",
+        "note": "opType=donothing，内部通过调用 confirmchange 完成时序版本变更，并置 enable=0"
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_disableorg_1",
+          "source": "AdminOrgDetailListPlugin.beforeDoOperation",
+          "when": "opKey=disableorg（列表入口）",
+          "logic": "先 checkRootInit 校验根节点；再 openOperationPage(disableorg)：checkOrgOnlyOpVerify 仅执行校验器不落库；通过则 showDisableInfoPage 弹出停用信息页让用户选场景/日期；无论如何 args.setCancel(true)（列表的 disableorg 按钮不直发 op，靠弹页后的 closedCallBack 再 stopAdminOrg）",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgFastDisableOrgOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp",
+          "role": "停用组织主业务：beginOperationTransaction 从库里 loadDynamicObjectArray 查最新组织版本，HisModelCopyUtil.copyTempVersionData 复制出临时版本，copyBizField（复制 changescene/changetype/changereason/changedescription/bsed、设 enable='0'、disabledate=bsed、disabler=当前用户、清 billid/tobedisableflag/tobedisabledate）；OperateOption 设 OP_SKIP_ADMIN_NAME_SPECIAL_SYMBOL_CHECK=true；调 AdminOrgDetailHelper.executeOperate('confirmchange', 'disableorg')；失败 throw KDBizException；然后 adminOrgCoopHandle('disableorg')；afterExecuteOperationTransaction 推 AdminChangeMsgService.handleChangeMsg；AdminOrgUnitSyncService.disableOrEnableOrgChgUnit(data, 'disable')；OrgStrategyService.disableOrgStrategy(ids)"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_disableorg_1",
+          "order": 1,
+          "name": "复制当前版本字段（准备变更数据）",
+          "type": "数据准备",
+          "definition": "buildAdminOrg：HisModelCopyUtil.copyTempVersionData(dbAdminOrg) 得到 newAdminOrg；copyBizField 把用户填的 changescene/changereason/changedescription/bsed 以及 billid 复制过来；设 enable='0'、disabledate=bsed、disabler=当前用户ID；tobedisableflag 为 true 时清零",
+          "phase": "beginOperationTransaction 准备阶段",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp#buildAdminOrg/copyBizField",
+          "writeFields": [
+            "enable",
+            "disabledate",
+            "disabler",
+            "changetype",
+            "changescene",
+            "changereason",
+            "changedescription",
+            "bsed",
+            "tobedisableflag",
+            "tobedisabledate"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp"
+        },
+        {
+          "id": "B_disableorg_2",
+          "order": 2,
+          "name": "内部调 confirmchange 完成时序变更",
+          "type": "数据持久化",
+          "definition": "AdminOrgDetailHelper.executeOperate('confirmchange', newOrgs, 'disableorg', option) - 即在标品 confirmchange 链上包了一层 adminorg_operation='disableorg' 传递上下文；不成功则 throw KDBizException(msg)；成功后 adminOrgCoopHandle('disableorg', args.getDataEntities()) 处理协作关系",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp#beginOperationTransaction",
+          "writeFields": [
+            "haos_adminorg 时序版本",
+            "协作关系"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp"
+        },
+        {
+          "id": "B_disableorg_3",
+          "order": 3,
+          "name": "变更消息 + 组织单元同步 + 策略禁用",
+          "type": "事件/持久化",
+          "definition": "afterExecuteOperationTransaction: AdminChangeMsgService.handleChangeMsg()；对 bsed<=today 的数据（即立即生效）AdminOrgUnitSyncService.disableOrEnableOrgChgUnit(...'disable')；再 OrgStrategyService.disableOrgStrategy(adminOrgIdList)",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp#afterExecuteOperationTransaction",
+          "writeFields": [
+            "bos_org",
+            "OrgStrategy"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastDisableOrgOp"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable=0",
+        "disabledate",
+        "disabler",
+        "bos_org 停用",
+        "OrgStrategy 停用"
+      ],
+      "readFields": [
+        "bsed",
+        "changescene"
+      ],
+      "events": [
+        "AdminChangeMsgService.handleChangeMsg"
+      ],
+      "mines": [
+        "⚠ disableorg 真正落库走的是 confirmchange！扩展 confirmchange 的 Op 时记得判断 option.adminorg_operation='disableorg' 以避免误触发",
+        "⚠ BatchAdminOrgChangeParentOpService.afterTransDoOp 针对 adminorg_operation='disableorg'/'enableorg' 会跳过 handleChangeMsg，由 Fast*Op 自行推消息"
+      ],
+      "metadataConfig": {
+        "parameter": null,
+        "permissionItemId": "2HV7P4KSELH2",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "enableorg": {
+      "opKey": "enableorg",
+      "name": "启用组织",
+      "opType": "donothing",
+      "overview": {
+        "scene": "业务层面启用行政组织",
+        "note": "与 disableorg 对称，走 confirmchange 链，设 enable=1"
+      },
+      "formPluginBefore": [
+        {
+          "id": "FB_enableorg_1",
+          "source": "AdminOrgDetailListPlugin.beforeDoOperation",
+          "when": "opKey=enableorg",
+          "logic": "checkRootInit；checkOrgOnlyOpVerify('enableorg') 仅校验；通过后 showEnableInfoPage 弹启用信息页；args.setCancel(true) 不直发 op",
+          "impl": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgFastEnableOrgOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp",
+          "role": "启用组织主业务：与 disableorg 对称，enable='1'、清 disabledate/disabler；tobedisableflag=true 时 tobedisabledate=bsed 否则 null；executeOperate('confirmchange', 'enableorg')；afterExecuteOperationTransaction 调 OrgStrategyService.enableOrgStrategy + AdminOrgUnitSyncService.disableOrEnableOrgChgUnit(...'enable')"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_enableorg_1",
+          "order": 1,
+          "name": "复制当前版本字段 + 设 enable=1",
+          "type": "数据准备",
+          "definition": "buildAdminOrg + copyBizField：设 enable='1'、disabledate=null、disabler=null；tobedisableflag=true 时 tobedisabledate=bsed；否则 tobedisabledate=null",
+          "phase": "beginOperationTransaction 准备阶段",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp#copyBizField",
+          "writeFields": [
+            "enable",
+            "disabledate",
+            "disabler",
+            "tobedisabledate"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp"
+        },
+        {
+          "id": "B_enableorg_2",
+          "order": 2,
+          "name": "内部调 confirmchange + 协作关系",
+          "type": "数据持久化",
+          "definition": "AdminOrgDetailHelper.executeOperate('confirmchange', ...,'enableorg', option); adminOrgCoopHandle('enableorg')",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp#beginOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp"
+        },
+        {
+          "id": "B_enableorg_3",
+          "order": 3,
+          "name": "变更消息 + 组织单元同步 + 策略启用",
+          "type": "事件/持久化",
+          "definition": "afterExecuteOperationTransaction 与 disableorg 对称，但传 'enable' 和 enableOrgStrategy",
+          "phase": "afterExecuteOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastEnableOrgOp"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "enable=1",
+        "disabledate=null",
+        "bos_org 启用",
+        "OrgStrategy 启用"
+      ],
+      "readFields": [
+        "bsed",
+        "changescene"
+      ],
+      "events": [
+        "AdminChangeMsgService.handleChangeMsg"
+      ],
+      "metadataConfig": {
+        "parameter": null,
+        "permissionItemId": "2LKGP/N2OUXC",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "rootreset": {
+      "opKey": "rootreset",
+      "name": "重置根节点",
+      "opType": "donothing",
+      "overview": {
+        "scene": "重建整个行政组织树的根节点（高危，仅允许一次一个）",
+        "note": "只支持 data.length==1，多条则抛 KDBizException('只能重置一个行政组织。')"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgRootResetOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp",
+          "role": "根节点重置主业务"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_rootreset_1",
+          "order": 1,
+          "name": "单条限制",
+          "type": "校验",
+          "definition": "beginOperationTransaction: adminOrgs.length>1 则 throw KDBizException('只能重置一个行政组织。')",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp#beginOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp"
+        },
+        {
+          "id": "B_rootreset_2",
+          "order": 2,
+          "name": "关闭 parentorg 必填（根节点无父）",
+          "type": "元数据动态修改",
+          "definition": "BasedataProp(parentorg).setMustInput(false)，临时关闭 parentorg 必填约束",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp#beginOperationTransaction",
+          "writeFields": [
+            "parentorg 元数据必填性（临时）"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp"
+        },
+        {
+          "id": "B_rootreset_3",
+          "order": 3,
+          "name": "若库中无根数据则先 save 根节点",
+          "type": "数据持久化",
+          "definition": "saveRootOrg: AdminOrgDetailHelper.getOrgDyById(pkId) 如果查不到，opParamMap.adminorg_operation='rootreset' & skipCheckSpecialDataPermission=true，executeOperate('save', rootOrg, opParamMap)",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp#saveRootOrg",
+          "writeFields": [
+            "haos_adminorg"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp"
+        },
+        {
+          "id": "B_rootreset_4",
+          "order": 4,
+          "name": "把旧根节点 parentorg 指向新根节点（变更）",
+          "type": "数据持久化",
+          "definition": "changeRootParent: getCurrentRootOrgId (option.oldrootid 或 AdminOrgDetailHelper.getAdminOrgRootIdDyn)；buildAdminOrg(currentRootOrgId, rootOrg) - copyTempVersionData + 设 parentorg=rootOrg + changescene=ID_CHANGESCENE_PARENT + bsed=rootOrg.bsed；executeOperate('confirmchange', 'rootreset')",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp#changeRootParent",
+          "writeFields": [
+            "旧根节点 parentorg / 时序版本"
+          ],
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp"
+        },
+        {
+          "id": "B_rootreset_5",
+          "order": 5,
+          "name": "错误统一包成 KDBizException",
+          "type": "异常处理",
+          "definition": "saveRootOrg / changeRootParent 任一失败，AdminOrgDetailHelper.parseOpResult 拼错误消息 String.join(',', resultSet) throw KDBizException",
+          "phase": "beginOperationTransaction",
+          "impl": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp#beginOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.orgfast.AdminOrgRootResetOp"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "haos_adminorg 根节点",
+        "旧根节点 parentorg"
+      ],
+      "readFields": [
+        "option.oldrootid"
+      ],
+      "events": [],
+      "mines": [
+        "❌ 不要对 rootreset 做并发 —— 类方法内部 throw 限制 length>1",
+        "⚠ 运行期临时修改 BasedataProp.setMustInput(false) 是非常规操作，不要模仿"
+      ],
+      "metadataConfig": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    },
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "HR 实体导入（HIES-Pro 标准按钮 · Excel 模板驱动 · 多线程流水线）",
+        "frequency": "高频 · 几乎所有 HR 列表都有此按钮",
+        "stateTransition": "未导入 → 解析 → 校验 → 入库 → 完成",
+        "extValue": 5,
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": "haos_orgimportstart"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "afterLoadStartPage",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "启动页加载后 · 设置导入上下文默认值 · 挂扩展参数",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 2,
+          "plugin": "afterInitContext",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "上下文就绪 · 配置唯一值字段 / 并发参数（本场景调 super 默认）",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 3,
+          "plugin": "beforeCreateHeaderColumn",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "生成表头列 · 按 importType 隐藏/展示列（OrgBatchHR 未重写）",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 4,
+          "plugin": "afterParseBillData",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "Excel 解析后 · 清理互斥字段（OrgBatchHR 未重写）",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 5,
+          "plugin": "beforeValidate",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "主校验前 · 行级数据预处理（OrgBatchHR 未重写）",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 6,
+          "plugin": "beforeInitValidator",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "注册自定义校验器（AbstractValidateHandler · ValidatorOrderEnum.AFTER）",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 7,
+          "plugin": "beforeQueryRefBd",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "F7 引用基础资料查询前 · 修改 QFilter",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 8,
+          "plugin": "beforeLoadEntity",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "加载存量实体前 · 修改实体查询条件",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 9,
+          "plugin": "afterConvertDynamicObjects",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "转成 DynamicObject 后 · 二次分组",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 10,
+          "plugin": "beforeTempStoreInstore",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "临时存储入库前 · ⭐ OrgBatchHR 在此批量校验组织编码唯一性",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 11,
+          "plugin": "beforeCallOperation",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "调 save OP 前 · 最后改写实体 · ⭐ OrgBatchHR 在此补入字段",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        },
+        {
+          "order": 12,
+          "plugin": "afterImportComplete",
+          "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+          "role": "导入完成后 · 清理缓存 / 发消息",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin"
+          ]
+        }
+      ],
+      "validators": [
+        {
+          "name": "HIES-Pro 框架校验链",
+          "role": "按 ValidatorOrderEnum 顺序执行 · BEFORE / REPLACE / AFTER（自定义 Validator 通常注册为 AFTER）",
+          "reference": "R3/R4/R5 · 见 businessRules",
+          "id": "V_importdata_hr_1"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_importdata_hr_R1",
+          "order": 1,
+          "name": "必须调 super 方法保留框架默认行为",
+          "type": "HR导入开发规范",
+          "definition": "HRImportPlugin 是接口 default 方法 · 重写时第一行必须显式调 super · 否则框架默认的参数装箱 / 字段映射逻辑会被跳过 · 导致后续 args.getBillDatas() 拿到的不是规范结构",
+          "edgeCase": "忘记调 super → 后续 args.getXxx() 返回 null 或错位",
+          "phase": "(any lifecycle method)",
+          "whenToUse": "只要重写任意生命周期方法",
+          "impact": "忘记调 super → 后续 args.getXxx() 返回 null 或错位",
+          "confidence": "authoritative",
+          "sourcePattern": "HRImportPlugin.super.xxx(args)",
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:37 (beforeValidate)",
+            "QuotaDetailAddHRImportPlugin.java:62 (beforeInitValidator)",
+            "OTBillHRImportPlugin.java:85,99,104,142,150 (所有生命周期方法)",
+            "PersonRosterHRImportPlugin.java:45 (beforeLoadEntity)"
+          ],
+          "occurrenceRate": "19/19 · 所有 HRImportPlugin demo 都遵守",
+          "_originalId": "hies-import-R1"
+        },
+        {
+          "id": "B_importdata_hr_R2",
+          "order": 2,
+          "name": "beforeValidate 里遍历 BillDatas 用于行级预处理",
+          "type": "HR导入开发规范",
+          "definition": "beforeValidate 阶段 Excel 已解析成 JSON · 每行是一个 ImportBillData · getData() 返回的 JSONObject 的顶层 key 是 mainEntityId · 取数据前必做 null 检查（billData.getData()、mainEntityId、entryentity 三层）",
+          "edgeCase": "不做 null 检查会 NPE；不走 super 会丢框架装箱",
+          "phase": "beforeValidate",
+          "whenToUse": "需要在进入校验器前对数据做预处理（如补充 F7 引用、规整日期、按主数据查询补外键）",
+          "impact": "不做 null 检查会 NPE；不走 super 会丢框架装箱",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:38-57",
+            "AttFileScheduleImportPlusPlugin.java:85-120",
+            "AttFileInfoImportPlusPlugin.java:45-73"
+          ],
+          "occurrenceRate": "14/19 导入插件重写了 beforeValidate",
+          "_originalId": "hies-import-R2"
+        },
+        {
+          "id": "B_importdata_hr_R3",
+          "order": 3,
+          "name": "beforeInitValidator 注册自定义校验器（匿名 AbstractValidateHandler）",
+          "type": "HR导入开发规范",
+          "definition": "自定义跨行 / 跨表校验应当注册为 Validator · 而不是写在 beforeValidate 里。Validator 有三种角色：BEFORE（在框架校验前）、AFTER（框架校验后 · 最常用）、REPLACE（替换框架）。ValidatorEnum 还有 CONTROLLED_BD_PERM_VALIDATOR 等专用类型",
+          "edgeCase": "没按规范注册 → 校验不在框架错误日志链路里 · 用户看不到报错行",
+          "phase": "beforeInitValidator",
+          "whenToUse": "有业务级校验（如工号必须在档案里存在、入职日期不能晚于今天）",
+          "impact": "没按规范注册 → 校验不在框架错误日志链路里 · 用户看不到报错行",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:61-99",
+            "OTBillHRImportPlugin.java:149-189",
+            "AttFileImportUpdatePlugin.java:106-118 (用 CONTROLLED_BD_PERM_VALIDATOR 专用枚举)"
+          ],
+          "occurrenceRate": "17/19 导入插件都注册了自定义 Validator",
+          "_originalId": "hies-import-R3"
+        },
+        {
+          "id": "B_importdata_hr_R4",
+          "order": 4,
+          "name": "Validator 里按行号已错过的跳过",
+          "type": "HR导入开发规范",
+          "definition": "框架校验失败的行会进 importLog · 自定义 Validator 再跑一遍时要跳过这些行 · 否则用户同一行看到两种错误（来自不同校验器）· UX 混乱",
+          "edgeCase": "不跳过会产生重复错误日志 · 也会做无效的昂贵查询",
+          "phase": "beforeInitValidator.validate",
+          "whenToUse": "你的自定义 Validator 跟框架校验有潜在重叠（一般都有）",
+          "impact": "不跳过会产生重复错误日志 · 也会做无效的昂贵查询",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:71-77"
+          ],
+          "occurrenceRate": "出现在需要跨行查询的 Validator（约 5/19）",
+          "_originalId": "hies-import-R4"
+        },
+        {
+          "id": "B_importdata_hr_R5",
+          "order": 5,
+          "name": "错误通过 importLog.writeRowLog 写回 · 不要 throw",
+          "type": "HR导入开发规范",
+          "definition": "校验失败不能抛异常 · 要用 importLog 按行累积错误 · 框架会把日志汇总成可读报告 · 抛异常会让整个 Excel 导入中止",
+          "edgeCase": "throw 会中止所有导入 · 用户要手工删掉错误行再重试",
+          "phase": "beforeInitValidator.validate",
+          "whenToUse": "在 Validator 内部发现业务错误时",
+          "impact": "throw 会中止所有导入 · 用户要手工删掉错误行再重试",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:91",
+            "BillUnifyKDStringHelper.attErrorByPersonNum(...) 是标品封装好的错误文案工厂"
+          ],
+          "occurrenceRate": "所有注册了自定义 Validator 的 demo 都这么写",
+          "_originalId": "hies-import-R5"
+        },
+        {
+          "id": "B_importdata_hr_R6",
+          "order": 6,
+          "name": "按 importType 分支（new/update/overwrite）处理不同导入类型",
+          "type": "HR导入开发规范",
+          "definition": "标品框架对同一个 HRImportPlugin 支持多种导入类型（新增 / 更新 / 覆盖）· 不同类型的字段必填 / 查重 / 列可见性都不一样 · 必须从 args.getContext().getImporttype() 分支",
+          "edgeCase": "不分支 → update 模式会被当新增校验主键冲突",
+          "phase": "beforeValidate / beforeCreateHeaderColumn / afterLoadStartPage",
+          "whenToUse": "一个插件需要支持多种导入类型（标品都这么做）",
+          "impact": "不分支 → update 模式会被当新增校验主键冲突",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "AttFileImportUpdatePlugin.java:121-125",
+            "AttFileImportUpdatePlugin.java:358-360 (beforeCreateHeaderColumn)",
+            "AttFileImportUpdatePlugin.java:368-370 (afterLoadStartPage)"
+          ],
+          "occurrenceRate": "7/19 涉及多导入类型的插件都用这个模式",
+          "_originalId": "hies-import-R6"
+        },
+        {
+          "id": "B_importdata_hr_R7",
+          "order": 7,
+          "name": "国际化错误文案必走 ResManager.loadKDString",
+          "type": "HR导入开发规范",
+          "definition": "所有面向用户的中文字符串必须走 ResManager · 第 1 参数是默认中文 · 第 2 参数是唯一 ResId（类名_序号）· 第 3 参数是项目常量（如 WTC_WTTE_FORMPLUGIN）· 硬编码中文会导致多语言环境错乱",
+          "edgeCase": "硬编码 → 英文/繁体环境看不到翻译；code review 会被打回",
+          "phase": "(any)",
+          "whenToUse": "产出任何面向用户的文案（字段标签 / 错误信息 / 对话框）",
+          "impact": "硬编码 → 英文/繁体环境看不到翻译；code review 会被打回",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:55,84",
+            "AttFileImportUpdatePlugin.java (多处)"
+          ],
+          "occurrenceRate": "全部 demo · 零硬编码",
+          "_originalId": "hies-import-R7"
+        },
+        {
+          "id": "B_importdata_hr_R8",
+          "order": 8,
+          "name": "afterParseBillData 按业务类型清理掉互斥字段",
+          "type": "HR导入开发规范",
+          "definition": "Excel 一张表可能承载多业务类型（如加班单的调休/付薪二选一）· 解析完后要根据类型 remove 掉不属于该类型的字段 · 否则后续校验会把空字段当成错误",
+          "edgeCase": "不清理 → 校验报 '不应有值' 错误 · 用户困惑",
+          "phase": "afterParseBillData",
+          "whenToUse": "一个导入模板对应多个业务枚举（如 OT_SD / OT_SC）",
+          "impact": "不清理 → 校验报 '不应有值' 错误 · 用户困惑",
+          "confidence": "authoritative",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "OTBillHRImportPlugin.java:103-119",
+            "AttFileScheduleImportPlusPlugin.java:190-194"
+          ],
+          "occurrenceRate": "4/19 涉及多业务类型模板的插件",
+          "_originalId": "hies-import-R8"
+        },
+        {
+          "id": "B_importdata_hr_R9",
+          "order": 9,
+          "name": "beforeCallOperation 是最后改写实体的唯一时机",
+          "type": "HR导入开发规范",
+          "definition": "beforeCallOperation 是 save 操作的最后一道门 · 此时 DynamicObject 已就绪 · 可以改任何字段 · 但必须改完才能继续 · 改了不生效 = 对象已被序列化",
+          "edgeCase": "改晚了（如在 afterCallOperation）对象已保存 · 要再 update 一次",
+          "phase": "beforeCallOperation",
+          "whenToUse": "需要设置审计字段（如 importSource = 'HR导入导出Pro')、回填派生字段",
+          "impact": "改晚了（如在 afterCallOperation）对象已保存 · 要再 update 一次",
+          "confidence": "likely",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "OTBillHRImportPlugin.java:190-241",
+            "AttFileImportUpdatePlugin.java:305-331",
+            "QuotaDetailMdfyHRImportPlugin.java:89-120"
+          ],
+          "occurrenceRate": "12/19 导入插件都在这里做尾处理",
+          "_originalId": "hies-import-R9"
+        },
+        {
+          "id": "B_importdata_hr_R10",
+          "order": 10,
+          "name": "F7 引用基础资料用 BillImportMatchAttFileService（标品封装 · 不要自己查表）",
+          "type": "HR导入开发规范",
+          "definition": "考勤 / 假勤 / 加班类导入几乎都要按 员工工号 + 日期 匹配考勤档案（attfilebase）· 标品已封装 BillImportMatchAttFileService 做这件事 · 内部处理了档案版本 / 启用范围 / 权限 · 自己 QueryServiceHelper 会错",
+          "edgeCase": "自己写 SQL → 会漏掉档案未生效 / 已停用 / 无权限场景",
+          "phase": "beforeValidate / beforeInitValidator.validate",
+          "whenToUse": "WTC（考勤）类导入 · 需要从工号反查 attfilebase F7",
+          "impact": "自己写 SQL → 会漏掉档案未生效 / 已停用 / 无权限场景",
+          "confidence": "likely",
+          "sourcePattern": null,
+          "sourceEvidence": [
+            "QuotaDetailAddHRImportPlugin.java:54,83",
+            "OTBillHRImportPlugin.java:144-145,163",
+            "QuotaDetailMdfyHRImportPlugin.java (多处)"
+          ],
+          "occurrenceRate": "8/19 考勤/假勤类插件 · 其它域（人员档案/花名册）有自己的 Service",
+          "_originalId": "hies-import-R10"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "(按业务插件实现决定 · 此处 OrgBatchHR 主要写 haos_adminorg 主表)"
+      ],
+      "readFields": [
+        "(从 Excel 解析 · 动态字段)"
+      ],
+      "events": [
+        "afterLoadStartPage",
+        "afterInitContext",
+        "beforeCreateHeaderColumn",
+        "afterParseBillData",
+        "beforeValidate",
+        "beforeInitValidator",
+        "beforeQueryRefBd",
+        "beforeLoadEntity",
+        "afterConvertDynamicObjects",
+        "beforeTempStoreInstore",
+        "beforeCallOperation",
+        "afterImportComplete"
+      ],
+      "mines": [
+        "⚠ 忘记调 super.beforeXxx(args) → 框架装箱失效 (R1)",
+        "⚠ 校验在 beforeValidate 里抛异常 → 整个导入中止 (R5)",
+        "⚠ 不跳过已错行 → 同一行报两种错误 (R4)",
+        "⚠ 在 afterCallOperation 改字段 → 对象已保存改动不生效 (R9)",
+        "⚠ 自己写 QueryServiceHelper 查 attfile → 漏启用范围/权限 (R10)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": "haos_orgimportstart",
+        "plugins": [
+          {
+            "slot": 1,
+            "className": "kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin",
+            "role": "业务核心 · implements HRImportPlugin · 已反编译",
+            "verified": true,
+            "decompiledPath": "knowledge/_sdk_audit/_decompiled/scenarios/admin_org_import_export/kd/hr/haos/formplugin/web/impo/OrgBatchHRImportPlugin.java"
+          },
+          {
+            "slot": 2,
+            "className": "kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin",
+            "role": "HIES 通用 · 启用顺序入库开关"
+          },
+          {
+            "slot": 3,
+            "className": "kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin",
+            "role": "HIES 通用 · 启用分批入库开关"
+          }
+        ],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI listOperations + getOperation @ 2026-04-23"
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测 + hies curated_rules + OrgBatchHRImportPlugin 反编译",
+        "probeData": "knowledge/_probe/hies_import_list_opkeys/_hr_opkeys_parsed.json",
+        "rulesFrom": "knowledge/scenarios/hies_entity_import/curated_rules.json",
+        "generatedAt": "2026-04-23"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导入记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN+52WYF1Y"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN+52WYF1Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测 · 平台内建无业务插件",
+        "generatedAt": "2026-04-23"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro 标准 · 按列表导出）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+          "role": "写入 Excel 前 · 修改模板内容"
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+          "role": "查询数据后 · 二次加工行数据"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_list_hr_R1",
+          "order": 1,
+          "name": "导出规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 1 个插件 · 规则 TODO（可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏）",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字而不是 NUMBER/NAME · 需配置反查",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin"
+          ],
+          "_originalId": "EXP_R_PLACEHOLDER"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询 · 动态字段)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID → 用户看到数字 · 应配置反查成 NUMBER/NAME",
+        "⚠ 大数据量同步导出 → 内存爆炸 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [
+          {
+            "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+            "role": "组织导出插件",
+            "enabled": true
+          }
+        ],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI @ 2026-04-23"
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测（导出规则暂未精修）",
+        "generatedAt": "2026-04-23"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro 标准 · 按导入模板导出）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchExportTplPlugin",
+          "role": "写入 Excel 前 · 修改模板内容"
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchExportTplPlugin",
+          "role": "查询数据后 · 二次加工行数据"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_impttpl_hr_R1",
+          "order": 1,
+          "name": "导出规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 2 个插件 · 规则 TODO（可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏）",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字而不是 NUMBER/NAME · 需配置反查",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.export.OrgBatchExportTplPlugin",
+            "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin"
+          ],
+          "_originalId": "EXP_R_PLACEHOLDER"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询 · 动态字段)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID → 用户看到数字 · 应配置反查成 NUMBER/NAME",
+        "⚠ 大数据量同步导出 → 内存爆炸 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [
+          {
+            "className": "kd.hr.haos.formplugin.web.export.OrgBatchExportTplPlugin",
+            "role": "行政组织批量导出插件",
+            "enabled": true
+          },
+          {
+            "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+            "role": "组织导出插件",
+            "enabled": true
+          }
+        ],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI @ 2026-04-23"
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测（导出规则暂未精修）",
+        "generatedAt": "2026-04-23"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro 标准 · 按导出模板导出）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+          "role": "写入 Excel 前 · 修改模板内容"
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+          "role": "查询数据后 · 二次加工行数据"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_expttpl_hr_R1",
+          "order": 1,
+          "name": "导出规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 1 个插件 · 规则 TODO（可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏）",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字而不是 NUMBER/NAME · 需配置反查",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "pluginsInvoked": [
+            "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin"
+          ],
+          "_originalId": "EXP_R_PLACEHOLDER"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询 · 动态字段)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID → 用户看到数字 · 应配置反查成 NUMBER/NAME",
+        "⚠ 大数据量同步导出 → 内存爆炸 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [
+          {
+            "className": "kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin",
+            "role": "组织导出插件",
+            "enabled": true
+          }
+        ],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI @ 2026-04-23"
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测（导出规则暂未精修）",
+        "generatedAt": "2026-04-23"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导出记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN590J0H1R"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN590J0H1R",
+        "permissionItemId": "4730fc9f000004ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "from": "OpenAPI 探测 · 平台内建无业务插件",
+        "generatedAt": "2026-04-23"
+      }
+    }
+  },
+  "commonPlugins": {
+    "description": "列表/详情通用的 FormPlugin 不归任何单个 opKey，它们构成页面级 UI 行为的基线",
+    "AdminOrgDetailListPlugin": {
+      "fqn": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+      "extends": "kd.hr.hbp.formplugin.web.HRDataBaseList",
+      "beforeDoOperation": {
+        "commonEntry": "先调 AdminOrgDetailHelper.checkRootInit 校验根节点是否已初始化，失败 args.setCancel(true) 直接退出",
+        "switchBranches": {
+          "addnew": "showAddOrg 并 args.setCancel(true)",
+          "parentchg": "checkOrgParentChg 通过则 showChgParentPage",
+          "infochg": "checkOrgInfoChg 通过则 showChangeInfoPage",
+          "importdetailchargeperson": "showChargePersonImportDetail 并 cancel",
+          "viewhischange": "listCheckRevise 通过则 showRevisePage",
+          "operate_steps": "showOperateStepsPage",
+          "disableorg": "checkOrgOnlyOpVerify + showDisableInfoPage 并 cancel",
+          "enableorg": "checkOrgOnlyOpVerify + showEnableInfoPage 并 cancel"
+        }
+      },
+      "afterDoOperation": {
+        "showchargeperson": "showDeptLeaderSet 弹部门负责人设置页",
+        "viewchargepersonlog": "showLogPage 'haos_chargepersonlog'"
+      }
+    },
+    "OrgDetailList": {
+      "fqn": "kd.hr.haos.formplugin.web.adminorg.OrgDetailList",
+      "extends": "kd.hr.haos.formplugin.web.adminorg.OrgDetailCommonListPlugin",
+      "beforeDoOperation": {
+        "showchargeperson": "多选超过 1 条 → 提示'只能选择1条数据进行设置' 并 args.setCancel(true)"
+      },
+      "note": "主要行为在 beforeCreateListColumns / billListHyperLinkClick / beforeShowBill / filterContainerBeforeF7Select 等钩子，不在 beforeDoOperation / afterDoOperation"
+    },
+    "AdminOrgDetailEditPlugin": {
+      "fqn": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+      "extends": "kd.hr.hbp.formplugin.web.HRDataBaseEdit",
+      "beforeDoOperation": {
+        "refresh": "清除 customParam adminorg_operation"
+      },
+      "afterDoOperation": {
+        "parentchg": "checkOrgParentChg 通过则 id 兜底 + showChgParentPage + 关当前窗",
+        "infochg": "id 兜底 + showChangeInfoPage + 关当前窗",
+        "cancel": "id 兜底 + showEmptyOpPage + setDataChanged(false) + 关当前窗"
+      }
+    },
+    "NewAdminorgDetailEditPlugin": {
+      "fqn": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+      "extends": "kd.hr.hbp.formplugin.web.HRDataBaseEdit",
+      "beforeDoOperation": {
+        "note": "未重写 beforeDoOperation"
+      },
+      "afterDoOperation": {
+        "save / confirmchange / confirmchangenoaudit": "成功且 bsed 在未来 -> 父页 showSuccessNotification + sendFormAction -> 有 future 权限则 showFutureViewPage 否则关窗；bsed 当下且 save 时 invokeOperation('refresh')"
+      }
+    },
+    "HisModelFormCommonPlugin": {
+      "fqn": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+      "extends": "kd.hr.hbp.formplugin.web.HRDataBaseEdit",
+      "sdkAnnotation": "@SdkInternal",
+      "beforeDoOperation": {
+        "save": "REVISE_VERSION_PAGE 的 NO_INTERRUPTION_NO_OVERLAP 模型 count==2 且 bsled!=maxEffEndDate 则阻止；validateForSave() 失败则 cancel；codeRuleProcessor.setNumberToOpParam；hisOpParam.boChange 根据当前 page 写入",
+        "confirmchange": "validateForChange()+beforeChangeTip 任一拦截则 cancel；否则写 hisOpParam.boChange",
+        "disable": "disableProcessor.showSetDisableDatePage 弹日期选择页"
+      },
+      "afterDoOperation": {
+        "change / revise / reviserecord / hisversioninfo / confirmchange / save / enable / disable / audit": "分别触发页面刷新 / 状态重置 / 按钮重绘 / 历史字段值刷新 / 打开历史版本页等"
+      }
+    },
+    "HisModelListCommonPlugin": {
+      "fqn": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+      "extends": "kd.hr.hbp.formplugin.web.HRDataBaseList",
+      "sdkAnnotation": "@SdkInternal",
+      "beforeDoOperation": {
+        "通用": "所有 opKey 都设 op.option.fromListOperate='true'",
+        "disable": "disableProcessor.showSetDisableDatePage",
+        "confirmchange": "空 break（占位）",
+        "delete": "hisOpParam.setDeleteVersion=(VERSION_LIST_PAGE) 写 option",
+        "importdata": "NO_INTERRUPTION_NO_OVERLAP 模型下 cancel 并 openHisImportStartPage"
+      },
+      "afterDoOperation": {
+        "newhisversion / hiscopy / revise / versionchangecompare": "分别调 showFormProcessor 的对应弹页方法"
+      }
+    }
+  },
+  "globalExtensionSuggestions": {
+    "title": "如何扩展（HR SDK 白名单 + ISV 边界）",
+    "rules": [
+      "✅ 扩展校验器：extends HRDataBaseValidator，在自定义 OpPlugin（extends HRDataBaseOp）的 onAddValidators 里注入",
+      "✅ 扩展业务：extends HRDataBaseOp，重写 beforeExecuteOperationTransaction / beginOperationTransaction / afterExecuteOperationTransaction；首选 afterExecuteOperationTransaction（数据已落库）",
+      "❌ 禁继承：HisModelOPCommonPlugin / HisModelFormCommonPlugin / HisModelListCommonPlugin / HisUniqueValidateOp（全是 @SdkInternal）",
+      "❌ 禁继承：AbsOrgBaseOp / AdminOrgFastSaveOp / AdminOrgFastAuditOp / AdminOrgFastParentChangeOp / AdminOrgFastDisableOrgOp / AdminOrgFastEnableOrgOp / AdminOrgRootResetOp / AdminOrgInitSaveOp —— 这些是 HAOS 自己的内部实现，没标 @SdkPlugin，不在白名单",
+      "❌ 禁 modifyMeta 添加 / 删除 haos_adminorg 字段（ISV 归属规则）；只能建扩展实体挂上来",
+      "⚠ disableorg/enableorg 内部实际走 confirmchange，扩展 confirmchange 链必须判断 option.adminorg_operation 避免误触发",
+      "⚠ batchApply / importtype / async_save 三个变量是标品的'跳过消息推送'开关，自定义事件别被这几个变量短路"
+    ]
+  },
+  "allOperationsMetadata": {
+    "description": "69 个 opKey 完整元数据配置（参数 + 校验器 + 权限项）。14 个核心 opKey 已内嵌到 opKeys[].metadataConfig，其余 55 个放在这里作为辅助。",
+    "count": 69,
+    "embedded": [
+      "save",
+      "delete",
+      "audit",
+      "unaudit",
+      "disable",
+      "enable",
+      "submit",
+      "unsubmit",
+      "submitandnew",
+      "confirmchange",
+      "his_save",
+      "disableorg",
+      "enableorg",
+      "rootreset"
+    ],
+    "others": {
+      "new": {
+        "parameter": null,
+        "permissionItemId": "47156aff000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "modify": {
+        "parameter": null,
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "view": {
+        "parameter": null,
+        "permissionItemId": "47150e89000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "close": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "returndata": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "copy": {
+        "parameter": null,
+        "permissionItemId": "47156aff000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "refresh": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "option": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "saveandnew": {
+        "parameter": {
+          "_Type_": "SaveParameter",
+          "AfterOperation": "default",
+          "Value": "A",
+          "StatusFieldId": "AkId5S4yTs"
+        },
+        "permissionItemId": "",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "first": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "previous": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "next": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "last": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importdata": {
+        "parameter": {
+          "_Type_": "ImportParameter",
+          "Plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"历史模型导入插件\",\"RowKey\":0,\"ClassName\":\"kd.hr.hbp.formplugin.web.history.impt.HisModelBatchImportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+        },
+        "permissionItemId": "4730fc9f000003ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importdetails": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000003ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importtemplatelist": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000003ae",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "exportlist": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "exportlistbyselectfields": {
+        "parameter": {
+          "_Type_": "ExportParameter",
+          "ByList": true
+        },
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "exportlist_expt": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "exportdetails": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importexport_userset": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "mobtoolbarselect": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "mobtoolbarcancel": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "namehistory": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "namehistoryview": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "logview": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "2DA5R551WK78",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "viewonelog": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importdata_hr": {
+        "parameter": {
+          "_Type_": "CustOperationParameter",
+          "Parameter": "{\"cusstartpage\":\"haos_orgimportstart\",\"mainentityuniqueval\":\",number,\",\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.impo.OrgBatchHRImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false},{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin\\\",\\\"RowKey\\\":1,\\\"ClassName\\\":\\\"kd.hr.hies.formplugin.standard.impt.EnableSequenceInstorePlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false},{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin\\\",\\\"RowKey\\\":2,\\\"ClassName\\\":\\\"kd.hr.hies.formplugin.standard.impt.EnableSMPartInstorePlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+        },
+        "permissionItemId": "4730fc9f000003ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "show_import_record_hr": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000003ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "export_from_list_hr": {
+        "parameter": {
+          "_Type_": "CustOperationParameter",
+          "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"组织导出插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+        },
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "export_from_impttpl_hr": {
+        "parameter": {
+          "_Type_": "CustOperationParameter",
+          "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"行政组织批量导出插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.export.OrgBatchExportTplPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false},{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"组织导出插件\\\",\\\"RowKey\\\":1,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+        },
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "export_from_expttpl_hr": {
+        "parameter": {
+          "_Type_": "CustOperationParameter",
+          "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"组织导出插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.export.OrgBatchHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+        },
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "show_export_record_hr": {
+        "parameter": null,
+        "permissionItemId": "4730fc9f000004ae",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "change": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "hisversioninfo": {
+        "parameter": null,
+        "permissionItemId": "47150e89000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "hiscopy": {
+        "parameter": null,
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "newhisversion": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "revise": {
+        "parameter": null,
+        "permissionItemId": "4715a0df000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "reviserecord": {
+        "parameter": null,
+        "permissionItemId": "47150e89000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "versionchangecompare": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "47150e89000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "showallversion": {
+        "parameter": null,
+        "permissionItemId": "47150e89000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "parentchg": {
+        "parameter": null,
+        "permissionItemId": "2HV7LF77/C2Y",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "infochg": {
+        "parameter": null,
+        "permissionItemId": "2IGDXZWMA7BH",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "newentry": {
+        "parameter": {
+          "_Type_": "NewEntryParameter",
+          "EntryId": "pawTrpTkUuBf5v54ib"
+        },
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "deleteentry": {
+        "parameter": {
+          "_Type_": "EntryOpParameter",
+          "EntryId": "pawTrpTkUuBf5v54ib"
+        },
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "showchargeperson": {
+        "parameter": null,
+        "permissionItemId": "37LU2N10=/LE",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "viewchargepersonlog": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "19VS4B4PNQ9Y",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importchargeperson": {
+        "parameter": {
+          "_Type_": "ImportParameter",
+          "Plugins": ""
+        },
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "importdetailchargeperson": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "37LU3EETSVC=",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "operate_steps": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "CanNoData": true
+        },
+        "permissionItemId": "3M3S5BXUCHL/",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "viewhischange": {
+        "parameter": null,
+        "permissionItemId": "3B9F1MRC=3SC",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "chargepersonimpo_hr": {
+        "parameter": {
+          "_Type_": "CustOperationParameter",
+          "Parameter": "{\"cusstartpage\":\"\",\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"kd.hr.haos.formplugin.web.impo.ChargePersonHRImportPlugin\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hr.haos.formplugin.web.impo.ChargePersonHRImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+        },
+        "permissionItemId": "37LU3EETSVC=",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "cancel": {
+        "parameter": null,
+        "permissionItemId": "",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "addnew": {
+        "parameter": null,
+        "permissionItemId": "47156aff000000ac",
+        "logEnable": false,
+        "saveAndSubmit": false,
+        "validations": []
+      },
+      "sort": {
+        "parameter": {
+          "_Type_": "DoNothingParameter",
+          "AfterOperation": "close",
+          "CanNoData": true
+        },
+        "permissionItemId": "5JWVFJE9SXSJ",
+        "logEnable": true,
+        "saveAndSubmit": false,
+        "validations": []
+      }
+    }
+  },
+  "metadataRulesRef": {
+    "note": "表单级元数据规则（FormRule/ClientRule/ListDefaults/FieldProperties）已放在 form_lifecycle_rules.json 的 metadataRules 节点。",
+    "location": "form_lifecycle_rules.json#/metadataRules"
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "OpenAPI + hies curated_rules + OrgBatchHR 反编译",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "injectionScript": "scripts/inject_hies_opkeys_into_admin_org.py"
+    }
+  }
+}

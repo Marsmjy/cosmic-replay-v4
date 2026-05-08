@@ -1,0 +1,98 @@
+package ${ISV_FLAG}.odc.homs.formplugin.Import;
+
+import kd.bos.dataentity.entity.DataEntityBase;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.datamodel.BasedataItem;
+import kd.bos.entity.datamodel.events.QueryImportBasedataEventArgs;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+/**
+ * @author: 姚帅
+ * @date:2024/3/11 15:09
+ * @description: 编制详情导入过滤
+ */
+public class BatchYearImportEdit extends AbstractFormPlugin {
+
+    /**
+     * 导入状态
+     */
+    private static final String ISIMPORTSTATUS = "isImportStatus";
+
+    private static final Log logger = LogFactory.getLog(BatchYearImportEdit.class);
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        //清空导入状态
+        this.getPageCache().remove(ISIMPORTSTATUS);
+    }
+
+
+
+    /**
+     * 当基础资料查不到或者查到多个结果时，设置正确的id
+     *
+     * @param e
+     */
+    @Override
+    public void queryImportBasedata(QueryImportBasedataEventArgs e) {
+        super.queryImportBasedata(e);
+        this.getPageCache().put(ISIMPORTSTATUS, "true");
+        Map<BasedataItem, List<Object>> searchResult = e.getSearchResult();
+        try {
+            for (Map.Entry<BasedataItem, List<Object>> entry : searchResult.entrySet()) {
+                //导入字段
+                BasedataItem basedataItem = entry.getKey();
+                //字段标识
+                String fieldKey = basedataItem.getFieldKey();
+                //导入值
+                List<Object> basedata = entry.getValue();
+                //基础资料匹配了多个值
+                if (basedata.size() > 1) {
+
+                    Map<Object, DynamicObject> baseMap = Arrays.stream(BusinessDataServiceHelper.load(basedataItem.getEntityNumber(),
+                                    "iscurrentversion,datastatus",
+                                    new QFilter[]{new QFilter("id", QCP.in, basedata)}))
+                            .collect(Collectors.toMap(DataEntityBase::getPkValue, b -> b));
+
+                    Iterator it = basedata.iterator();
+                    while (it.hasNext()) {
+                        Object id = it.next();
+                        DynamicObject basedataObj = baseMap.get(id);
+                        switch (fieldKey) {
+                            case "${ISV_FLAG}_detail_adminorg":
+                            case "${ISV_FLAG}_stdposition":
+                                //非当前版本，非生效状态
+                                if (basedataObj!=null&&(!basedataObj.getBoolean("iscurrentversion")
+                                        || !"1".equals(basedataObj.getString("datastatus")))
+                                ) {
+                                    it.remove();
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    //无法去重的单独处理，只保留一个，后面在到表单插件上填充正确的值
+                    if (basedata.size() > 1 && "${ISV_FLAG}_personrank".equals(fieldKey)) {
+                        Object o = basedata.get(0);
+                        basedata.clear();
+                        basedata.add(o);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("年度编制详情导入异常：", ex);
+            throw ex;
+        }
+    }
+}

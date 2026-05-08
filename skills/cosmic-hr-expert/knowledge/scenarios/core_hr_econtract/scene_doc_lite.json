@@ -1,0 +1,27 @@
+{
+  "scene": "core_hr_econtract",
+  "title": "电子签 6 状态 + 3 厂商集成（法大大公有/私有 + 易企签）",
+  "cloud": "core_hr",
+  "description": "电子签集成实战 · 详见 PPT05_DEEP_TRACE.md 第 12 节。支持法大大公有云 + 法大大私有云 + 易企签公有云 3 厂商。签署状态：begin / check / csign / esign / confirm / all。标品定时任务：hlcm_repair_esign_task (失败手动补偿)。",
+  "entities": [
+    "core_hr_econtract"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "N/A (电子签状态机 · 不直接走 chgaction)",
+    "chgEvent": "N/A (经 ContractBaseSubmitEffectOp 间接触发)",
+    "createsHrpi": [
+      "hlcm_contract.signstatus 状态推进"
+    ],
+    "isvExtPoints": [],
+    "noteOnIntegration": "3 厂商集成各自有独立 SDK 配置，详 PPT 05"
+  },
+  "_decompile_anchors": [],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 0 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

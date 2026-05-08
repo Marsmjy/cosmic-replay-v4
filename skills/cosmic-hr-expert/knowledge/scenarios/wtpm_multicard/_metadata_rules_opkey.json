@@ -1,0 +1,245 @@
+{
+  "export_from_list_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "export_from_list_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按列表导出",
+    "operationType": "export_from_list_hr",
+    "operationId": "48LGBRH+8WJF",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": ""
+      }
+    }
+  },
+  "show_export_record_hr": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "show_export_record_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出记录",
+    "operationType": "show_export_record_hr",
+    "operationId": "48LGFCWT98FN",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "update": {
+    "parameter": null,
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "update",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "修改",
+    "operationType": "donothing",
+    "operationId": "2HVA7HYHGKZI",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportlistbyselectfields": {
+    "parameter": {
+      "_Type_": "ExportParameter",
+      "ByList": true
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "exportlistbyselectfields",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出数据（按列表）",
+    "operationType": "exportlist",
+    "operationId": "2XEAXI8W4/Q=",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "ExportParameter",
+      "_raw_keys": [
+        "_Type_",
+        "ByList"
+      ],
+      "ByList": true
+    }
+  },
+  "exportdetails": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "exportdetails",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出结果",
+    "operationType": "exportdetails",
+    "operationId": "2XEAZDRKIRZB",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default"
+    },
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "迁移数据唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "shiftdate"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.id"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.boid"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.iscurrentversion"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.number"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.empnumber"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "employee.name"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "sourcesyskey"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "effectivepoint"
+          }
+        ],
+        "PreCondition": {
+          "RuleDescription": "来源系统唯一标识不为空",
+          "_Type_": "PreCondition",
+          "RuleCondition": "sourcesyskey <> ' ' and sourcesyskey <> '' and sourcesyskey <> null",
+          "Id": "5=YCVX5O=BJ5"
+        },
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "5=YCYLP3ZNVO",
+        "CustomPromp": ""
+      }
+    ],
+    "_meta": {
+      "scene": "wtpm_multicard",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "5=USPJ4J77G4",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "迁移保存",
+        "ClassName": "kd.wtc.wtpm.opplugin.web.multicard.MulticardSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation"
+      ],
+      "AfterOperation": "default"
+    }
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:49",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 6,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 1,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 1,
+        "parameterParsed_filled": 3,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

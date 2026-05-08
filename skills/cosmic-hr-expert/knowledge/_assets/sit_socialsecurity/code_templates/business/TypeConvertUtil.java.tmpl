@@ -1,0 +1,343 @@
+package ${ISV_FLAG}.swc.sit.common.util;
+
+import kd.bos.exception.ErrorCode;
+import kd.bos.exception.KDBizException;
+import kd.bos.util.StringUtils;
+
+import java.math.BigDecimal;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class TypeConvertUtil
+{
+    public static String objToString(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if ((obj instanceof String))
+            return (String)obj;
+        return obj.toString();
+    }
+
+    public static BigDecimal objToBigDecimal(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if (obj instanceof BigDecimal)
+            return (BigDecimal)obj;
+        if (obj instanceof String && StringUtils.isEmpty((String)obj))
+            return null;
+        try
+        {
+            if ((obj instanceof Double))
+                return BigDecimal.valueOf(((Double)obj).doubleValue());
+            else
+                return new BigDecimal(obj.toString());
+        }
+        catch (NumberFormatException e)
+        {
+            throw new KDBizException(e, new ErrorCode("YY-TYPE-001",
+                    "非法数字: %s"), obj.toString());
+        }
+    }
+
+
+    public static boolean objToBoolean(Object obj)
+    {
+        if (obj == null)
+            return false;
+        if ((obj instanceof Boolean))
+            return (Boolean)obj;
+        String s = obj.toString();
+        if (s.equals("1") || s.equalsIgnoreCase("true")
+                || s.equalsIgnoreCase("yes") || s.equalsIgnoreCase("ok")
+                || s.equalsIgnoreCase("是"))
+            return true;
+        if (s.equals("0") || s.equalsIgnoreCase("false")
+                || s.equalsIgnoreCase("no") || s.equalsIgnoreCase("ng")
+                || s.equalsIgnoreCase("否"))
+            return false;
+        throw new KDBizException(new ErrorCode("YY-TYPE-003",
+                "非法布尔值: %s"), obj.toString());
+    }
+
+    public static byte objToByte(Object obj)
+    {
+        if (obj instanceof Byte) {
+            return ((Byte)obj).byteValue();
+        }
+        return (byte)objToInt(obj);
+    }
+
+    public static short objToShort(Object obj)
+    {
+        if (obj instanceof Short) {
+            return ((Short)obj).shortValue();
+        }
+        return (short)objToInt(obj);
+    }
+
+    public static int objToInt(Object obj)
+    {
+        if (obj == null)
+            return 0;
+        if (obj instanceof Integer)
+            return ((Integer)obj).intValue();
+        if (obj instanceof Long)
+            return ((Long)obj).intValue();
+        if (obj instanceof Float)
+            return ((Float)obj).intValue();
+        if (obj instanceof Double)
+            return ((Double)obj).intValue();
+        if (obj instanceof BigDecimal)
+            return ((BigDecimal)obj).intValue();
+        if (obj instanceof Boolean)
+            return ((Boolean)obj).booleanValue() ? 1 : 0;
+        try
+        {
+            return Integer.valueOf(obj.toString()).intValue();
+        }
+        catch (Exception _ex)
+        {
+            throw new KDBizException(new ErrorCode("YY-TYPE-004",
+                    "非法整数值: %s"), obj.toString());
+        }
+    }
+
+    public static long objToLong(Object obj)
+    {
+        if (obj == null)
+            return 0L;
+        if (obj instanceof Integer)
+            return ((Integer)obj).longValue();
+        if (obj instanceof Long)
+            return ((Long)obj).longValue();
+        if (obj instanceof Float)
+            return ((Float)obj).longValue();
+        if (obj instanceof Double)
+            return ((Double)obj).longValue();
+        if (obj instanceof BigDecimal)
+            return ((BigDecimal)obj).longValue();
+        try
+        {
+            return Long.valueOf(obj.toString()).longValue();
+        }
+        catch (Exception _ex)
+        {
+            throw new KDBizException(new ErrorCode("YY-TYPE-004",
+                    "非法长整数值: %s"), obj.toString());
+        }
+    }
+
+    public static float objToFloat(Object obj)
+    {
+        if (obj == null)
+            return 0.0F;
+        if (obj instanceof Integer)
+            return ((Integer)obj).floatValue();
+        if (obj instanceof Long)
+            return ((Long)obj).floatValue();
+        if (obj instanceof Float)
+            return ((Float)obj).floatValue();
+        if (obj instanceof Double)
+            return ((Double)obj).floatValue();
+        if (obj instanceof BigDecimal)
+            return ((BigDecimal)obj).floatValue();
+        try
+        {
+            return Float.valueOf(obj.toString()).floatValue();
+        }
+        catch (Exception _ex)
+        {
+            throw new KDBizException(new ErrorCode("YY-TYPE-004",
+                    "非法浮点数: %s"), obj.toString());
+        }
+    }
+
+    public static double objToDouble(Object obj)
+    {
+        if (obj == null)
+            return 0.0D;
+        if (obj instanceof Integer)
+            return ((Integer)obj).doubleValue();
+        if (obj instanceof Long)
+            return ((Long)obj).doubleValue();
+        if (obj instanceof Float)
+            return ((Float)obj).doubleValue();
+        if (obj instanceof Double)
+            return ((Double)obj).doubleValue();
+        if (obj instanceof BigDecimal)
+            return ((BigDecimal)obj).doubleValue();
+        try
+        {
+            return Double.valueOf(obj.toString()).doubleValue();
+        }
+        catch (Exception _ex)
+        {
+            throw new KDBizException(new ErrorCode("YY-TYPE-005",
+                    "非法双精浮点数: %s"), obj.toString());
+        }
+    }
+
+    public static Time objToTime(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if (obj instanceof Time)
+            return (Time)obj;
+        try
+        {
+            if (obj instanceof Timestamp)
+            {
+                Timestamp timestamp = (Timestamp)obj;
+                return new Time(timestamp.getTime());
+            }
+            if (obj instanceof Date)
+            {
+                Date date = (Date)obj;
+                return new Time(date.getTime());
+            }
+            DateFormat df = DateFormat.getTimeInstance();
+            String strObj = obj.toString();
+            return new Time(df.parse(strObj).getTime());
+        }
+        catch (IllegalArgumentException e)
+        {
+            throw new KDBizException(e, new ErrorCode("YY-TYPE-006",
+                    "非法时间表达式: %s"), obj.toString());
+        }
+        catch (Exception e)
+        {
+            throw new KDBizException(e, new ErrorCode("YY-TYPE-007",
+                    "非法时间表达式: %s"), obj.toString());
+        }
+    }
+
+    public static java.sql.Date objToDate(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if (obj instanceof java.sql.Date)
+            return (java.sql.Date)obj;
+        if ((obj instanceof Timestamp))
+        {
+            Timestamp timestamp = (Timestamp)obj;
+            return new java.sql.Date(timestamp.getTime());
+        }
+        if ((obj instanceof Date))
+        {
+            Date date = (Date)obj;
+            return new java.sql.Date(date.getTime());
+        }
+        if(StringUtils.isEmpty(obj.toString()))
+            return null;
+        return new java.sql.Date(parseDate(obj.toString()).getTime());
+    }
+
+    public static Date parseDate(String s)
+    {
+        try
+        {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(s);
+        }
+        catch (ParseException e1)
+        {
+            try
+            {
+                return new SimpleDateFormat("yyyy-MM-dd").parse(s);
+            }
+            catch (ParseException e2)
+            {
+                try
+                {
+                    return new SimpleDateFormat("MM/dd/yyyy HH:mm:ss").parse(s);
+                }
+                catch (ParseException e3)
+                {
+                    try
+                    {
+                        return new SimpleDateFormat("MM/dd/yyyy").parse(s);
+                    }
+                    catch (ParseException e4)
+                    {
+                        try
+                        {
+                            return new SimpleDateFormat("HH:mm:ss").parse(s);
+                        }
+                        catch (ParseException e5)
+                        {
+                            throw new KDBizException(e5, new ErrorCode("YY-TYPE-010",
+                                    "非法日期格式: %s"), s);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static Timestamp objToTimestamp(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if (obj instanceof Timestamp)
+            return (Timestamp)obj;
+        if (obj instanceof Time)
+        {
+            Time time = (Time)obj;
+            return new Timestamp(time.getTime());
+        }
+        if (obj instanceof java.sql.Date)
+        {
+            java.sql.Date date = (java.sql.Date)obj;
+            return new Timestamp(date.getTime());
+        }
+        if (obj instanceof Date)
+        {
+            Date dt = (Date)obj;
+            return new Timestamp(dt.getTime());
+        }
+        String strObj = obj.toString();
+        return new Timestamp(parseDate(strObj).getTime());
+    }
+
+    public static byte[] objToBytes(Object obj)
+    {
+        if (obj == null)
+            return null;
+        if (obj instanceof byte[])
+            return (byte[])obj;
+        if ((obj instanceof Long))
+        {
+            long val = ((Long)obj).longValue();
+            byte[] b = new byte[8];
+            b[7] = ((byte)(int)(val >>> 0));
+            b[6] = ((byte)(int)(val >>> 8));
+            b[5] = ((byte)(int)(val >>> 16));
+            b[4] = ((byte)(int)(val >>> 24));
+            b[3] = ((byte)(int)(val >>> 32));
+            b[2] = ((byte)(int)(val >>> 40));
+            b[1] = ((byte)(int)(val >>> 48));
+            b[0] = ((byte)(int)(val >>> 56));
+            return b;
+        }
+        if ((obj instanceof Integer))
+        {
+            long val = ((Integer)obj).longValue();
+            byte[] b = new byte[8];
+            b[7] = ((byte)(int)(val >>> 0));
+            b[6] = ((byte)(int)(val >>> 8));
+            b[5] = ((byte)(int)(val >>> 16));
+            b[4] = ((byte)(int)(val >>> 24));
+            b[3] = ((byte)(int)(val >>> 32));
+            b[2] = ((byte)(int)(val >>> 40));
+            b[1] = ((byte)(int)(val >>> 48));
+            b[0] = ((byte)(int)(val >>> 56));
+            return b;
+        }
+        return obj.toString().getBytes();
+    }
+}

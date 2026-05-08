@@ -1,0 +1,1173 @@
+{
+  "formId": "wtbd_holiday",
+  "formName": null,
+  "sceneId": "wtbd_holiday",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "28ISR3X+7CR3",
+  "bizappId": "19KOKMMSZFZJ",
+  "metaIdTechnical": "1===5CJKAU+V",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtbd_holiday",
+    "createdAt": "2026-05-02",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtbd_holiday.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 v5.1 swc/wtc 12 场景串跑后批量打标"
+  },
+  "entities": [
+    {
+      "name": "wtbd_holiday",
+      "type": "BaseEntity",
+      "title": "假期",
+      "physicalTable": null,
+      "fieldCount": 20
+    },
+    {
+      "name": "unfixentry",
+      "type": "EntryEntity",
+      "title": "非循环假期",
+      "physicalTable": null,
+      "fieldCount": 18
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "2R0KTJ81CEVN",
+          "Fields": {
+            "FieldId": {
+              "Id": "mt7Q8wNFzt"
+            }
+          }
+        }
+      },
+      "PreDescription": "holidaytype = 'A' and fixedtype = 'A'",
+      "TrueActions": {
+        "ShowControlAction": {
+          "RET": "251",
+          "ActionType": "ShowControlAction",
+          "Description": "显示控件",
+          "Id": "2R0KTJ81AC1W",
+          "Fields": {
+            "FieldId": {
+              "Id": "mt7Q8wNFzt"
+            }
+          }
+        }
+      },
+      "Description": "显示固定静态板块",
+      "Id": "1=A/D7K6O=4R",
+      "PreCondition": "holidaytype = 'A' and fixedtype = 'A'"
+    },
+    {
+      "FalseActions": {
+        "ShowFieldAction": {
+          "RET": "251",
+          "ActionType": "ShowFieldAction",
+          "Description": "显示字段",
+          "Id": "1=R72+8N76A4",
+          "Fields": {
+            "FieldId": {
+              "Id": "65qaOf7GmD"
+            }
+          }
+        }
+      },
+      "PreDescription": "holidaytype <> 'A'",
+      "TrueActions": {
+        "HideFieldAction": {
+          "RET": "251",
+          "ActionType": "HideFieldAction",
+          "Description": "隐藏字段",
+          "Id": "1=R72+8QSVHR",
+          "Fields": {
+            "FieldId": {
+              "Id": "65qaOf7GmD"
+            }
+          }
+        }
+      },
+      "Description": "隐藏固定类型",
+      "Id": "1=R6Y+SS84TR",
+      "PreCondition": "holidaytype <> 'A'"
+    },
+    {
+      "FalseActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "2R0KTJ81CEVO",
+          "Fields": {
+            "FieldId": {
+              "Id": "Rg868XSHcq"
+            }
+          }
+        }
+      },
+      "PreDescription": "holidaytype = ' A' and fixedtype = ' B'",
+      "TrueActions": {
+        "ShowControlAction": {
+          "RET": "251",
+          "ActionType": "ShowControlAction",
+          "Description": "显示控件",
+          "Id": "2R0KTJ81AC1X",
+          "Fields": {
+            "FieldId": {
+              "Id": "Rg868XSHcq"
+            }
+          }
+        }
+      },
+      "Description": "显示固定动态板块",
+      "Id": "1=RGH7FV16RZ",
+      "PreCondition": "holidaytype = 'A' and fixedtype = 'B'"
+    },
+    {
+      "FalseActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "1=RI8AN9C+6H",
+          "Fields": {
+            "FieldId": {
+              "Id": "C7um04eQ34"
+            }
+          }
+        }
+      },
+      "PreDescription": "holidaytype = 'B'",
+      "TrueActions": {
+        "ShowControlAction": {
+          "RET": "251",
+          "ActionType": "ShowControlAction",
+          "Description": "显示控件",
+          "Id": "1=RI8AN9DQ6D",
+          "Fields": {
+            "FieldId": {
+              "Id": "C7um04eQ34"
+            }
+          }
+        }
+      },
+      "Description": "显示非固定日期单据体",
+      "Id": "1=RGQFOO3SPS",
+      "PreCondition": "holidaytype = 'B'"
+    },
+    {
+      "FalseActions": {
+        "UnlockControlAction": {
+          "RET": "251",
+          "ActionType": "UnlockControlAction",
+          "Description": "解锁控件",
+          "Id": "39HX8G=3Q98X",
+          "Fields": {
+            "FieldId": {
+              "Id": "H2aIy3Lgx3"
+            }
+          }
+        }
+      },
+      "PreDescription": "ssyspreset =true",
+      "TrueActions": {
+        "LockControlAction": {
+          "RET": "251",
+          "ActionType": "LockControlAction",
+          "Description": "锁定控件",
+          "Id": "39HX8G=3Q8KN",
+          "Fields": {
+            "FieldId": {
+              "Id": "H2aIy3Lgx3"
+            }
+          }
+        }
+      },
+      "Description": "是否系统预置",
+      "Id": "39HWYAB31U=V",
+      "PreCondition": "issyspreset =true"
+    }
+  ],
+  "clientRules": [
+    {
+      "PreDescription": "模板：使用状态=可用",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#18BC71"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2PRI14B+7NL1"
+        }
+      },
+      "Id": "2PRI1045525G",
+      "PreCondition": "enable = '1'"
+    },
+    {
+      "PreDescription": "模板：使用状态=禁用",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2PRI14B+7V+W"
+        }
+      },
+      "Id": "2PRI104559K=",
+      "PreCondition": "enable = '0'"
+    },
+    {
+      "PreDescription": "enable='1'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#18BC71"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "1D169H=Y0JVF"
+        }
+      },
+      "Id": "1BP6BAAN+G79",
+      "PreCondition": "enable='1'",
+      "Seq": "3"
+    },
+    {
+      "PreDescription": "enable = '0'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "1D169H=Y0H5E"
+        }
+      },
+      "Id": "1BP6E1Y5HR0Y",
+      "PreCondition": "enable = '0'",
+      "Seq": "4"
+    },
+    {
+      "PreDescription": "status = 'A'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#666666"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "4414H380L8PJ"
+        }
+      },
+      "Id": "4414GQCPT61E",
+      "PreCondition": "status = 'A'",
+      "Seq": "5"
+    },
+    {
+      "PreDescription": "status = 'B'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#276FF5"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "4414H380L9CT"
+        }
+      },
+      "Id": "4414GQCPT5D5",
+      "PreCondition": "status = 'B'",
+      "Seq": "6"
+    },
+    {
+      "PreDescription": "status = 'C'",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#1DB363"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "4414H380L8PK"
+        }
+      },
+      "Id": "4414GQCPT61F",
+      "PreCondition": "status = 'C'",
+      "Seq": "7"
+    },
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "编码",
+      "physicalColumn": "t_wtbd_holiday.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "名称",
+      "physicalColumn": "t_wtbd_holiday_l.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "数据状态",
+      "physicalColumn": "t_wtbd_holiday.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtbd_holiday",
+      "title": "创建人",
+      "physicalColumn": "t_wtbd_holiday.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wtbd_holiday",
+      "title": "最近修改人",
+      "physicalColumn": "t_wtbd_holiday.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "使用状态",
+      "physicalColumn": "t_wtbd_holiday.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "创建时间",
+      "physicalColumn": "t_wtbd_holiday.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "最近修改时间",
+      "physicalColumn": "t_wtbd_holiday.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "主数据内码",
+      "physicalColumn": "t_wtbd_holiday.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "simplename": {
+      "fieldId": "gqZ5asQ06s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "缩写",
+      "physicalColumn": "t_wtbd_holiday_l.fsimplename",
+      "_fieldApId": "gqZ5asQ06s"
+    },
+    "description": {
+      "fieldId": "zaveTaE81T",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "描述",
+      "physicalColumn": "t_wtbd_holiday_l.fdescription",
+      "_fieldApId": "zaveTaE81T"
+    },
+    "index": {
+      "fieldId": "TJLOdUhRYt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "排序号",
+      "physicalColumn": "t_wtbd_holiday.findex",
+      "_fieldApId": "TJLOdUhRYt"
+    },
+    "issyspreset": {
+      "fieldId": "bwFJZ504Tx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "系统预置",
+      "physicalColumn": "t_wtbd_holiday.fissyspreset",
+      "_fieldApId": "bwFJZ504Tx"
+    },
+    "disabler": {
+      "fieldId": "Ts8h2qRoVF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "wtbd_holiday",
+      "title": "禁用人",
+      "physicalColumn": "t_wtbd_holiday.fdisablerid",
+      "_fieldApId": "Ts8h2qRoVF"
+    },
+    "disabledate": {
+      "fieldId": "zc6fWQT855",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "禁用时间",
+      "physicalColumn": "t_wtbd_holiday.fdisabledate",
+      "_fieldApId": "zc6fWQT855"
+    },
+    "initdatasource": {
+      "fieldId": "RMkqRu1en6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "RMkqRu1en6"
+    },
+    "orinumber": {
+      "fieldId": "GWZgDaCR43",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "出厂编码",
+      "physicalColumn": "t_wtbd_holiday.forinumber",
+      "_fieldApId": "GWZgDaCR43"
+    },
+    "oristatus": {
+      "fieldId": "KseEVBIdjS",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "t_wtbd_holiday.foristatus",
+      "_fieldApId": "KseEVBIdjS"
+    },
+    "oriname": {
+      "fieldId": "P6qNEDrcgQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "出厂名称",
+      "physicalColumn": "t_wtbd_holiday_l.foriname",
+      "_fieldApId": "P6qNEDrcgQ"
+    },
+    "holidayattr": {
+      "fieldId": "0GxngAjJmT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtbd_holiday",
+      "title": "假期属性",
+      "physicalColumn": "t_wtbd_holiday.fholidayattr",
+      "_fieldApId": "0GxngAjJmT"
+    },
+    "ufstartdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "开始日期",
+      "physicalColumn": "t_wtbd_holidayentry.fufstartdate"
+    },
+    "ufstarttime": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "开始时间",
+      "physicalColumn": "t_wtbd_holidayentry.fufstarttime"
+    },
+    "ufenddate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "结束日期",
+      "physicalColumn": "t_wtbd_holidayentry.fufenddate"
+    },
+    "ufendtime": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "结束时间",
+      "physicalColumn": "t_wtbd_holidayentry.fufendtime"
+    },
+    "usestatus": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "状态",
+      "physicalColumn": "t_wtbd_holidayentry.fusestatus"
+    },
+    "vid": {
+      "fieldId": "U266WDUT2f",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "当前历史版本",
+      "physicalColumn": "t_wtbd_holiday.fvid",
+      "_fieldApId": "U266WDUT2f"
+    },
+    "month": {
+      "fieldId": "yCjay50h9a",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "指定月份",
+      "physicalColumn": "t_wtbd_holiday.fmonth",
+      "_fieldApId": "yCjay50h9a"
+    },
+    "day": {
+      "fieldId": "lXZ7HO86jq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "放假日期",
+      "physicalColumn": "t_wtbd_holiday.fday",
+      "_fieldApId": "lXZ7HO86jq"
+    },
+    "endtime": {
+      "fieldId": "xY5TzLKUvI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "结束时间",
+      "physicalColumn": "t_wtbd_holiday.fendtime",
+      "_fieldApId": "xY5TzLKUvI"
+    },
+    "starttime": {
+      "fieldId": "301E2ztjcH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "开始时间",
+      "physicalColumn": "t_wtbd_holiday.fstarttime",
+      "_fieldApId": "301E2ztjcH"
+    },
+    "dymonth": {
+      "fieldId": "J6pddNjUIu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "指定月份",
+      "physicalColumn": "t_wtbd_holiday.fdymonth",
+      "_fieldApId": "J6pddNjUIu"
+    },
+    "week": {
+      "fieldId": "GRTL19MSOu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "指定周",
+      "physicalColumn": "t_wtbd_holiday.fweek",
+      "_fieldApId": "GRTL19MSOu"
+    },
+    "dystarttime": {
+      "fieldId": "NNFpj0GoHn",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "开始时间",
+      "physicalColumn": "t_wtbd_holiday.fdystarttime",
+      "_fieldApId": "NNFpj0GoHn"
+    },
+    "dyendtime": {
+      "fieldId": "8jpuv1f95t",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "结束时间",
+      "physicalColumn": "t_wtbd_holiday.fdyendtime",
+      "_fieldApId": "8jpuv1f95t"
+    },
+    "dyday": {
+      "fieldId": "YrhNsLu4Nr",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "发放日期",
+      "physicalColumn": "t_wtbd_holiday.fdyday",
+      "_fieldApId": "YrhNsLu4Nr"
+    },
+    "holidaytype": {
+      "fieldId": "2hbCW8vUVG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "假期分类",
+      "physicalColumn": "t_wtbd_holiday.fholidaytype",
+      "_fieldApId": "2hbCW8vUVG"
+    },
+    "fixedtype": {
+      "fieldId": "65qaOf7GmD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "unfixentry",
+      "title": "循环类型",
+      "physicalColumn": "t_wtbd_holiday.ffixedtype",
+      "_fieldApId": "65qaOf7GmD"
+    },
+    "datetype": {
+      "fieldId": "M4oncUtAl2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_datetype",
+      "entity": "unfixentry",
+      "title": "日期类型",
+      "physicalColumn": "t_wtbd_holiday.fdatetypeid",
+      "_fieldApId": "M4oncUtAl2"
+    }
+  },
+  "requiredFields": {
+    "wtbd_holiday": [
+      "number",
+      "name"
+    ],
+    "unfixentry": [
+      "ufstartdate",
+      "ufenddate",
+      "holidaytype",
+      "datetype"
+    ]
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-05-02 12:44",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 33,
+        "fieldId_already": 0,
+        "formRules_count": 5,
+        "clientRules_count": 9
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 33,
+        "fieldId_already": 0,
+        "formRules_count": 5,
+        "clientRules_count": 9,
+        "jsPlugins_count": 15,
+        "formPlugins_count": 20
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 33,
+        "fieldId_already": 0,
+        "formRules_count": 5,
+        "clientRules_count": 9,
+        "jsPlugins_count": 15,
+        "formPlugins_count": 20
+      }
+    }
+  ],
+  "sceneCategory": "main_form",
+  "jsPlugins": [
+    {
+      "ClassName": "2+QE4JA9QV27_moblist_1jxWyepZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2PCNBDSDZ_moblist_oQIhkaD5",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "28ISR3X+7CR3_moblist_hpfGrmzU",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_jIBl0dK8",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2PCNBDSDZ_B2mtrVVs",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "28ISR3X+7CR3_egK3LL1d",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1===5CJKAU+V_bH2TkIlY",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_mob_tcERKdKL",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2PCNBDSDZ_mob_S8S79NzX",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "28ISR3X+7CR3_mob_WW9qhxrJ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1===5CJKAU+V_mob_lw6rimam",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_list_fyn0N8Wu",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1EJ2PCNBDSDZ_list_YZZba6AO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "28ISR3X+7CR3_list_kRa7O7WD",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1===5CJKAU+V_list_HkNKDwFI",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.prompt.WTCTipsPlugin",
+      "Description": "提示语插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.WTCPresetEdit",
+      "Description": "预置数据处理插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.WTCNoHisSumaryEdit",
+      "Description": "kd.wtc.wtbs.formplugin.web.WTCNoHisSumaryEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbd.fromplugin.web.holiday.HolidayEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.NumberCheckPlugin",
+      "Description": "kd.wtc.wtbs.formplugin.web.NumberCheckPlugin",
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.WTCPresetEditEnableSpecial",
+      "Description": "预置数据不能编辑用此插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.model.WTCPresetDeleteForbidList",
+      "Description": "预置数据不能删除",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbd.fromplugin.web.holiday.HolidayList",
+      "Description": "kd.wtc.wtbd.fromplugin.web.holiday.HolidayList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wtbs.formplugin.web.model.WTCPresetList",
+      "Description": "预置数据不能编辑用此插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "formId": "core_hr_change_collab_perm",
+  "formName": "员工变动协作 · 权限同步",
+  "isv": "kingdee",
+  "modelType": "CollaborationScene",
+  "sceneKind": "aggregate",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": null,
+  "_meta": {
+    "scene": "core_hr_change_collab_perm",
+    "createdAt": "2026-05-02",
+    "generator": "scripts/_build_collab_scenes.py (P1.4-A · 2026-04-30)",
+    "note": "员工变动协作场景 · 不是 form 场景 · 数据源 = BEC 订阅 + sch_job · 下游云 = HR 基础服务云权限子域 + 通用"
+  },
+  "entities": [
+    {
+      "name": "DynaPermEventPlugin",
+      "type": "EventSubscriber",
+      "title": "kd.hr.hrcs.bussiness.service.perm.dyna.event.DynaPermEventPlugin"
+    },
+    {
+      "name": "EmpRollbackEventServicePlugin",
+      "type": "EventSubscriber",
+      "title": "kd.hrmp.hrpi.business.application.event.EmpRollbackEventServicePlugin"
+    },
+    {
+      "name": "EmpSyncEventServicePlugin",
+      "type": "EventSubscriber",
+      "title": "kd.hrmp.hrpi.business.application.event.EmpSyncEventServicePlugin"
+    },
+    {
+      "name": "SyncBosUserEvent",
+      "type": "EventSubscriber",
+      "title": "kd.hrmp.hrpi.business.application.event.SyncBosUserEvent"
+    },
+    {
+      "name": "UpdateEmpPosOrgRelVidEvent",
+      "type": "EventSubscriber",
+      "title": "kd.hrmp.hrpi.business.application.event.UpdateEmpPosOrgRelVidEvent"
+    },
+    {
+      "name": "EpaEmployeeCoordEventServicePlugin",
+      "type": "EventSubscriber",
+      "title": "kd.opmc.epa.business.coordination.EpaEmployeeCoordEventServicePlugin"
+    },
+    {
+      "name": "CoordinationEventServicePlugin",
+      "type": "EventSubscriber",
+      "title": "kd.sihc.soecadm.business.application.event.CoordinationEventServicePlugin"
+    },
+    {
+      "name": "UpdateFilPersonEventServicePlugin",
+      "type": "EventSubscriber",
+      "title": "kd.sihc.soefam.business.application.event.UpdateFilPersonEventServicePlugin"
+    }
+  ],
+  "fieldProperties": {},
+  "requiredFields": {},
+  "invisibleFields": [],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": []
+}

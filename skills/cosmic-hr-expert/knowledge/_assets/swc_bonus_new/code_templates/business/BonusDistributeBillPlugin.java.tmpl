@@ -1,0 +1,257 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribute_sum;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.IFormView;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.EntryGrid;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.events.HyperLinkClickEvent;
+import kd.bos.form.events.HyperLinkClickListener;
+import kd.bos.form.operate.AbstractOperate;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import org.jetbrains.annotations.NotNull;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.BonusDistributeSumOperatePlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/9 14:33
+ * FileName: BonusDistributeBillPlugin
+ * Description: 奖金分配汇总单据插件
+ */
+public class BonusDistributeBillPlugin extends AbstractBillPlugIn implements HyperLinkClickListener {
+
+    private static final String BTN_DO_NOTHING_REJECT_PERSON = "donothing_reject_person"; // 驳回 --- 人员分配明细
+    private static final String BTN_DO_NOTHING_REJECT_DEPT = "donothing_reject_dept"; // 驳回 --- 部门分配明细
+
+    @Override
+    public void registerListener(EventObject e) {
+        EntryGrid personDisDetailEntry = this.getControl("${ISV_FLAG}_person_dis_detail");
+        personDisDetailEntry.addHyperClickListener(this);
+        EntryGrid deptEntry = this.getControl("${ISV_FLAG}_dept_retentiion_deta");
+        deptEntry.addHyperClickListener(this);
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        AbstractOperate op = (AbstractOperate)args.getSource();
+        String operateKey = op.getOperateKey();
+        // 【驳回 --- 人员分配明细】
+        if(BTN_DO_NOTHING_REJECT_PERSON.equals(operateKey)){
+            rejectOperatePerson();
+            checkBillStatus();
+        } else if(BTN_DO_NOTHING_REJECT_DEPT.equals(operateKey)){
+            // 【驳回 --- 部门分配明细】
+            rejectOperateDept();
+            checkBillStatus();
+        }
+    }
+
+
+    /**
+     * 当单据已经保存，并以查看或修改模式打开时触发。此时，单据数据会从数据库加载
+     * @param e
+     */
+    @Override
+    public void afterLoadData(EventObject e) {
+        super.afterLoadData(e);
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs afterDoOperationEventArgs) {
+        String operateKey = afterDoOperationEventArgs.getOperateKey();
+        if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_GEN_APPROVAL.equals(operateKey)){
+            OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+            if(operationResult.isSuccess()){
+                Long sumApprovalId = null;
+                List<Object> successPkIds = afterDoOperationEventArgs.getOperationResult().getSuccessPkIds();
+                if(CollectionUtils.isNotEmpty(successPkIds)){
+                    Object successPkId = successPkIds.get(0);
+                    DynamicObject oneOfSuccessDate = QueryServiceHelper.queryOne(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, "${ISV_FLAG}_sum_approval_id", new QFilter("id", QCP.equals, successPkId).toArray());
+                    sumApprovalId = Optional.ofNullable(oneOfSuccessDate).map(a -> a.getLong("${ISV_FLAG}_sum_approval_id")).orElse(null);
+                }
+                if(sumApprovalId != null){
+                    // 打开汇总审批单的页面
+                    BonusUtil.openBill(this.getView(),sumApprovalId,BonusUtil.APPROVAL_SUM_BILL,null);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        String billStatus = this.getModel().getDataEntity(true).getString("billstatus");
+        // I 已复核、K 无需处理 这几个状态不展示 驳回按钮
+        if("I".equals(billStatus) || "K".equals(billStatus)){
+            // 别的途径打开不可编辑，隐藏按钮
+            this.getView().setVisible(false,"${ISV_FLAG}_donothing_reject_per","${ISV_FLAG}_advconbaritemap3");
+        } else {
+            this.getView().setVisible(true,"${ISV_FLAG}_donothing_reject_per","${ISV_FLAG}_advconbaritemap3");
+        }
+        if("I".equals(billStatus)){
+            // 生成审批单
+            this.getView().setVisible(true,"${ISV_FLAG}_baritemap1");
+        } else{
+            this.getView().setVisible(false,"${ISV_FLAG}_baritemap1");
+        }
+        // 按人员职级编码排序
+//        this.dealPeopleSort();
+
+        // 按钮隐藏
+        long sumApprovalId = this.getView().getModel().getDataEntity().getLong("${ISV_FLAG}_sum_approval_id");
+        DynamicObject bonusPlanApprova = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_sum_approval", new QFilter[]{new QFilter("id",QCP.equals,sumApprovalId)});
+        if (bonusPlanApprova != null){
+            this.getView().setVisible(false,"${ISV_FLAG}_baritemap1");
+        }
+    }
+
+    private void checkBillStatus(){
+        String billStatus = this.getModel().getDataEntity(true).getString("billstatus");
+        // 待分配  待复核
+        if(!("A".equals(billStatus) || "H".equals(billStatus))){
+            throw new KDBizException("当前单据状态不允许驳回操作");
+        }
+    }
+
+    private void rejectOperatePerson() {
+        EntryGrid personDisDetailEntry = this.getControl("${ISV_FLAG}_person_dis_detail");
+        int[] selectEntryRows = personDisDetailEntry.getSelectRows();
+        long billId = this.getModel().getDataEntity(true).getLong("id");
+        DynamicObject bill = this.getView().getModel().getDataEntity(true);
+        DynamicObjectCollection personDisDetail = bill.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail");
+        // 获取到【人员分录明细】上所选择的数据
+        Set<DynamicObject> selectEntrySet = Arrays.stream(selectEntryRows).mapToObj(personDisDetail::get).collect(Collectors.toSet());
+        // 选中的核定单
+        List<DynamicObject> hdList = selectEntrySet.stream()
+                .filter(item->item.getDynamicObject("${ISV_FLAG}_source_bill_hd") != null)
+                .map(item ->item.getDynamicObject("${ISV_FLAG}_source_bill_hd") ).collect(Collectors.toList());
+        if(hdList.size() != 0){
+            throw new KDBizException("所选数据来源于核定单，无法驳回");
+        }
+        // 选中的分配单
+        Set<DynamicObject> fpSet = selectEntrySet.stream()
+                .filter(item->item.getDynamicObject("${ISV_FLAG}_source_bill_fp") != null).collect(Collectors.toSet());
+        if(fpSet.size() == 0){
+            throw new KDBizException("未选中数据");
+        }
+        // TODO 过滤出允许驳回的数据
+        // 构造customMap进行页面传参
+        Map<String, Object> customMap = createCustomMap(fpSet,"${ISV_FLAG}_source_bill_fp.billno");
+        // 打开【驳回弹窗】
+        openForm(this.getView(),BonusUtil.REJECT_CONFIRM_FORM_ID,customMap);
+    }
+
+    public void openForm(IFormView view, String entityName, Map<String, Object> customMap) {
+        FormShowParameter formShowParameter = new FormShowParameter();
+        formShowParameter.setFormId(entityName);
+        formShowParameter.setCustomParams(customMap);
+        formShowParameter.getOpenStyle().setShowType(ShowType.Modal);
+        formShowParameter.setCloseCallBack(new CloseCallBack(this, "refreshDistList"));
+        formShowParameter.setCaption("奖金分配驳回");
+        view.showForm(formShowParameter);
+    }
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent closedCallBackEvent) {
+        String actionId = closedCallBackEvent.getActionId();
+        Object returnData = closedCallBackEvent.getReturnData();
+        // 关闭弹窗并刷新
+        if(HRStringUtils.equals(actionId,"refreshDistList")){
+            this.getView().invokeOperation("refresh");
+        }
+    }
+
+    private void rejectOperateDept() {
+        EntryGrid personDisDetailEntry = this.getControl("${ISV_FLAG}_dept_retentiion_deta");
+        int[] selectEntryRows = personDisDetailEntry.getSelectRows();
+        long billId = this.getModel().getDataEntity(true).getLong("id");
+        DynamicObject bill = BusinessDataServiceHelper.loadSingle(billId, BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID);
+        DynamicObjectCollection personDisDetail = bill.getDynamicObjectCollection("${ISV_FLAG}_dept_retentiion_deta");
+        // 获取到【组织分录明细】上所选择的数据
+        Set<DynamicObject> selectEntrySet = Arrays.stream(selectEntryRows).mapToObj(personDisDetail::get).collect(Collectors.toSet());
+        // 选中的核定单
+        List<DynamicObject> hdList = selectEntrySet.stream()
+                .filter(item->item.getDynamicObject("${ISV_FLAG}_source_hd_dept") != null)
+                .map(item ->item.getDynamicObject("${ISV_FLAG}_source_hd_dept") ).collect(Collectors.toList());
+        if(hdList.size() != 0){
+            throw new KDBizException("所选数据来源于核定单，无法驳回");
+        }
+        // 选中的分配单
+        Set<DynamicObject> fpSet = selectEntrySet.stream()
+                .filter(item->item.getDynamicObject("${ISV_FLAG}_source_fp_dept") != null).collect(Collectors.toSet());
+        if(fpSet.size() == 0){
+            throw new KDBizException("未选中数据");
+        }
+        // TODO 过滤出允许驳回的数据
+        // 构造customMap进行页面传参
+        Map<String, Object> customMap = createCustomMap(fpSet,"${ISV_FLAG}_source_fp_dept.billno");
+        // 打开【驳回弹窗】
+        openForm(this.getView(),BonusUtil.REJECT_CONFIRM_FORM_ID,customMap);
+    }
+
+    @NotNull
+    public static Map<String, Object> createCustomMap(Set<DynamicObject> sourceOfHDSet,String keyName) {
+        Map<String, Object> customMap = new HashMap<>();
+        // 分配单号
+        List<String> billFpList = sourceOfHDSet.stream()
+                .map(item ->item.getString(keyName))
+                .collect(Collectors.toList());
+        customMap.put("yes_reject",billFpList); // 允许驳回的单据
+        // 操作来源-驳回
+        customMap.put("operate_source","bh");
+//        customMap.put("lower_bill",); // 关联下级单据
+        return customMap;
+    }
+
+
+    @Override
+    public void hyperLinkClick(HyperLinkClickEvent hyperLinkClickEvent) {
+        String fieldName = hyperLinkClickEvent.getFieldName();
+        if (HRStringUtils.equals(fieldName,"${ISV_FLAG}_source_bill_hd")) {
+            hyperLinkOpenBill(hyperLinkClickEvent,"${ISV_FLAG}_source_bill_hd.id", BonusUtil.APPROVAL_BILL_FORM_ID,"${ISV_FLAG}_person_dis_detail");
+        }
+        else if (HRStringUtils.equals(fieldName,"${ISV_FLAG}_source_bill_fp")) {
+            hyperLinkOpenBill(hyperLinkClickEvent,"${ISV_FLAG}_source_bill_fp.id", BonusUtil.DISTRIBUTE_BILL_FORM_ID,"${ISV_FLAG}_person_dis_detail");
+        }
+        else if(HRStringUtils.equals(fieldName,"${ISV_FLAG}_source_hd_dept")){
+            hyperLinkOpenBill(hyperLinkClickEvent,"${ISV_FLAG}_source_hd_dept.id", BonusUtil.APPROVAL_BILL_FORM_ID,"${ISV_FLAG}_dept_retentiion_deta");
+        }
+        else if(HRStringUtils.equals(fieldName,"${ISV_FLAG}_source_fp_dept")){
+            hyperLinkOpenBill(hyperLinkClickEvent,"${ISV_FLAG}_source_fp_dept.id", BonusUtil.DISTRIBUTE_BILL_FORM_ID,"${ISV_FLAG}_dept_retentiion_deta");
+        }
+    }
+
+
+    private void hyperLinkOpenBill(HyperLinkClickEvent hyperLinkClickEvent,String linkId,String openBillName,String entryName) {
+        int rowIndex = hyperLinkClickEvent.getRowIndex();
+        long billId = this.getModel().getDataEntity(true).getLong("id");
+        DynamicObject bill = BusinessDataServiceHelper.loadSingle(billId, BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID);
+        long payBillId = bill.getDynamicObjectCollection(entryName).get(rowIndex).getLong(linkId);
+        if(!ObjectUtils.isEmpty(payBillId) && payBillId != 0){
+            BonusUtil.openInfoBill(this.getView(),payBillId,openBillName,null);
+        }
+    }
+}

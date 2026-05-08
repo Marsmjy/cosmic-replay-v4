@@ -121,7 +121,7 @@ class LogStore:
                     dead.append(sub)
             for d in dead:
                 try: self._subscribers.remove(d)
-                except: pass
+                except Exception: pass
 
     # ---------- 读取 ----------
 
@@ -209,6 +209,16 @@ class LogStore:
             })
         return items
 
+    def get_last_run_per_case(self, limit: int = 200) -> dict[str, dict]:
+        """返回每个 case 的最近一次执行记录 {case_name: {run_id, passed, mtime, duration_s}}"""
+        runs = self.list_runs(limit=limit)
+        result: dict[str, dict] = {}
+        for r in runs:
+            cn = r.get("case_name", "")
+            if cn and cn not in result:
+                result[cn] = r
+        return result
+
     def read_run(self, run_id: str) -> list[dict]:
         """返回某个 run 的全部事件（按时间）"""
         safe = re.sub(r"[^a-zA-Z0-9_\-]", "", run_id)
@@ -251,11 +261,11 @@ class _StreamToStore:
 
     def flush(self):
         try: self.original.flush()
-        except: pass
+        except Exception: pass
 
     def isatty(self):
         try: return self.original.isatty()
-        except: return False
+        except Exception: return False
 
 
 class _StoreLogHandler(logging.Handler):

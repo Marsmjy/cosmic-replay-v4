@@ -1,0 +1,183 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.algo.DataSet;
+import kd.bos.algo.Row;
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.util.*;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-01-30 13:45
+ * @Description: 在岗人员名单表单插件
+ */
+public class PlanPersonsFromPlugin extends AbstractBillPlugIn {
+
+
+    private static Log logger = LogFactory.getLog(PlanPersonsFromPlugin.class);
+
+    private static String[] hideStr = new String[]{"${ISV_FLAG}_detail_adminorg1", "${ISV_FLAG}_detail_adminorg2", "${ISV_FLAG}_detail_adminorg3", "${ISV_FLAG}_detail_adminorg4", "${ISV_FLAG}_detail_adminorg5", "${ISV_FLAG}_detail_adminorg6", "${ISV_FLAG}_laborreltype", "${ISV_FLAG}_check1", "${ISV_FLAG}_check2", "${ISV_FLAG}_check3", "${ISV_FLAG}_check4", "${ISV_FLAG}_check5", "${ISV_FLAG}_workplace", "${ISV_FLAG}_dispatch"};
+
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        this.addClickListeners("btncancel", "btnok");
+    }
+
+    /**
+     * 编制详情字段
+     */
+    private final static String DETAIL_FILED = "id as detailId," +
+            "${ISV_FLAG}_entry.id as entryId," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg1 as admin1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg2 as admin2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg3 as admin3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg4 as admin4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg5 as admin5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg6 as admin6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg as admin," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_laborreltype as type.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_stdposition as stdposition.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_personrank as personrank.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_post_aisle as aisil.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_jobproperty as jobproperty.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label1 as label1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label2 as label2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label3 as label3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label4 as label4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_dispatch as dispatch," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_workplace as workplace.id," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_mulperson.fbasedataid as mulperson.id";
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        String algoKey = this.getClass().getName();
+        //当前分录
+        IDataModel model = this.getModel();
+        Map<String, Object> customParams = this.getView().getFormShowParameter().getCustomParams();
+        //编制详情
+        Long detailId = (Long) customParams.get("detailId");
+        //获取分录id
+        Long entryId = (Long) customParams.get("entryId");
+        logger.info("PlanPersonsFromPlugin详情id=" + detailId + ",分录id=" + entryId);
+        DynamicObject planDetail = BusinessDataServiceHelper.loadSingleFromCache(detailId, "${ISV_FLAG}_planyear_detail");
+        if (Objects.nonNull(planDetail)) {
+            //编制计划
+            DynamicObject planYear = planDetail.getDynamicObject("${ISV_FLAG}_planyear");
+            //显示隐藏
+            this.getView().setVisible(false, hideStr);
+            //层级
+            String hierarchy = planYear.getString("${ISV_FLAG}_orghierarchy");
+            logger.info("PlanPersonFormPlugin获取层级=" + hierarchy);
+            //末端组织
+            DynamicObject lastAdminorg = planDetail.getDynamicObject("adminorg");
+            //标签维度
+            String labeldimension = planYear.getString("${ISV_FLAG}_labeldimension");
+            logger.info("PlanPersonFormPlugin标签维度=" + labeldimension);
+            List<String> hideList;
+            //隐藏标识
+            String hideCheck = "${ISV_FLAG}_check";
+            if (StringUtils.isNotEmpty(labeldimension)) {
+                String[] split = labeldimension.split(",");
+                hideList = Arrays.asList(split);
+                logger.info("PlanPersonFormPlugin可以释放的标签字段=" + hideList);
+                for (String str : split) {
+                    if ("6".equals(str)) {
+                        this.getView().setVisible(true, "${ISV_FLAG}_workplace");
+                    } else if ("5".equals(str)) {
+                        this.getView().setVisible(true, "${ISV_FLAG}_dispatch");
+                    } else {
+                        this.getView().setVisible(true, hideCheck + str);
+                    }
+                }
+            }
+            //用工关系类型
+            String useworktype = planYear.getString("${ISV_FLAG}_useworktype");
+            logger.info("PlanPersonFormPlugin用工关系类型=" + useworktype);
+            if (StringUtils.isNotEmpty(useworktype)) {
+                this.getView().setVisible(true, "${ISV_FLAG}_laborreltype");
+            }
+            QFilter detailQFilter = new QFilter("id", QCP.equals, detailId);
+            if (Objects.nonNull(entryId)) {
+                detailQFilter.and("${ISV_FLAG}_entry.id", QCP.equals, entryId);
+            } else {
+                //排除其他组织下的人员
+                detailQFilter.and("${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg", QCP.equals, lastAdminorg.getPkValue());
+            }
+            logger.info("PlanPersonFormPlugin获取详情查询sql=" + detailQFilter);
+            DataSet queryDataSet = QueryServiceHelper.queryDataSet(algoKey, "${ISV_FLAG}_planyear_detail", DETAIL_FILED, detailQFilter.toArray(), "");
+            int dataSetCount = queryDataSet.copy().count("detailId", false);
+            logger.info("PlanPersonFormPlugin获取详情总条数=" + dataSetCount);
+
+            //在岗人员分录信息
+            DynamicObjectCollection entryEntity = model.getEntryEntity("${ISV_FLAG}_entry");
+            for (int i = 0; i < dataSetCount; i++) {
+                entryEntity.addNew();
+            }
+            int index = 0;
+            while (queryDataSet.hasNext()) {
+                Row rowData = queryDataSet.next();
+                //人员
+                Long personId = rowData.getLong("mulperson.id");
+                model.setValue("${ISV_FLAG}_person", personId, index);
+                logger.info("PlanPersonFormPlugin人员id=" + personId);
+                //组织层级
+                model.setValue("${ISV_FLAG}_detail_adminorg1", rowData.getLong("admin1"), index);
+                model.setValue("${ISV_FLAG}_detail_adminorg2", rowData.getLong("admin2"), index);
+                model.setValue("${ISV_FLAG}_detail_adminorg3", rowData.getLong("admin3"), index);
+                model.setValue("${ISV_FLAG}_detail_adminorg4", rowData.getLong("admin4"), index);
+                model.setValue("${ISV_FLAG}_detail_adminorg5", rowData.getLong("admin5"), index);
+                model.setValue("${ISV_FLAG}_detail_adminorg6", rowData.getLong("admin6"), index);
+                //隐藏标识
+                String iden = "admin";
+                for (int i = 1; i <= Integer.parseInt(hierarchy); i++) {
+                    Long adminId = rowData.getLong(iden + i);
+                    logger.info("PlanPersonFormPlugin层级隐藏字段=" + iden + i + ",具体信息" + adminId);
+                    if (0 != adminId) {
+                        this.getView().setVisible(true, "${ISV_FLAG}_detail_adminorg" + i);
+                    }
+                }
+                logger.info("PlanPersonFormPlugin用工关系类型id=" + rowData.getLong("type.id") + "标准岗位id=" + rowData.getLong("stdposition.id"));
+                //用工关系类型
+                model.setValue("${ISV_FLAG}_laborreltype", rowData.getLong("type.id"), index);
+                //标准岗位
+                model.setValue("${ISV_FLAG}_stdposition", rowData.getLong("stdposition.id"), index);
+                //个人职级
+                model.setValue("${ISV_FLAG}_personrank", rowData.getLong("personrank.id"), index);
+                //岗位通道
+                model.setValue("${ISV_FLAG}_post_aisle", rowData.getLong("aisil.id"), index);
+                //岗位属性
+                model.setValue("${ISV_FLAG}_jobproperty", rowData.getLong("jobproperty.id"), index);
+                logger.info("PlanPersonFormPlugin岗位通道=" + rowData.getLong("aisil.id") + "岗位属性=" + rowData.getLong("jobproperty.id"));
+                //大雁
+                model.setValue("${ISV_FLAG}_check1", rowData.getString("label1"), index);
+                //新四化
+                model.setValue("${ISV_FLAG}_check2", rowData.getString("label2"), index);
+                //国际化
+                model.setValue("${ISV_FLAG}_check3", rowData.getString("label3"), index);
+                //数字化
+                model.setValue("${ISV_FLAG}_check4", rowData.getString("label4"), index);
+                //对外派驻
+                model.setValue("${ISV_FLAG}_dispatch", rowData.getString("dispatch"), index);
+                //工作地
+                model.setValue("${ISV_FLAG}_workplace", rowData.getLong("workplace.id"), index);
+                index++;
+            }
+            this.getView().updateView("${ISV_FLAG}_entry");
+        }
+    }
+
+}

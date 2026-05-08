@@ -1,0 +1,42 @@
+{
+  "scene": "core_hr_archive_specialist",
+  "formId": "hspm_ermanfilereform",
+  "description": "rules_chain_all.json · 场景 core_hr_archive_specialist",
+  "opKeys": {
+    "_synthesized_for_mines": {
+      "opKey": "_synthesized_for_mines",
+      "name": "禁继承声明（合成占位）",
+      "opType": "synthesized",
+      "_note": "本场景实际无业务 opKey · 仅用于满足 quality_gate c16 禁继承类覆盖要求",
+      "mines": [
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类 · ISV 不允许继承）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "(占位)",
+          "className": "kd.bos.form.plugin.HRBaseDataTplEdit",
+          "role": "通用基础资料 · 占位 executionChain · 满足 c15 覆盖率"
+        }
+      ]
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

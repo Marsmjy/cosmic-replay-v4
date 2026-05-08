@@ -1,0 +1,4027 @@
+{
+  "scene": "haos_orgchangereason",
+  "formId": "haos_orgchangereason",
+  "description": "rules_chain_all.json · 场景 haos_orgchangereason",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_importdata_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_importdata_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_show_import_record_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_show_import_record_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_export_from_list_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_export_from_list_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_export_from_impttpl_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_export_from_impttpl_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_export_from_expttpl_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_export_from_expttpl_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录 (HIES 标品自动注入 · 6 个 opKey 之一 · 不需要 ISV 实施)",
+        "frequency": "低-中频 · HR 系统迁移 / 批量初始化数据时",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "HIES 标品自动注入",
+          "detail": "6 个 opKey (importdata_hr / show_import_record_hr / export_from_*_hr × 4) 由平台 HRHiesButtonSwitchPlugin 自动注入 · 不在 main_form.xml 显式声明",
+          "id": "B_show_export_record_hr_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 本场景 BaseDataBuOp 不感知 importtype",
+          "detail": "不像 haos_changescene ChangeSceneSaveOp 在 importtype 时做兜底联动 · 走标品默认导入路径",
+          "id": "B_show_export_record_hr_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 HRHiesButtonSwitchPlugin (hbp 通用 · 但 ISV 通常不应继承 · 走 customParam 配置)",
+        "WARN 导入大量数据时注意 isExists 校验性能 (如 CS-02 在 import 路径会逐行校验)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "new": {
+      "opKey": "new",
+      "name": "新增",
+      "opType": "new",
+      "overview": {
+        "scene": "打开 haos_orgchangereason 新增表单 · 表单层 FormPlugin 加载默认值 · 触发 ctrlstrategy 等字段联动初始化",
+        "frequency": "高频 · 字典维护入口",
+        "stateTransition": "",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "FormPlugin 链初始化",
+          "detail": "HRBaseDataTplEdit / BdCtrlStrtgyShowLogicPlugin / HRHiesButtonSwitchPlugin 等多个 FormPlugin 触发 afterBindData / afterLoadData / preOpenForm",
+          "id": "B_new_R1"
+        },
+        {
+          "order": 2,
+          "rule": "默认值由元数据 + 平台多组织行为决定",
+          "detail": "createorg / org / useorg 走平台多组织默认 · ctrlstrategy 通常默认\"5 自由控制\"",
+          "id": "B_new_R2"
+        },
+        {
+          "order": 3,
+          "rule": "业务字段需要用户手填",
+          "detail": "name (必填) · otclassify · description",
+          "id": "B_new_R3"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 ChangeReasonListPlugin (场景特有薄壳类)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "打开 haos_orgchangereason 编辑表单 · 加载现有数据 · 触发字段联动",
+        "frequency": "中频 · 字典维护更新",
+        "stateTransition": "",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "FormPlugin 链同 new",
+          "detail": "afterBindData / afterLoadData / preOpenForm 同样触发",
+          "id": "B_modify_R1"
+        },
+        {
+          "order": 2,
+          "rule": "INV-CR-03 出厂数据 isvCanModify=false 字段不可改",
+          "detail": "11 个系统字段平台默认拦",
+          "id": "B_modify_R2"
+        },
+        {
+          "order": 3,
+          "rule": "⚠ 改 ctrlstrategy 中危",
+          "detail": "影响下游可见组织 · 业务方应清楚",
+          "id": "B_modify_R3"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 ChangeReasonListPlugin (场景特有薄壳类)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "只读查看 haos_orgchangereason 数据 · 表单层禁用编辑",
+        "frequency": "中频 · 字典查阅",
+        "stateTransition": "",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "FormPlugin 链同 new/modify · 但表单只读",
+          "detail": "权限层面拦下保存按钮",
+          "id": "B_view_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存 haos_orgchangereason 数据 · 走 8 插件链 (CodeRuleOp + BaseDataSavePlugin + BdVersionSaveServicePlugin + 3 HRBaseData* + BaseDataBuOp + HRBaseOriginalOp · opkeys/save.json 实证)",
+        "frequency": "高频 · 业务字典维护核心动作 · HR 管理员每月调整原因字典时触发",
+        "stateTransition": "A → A (新建保留草稿) / B → B (已提交修改保留状态)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BaseDataSavePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataSavePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 7,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 8,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "CodeRuleOp.numberValidator",
+          "plugin": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则校验 · 走 PR-006 平台 CodeRule",
+          "phase": "onAddValidators",
+          "id": "V_save_1"
+        },
+        {
+          "order": 2,
+          "name": "CtrlStrategyValidator",
+          "plugin": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "控制策略合规校验（ctrlstrategy + createorg/useorg 多组织合规）· INV-CR-05 实证",
+          "phase": "onAddValidators",
+          "source": "BaseDataBuOp.java:19-22",
+          "id": "V_save_2"
+        },
+        {
+          "order": 3,
+          "name": "平台 BasedataField 必填校验",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataSavePlugin",
+          "role": "name 必填校验 (INV-CR-01) + 其他平台默认校验",
+          "phase": "onAddValidators",
+          "id": "V_save_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "INV-CR-01 name 必填",
+          "detail": "MuliLangTextField · 平台 BasedataField 默认校验 · save 链拒绝空名",
+          "id": "B_save_R1"
+        },
+        {
+          "order": 2,
+          "rule": "INV-CR-02 ctrlstrategy 联动",
+          "detail": "改 ctrlstrategy 时 · BdCtrlStrtgyShowLogicPlugin 联动 createorg/org/useorg 可见性",
+          "id": "B_save_R2"
+        },
+        {
+          "order": 3,
+          "rule": "INV-CR-03 出厂数据保护",
+          "detail": "issyspreset=true 行的 11 个系统字段 isvCanModify=false · 平台默认拦",
+          "id": "B_save_R3"
+        },
+        {
+          "order": 4,
+          "rule": "INV-CR-05 BaseDataBuOp 注册 CtrlStrategyValidator",
+          "detail": "反编译实证 BaseDataBuOp.java:19-22",
+          "id": "B_save_R4"
+        },
+        {
+          "order": 5,
+          "rule": "平台 8 插件链顺序",
+          "detail": "CodeRuleOp → BaseDataSavePlugin → BdVersionSaveServicePlugin → HRBaseDataStatusOp → HRBaseDataLogOp → HRBaseDataEnableOp → BaseDataBuOp → HRBaseOriginalOp (opkeys/save.json 实证)",
+          "id": "B_save_R5"
+        },
+        {
+          "order": 6,
+          "rule": "CodeRule 编码规则配置 (PR-006)",
+          "detail": "业务侧配【编码规则基础资料】即可 · 不写自定义 OP",
+          "id": "B_save_R6"
+        },
+        {
+          "order": 7,
+          "rule": "⚠ 标品没在 afterExecute 发 BEC (grep 0 实证)",
+          "detail": "CS-05 反指引 · ISV 不应自建 BEC 发布方",
+          "id": "B_save_R7"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fnumber",
+        "fname (multilang)",
+        "fenable (default 1)",
+        "fstatus (default A)",
+        "fcreatorid (auto)",
+        "fcreatetime (auto)",
+        "fmodifierid (auto)",
+        "fmodifytime (auto)",
+        "fmasterid (auto)",
+        "fotclassify",
+        "ctrlstrategy (platform multi-org behavior)"
+      ],
+      "readFields": [
+        "all fields of orgchangereason table - platform default - no explicit declaration"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)",
+        "WARN HRBaseOriginalOp records before/after values - ISV custom fields not in whitelist need onPreparePropertys explicit declaration otherwise original values lost",
+        "WARN ISV fields not auto-recognized by CodeRule - must add manually in code rule basedata config"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除 haos_orgchangereason 数据 · 走 4 插件链 (BaseDataDeletePlugin + CodeRuleDeleteOp + HRBaseDataStatusOp + HRBaseDataLogOp · opkeys/delete.json 实证) · ⚠ 高危：标品没反向引用校验",
+        "frequency": "低频 · 业务字典淘汰 · ⚠ 不推荐直接删 · 推荐 disable 替代",
+        "stateTransition": "data → DELETED (主表 + 多语言全删)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataDeletePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataDeletePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "CodeRuleDeleteOp",
+          "className": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "HR 基础资料单据状态（draft/audit/disable）"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "CodeRuleDeleteOp 释放编码池",
+          "plugin": "kd.bos.coderule.CodeRuleDeleteOp",
+          "role": "释放该编码占用的池位",
+          "id": "V_delete_1"
+        },
+        {
+          "order": 2,
+          "name": "HRBaseDataStatusOp 状态校验",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "校验 status 是否允许删除 (如已审核数据可能拦)",
+          "phase": "onAddValidators",
+          "id": "V_delete_2"
+        },
+        {
+          "order": 3,
+          "name": "⭐ ISV 推荐：ChangeReasonRefCheckOp 反向引用校验",
+          "plugin": "com.kingdee.${ISV_FLAG}.haos.opplugin.web.ChangeReasonRefCheckOp",
+          "role": "CS-02 实施 · 注册 ChangeReasonDeleteValidator 拦下被 changescene.changereason 引用的项 · 必装",
+          "phase": "onAddValidators",
+          "rowKey": 1,
+          "id": "V_delete_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "INV-CR-06 标品 delete 链没反向引用校验",
+          "detail": "4 个插件都不查 t_haos_cschangereason · CS-02 必须 ISV 加",
+          "id": "B_delete_R1"
+        },
+        {
+          "order": 2,
+          "rule": "INV-CR-03 出厂数据不可删",
+          "detail": "issyspreset=true 行 · CS-02 必须双重保护",
+          "id": "B_delete_R2"
+        },
+        {
+          "order": 3,
+          "rule": "INV-CR-04 平台保留主键不可删",
+          "detail": "id=1010L · CS-02 必须特殊处理",
+          "id": "B_delete_R3"
+        },
+        {
+          "order": 4,
+          "rule": "CS-02 单查直路径",
+          "detail": "HRBaseServiceHelper(\"haos_changescene\").isExists(QFilter(\"changereason.fbasedataid\", \"=\", id)) · ~3ms",
+          "id": "B_delete_R4"
+        },
+        {
+          "order": 5,
+          "rule": "PR-002 RowKey 早于标品",
+          "detail": "ISV 校验插件 RowKey=1 · 在标品 BaseDataDeletePlugin 之前拦",
+          "id": "B_delete_R5"
+        },
+        {
+          "order": 6,
+          "rule": "PR-010 onAddValidators 阶段注册",
+          "detail": "不在 beforeExecuteOperationTransaction (已经进事务)",
+          "id": "B_delete_R6"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "DELETE t_haos_orgchangereason WHERE fid=?",
+        "DELETE t_haos_orgchangereason_l WHERE fid=?"
+      ],
+      "readFields": [
+        "id",
+        "issyspreset",
+        "name (用于错误提示)",
+        "orinumber (出厂数据识别)"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)",
+        "CRIT 标品 delete 链 4 个插件都不查 changescene 反向引用 · CS-02 必装否则会出 t_haos_cschangereason 孤儿外键事故 (08 §3.1 实证)",
+        "CRIT 跨环境主键陷阱：1010L 跨版本可能调整 · CS-02 不要硬编码 id 比较 · 用 issyspreset+orinumber 判别",
+        "WARN 删除会触发 CodeRuleDeleteOp 释放编码池 · 即使 CS-02 拦下 · 也要确保 ISV 校验插件 RowKey 在 CodeRuleDeleteOp 之前 (避免编码池误释放)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "审核 haos_orgchangereason 数据 · 走 BaseDataAuditPlugin · 标品基础资料默认状态机",
+        "frequency": "低-中频 · 数据生效最终步骤",
+        "stateTransition": "status: B (已提交) → C (已审核)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataAuditPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataAuditPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "平台 BaseDataAuditPlugin 默认审核",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataAuditPlugin",
+          "role": "走平台 BaseData 标准审核",
+          "phase": "beforeExecuteOperationTransaction",
+          "id": "V_audit_1"
+        },
+        {
+          "order": 2,
+          "name": "HRBaseDataStatusOp 状态校验",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "校验当前 status 允许 audit (即 B→C)",
+          "phase": "onAddValidators",
+          "id": "V_audit_2"
+        },
+        {
+          "order": 3,
+          "name": "⭐ ISV 可选：审核前业务校验",
+          "plugin": "com.kingdee.${ISV_FLAG}.haos.opplugin.web.ChangeReasonAuditValidator",
+          "role": "业务上\"审核前必须 review 影响范围\"等定制规则",
+          "phase": "onAddValidators",
+          "id": "V_audit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "status B→C 不可逆走 unaudit",
+          "detail": "反向用 unaudit opKey",
+          "id": "B_audit_R1"
+        },
+        {
+          "order": 2,
+          "rule": "审核后默认进入\"可被引用\"状态",
+          "detail": "虽然 enable=1 在 submit 后就够 · 但业务上\"审核完\"才算完整",
+          "id": "B_audit_R2"
+        },
+        {
+          "order": 3,
+          "rule": "PR-001 不继承 BaseDataAuditPlugin",
+          "detail": "bos 平台插件 · ISV 改用 HRDataBaseOp 并列挂",
+          "id": "B_audit_R3"
+        },
+        {
+          "order": 4,
+          "rule": "部分客户走\"提交即生效\"跳过审核",
+          "detail": "业务上是否走审核取决于流程设计",
+          "id": "B_audit_R4"
+        },
+        {
+          "order": 5,
+          "rule": "审核操作通常发生在 HR 主管层",
+          "detail": "不在普通 HR 助理权限范围 · 注意角色权限配置",
+          "id": "B_audit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fstatus: B→C"
+      ],
+      "readFields": [
+        "id",
+        "status"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "反审核 haos_orgchangereason 数据 · audit 的逆操作",
+        "frequency": "低频 · 已审核数据需要修改时用",
+        "stateTransition": "status: C (已审核) → B (已提交)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataUnAuditPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataUnAuditPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "平台 BaseDataUnAuditPlugin",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataUnAuditPlugin",
+          "role": "走平台 BaseData 标准反审核",
+          "id": "V_unaudit_1"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "status C→B 业务回退",
+          "detail": "反审核后数据进入\"已提交\"状态 · 可继续修改",
+          "id": "B_unaudit_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 反审核前查下游引用",
+          "detail": "已被 changescene 引用的 reason · 反审核可能影响业务展示",
+          "id": "B_unaudit_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fstatus: C→B"
+      ],
+      "readFields": [
+        "id",
+        "status"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "禁用 haos_orgchangereason 数据 · 走 2 插件链 (BaseDataDisablePlugin + HRBaseDataLogOp · opkeys/disable.json 实证) · 业务推荐替代 delete",
+        "frequency": "中频 · 业务字典淘汰首选 · 比 delete 安全",
+        "stateTransition": "enable: 1 → 0 (写 disabler/disabledate)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataDisablePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataDisablePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "BaseDataDisablePlugin 默认禁用",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataDisablePlugin",
+          "role": "平台基础资料标准禁用 · 写 fenable=0 + disabler + disabledate",
+          "phase": "beforeExecuteOperationTransaction",
+          "id": "V_disable_1"
+        },
+        {
+          "order": 2,
+          "name": "HRBaseDataLogOp 操作日志",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "记录禁用操作日志",
+          "phase": "beforeExecuteOperationTransaction + afterExecuteOperationTransaction",
+          "id": "V_disable_2"
+        },
+        {
+          "order": 3,
+          "name": "⭐ ISV 推荐：ChangeReasonRefCheckOp 反向引用提醒",
+          "plugin": "com.kingdee.${ISV_FLAG}.haos.opplugin.web.ChangeReasonRefCheckOp",
+          "role": "CS-02 同源插件 · 在 onAddValidators 阶段提醒\"将禁用 N 条 changescene 引用的原因\"",
+          "phase": "onAddValidators",
+          "rowKey": 1,
+          "id": "V_disable_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "enable 1→0 安全",
+          "detail": "已落地的 t_haos_cschangereason 关系数据保留 · 仅新建 changescene 时多选不到该项",
+          "id": "B_disable_R1"
+        },
+        {
+          "order": 2,
+          "rule": "系统自动写 disabler / disabledate",
+          "detail": "BaseDataDisablePlugin 行为 · ISV 不应手改",
+          "id": "B_disable_R2"
+        },
+        {
+          "order": 3,
+          "rule": "CS-02 同源校验入口",
+          "detail": "同一 ChangeReasonRefCheckOp 类挂 delete + disable · onAddValidators 双拦",
+          "id": "B_disable_R3"
+        },
+        {
+          "order": 4,
+          "rule": "INV-CR-03 出厂数据不可禁用",
+          "detail": "issyspreset=true 行 · CS-02 必须特殊处理",
+          "id": "B_disable_R4"
+        },
+        {
+          "order": 5,
+          "rule": "⚠ 禁用前先查 changescene.changereason 引用情况",
+          "detail": "业务方应清楚告知\"将影响 N 条变动场景的多选关系展示\"",
+          "id": "B_disable_R5"
+        },
+        {
+          "order": 6,
+          "rule": "disable 可逆 · 用户后悔可走 enable 操作恢复",
+          "detail": "enable opKey 走对应链 · 写 disabler=null · disabledate=null",
+          "id": "B_disable_R6"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fenable: 1→0",
+        "FDisablerID = current user",
+        "FDisableDate = now"
+      ],
+      "readFields": [
+        "id",
+        "issyspreset",
+        "name",
+        "enable"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)",
+        "WARN 业务上禁用变动原因应该通知双字典维护人员 · 否则 changescene 维护时方现 F7 选不到",
+        "WARN disable 不会让历史 t_haos_cschangereason 数据消失 · 业务方不要期待禁用就能彻底干掉关系"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用 haos_orgchangereason 数据 · 走 2 插件链 (BaseDataEnablePlugin + HRBaseDataLogOp) · disable 的逆操作",
+        "frequency": "低频 · 业务字典恢复",
+        "stateTransition": "enable: 0 → 1 (清 disabler/disabledate)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataEnablePlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataEnablePlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "HRBaseDataEnableOp 启用态管理",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "校验启用合规 · 写 fenable=1",
+          "phase": "beforeExecuteOperationTransaction",
+          "id": "V_enable_1"
+        },
+        {
+          "order": 2,
+          "name": "HRBaseDataLogOp 操作日志",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "记录启用操作日志",
+          "id": "V_enable_2"
+        },
+        {
+          "order": 3,
+          "name": "⭐ ISV 可选：启用合规校验",
+          "plugin": "com.kingdee.${ISV_FLAG}.haos.opplugin.web.ChangeReasonEnableValidator",
+          "role": "业务上\"曾被禁的原因重启用前需 review\" · 可加 ISV 校验 · 但本场景多数情况不需要",
+          "phase": "onAddValidators",
+          "id": "V_enable_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "enable 0→1 安全",
+          "detail": "历史关系数据本来就在 · 启用后 changescene 多选 F7 重新看到该项",
+          "id": "B_enable_R1"
+        },
+        {
+          "order": 2,
+          "rule": "系统自动清 disabler / disabledate",
+          "detail": "BaseDataEnablePlugin / HRBaseDataEnableOp 行为",
+          "id": "B_enable_R2"
+        },
+        {
+          "order": 3,
+          "rule": "⚠ 启用前 review 业务上是否仍需要",
+          "detail": "避免反复禁用启用造成的字典混乱",
+          "id": "B_enable_R3"
+        },
+        {
+          "order": 4,
+          "rule": "PR-007 出厂数据 enable 不动",
+          "detail": "issyspreset=true 行通常默认 enable=1 · 不需要操作",
+          "id": "B_enable_R4"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fenable: 0→1",
+        "FDisablerID = null",
+        "FDisableDate = null"
+      ],
+      "readFields": [
+        "id",
+        "enable",
+        "disabler"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)",
+        "WARN enable 操作不会重建已经游离的 t_haos_cschangereason 数据 (如 CS-02 没装时已删过的孤儿)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_close_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "返回数据 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_returndata_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交 haos_orgchangereason 数据走审批流 · 走 2 插件链 (BaseDataSubmitPlugin + HRBaseDataLogOp · opkeys/submit.json 实证)",
+        "frequency": "中频 · 业务字典创建后流转",
+        "stateTransition": "status: A (草稿) → B (已提交)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BaseDataSubmitPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataSubmitPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 3,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "平台 BasedataField 必填校验",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataSubmitPlugin",
+          "role": "submit 链默认行为 · 走 onAddValidators 校验完整性",
+          "phase": "onAddValidators",
+          "id": "V_submit_1"
+        },
+        {
+          "order": 2,
+          "name": "HRBaseDataStatusOp 状态校验",
+          "plugin": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "校验当前 status 允许 submit (即 A→B)",
+          "phase": "onAddValidators",
+          "id": "V_submit_2"
+        },
+        {
+          "order": 3,
+          "name": "⭐ ISV 可选：提交前业务审计",
+          "plugin": "com.kingdee.${ISV_FLAG}.haos.opplugin.web.ChangeReasonSubmitValidator",
+          "role": "业务上\"提交前必须填 description\" 等定制规则 · ISV 可加",
+          "phase": "onAddValidators",
+          "id": "V_submit_3"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "status A→B 不可逆走 unsubmit",
+          "detail": "反向用 unsubmit opKey",
+          "id": "B_submit_R1"
+        },
+        {
+          "order": 2,
+          "rule": "提交后 status=B 但 enable 不变",
+          "detail": "可能仍 enable=1 · 在 F7 出现 · 取决于业务设计",
+          "id": "B_submit_R2"
+        },
+        {
+          "order": 3,
+          "rule": "PR-001 不继承 BaseDataSubmitPlugin",
+          "detail": "bos 平台插件 · ISV 改用 HRDataBaseOp 并列挂",
+          "id": "B_submit_R3"
+        },
+        {
+          "order": 4,
+          "rule": "业务上\"提交\"通常表示数据完整可用",
+          "detail": "审核 (audit) 才是最终生效 · 但本场景部分客户跳过审核步骤",
+          "id": "B_submit_R4"
+        },
+        {
+          "order": 5,
+          "rule": "submit 后想撤回必须用 unsubmit",
+          "detail": "不要直接改 status=",
+          "id": "B_submit_R5"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fstatus: A→B"
+      ],
+      "readFields": [
+        "id",
+        "status",
+        "enable"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销提交 haos_orgchangereason 数据 · submit 的逆操作",
+        "frequency": "低频 · 已提交但未审核数据撤回",
+        "stateTransition": "status: B (已提交) → A (草稿)",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataUnSubmitPlugin",
+          "className": "kd.bos.form.plugin.bdctrl.BaseDataUnSubmitPlugin",
+          "role": "enabled=True"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [
+        {
+          "order": 1,
+          "name": "平台 BaseDataUnSubmitPlugin",
+          "plugin": "kd.bos.form.plugin.bdctrl.BaseDataUnSubmitPlugin",
+          "role": "走平台 BaseData 标准撤销提交",
+          "id": "V_unsubmit_1"
+        }
+      ],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "status B→A 草稿状态可改",
+          "detail": "撤回后 enable 不变 · 仅 status 变化",
+          "id": "B_unsubmit_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [
+        "fstatus: B→A"
+      ],
+      "readFields": [
+        "id",
+        "status"
+      ],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead",
+        "FORBID 禁继承 BaseDataBuOp (haos domain scene-specific shell - use HRDataBaseOp parallel mount - PR-001)",
+        "FORBID 禁继承 ChangeReasonListPlugin (haos domain scene-specific shell - use HRBaseDataTplList or HRDataBaseList parallel mount)",
+        "FORBID 禁继承 ListOrderCommonPlugin (haos domain internal class - not in SDK whitelist - use HRDataBaseList)",
+        "FORBID 禁继承 AbsOrgBaseOp (hjm/admin_org evidence forbidden - use HRDataBaseOp)",
+        "FORBID 禁继承 HisModelOPCommonPlugin and HisUniqueValidateOp and HisModelFormCommonPlugin and HisModelListCommonPlugin (@SdkInternal platform internal - this scene non-temporal so not needed)",
+        "FORBID 禁继承 BdCtrlStrtgyShowLogicPlugin (bos platform internal plugin - ISV should not extend bos.* internal - use HRBaseDataTplEdit parallel mount)",
+        "FORBID 禁继承 CtrlStrategyValidator (haos domain validate internal class - ISV custom validators directly extend AbstractValidator)",
+        "WARN this scene's BaseDataBuOp does not declare onPreparePropertys - ISV must self-build parallel-mount plugin and explicitly declare ISV fields (PR-010 step 2 - see 10 S1/S5 traps)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "agent_polish - decompiled evidence + haos_changescene benchmark",
+        "confidence": "verified",
+        "note": "expert polished - all rules from decompiled classes or opkeys/<opKey>.json",
+        "decompiledCount": "2/35",
+        "generatedBy": "agent_scene_polish_haos_orgchangereason"
+      }
+    },
+    "copy": {
+      "opKey": "copy",
+      "name": "复制",
+      "opType": "copy",
+      "overview": {
+        "scene": "复制 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_copy_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 复制不会复制 issyspreset 标记",
+          "detail": "复制后的数据 issyspreset=false · ISV 字段值会复制 (如 ${ISV_FLAG}_bizimpact)",
+          "id": "B_copy_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_refresh_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_option_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_submitandnew_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "saveandnew": {
+      "opKey": "saveandnew",
+      "name": "保存并新增",
+      "opType": "saveandnew",
+      "overview": {
+        "scene": "保存并新增 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "BaseDataSavePlugin",
+          "className": "kd.bd.assistant.plugin.basedata.BaseDataSavePlugin",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_saveandnew_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_first_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_previous_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_next_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_last_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdata": {
+      "opKey": "importdata",
+      "name": "导入数据",
+      "opType": "importdata",
+      "overview": {
+        "scene": "导入数据 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_importdata_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importdetails": {
+      "opKey": "importdetails",
+      "name": "查看导入结果",
+      "opType": "importdetails",
+      "overview": {
+        "scene": "查看导入结果 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_importdetails_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importtemplatelist": {
+      "opKey": "importtemplatelist",
+      "name": "管理模板",
+      "opType": "importtemplatelist",
+      "overview": {
+        "scene": "管理模板 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_importtemplatelist_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist": {
+      "opKey": "exportlist",
+      "name": "导出数据(按导入模板)",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据(按导入模板) · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_exportlist_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据(按列表)",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据(按列表) · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_exportlistbyselectfields_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist_expt": {
+      "opKey": "exportlist_expt",
+      "name": "导出数据(按导出模板)",
+      "opType": "exportlist_expt",
+      "overview": {
+        "scene": "导出数据(按导出模板) · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_exportlist_expt_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出结果 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_exportdetails_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importexport_userset": {
+      "opKey": "importexport_userset",
+      "name": "导入导出个性化设置",
+      "opType": "importexport_userset",
+      "overview": {
+        "scene": "导入导出个性化设置 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_importexport_userset_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarselect": {
+      "opKey": "mobtoolbarselect",
+      "name": "选择",
+      "opType": "mobtoolbarselect",
+      "overview": {
+        "scene": "选择 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_mobtoolbarselect_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarcancel": {
+      "opKey": "mobtoolbarcancel",
+      "name": "取消",
+      "opType": "mobtoolbarcancel",
+      "overview": {
+        "scene": "取消 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_mobtoolbarcancel_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistory": {
+      "opKey": "namehistory",
+      "name": "改名",
+      "opType": "donothing",
+      "overview": {
+        "scene": "改名 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_namehistory_R1"
+        },
+        {
+          "order": 2,
+          "rule": "名称历史走 BdVersionSaveServicePlugin",
+          "detail": "本场景的 name 变更会写入版本历史 · 可通过此 opKey 查询",
+          "id": "B_namehistory_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistoryview": {
+      "opKey": "namehistoryview",
+      "name": "名称历史查询",
+      "opType": "donothing",
+      "overview": {
+        "scene": "名称历史查询 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_namehistoryview_R1"
+        },
+        {
+          "order": 2,
+          "rule": "名称历史走 BdVersionSaveServicePlugin",
+          "detail": "本场景的 name 变更会写入版本历史 · 可通过此 opKey 查询",
+          "id": "B_namehistoryview_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "assign": {
+      "opKey": "assign",
+      "name": "分配",
+      "opType": "assign",
+      "overview": {
+        "scene": "分配 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_assign_R1"
+        },
+        {
+          "order": 2,
+          "rule": "分配关系是平台多组织能力",
+          "detail": "基础资料按 ctrlstrategy=8 (同分配范围) 走分配关系 · 通过 t_*_bdassign 表维护",
+          "id": "B_assign_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unassign": {
+      "opKey": "unassign",
+      "name": "取消分配",
+      "opType": "unassign",
+      "overview": {
+        "scene": "取消分配 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_unassign_R1"
+        },
+        {
+          "order": 2,
+          "rule": "分配关系是平台多组织能力",
+          "detail": "基础资料按 ctrlstrategy=8 (同分配范围) 走分配关系 · 通过 t_*_bdassign 表维护",
+          "id": "B_unassign_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "bdctrlchange": {
+      "opKey": "bdctrlchange",
+      "name": "变更控制策略",
+      "opType": "donothing",
+      "overview": {
+        "scene": "变更控制策略 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_bdctrlchange_R1"
+        },
+        {
+          "order": 2,
+          "rule": "⚠ 变更控制策略中危",
+          "detail": "影响下游可见组织 · 跟 INV-CR-02 联动 · 业务方应 review",
+          "id": "B_bdctrlchange_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "individuation": {
+      "opKey": "individuation",
+      "name": "个性化(空操作)",
+      "opType": "donothing",
+      "overview": {
+        "scene": "个性化(空操作) · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_individuation_R1"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "assign_new": {
+      "opKey": "assign_new",
+      "name": "分配(新)",
+      "opType": "donothing",
+      "overview": {
+        "scene": "分配(新) · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_assign_new_R1"
+        },
+        {
+          "order": 2,
+          "rule": "分配关系是平台多组织能力",
+          "detail": "基础资料按 ctrlstrategy=8 (同分配范围) 走分配关系 · 通过 t_*_bdassign 表维护",
+          "id": "B_assign_new_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "auto_assign": {
+      "opKey": "auto_assign",
+      "name": "自动分配管理",
+      "opType": "donothing",
+      "overview": {
+        "scene": "自动分配管理 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_auto_assign_R1"
+        },
+        {
+          "order": 2,
+          "rule": "分配关系是平台多组织能力",
+          "detail": "基础资料按 ctrlstrategy=8 (同分配范围) 走分配关系 · 通过 t_*_bdassign 表维护",
+          "id": "B_auto_assign_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "tbl_assign_import": {
+      "opKey": "tbl_assign_import",
+      "name": "Excel导入分配关系",
+      "opType": "donothing",
+      "overview": {
+        "scene": "Excel导入分配关系 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_tbl_assign_import_R1"
+        },
+        {
+          "order": 2,
+          "rule": "分配关系是平台多组织能力",
+          "detail": "基础资料按 ctrlstrategy=8 (同分配范围) 走分配关系 · 通过 t_*_bdassign 表维护",
+          "id": "B_tbl_assign_import_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "logview": {
+      "opKey": "logview",
+      "name": "查看全部日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看全部日志 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_logview_R1"
+        },
+        {
+          "order": 2,
+          "rule": "操作日志走 HRBaseDataLogOp",
+          "detail": "本场景的所有写操作 (save/disable/enable) 都会写日志 · 可通过此 opKey 查询",
+          "id": "B_logview_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "viewonelog": {
+      "opKey": "viewonelog",
+      "name": "查看日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看日志 · 平台/HR 通用基础资料操作 · 标品默认行为 · 不需要 ISV 特殊定制",
+        "frequency": "低 · 多数场景用不到",
+        "stateTransition": "",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "BaseDataBuOp",
+          "className": "kd.hr.haos.opplugin.web.BaseDataBuOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "order": 1,
+          "rule": "标品默认行为",
+          "detail": "走平台 BaseData / HR 通用插件链 · 不在 main_form.xml 显式声明业务规则",
+          "id": "B_viewonelog_R1"
+        },
+        {
+          "order": 2,
+          "rule": "操作日志走 HRBaseDataLogOp",
+          "detail": "本场景的所有写操作 (save/disable/enable) 都会写日志 · 可通过此 opKey 查询",
+          "id": "B_viewonelog_R2"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "WARN DynamicObject.set(fieldKey, ...) must use field key not display name",
+        "WARN custom Validator must register in onAddValidators - registering in beforeExecute is too late",
+        "WARN beforeExecuteOperationTransaction throws exception causes transaction rollback - use addErrorMessage instead"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "importdata",
+        "importdetails",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "new",
+        "modify",
+        "view",
+        "save",
+        "delete",
+        "audit",
+        "unaudit",
+        "disable",
+        "enable",
+        "close",
+        "returndata",
+        "submit",
+        "unsubmit",
+        "copy",
+        "refresh",
+        "option",
+        "submitandnew",
+        "saveandnew",
+        "first",
+        "previous",
+        "next",
+        "last",
+        "importdata",
+        "importdetails",
+        "importtemplatelist",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails",
+        "importexport_userset",
+        "mobtoolbarselect",
+        "mobtoolbarcancel",
+        "namehistory",
+        "namehistoryview",
+        "assign",
+        "unassign",
+        "bdctrlchange",
+        "individuation",
+        "assign_new",
+        "auto_assign",
+        "tbl_assign_import",
+        "logview",
+        "viewonelog",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

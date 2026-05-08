@@ -1,0 +1,118 @@
+{
+  "formId": "hpdi_bizdataherizonlist",
+  "formName": null,
+  "sceneId": "hpdi_bizdataherizonlist",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "list_only",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "0NXW1VOPH+QV",
+  "metaIdTechnical": "2WMVDJHC3KMJ",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hpdi_bizdataherizonlist",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hpdi_bizdataherizonlist.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hpdi_bizdataherizonlist",
+      "type": "BillEntity",
+      "title": "hpdi_bizdataherizonlist",
+      "physicalTable": null,
+      "fieldCount": 0
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "UnlockFieldAction": {
+          "RET": "251",
+          "ActionType": "UnlockFieldAction",
+          "Description": "解锁字段",
+          "Id": "4GZI=4YWGDC4",
+          "Fields": {
+            "FieldId": {
+              "Id": "MDc85m8bZeCGQylbg5"
+            }
+          }
+        }
+      },
+      "PreDescription": "bizitemgroup.id = 0",
+      "TrueActions": {
+        "LockFieldAction": {
+          "RET": "251",
+          "ActionType": "LockFieldAction",
+          "Description": "锁定字段",
+          "Id": "4GZI=4YWGE0D",
+          "Fields": {
+            "FieldId": {
+              "Id": "MDc85m8bZeCGQylbg5"
+            }
+          }
+        }
+      },
+      "Description": "业务数据模板为空时",
+      "RuleType": "FormRule",
+      "Id": "4GYQ8U5FPFOZ",
+      "PreCondition": "bizitemgroup.id <= 0",
+      "Seq": "1"
+    }
+  ],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {},
+  "requiredFields": {
+    "hpdi_bizdataherizonlist": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2WMVDJHC3KMJ_KeHgYGNQ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.transversetable.BizDataRecordHerizonPlugin",
+      "Description": "kd.swc.hpdi.formplugin.web.bizdata.transversetable.BizDataRecordHerizonPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:08",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 0,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

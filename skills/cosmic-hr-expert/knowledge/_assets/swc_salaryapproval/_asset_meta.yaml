@@ -1,0 +1,125 @@
+asset:
+  id: swc_salaryapproval
+  name: 移动端薪资审批
+  english_name: Mobile Salary Approval
+  version: v1.0
+  source_dcs_project: swc-salaryapproval
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/swcgroup/swc-salaryapproval.git
+  source_branch: feature-standard-new
+  source_commit: a6e8ea6
+  source_doc: null
+  source_doc_version: v1.0
+  source_doc_date: null
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.0 / case 反哺
+  improver_placeholder: tdkw
+business:
+  cloud: payroll
+  app: swc
+  scenario: 薪酬审批：基于 dcs_clean v1.5 真代码 + Phase D 真扫·包含 5 个 java 类（325 LOC）+ 1 个 dym 元数据·走 ISV 隔离扩展（${ISV_FLAG}_ 前缀 + ext 扩展元数据）。
+  trigger: <待手工精修：调度计划/操作 op/事件等触发条件>
+  scope:
+    in_scope:
+    - <待手工精修：本资产能做什么>
+    out_of_scope:
+    - <待手工精修：本资产不做什么·边界>
+intents:
+  primary:
+  - 薪酬审批
+  - 工资审批
+  - 薪酬审批流程
+  secondary: []
+template_variables:
+  required:
+  - name: ISV_FLAG
+    desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+    example: bjss
+    validation: ^[a-z][a-z0-9]{1,15}$
+  - name: BIZ_APP
+    desc: ISV 应用包编码·客户提供
+    example: bjss_<asset_app>
+    validation: ^[a-z][a-z0-9_]{3,30}$
+  optional: []
+artifacts:
+  java_files:
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsas/plugin/form/NumItemsDTO.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsas/plugin/form/SetFilterUtil.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsas/plugin/form/SWCPageCache.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsas/plugin/form/PayrollApprovalMobileEditPlugin.java
+  - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/swc/hsas/plugin/form/PayrollApprovalEditPlugin.java
+  datamodel_files:
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hsas_approvebill_ext.dym
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hsas_approvebill_ext.zh_CN.dymx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+  - datamodel/payroll/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+  build_files:
+  - build.gradle
+  - settings.gradle
+  - gradle.properties
+  - cosmic.properties
+  - config.gradle
+  doc_files:
+  - deploy_sop.md
+  - customization_points.md
+deploy:
+  prerequisite:
+  - 苍穹环境已部署
+  - 客户已选定开发商标识 (ISV_FLAG)
+  detail_doc: deploy_sop.md
+business_rules:
+  source: deep_scan_audit.md
+  anchor_examples: []
+related_v3_scenes:
+  primary:
+  - payroll_swc_salaryapproval
+  consumed_forms: []
+extension_points:
+- id: EP-01
+  name: 改 NumItemsDTO 行为
+  location: NumItemsDTO.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: NumItemsDTO 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-02
+  name: 改 SetFilterUtil 行为
+  location: SetFilterUtil.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SetFilterUtil 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-03
+  name: 改 SWCPageCache 行为
+  location: SWCPageCache.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: SWCPageCache 继承 独立·扩展时按 SDK 白名单 @Override 重写
+- id: EP-04
+  name: 改 PayrollApprovalMobileEditPlugin 行为
+  location: PayrollApprovalMobileEditPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PayrollApprovalMobileEditPlugin 继承 AbstractMobBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+- id: EP-05
+  name: 改 PayrollApprovalEditPlugin 行为
+  location: PayrollApprovalEditPlugin.java
+  difficulty: ⭐⭐
+  cs_ref: (按需)
+  desc: PayrollApprovalEditPlugin 继承 AbstractBillPlugIn·扩展时按 SDK 白名单 @Override 重写
+quality_gates:
+- 'GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0'
+- 'GATE-02: java 包路径与 datamodel 应用路径一致'
+- 'GATE-03: dym BizappId 与 cosmic 环境真值一致'
+- 'GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）'
+- 'GATE-05: 11md 数据源全部 file:line 真扫·无脑补'
+- 'GATE-06: extension_points 全展开·有改造范式 + 风险'
+layout:
+  java_root_subpath: swc/hsas/plugin/form
+  multi_module: false
+  primary_module: swc_salaryapproval
+  biz_app_modules:
+  - module_id: swc_salaryapproval
+    datamodel_app_dir: tdkw_swc_salaryapproval/1.5.0/main
+    is_primary: true

@@ -1,0 +1,263 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_record.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.dlock.DLock;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.eip.task.common.util.CommonUtil;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_record.BounsRecodBillPlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_payroll_accounting.PayrollPushUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * Author: wanghansheng
+ * Description: 奖金发放记录，提交并生效、奖金取回，重新推送，废弃
+ */
+public class BounsRecordOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        String bounsRecordFiles = CommonUtil.getAllFields("${ISV_FLAG}_bouns_record");
+        fieldKeys.addAll(Arrays.asList(bounsRecordFiles.split(",")));
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+
+        try (DLock lock = DLock.create(BounsPaymentUtils.key, "奖金发放操作锁")) {
+            if (lock.tryLock()) {
+                try {
+                    // 提交并生效后更新对应的发放单，并进行推送
+                    if ("submiteffect".equals(operationKey)){
+                        // 锁住数据
+                        List<Long> sourceId = Arrays.stream(entities)
+                                .map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_entryentity"))
+                                .flatMap(DynamicObjectCollection::stream)
+                                .map(item -> item.getLong("${ISV_FLAG}_sourceid"))
+                                .collect(Collectors.toList());
+                        BounsPaymentUtils.bounsForUpdate(sourceId);
+
+                        // 校验
+                        validator(entities,sourceId);
+                        // 查询核定单，获取核定单单号
+                        List<Long> checkIds = Arrays.stream(entities)
+                                .map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_entryentity"))
+                                .flatMap(DynamicObjectCollection::stream)
+                                .map(item -> item.getLong("${ISV_FLAG}_check_id"))
+                                .collect(Collectors.toList());
+                        QFilter bonusSureFilter = new QFilter("id", QCP.in, checkIds);
+                        DynamicObjectCollection bonusSureList = QueryServiceHelper.query("${ISV_FLAG}_bonus_approval_2nd", "id,billno,${ISV_FLAG}_approval_name", bonusSureFilter.toArray());
+                        Map<String,String> bonusCheckGroup = bonusSureList.stream().collect(Collectors.toMap(key -> key.getString("id"),value -> value.getString("${ISV_FLAG}_approval_name")));
+                        // 查询发放人员，并增加发放记录
+                        DynamicObject[] bonusPayments = getPayPersons(entities,sourceId);
+                        SaveServiceHelper.save(bonusPayments);
+                        // 查找档案编码,id,更新到发放记录上
+                        setSalaryFile(entities);
+                        // 进行推送
+                        for (DynamicObject bill : entities) {
+                            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+                            Long currencyId = bill.getLong("${ISV_FLAG}_currency_type.id");
+                            String billno = bill.getString("billno");
+                            Date payPeriod = bill.getDate("${ISV_FLAG}_pay_period.startdate");
+                            Map<String, String> resMap = BounsPaymentUtils.pushItem(entryentity, currencyId, billno, payPeriod,bonusCheckGroup);
+
+                            for (DynamicObject entry : entryentity) {
+                                // 排除无需推送数据
+                                String pushStatus = entry.getString("${ISV_FLAG}_push_status");
+                                if ("F".equals(pushStatus)){
+                                    continue;
+                                }
+                                String bizdatacode = entry.getLong("id") + "&" + entry.getString("${ISV_FLAG}_person.empnumber");
+                                String errorMsg = resMap.get(bizdatacode);
+                                if (StringUtils.isEmpty(errorMsg)){
+                                    // 已推送算薪
+                                    entry.set("${ISV_FLAG}_push_status","B");
+                                }else {
+                                    // 推送算薪失败
+                                    entry.set("${ISV_FLAG}_push_status","C");
+                                    entry.set("${ISV_FLAG}_reason",errorMsg);
+                                }
+                            }
+                        }
+
+                        // 设置人数关系
+                        for (DynamicObject bill : entities) {
+                            BounsRecodBillPlugin bounsRecodBillPlugin = new BounsRecodBillPlugin();
+                            bounsRecodBillPlugin.setRecordInfo(bill);
+                        }
+                    }
+                } catch (Exception ex) {
+                    throw new KDBizException(ex.getMessage());
+                }
+            } else {
+                throw new KDBizException("正在执行奖金相关操作，请稍后重试。");
+            }
+        }
+    }
+
+    /**
+     * 设置档案编码，档案boid
+     */
+    private static void setSalaryFile(DynamicObject[] entities) {
+        for (DynamicObject bill : entities) {
+            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            Set<String> personNumberSet = entryentity.stream().map(item -> item.getString("${ISV_FLAG}_person.empnumber")).collect(Collectors.toSet());
+            String groupNumber = bill.getString("${ISV_FLAG}_salary_ccount_group.number");
+            Set<String> groupNumberSet = new HashSet<>();
+            groupNumberSet.add(groupNumber);
+            Date payPeriod = bill.getDate("${ISV_FLAG}_pay_period.enddate");
+            Map<String, Map<String, Object>> effectiveSalaryFile = PayrollPushUtil.getEffectiveSalaryFile(personNumberSet, groupNumberSet, payPeriod);
+
+            for (DynamicObject entry : entryentity) {
+                String personNumber = entry.getString("${ISV_FLAG}_person.empnumber");
+                String pushStatus = entry.getString("${ISV_FLAG}_push_status");
+                if ("F".equals(pushStatus)){
+                    continue;
+                }
+                Map<String, Object> res = effectiveSalaryFile.get(personNumber+":"+groupNumber);
+                if (res != null){
+                    entry.set("${ISV_FLAG}_salary_file_number",res.get("salaryFileNumber"));
+                    entry.set("${ISV_FLAG}_salary_file_id",res.get("salaryFileBoId"));
+                }
+            }
+        }
+    }
+
+    /**
+     * 查询发放人员，增加发放记录
+     */
+    private static DynamicObject[] getPayPersons(DynamicObject[] entities,List<Long> sourceId) {
+        String fileds = String.join(",","id","${ISV_FLAG}_amount","${ISV_FLAG}_grant_amount","${ISV_FLAG}_grant_per_count","${ISV_FLAG}_cancelled_amount","${ISV_FLAG}_redeem_amount","${ISV_FLAG}_is_zero",
+                "entryentity.${ISV_FLAG}_pay_number","entryentity.${ISV_FLAG}_pay_amount","entryentity.${ISV_FLAG}_pay_way","entryentity.${ISV_FLAG}_offset_remark","entryentity.${ISV_FLAG}_pay_period",
+                "entryentity.${ISV_FLAG}_pay_person","entryentity.${ISV_FLAG}_pay_date","entryentity.seq");
+        DynamicObject[] bonusPayments = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment",fileds, new QFilter[]{new QFilter("id", QCP.in, sourceId)});
+        Map<Long, DynamicObject> bonusPaymentsMap = Arrays.stream(bonusPayments).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+
+        for (DynamicObject bill : entities) {
+            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            for (DynamicObject entryBill : entryentity) {
+                // 本次兑换总额
+                BigDecimal currentAmount = entryBill.getBigDecimal("${ISV_FLAG}_current_amount");
+                // 奖金发放数据更新
+                DynamicObject bonusPayment = bonusPaymentsMap.get(entryBill.getLong("${ISV_FLAG}_sourceid"));
+                // 发放总额
+                BigDecimal grantAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_grant_amount");
+                grantAmount = grantAmount == null ? BigDecimal.ZERO:grantAmount;
+                // 可兑换总额
+                BigDecimal redeemAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                redeemAmount = redeemAmount == null ? BigDecimal.ZERO:redeemAmount;
+
+                // 发放总额 = 发放总额 + 本次兑换总额
+                bonusPayment.set("${ISV_FLAG}_grant_amount",grantAmount.add(currentAmount));
+                // 可兑换总额 = 可兑换总额 - 本次兑换总额
+                bonusPayment.set("${ISV_FLAG}_redeem_amount",redeemAmount.subtract(currentAmount));
+                // 可兑现金额是否为0
+                bonusPayment.set("${ISV_FLAG}_is_zero",redeemAmount.subtract(currentAmount).compareTo(BigDecimal.ZERO) == 0? "1" : "0");
+                // 发放次数+1
+                bonusPayment.set("${ISV_FLAG}_grant_per_count",bonusPayment.getInt("${ISV_FLAG}_grant_per_count") + 1);
+
+
+                //增加一条发放记录
+                DynamicObjectCollection bonusPaymentEntry = bonusPayment.getDynamicObjectCollection("entryentity");
+                DynamicObject bonusPaymentEntryBill = bonusPaymentEntry.addNew();
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_number",bill.getString("billno"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_amount",entryBill.getBigDecimal("${ISV_FLAG}_current_amount"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_way",entryBill.getString("${ISV_FLAG}_pay_way"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_offset_remark",entryBill.getString("${ISV_FLAG}_offset_remark"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_period",bill.getDynamicObject("${ISV_FLAG}_pay_period"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_person",bill.getDynamicObject("creator"));
+                bonusPaymentEntryBill.set("${ISV_FLAG}_pay_date",bill.getDate("createtime"));
+
+                // 根据发放日期排序，重新设置seq
+                bonusPaymentEntry.sort((o1, o2) -> o2.getDate("${ISV_FLAG}_pay_date").compareTo(o1.getDate("${ISV_FLAG}_pay_date")));
+                for (int i = 0; i < bonusPaymentEntry.size(); i++) {
+                    bonusPaymentEntry.get(i).set("seq",i);
+                }
+            }
+        }
+        return bonusPayments;
+    }
+
+
+    /**
+     * 校验
+     */
+    private static void validator(DynamicObject[] entities,List<Long> sourceId) {
+        List<String> errorList = new ArrayList<>();
+        String fileds = String.join(",","id","${ISV_FLAG}_amount","${ISV_FLAG}_grant_amount","${ISV_FLAG}_grant_per_count","${ISV_FLAG}_cancelled_amount","${ISV_FLAG}_redeem_amount");
+        DynamicObject[] bonusPayments = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment",fileds, new QFilter[]{new QFilter("id", QCP.in, sourceId)});
+        Map<Long, DynamicObject> bonusPaymentsMap = Arrays.stream(bonusPayments).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+        for (DynamicObject bill : entities) {
+            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            for (DynamicObject entryBill : entryentity) {
+                String personNumber = entryBill.getString("${ISV_FLAG}_person.empnumber");
+                // 本次兑换总额
+                BigDecimal currentAmount = entryBill.getBigDecimal("${ISV_FLAG}_current_amount");
+                // 奖金发放数据更新
+                DynamicObject bonusPayment = bonusPaymentsMap.get(entryBill.getLong("${ISV_FLAG}_sourceid"));
+                // 可兑换总额
+                BigDecimal redeemAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                // 本次兑换总额不能等于0
+                if (currentAmount.compareTo(BigDecimal.ZERO) == 0){
+                    errorList.add("”" + personNumber + "“员工本次兑换金额不能等于0");
+                }
+
+                if (redeemAmount.compareTo(BigDecimal.ZERO) > 0){
+                    if (currentAmount.compareTo(BigDecimal.ZERO) < 0 || currentAmount.compareTo(redeemAmount) > 0){
+                        errorList.add("”" + personNumber + "“员工：可兑换金额为正数时，本次兑换金额需大于0且小于等于可兑换金额");
+                    }
+                }
+
+                if (redeemAmount.compareTo(BigDecimal.ZERO) == 0){
+                    errorList.add("”" + personNumber + "“员工可兑换金额为0，无法兑换");
+                }
+
+                if (redeemAmount.compareTo(BigDecimal.ZERO) < 0){
+                    if (currentAmount.compareTo(BigDecimal.ZERO) > 0 || currentAmount.compareTo(redeemAmount) < 0){
+                        errorList.add("”" + personNumber + "“员工：可兑换金额为负数时，本次兑换金额需小于0且大于等于可兑换金额");
+                    }
+                }
+
+
+                // 可兑换进行小于0，取绝对值，允许本次兑换总额，可兑换总额小于0
+                if (currentAmount.abs().compareTo(redeemAmount.abs()) > 0) {
+//                    errorList.add("”" + personNumber + "“员工本次兑换总额超出可兑换总额");
+                }
+
+                // 未全额发放发放，需要填写备注
+                if (currentAmount.compareTo(redeemAmount) != 0){
+                    String remark = entryBill.getString("${ISV_FLAG}_remark");
+                    if (StringUtils.isEmpty(remark)){
+                        errorList.add("”" + personNumber + "“未全额发放需填写备注");
+                    }
+                }
+            }
+        }
+        List<String> errorMessageList = IntStream.range(0, errorList.size()).mapToObj(i -> (i + 1) + "、" + errorList.get(i)).collect(Collectors.toList());
+        if (errorMessageList.size() > 0){
+            throw new KDBizException(String.join("",errorMessageList));
+        }
+    }
+}

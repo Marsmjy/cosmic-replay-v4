@@ -1,0 +1,96 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package ${ISV_FLAG}.odc.homs.utils;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.ext.fi.bei.util.EmptyUtil;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.hdtc.hrdbs.common.util.StringUtils;
+import kd.hr.hbp.common.util.HRDynamicObjectUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+
+import java.util.Date;
+
+public final class DynamicObjectUtils extends HRDynamicObjectUtils {
+    private static final Log LOG = LogFactory.getLog(DynamicObjectUtils.class);
+
+    public static void setBigText(DynamicObject dyn, String field, String txt) {
+        if (HRStringUtils.isNotEmpty(txt) && txt.length() > 255) {
+            dyn.set(field, txt.substring(0, 255));
+            dyn.set(field + "_tag", txt);
+        } else {
+            dyn.set(field, txt);
+            dyn.set(field + "_tag", (Object) null);
+        }
+
+    }
+
+    public static void setBigTextEmpty(DynamicObject dyn, String field) {
+        dyn.set(field, "");
+        dyn.set(field + "_tag", "");
+    }
+
+    public static void clearBigText(DynamicObject dyn, String field) {
+        setBigText(dyn, field, "");
+    }
+
+
+    public static String getBigText(DynamicObject dyn, String field) {
+        String tagTxt = dyn.getString(field + "_tag");
+        return !StringUtils.isEmpty(tagTxt) && tagTxt.length() > 255 ? tagTxt : dyn.getString(field);
+    }
+
+
+
+    public static boolean compareDateField(Date a, Date b) {
+        if (EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return true;
+        } else if (EmptyUtil.isEmpty(a) && !EmptyUtil.isEmpty(b)) {
+            return false;
+        } else if (!EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return false;
+        } else {
+            return a.compareTo(b) == 0;
+        }
+    }
+
+    public static boolean compareLongField(Long a, Long b) {
+        if (EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return true;
+        } else if (EmptyUtil.isEmpty(a) && !EmptyUtil.isEmpty(b)) {
+            return false;
+        } else if (!EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return false;
+        } else {
+            return a.compareTo(b) == 0;
+        }
+    }
+
+    public static boolean compareStringField(String a, String b) {
+        if (EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return true;
+        } else if (EmptyUtil.isEmpty(a) && !EmptyUtil.isEmpty(b)) {
+            return EmptyUtil.isEmpty(b.toString());
+        } else if (!EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return EmptyUtil.isEmpty(a.toString());
+        } else {
+            return a.equals(b);
+        }
+    }
+
+    public static boolean compareBaseEditField(DynamicObject a, DynamicObject b) {
+        if (EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return true;
+        } else if (EmptyUtil.isEmpty(a) && !EmptyUtil.isEmpty(b)) {
+            return false;
+        } else if (!EmptyUtil.isEmpty(a) && EmptyUtil.isEmpty(b)) {
+            return false;
+        } else {
+            return a.get("number").equals(b.get("number"));
+        }
+    }
+}

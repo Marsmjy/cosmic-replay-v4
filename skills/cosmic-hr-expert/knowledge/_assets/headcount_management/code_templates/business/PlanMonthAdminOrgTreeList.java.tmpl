@@ -1,0 +1,112 @@
+package ${ISV_FLAG}.odc.homs.listPlugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.tree.TreeNode;
+import kd.bos.form.IFormView;
+import kd.bos.form.control.events.TreeNodeEvent;
+import kd.bos.form.events.BeforeCreateListDataProviderArgs;
+import kd.bos.list.BillList;
+import kd.bos.list.events.BuildTreeListFilterEvent;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.hr.hbp.common.constants.org.OrgTreeDynEnum;
+import kd.hr.hbp.common.util.org.model.OrgTreeModel;
+import kd.hr.hbp.formplugin.web.org.template.AdminOrgTreeListTemplate;
+
+import java.util.*;
+
+/**
+ * @author ningjie
+ * @description 编制行政组织树插件
+ * @DATE 2025/12/19 13:41
+ */
+public class PlanMonthAdminOrgTreeList extends AdminOrgTreeListTemplate {
+
+    public PlanMonthAdminOrgTreeList() {
+        super(new OrgTreeModel(OrgTreeDynEnum.ADMIN_STRUCT.getDynEntity(), OrgTreeDynEnum.ADMIN_MAIN_ENTITY.getDynEntity(), Boolean.FALSE, Boolean.TRUE, Boolean.FALSE));
+    }
+
+    @Override
+    public void initializeTree(EventObject e) {
+        Map<String, Object> customParams = this.getView().getFormShowParameter().getCustomParams();
+        if (customParams.containsKey("orgId")) {
+            long orgId = Long.parseLong(String.valueOf(customParams.get("orgId")));
+            this.hisSubWhereCommonSql.append(" and forgid=" + orgId);
+        }
+        super.initializeTree(e);
+    }
+
+    /**
+     * 将当前点击的树节点传出给父页面
+     *
+     * @param e
+     */
+    @Override
+    public void treeNodeClick(TreeNodeEvent e) {
+        super.treeNodeClick(e);
+        //获取行政组织节点
+        String nodeId = (String) e.getNodeId();
+        this.getView().getPageCache().put("adminId", nodeId);
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs changedArgs) {
+        super.propertyChanged(changedArgs);
+        String name = changedArgs.getProperty().getName();
+        if ("chkincludechild".equals(name)) {
+            this.getView().invokeOperation("refresh");
+        }
+
+    }
+
+    @Override
+    protected QFilter buildNodeClickFilter(BuildTreeListFilterEvent buildTreeListFilterEvent) {
+        if (this.isInCludeChild()) {
+            QFilter focusNodeFilter = new QFilter("adminorg.id", "in", this.getAllOrgBoIdList());
+            return focusNodeFilter;
+        } else {
+            //选中左树节点时过滤出自己组织和下级的数据
+            Object currentNodeId = this.getTreeModel().getCurrentNodeId();
+            TreeNode treeNode = this.getTreeModel().getRoot().getTreeNode(currentNodeId.toString());
+            List<Long> ids = new ArrayList<>();
+            Long parentId = Long.valueOf(currentNodeId.toString());
+            ids.add(parentId);
+            List<TreeNode> children = treeNode.getChildren();
+            if (children != null && !children.isEmpty()) {
+                for (TreeNode child : children) {
+                    ids.add(Long.valueOf(child.getId()));
+                }
+            } else {
+                //获取业务单元
+                DynamicObject bosOrg = BusinessDataServiceHelper.loadSingle(parentId, "bos_org");
+                ids.add(bosOrg.getLong("id"));
+            }
+            QFilter focusNodeFilter = new QFilter("adminorg.id", "in", ids);
+            return focusNodeFilter;
+        }
+    }
+
+    @Override
+    public void beforeCreateListDataProvider(BeforeCreateListDataProviderArgs args) {
+        super.beforeCreateListDataProvider(args);
+        String adminId = this.getView().getPageCache().get("adminId");
+        IFormView view = this.getView();
+//        if (StringUtils.isEmpty(adminId) || "100000".equals(adminId)) {
+//            view.setEnable(false, "${ISV_FLAG}_new");
+//        } else {
+//            DynamicObject adminorghr = BusinessDataServiceHelper.loadSingle(Long.valueOf(adminId), "haos_adminorg");
+//            if (Objects.nonNull(adminorghr)) {
+//                String layer = adminorghr.getDynamicObject("adminorglayer").getString("number");
+//                logger.info("PlanMonthTreeListPlugin编码=" + layer);
+//                if ("99".equals(layer)) {
+//                    view.setEnable(false, "${ISV_FLAG}_new");
+//                } else {
+//                    view.setEnable(true, "${ISV_FLAG}_new");
+//                }
+//            }
+//        }
+        logger.info("PlanMonthTreeListPlugin传给父页面的节点id=" + adminId);
+        ((BillList) args.getSource()).getView().getParentView().getPageCache().put("adminId", adminId);
+    }
+}

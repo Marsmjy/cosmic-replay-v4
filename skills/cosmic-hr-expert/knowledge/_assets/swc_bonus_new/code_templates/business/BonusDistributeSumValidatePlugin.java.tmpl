@@ -1,0 +1,91 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.validate;
+
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.validate.AbstractValidator;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.BonusDistributeSumOperatePlugin;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/7 15:26
+ * FileName: BonusDistributeSumValidatePlugin
+ * Description: 奖金汇总审批单校验器插件
+ */
+public class BonusDistributeSumValidatePlugin extends AbstractValidator {
+
+    public static final String YI_FU_HE = "I"; // 单据状态为"已确认"
+    public static final String DAI_FU_HE = "H"; // 单据状态为"待确认"
+    public static final String DAI_FEN_PEI = "A"; // 单据状态为"待分配"
+
+    @Override
+    public Set<String> preparePropertys() {
+        Set<String> strings = super.preparePropertys();
+        strings.add("billstatus");
+        strings.add("${ISV_FLAG}_distribute_ratio");
+        strings.add("${ISV_FLAG}_approval_no");
+        strings.add("${ISV_FLAG}_sum_approval_id");
+        return strings;
+    }
+
+    @Override
+    public void validate() {
+        String operateKey = this.getOperateKey();
+        // 【确认】
+        if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_COMPOSITE.equals(operateKey)){
+            // 校验当前选择的单据的【分配进度】是否为100
+            checkDistributeRatio();
+        }
+        // 【撤销】
+        else if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_REVOKE.equals(operateKey)){
+            // 校验当前选择的单据的【单据状态】是否为“已确认”
+            checkBillStatus();
+        }
+        // 【生成审批单】
+        else if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_GEN_APPROVAL.equals(operateKey)){
+            // 校验1：仅"关联核定单号"相同的才可以一起下推生成审批单
+            checkSameApprovalBillNo();
+            // 校验2：单据状态为“已确认”才可操作；其他状态下操作，黄色悬浮条提示““已确认”的数据才可执行此操作”
+            checkStatus();
+            // 校验3：判断所选择的单据是否存在已近生成汇总审批单
+            checkRepeatCreate();
+        }
+    }
+
+    private void checkBillStatus() {
+        String distributeRatioErrorMsg = "仅“单据状态”为\"已确认\"的分配汇总单可进行撤销";
+        Arrays.stream(this.getDataEntities()).filter(billStatus -> ! YI_FU_HE.equals(billStatus.getDataEntity().getString("billstatus"))).forEach(dateEntry ->  this.addFatalErrorMessage(dateEntry, distributeRatioErrorMsg));
+    }
+
+    private void checkDistributeRatio() {
+        String distributeRatioErrorMsg = "仅“单据状态”为“待确认”的分配汇总单可进行确认";
+        Arrays.stream(this.getDataEntities())
+                .filter(billStatus -> {
+                    String status = billStatus.getDataEntity().getString("billstatus");
+                    BigDecimal ratio = billStatus.getDataEntity().getBigDecimal("${ISV_FLAG}_distribute_ratio");
+                    BigDecimal ratioDecimal = ObjectUtils.isEmpty(ratio) ? BigDecimal.ZERO : ratio;
+                    return ! (DAI_FU_HE.equals(status) && ratioDecimal.compareTo(BigDecimal.valueOf(1)) == 0);
+                }).forEach(dateEntry -> this.addFatalErrorMessage(dateEntry, distributeRatioErrorMsg));
+    }
+
+    private void checkSameApprovalBillNo() {
+        Set<String> approvalBillNoSet = Arrays.stream(this.getDataEntities()).map(dateEntry -> dateEntry.getDataEntity().getString("${ISV_FLAG}_approval_no")).collect(Collectors.toSet());
+        if(approvalBillNoSet.size() != 1){
+            String errorMsg = "仅同一核定单生成的分配汇总单可进行汇总审批";
+            Arrays.stream(this.getDataEntities()).forEach(dateEntry ->  this.addFatalErrorMessage(dateEntry, errorMsg));
+        }
+    }
+
+    private void checkRepeatCreate() {
+        String repeatErrorMsg = "已生成汇总审批单，请勿重复选择";
+        Arrays.stream(this.getDataEntities()).filter(repeat -> !ObjectUtils.isEmpty(repeat.getDataEntity().getLong("${ISV_FLAG}_sum_approval_id")) && repeat.getDataEntity().getLong("${ISV_FLAG}_sum_approval_id") != 0L).forEach(dateEntry ->  this.addFatalErrorMessage(dateEntry, repeatErrorMsg));
+    }
+
+    private void checkStatus() {
+        String statusErrorMsg = "仅“单据状态”为“已确认”的分配汇总单可进行汇总审批";
+        Arrays.stream(this.getDataEntities()).filter(status -> ! YI_FU_HE.equals(status.getDataEntity().getString("billstatus"))).forEach(dateEntry -> this.addFatalErrorMessage(dateEntry, statusErrorMsg));
+    }
+}

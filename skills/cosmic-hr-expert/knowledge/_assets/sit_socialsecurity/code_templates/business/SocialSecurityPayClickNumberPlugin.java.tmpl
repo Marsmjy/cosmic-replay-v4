@@ -1,0 +1,113 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.resource.ResManager;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.Control;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.operate.formop.Refresh;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.orm.query.QFilter;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.business.servicehelper.HRMServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Author: whs
+ * Date: 2024/3/28 21:10
+ * Description:点击社保档案编码跳转到人员社保档案详情页面
+ */
+public class SocialSecurityPayClickNumberPlugin extends AbstractFormPlugin {
+    @Override
+    public void registerListener(EventObject e) {
+        // 侦听文本字段按钮点击事件
+        this.addClickListeners("${ISV_FLAG}_orginal_number");
+    }
+
+    @Override
+    public void click(EventObject evt) {
+        Control source = (Control)evt.getSource();
+        String key = source.getKey();
+        if ("${ISV_FLAG}_orginal_number".equals(key)){
+                DynamicObject dataEntity = this.getModel().getDataEntity();
+                DynamicObject kdcdPerson = dataEntity.getDynamicObject("${ISV_FLAG}_person");
+                Long pkId = kdcdPerson.getLong("id");
+
+                HRBaseServiceHelper fileHelper = new HRBaseServiceHelper("hcsi_sinsurfile");
+                QFilter qFilter = new QFilter("id", "=", pkId);
+                DynamicObject fileDyObj = fileHelper.loadDynamicObject(qFilter);
+
+            Map<String, String> relateFileIds = queryAllFileRelatedPkId(fileDyObj);
+            Map<String, Object> params = new HashMap(16);
+            params.put("taxregionid", fileDyObj.getLong("manageregion.id"));
+            params.put("businesstype", "20");
+            Map<String, Object> dynFileInfo = HRMServiceHelper.invokeBizService("sit","sitbs", "ISITBSService", "getPageCfgMapByTaxRegionId", new Object[]{params});
+            if (!Objects.isNull(dynFileInfo) && !dynFileInfo.isEmpty()) {
+                if (!Objects.isNull(dynFileInfo.get("cfgid"))) {
+                    FormShowParameter formShowParameter = new FormShowParameter();
+                    formShowParameter.setFormId(String.valueOf(dynFileInfo.get("formid")));
+                    formShowParameter.setPageId(this.getView().getPageId() + pkId);
+                    formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+
+                    String name = fileDyObj.getString("employee.name");
+                    formShowParameter.setCaption(MessageFormat.format(ResManager.loadKDString("人员社保档案 - {0}", "SinsurFileServiceHelper_0", "sit-hcsi-business", new Object[0]), name));
+                    formShowParameter.setCustomParam("employeeId", fileDyObj.get("employee.id"));
+                    formShowParameter.setCustomParam("sinsur_file_id", pkId);
+                    formShowParameter.setCustomParam("cfgid", dynFileInfo.get("cfgid"));
+                    formShowParameter.setCustomParam("mainDataId", fileDyObj.getLong("boid"));
+                    formShowParameter.setCustomParam("mainEntityNumber", "hcsi_sinsurfile");
+                    formShowParameter.setCustomParam("mainStatus", fileDyObj.getString("status"));
+                    formShowParameter.setCustomParam("relateFileIds", relateFileIds);
+                    formShowParameter.setCustomParam("status", fileDyObj.get("status"));
+                    if (HRStringUtils.equals("B", fileDyObj.getString("status"))) {
+                        formShowParameter.setCustomParam("isOnlyView", "true");
+                    }
+                    formShowParameter.setCustomParam("name", name);
+                    this.getView().showForm(formShowParameter);
+                    this.getPageCache().put("openSinsurfile","yes");
+                }
+            }
+        }
+    }
+
+    public static Map<String, String> queryAllFileRelatedPkId(DynamicObject fileDy) {
+        Map<String, String> result = new HashMap(8);
+        result.put("hcsi_sinsurfile", fileDy.getString("id"));
+        DynamicObject welfarePayer = fileDy.getDynamicObject("welfarepayer");
+        DynamicObject placeOfWelfare = welfarePayer.getDynamicObject("placeofwelfare");
+        if (Objects.nonNull(placeOfWelfare)) {
+            result.put("hcsi_sinsurperson", placeOfWelfare.getString("id"));
+            DynamicObject fileSinSurStd = fileDy.getDynamicObject("sinsurstd");
+            if (fileSinSurStd != null) {
+                result.put("hcsi_sinsurfilestd", fileSinSurStd.getString("id"));
+            }
+        }
+        return result;
+    }
+
+    public static void addHisCurrFilter(QFilter filter) {
+        if (filter != null) {
+            QFilter newFilter = new QFilter("iscurrentversion", "=", "1");
+            newFilter.and("datastatus", "not in", Arrays.asList("-1", "-2", "-4"));
+            filter.and(newFilter);
+        }
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        String openSinsurfile = this.getPageCache().get("openSinsurfile");
+        Object source = args.getSource();
+        if ("yes".equals(openSinsurfile) && source instanceof Refresh){
+            this.getPageCache().remove("openSinsurfile");
+            args.setCancel(true);
+        }
+    }
+}

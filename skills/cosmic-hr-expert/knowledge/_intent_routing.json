@@ -1,0 +1,2163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "1.1.0",
+    "created_at": "2026-05-02",
+    "purpose": "业务意图路由表 · 输入用户描述 → 输出按优先级排序的候选场景。v3 工程的护城河之一。",
+    "intent_count": 78,
+    "covered_clouds": [
+      "org_dev",
+      "core_hr",
+      "hr_hrmp",
+      "swc",
+      "wtc"
+    ],
+    "data_source": "knowledge/scenarios/ 198 场景 + _v5_audit/depth_audit_per_scene.json (180A/13B/5C/0D)",
+    "schema_ref": "v3_rewrite_plan/specs/knowledge_schema_extension.md §4",
+    "next_step": "v3.1 加更多意图 + LLM 辅助生成更多 synonyms + 引用 _antipatterns.json AP-IDs",
+    "last_updated": "2026-05-07",
+    "last_updated_by": "v1.0.6 撤销对 hbp_histimeseqtpl 的错误禁令",
+    "total_intents": 78
+  },
+  "intents": {
+    "组织批量导入": {
+      "synonyms": [
+        "组织批量录入",
+        "组织批量上传",
+        "组织批量变更",
+        "批量导入组织",
+        "Excel 导入组织",
+        "批量建组织"
+      ],
+      "candidates": [
+        {
+          "scene": "hies_entity_import",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "苍穹 HR 标品零代码导入·适合所有批量导入需求"
+        },
+        {
+          "scene": "homs_orgbatchchgbill_maintenance",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "标品组织调整申请·自带批量录入·适合中小批量+审批流"
+        },
+        {
+          "scene": "haos_adminorgdetail",
+          "priority": 3,
+          "confidence": 0.65,
+          "note": "单组织维护·配合上面批量"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "组织变更通知下游云": {
+      "synonyms": [
+        "组织变动同步外系统",
+        "组织变更下游消费",
+        "组织变更 BEC 事件",
+        "组织变更触发 ERP",
+        "组织变更广播"
+      ],
+      "candidates": [
+        {
+          "scene": "homs_orgbatchchgbill_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品已发 BEC 事件 · ISV 订阅消费即可"
+        },
+        {
+          "scene": "homs_orgchgrecord",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "组织变动明细查询·BEC 事件来源"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "组织维护": {
+      "synonyms": [
+        "组织建立",
+        "建组织",
+        "组织修改",
+        "改组织",
+        "行政组织维护",
+        "组织树调整"
+      ],
+      "candidates": [
+        {
+          "scene": "haos_adminorgdetail",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品组织快速维护·主表"
+        },
+        {
+          "scene": "admin_org_quick_maintenance",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "标杆场景·完整 11md 文档"
+        },
+        {
+          "scene": "haos_structure_maintenance",
+          "priority": 3,
+          "confidence": 0.75,
+          "note": "矩阵组织维护·跨业线场景"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "组织历史查询": {
+      "synonyms": [
+        "组织变动历史",
+        "组织历史明细",
+        "组织时态查询",
+        "组织过去版本"
+      ],
+      "candidates": [
+        {
+          "scene": "haos_adminorghis",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品组织历史查询·HisModel 时态视图"
+        },
+        {
+          "scene": "homs_orgchgrecord",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "组织变动明细·按变动事件查询"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "矩阵组织": {
+      "synonyms": [
+        "matrix 组织",
+        "矩阵架构",
+        "矩阵管理",
+        "项目组织",
+        "横向组织"
+      ],
+      "candidates": [
+        {
+          "scene": "haos_structure_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "矩阵组织主维护 · 业务核心"
+        },
+        {
+          "scene": "haos_structproject",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "矩阵组织设置·项目维度"
+        },
+        {
+          "scene": "haos_structtype",
+          "priority": 3,
+          "confidence": 0.75,
+          "note": "矩阵架构类型基础资料"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "岗位维护": {
+      "synonyms": [
+        "岗位建立",
+        "建岗位",
+        "岗位修改",
+        "岗位树",
+        "岗位维护",
+        "岗位信息"
+      ],
+      "candidates": [
+        {
+          "scene": "hbpm_position_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品岗位信息维护·业务核心"
+        },
+        {
+          "scene": "hbpm_positionhr",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "岗位主表"
+        },
+        {
+          "scene": "hbpm_stposition",
+          "priority": 3,
+          "confidence": 0.75,
+          "note": "标准岗位维护·岗位库"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工档案加字段": {
+      "synonyms": [
+        "hrpi 加字段",
+        "员工信息加字段",
+        "员工档案加字段",
+        "员工档案加属性",
+        "员工档案扩展",
+        "我要给员工档案加",
+        "档案 ISV 字段",
+        "档案加字段",
+        "档案扩展",
+        "档案扩展字段",
+        "档案自定义字段",
+        "紧急联系人",
+        "紧急联系人字段",
+        "给员工档案加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_employee",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "ISV 扩展员工档案 · 业务个性化字段"
+        },
+        {
+          "scene": "core_hr_employee_resume",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "员工简历子表 · 履历类信息"
+        }
+      ],
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "default_recommendation_priority": 1,
+      "inherits": "MODEL_TOOL_FIRST",
+      "primary_solution_type": "model_tool_config"
+    },
+    "员工入职": {
+      "synonyms": [
+        "新员工",
+        "入职登记",
+        "入职单",
+        "onboarding",
+        "新人入职"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_onboard",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品员工入职"
+        },
+        {
+          "scene": "core_hr_assignment",
+          "priority": 2,
+          "confidence": 0.8,
+          "note": "任职信息·入职后建任职"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工离职": {
+      "synonyms": [
+        "离职",
+        "解除劳动合同",
+        "终止合同",
+        "退工",
+        "员工退场"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_quit",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品员工离职"
+        },
+        {
+          "scene": "core_hr_contract_termination",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "合同终止"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工调动": {
+      "synonyms": [
+        "transfer",
+        "调岗",
+        "调部门",
+        "异动",
+        "员工异动"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_transfer",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品员工调动"
+        },
+        {
+          "scene": "core_hr_transferout_in",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "调入调出"
+        },
+        {
+          "scene": "core_hr_infochange",
+          "priority": 3,
+          "confidence": 0.8,
+          "note": "信息变更"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工合同": {
+      "synonyms": [
+        "劳动合同",
+        "签合同",
+        "续签",
+        "合同变更",
+        "合同管理"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_contractinfo",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品劳动合同信息"
+        },
+        {
+          "scene": "core_hr_contract",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "合同主场景"
+        },
+        {
+          "scene": "core_hr_econtract",
+          "priority": 3,
+          "confidence": 0.8,
+          "note": "电子合同"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工任职": {
+      "synonyms": [
+        "任职信息",
+        "任职关系",
+        "兼职",
+        "任命"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_assignment",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品任职信息·主任职"
+        },
+        {
+          "scene": "core_hr_assignmentmag",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "任职管理·包含子表"
+        },
+        {
+          "scene": "core_hr_appointremoverel",
+          "priority": 3,
+          "confidence": 0.75,
+          "note": "任免关系"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工变动协作下游云": {
+      "synonyms": [
+        "变动协作",
+        "变动通知下游",
+        "变动派发",
+        "EmployeeCoord",
+        "人员变动同步"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_change_collab_overview",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "员工变动协作总览·5 子场景"
+        },
+        {
+          "scene": "core_hr_change_collab_payroll",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "薪酬侧协作"
+        },
+        {
+          "scene": "core_hr_change_collab_attendance",
+          "priority": 3,
+          "confidence": 0.9,
+          "note": "考勤侧协作"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "黑名单": {
+      "synonyms": [
+        "黑名单管理",
+        "禁聘名单",
+        "blacklist"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_blacklist",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品黑名单聚合派生视图"
+        },
+        {
+          "scene": "core_hr_blacklist_reasons",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "黑名单原因配置"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪资档案": {
+      "synonyms": [
+        "薪资档案",
+        "薪酬档案",
+        "员工薪资",
+        "工资档案"
+      ],
+      "candidates": [
+        {
+          "scene": "hsas_salaryfilelisttab",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "薪资档案 list view"
+        },
+        {
+          "scene": "hsas_calplatformcard",
+          "priority": 2,
+          "confidence": 0.75,
+          "note": "薪资专员工作台·处理入口"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "算薪人员维护": {
+      "synonyms": [
+        "计薪人员",
+        "算薪范围",
+        "员工算薪",
+        "薪资人员"
+      ],
+      "candidates": [
+        {
+          "scene": "hsbs_employeequerylist",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品计薪人员"
+        },
+        {
+          "scene": "hsas_personchange",
+          "priority": 2,
+          "confidence": 0.8,
+          "note": "人员变动记录·写入算薪范围的事件源"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪酬项目": {
+      "synonyms": [
+        "薪酬项",
+        "工资项",
+        "薪酬科目",
+        "薪资项目"
+      ],
+      "candidates": [
+        {
+          "scene": "hsbs_salaryitem",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品薪酬项目主表 (A 类)"
+        },
+        {
+          "scene": "hcdm_salarystandard",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "薪酬标准表·定义薪酬项标准值"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪资期间": {
+      "synonyms": [
+        "薪资周期",
+        "薪期",
+        "工资周期",
+        "薪资月份"
+      ],
+      "candidates": [
+        {
+          "scene": "hsbs_calperiodtype",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品薪资期间配置"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪资回溯": {
+      "synonyms": [
+        "回溯",
+        "重算",
+        "薪资追溯",
+        "补发",
+        "薪资追算"
+      ],
+      "candidates": [
+        {
+          "scene": "hsas_retroevent",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品薪资回溯事件触发器"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工个税": {
+      "synonyms": [
+        "个税",
+        "个人所得税",
+        "个税信息",
+        "员工税"
+      ],
+      "candidates": [
+        {
+          "scene": "hsas_employeetaxcnlist",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "员工个税信息（中国）"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪酬结构": {
+      "synonyms": [
+        "薪酬设计",
+        "薪酬体系",
+        "薪酬标准",
+        "薪酬带宽"
+      ],
+      "candidates": [
+        {
+          "scene": "hcdm_salarystandard",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品薪酬标准表 (A 类·116 字段)"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪酬变动协作": {
+      "synonyms": [
+        "薪酬人员变动",
+        "薪酬接收变动",
+        "薪酬协作"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_change_collab_payroll",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "核心人力 → 薪酬云协作场景·EmployeeCoordTask"
+        },
+        {
+          "scene": "hsas_personchange",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "下游云接收的人员变动记录"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "考勤档案": {
+      "synonyms": [
+        "考勤主档",
+        "员工考勤档案",
+        "考勤员工"
+      ],
+      "candidates": [
+        {
+          "scene": "wtp_attfilebase",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "考勤档案真主表 (A 类·73 字段·v5.1 标杆)"
+        },
+        {
+          "scene": "wtp_attfilebasetab",
+          "priority": 2,
+          "confidence": 0.75,
+          "note": "考勤档案 list view"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "排班": {
+      "synonyms": [
+        "排班计划",
+        "倒班",
+        "排班管理",
+        "员工排班"
+      ],
+      "candidates": [
+        {
+          "scene": "wts_rosterview",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品按人员排班"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "班次": {
+      "synonyms": [
+        "班次设置",
+        "班次定义",
+        "工作时段"
+      ],
+      "candidates": [
+        {
+          "scene": "wtbd_shift",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品班次基础资料 (A 类·76 字段)"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "考勤核算": {
+      "synonyms": [
+        "考勤计算",
+        "考勤汇总",
+        "考勤结果",
+        "出勤核算"
+      ],
+      "candidates": [
+        {
+          "scene": "wtte_calresult",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "考勤核算结果"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "假期管理": {
+      "synonyms": [
+        "假期",
+        "请假",
+        "休假",
+        "假期类型",
+        "leave"
+      ],
+      "candidates": [
+        {
+          "scene": "wtbd_holiday",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品假期类型基础资料"
+        },
+        {
+          "scene": "wtabm_vaapplyself",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "员工休假申请单"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "加班申请": {
+      "synonyms": [
+        "加班",
+        "overtime",
+        "加班单"
+      ],
+      "candidates": [
+        {
+          "scene": "wtom_overtimeapplybill",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "代他人加班申请单"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "出差申请": {
+      "synonyms": [
+        "出差",
+        "business trip",
+        "出差单"
+      ],
+      "candidates": [
+        {
+          "scene": "wtam_busitripbill",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "代他人出差申请单"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "工作日历": {
+      "synonyms": [
+        "工作日程表",
+        "日历",
+        "排班日历",
+        "工作日"
+      ],
+      "candidates": [
+        {
+          "scene": "wtbd_workschedule",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品工作日程表"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "考勤变动协作": {
+      "synonyms": [
+        "考勤人员变动",
+        "考勤接收变动",
+        "考勤协作"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_change_collab_attendance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "核心人力 → 考勤云协作场景·WtcEmployeeCoordTask"
+        },
+        {
+          "scene": "wtp_attfilebase",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "下游云接收的考勤档案"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "权限管理": {
+      "synonyms": [
+        "权限",
+        "perm",
+        "角色",
+        "授权",
+        "用户授权"
+      ],
+      "candidates": [
+        {
+          "scene": "hrcs_useradmingroup",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "HR 管理员组"
+        },
+        {
+          "scene": "hrcs_rolelist",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "角色管理"
+        },
+        {
+          "scene": "hrcs_permfilelist",
+          "priority": 3,
+          "confidence": 0.85,
+          "note": "用户授权"
+        },
+        {
+          "scene": "hrcs_datarule",
+          "priority": 4,
+          "confidence": 0.8,
+          "note": "数据规则"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "数据导入导出": {
+      "synonyms": [
+        "导入",
+        "导出",
+        "Excel 导入",
+        "Excel 导出",
+        "批量导入",
+        "批量导出",
+        "import",
+        "export"
+      ],
+      "candidates": [
+        {
+          "scene": "hies_entity_import",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "苍穹 HR 标品零代码导入"
+        },
+        {
+          "scene": "hies_multientry_tpl",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "多分录模板·适合复杂数据导入"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "数据规则": {
+      "synonyms": [
+        "data rule",
+        "数据权限",
+        "数据范围",
+        "数据隔离"
+      ],
+      "candidates": [
+        {
+          "scene": "hrcs_datarule",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品数据规则配置"
+        },
+        {
+          "scene": "hrcs_dimension",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "维度管理·数据规则的维度"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "活动配置": {
+      "synonyms": [
+        "activity",
+        "业务活动",
+        "活动定义"
+      ],
+      "candidates": [
+        {
+          "scene": "hrcs_activity",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品活动配置"
+        },
+        {
+          "scene": "hrcs_activityscheme",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "活动方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "预警管理": {
+      "synonyms": [
+        "预警",
+        "告警",
+        "warning",
+        "提醒",
+        "通知"
+      ],
+      "candidates": [
+        {
+          "scene": "hrcs_warnscene",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品预警场景配置"
+        },
+        {
+          "scene": "hrcs_warnscheme",
+          "priority": 2,
+          "confidence": 0.9,
+          "note": "预警方案"
+        },
+        {
+          "scene": "hrcs_warnexeclog",
+          "priority": 3,
+          "confidence": 0.8,
+          "note": "预警执行日志"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "编制管理": {
+      "synonyms": [
+        "编制管理",
+        "组织编制",
+        "人员编制控制",
+        "headcount",
+        "headcount 管理",
+        "编制控制"
+      ],
+      "candidates": [
+        {
+          "scene": "hbss_headcount_management",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·编制管理（53 EP·dgdl 派生）"
+        },
+        {
+          "scene": "org_dev_headcount_management",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "标品 org_dev 派生场景·原生编制"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "组织结构图": {
+      "synonyms": [
+        "组织图",
+        "orgchart",
+        "组织树视图",
+        "组织可视化"
+      ],
+      "candidates": [
+        {
+          "scene": "homs_orgchart_new",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "标品行政组织结构图"
+        },
+        {
+          "scene": "homs_positionrelation",
+          "priority": 2,
+          "confidence": 0.8,
+          "note": "岗位关系图"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "合同续签批量处理": {
+      "synonyms": [
+        "合同续签",
+        "续签批量",
+        "labor contract renew batch",
+        "批量续签合同",
+        "合同到期续签"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_contract",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "聚合场景·含 hlcm_contractapplyrenew 等 6 entity·主反哺路径（来源 case_002 真 ISV 实战 ${ISV_FLAG}_hlcm_renewbatch）"
+        },
+        {
+          "scene": "core_hr_contractinfo",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "合同信息子表·续签后写人员档案 hrpi_contractinfo·下游"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "成建制划转": {
+      "synonyms": [
+        "成建制划转",
+        "批量调动",
+        "成建制人事变动",
+        "组织上级调整批量改任职",
+        "组织更名同步任职经历",
+        "岗位更名同步任职经历",
+        "调度任务消费组织变更记录",
+        "成建制划转资产复刻",
+        "做一套成建制划转",
+        "做成建制划转给客户"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_org_unit_transfer",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/org_unit_transfer",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案·docx v1.0 + dcs_clean v1.5 实证"
+        },
+        {
+          "scene": "homs_orgchgrecord",
+          "priority": 2,
+          "confidence": 0.7,
+          "type": "consumed_form_only",
+          "note": "成建制划转 A/B 数据源·单独看本场景只能做加筛选排序等扩展"
+        },
+        {
+          "scene": "haos_changescene",
+          "priority": 3,
+          "confidence": 0.6,
+          "type": "consumed_form_only",
+          "note": "变动场景编码字典·扩展新编码用此场景"
+        },
+        {
+          "scene": "core_hr_transfer",
+          "priority": 4,
+          "confidence": 0.5,
+          "type": "alternative",
+          "note": "单据驱动调动·非批量·适合单人调动场景"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "合同续签": {
+      "synonyms": [
+        "合同续签",
+        "批量续签",
+        "合同到期续约",
+        "劳动合同到期处理",
+        "合同批量延期",
+        "合同到期前批量处理",
+        "合同自动续签",
+        "做一套合同续签",
+        "做合同续签给客户",
+        "合同续签资产复刻"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_contract_renew",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/contract_renew_batch",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        },
+        {
+          "scene": "core_hr_contract",
+          "priority": 2,
+          "confidence": 0.49999999999999994,
+          "type": "consumed_form_only",
+          "note": "被资产消费的场景·单独看本场景能做扩展但不能整体复刻"
+        },
+        {
+          "scene": "hlcm_contractapplyrenew",
+          "priority": 3,
+          "confidence": 0.4,
+          "type": "consumed_form_only",
+          "note": "被资产消费的场景·单独看本场景能做扩展但不能整体复刻"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "员工汇报关系图": {
+      "synonyms": [
+        "员工汇报关系图",
+        "组织架构图",
+        "上下级关系展示",
+        "直属上级查看",
+        "员工视角组织树",
+        "做一套汇报关系图"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_emp_super_rel_chart",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/emp_super_rel_chart",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        },
+        {
+          "scene": "hspm_ermanfile",
+          "priority": 2,
+          "confidence": 0.49999999999999994,
+          "type": "consumed_form_only",
+          "note": "被资产消费的场景·单独看本场景能做扩展但不能整体复刻"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "组织信息变更审核": {
+      "synonyms": [
+        "组织信息变更审核",
+        "变更前后信息展示",
+        "组织变更对照表",
+        "审核组织变更详情",
+        "做一套组织变更审核"
+      ],
+      "candidates": [
+        {
+          "scene": "org_dev_adminorgbill_extension",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/adminorgbill_extension",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        },
+        {
+          "scene": "homs_orgbatchchgbill_maintenance",
+          "priority": 2,
+          "confidence": 0.49999999999999994,
+          "type": "consumed_form_only",
+          "note": "被资产消费的场景·单独看本场景能做扩展但不能整体复刻"
+        },
+        {
+          "scene": "haos_adminorgdetail",
+          "priority": 3,
+          "confidence": 0.4,
+          "type": "consumed_form_only",
+          "note": "被资产消费的场景·单独看本场景能做扩展但不能整体复刻"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "银行卡变更": {
+      "synonyms": [
+        "银行卡变更",
+        "银行卡修改",
+        "工资卡变更",
+        "做一套银行卡变更",
+        "移动端银行卡变更"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_bankcardchange",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/bankcardchange",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "计算前校验": {
+      "synonyms": [
+        "计算前校验",
+        "在途单据校验",
+        "薪资计算前置校验",
+        "做一套计算前校验"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_beforecomputationcheck",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/beforecomputationcheck",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "人员履历打印": {
+      "synonyms": [
+        "人员履历打印",
+        "员工档案Word导出",
+        "履历模板",
+        "做一套履历打印"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_downermanfileword",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/downermanfileword",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "社保代缴": {
+      "synonyms": [
+        "社保代缴",
+        "社保代缴单",
+        "社保托管",
+        "做一套社保代缴"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_sit_socialsecurity",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/sit_socialsecurity",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "移动端薪资审批": {
+      "synonyms": [
+        "移动端薪资审批",
+        "薪资移动审批",
+        "做一套薪资审批"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_swc_salaryapproval",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/swc_salaryapproval",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "婚假核验": {
+      "synonyms": [
+        "婚假核验",
+        "婚假有效期",
+        "婚假申请校验",
+        "做一套婚假核验"
+      ],
+      "candidates": [
+        {
+          "scene": "attendance_wtc_marriageverify",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/wtc_marriageverify",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "排班周期封存校验": {
+      "synonyms": [
+        "排班周期封存校验",
+        "考勤周期封存",
+        "封存后禁提交",
+        "做一套封存校验"
+      ],
+      "candidates": [
+        {
+          "scene": "attendance_wtc_roster",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/wtc_roster",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "奖金管理": {
+      "synonyms": [
+        "奖金管理",
+        "奖金计划",
+        "奖金发放",
+        "奖金审批",
+        "绩效奖金",
+        "奖金分配",
+        "做一套奖金管理"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_swc_bonus_new",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/swc_bonus_new",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "信息采集校验": {
+      "synonyms": [
+        "信息采集校验",
+        "采集规则配置",
+        "字段校验配置",
+        "做一套采集校验"
+      ],
+      "candidates": [
+        {
+          "scene": "org_dev_home_check_rule",
+          "priority": 1,
+          "confidence": 0.95,
+          "type": "business_flow_aggregate_with_asset",
+          "asset_ref": "_assets/home_check_rule",
+          "note": "完整业务流型聚合场景 + 一键资产复刻·首选方案"
+        }
+      ],
+      "antipattern_ids": [],
+      "asset_replicate_intent": true,
+      "default_recommendation_priority": 1
+    },
+    "组织调整单扩展": {
+      "synonyms": [
+        "组织调整单",
+        "行政组织调整单",
+        "homs_adminorgbill 扩展",
+        "组织调整单插件"
+      ],
+      "candidates": [
+        {
+          "scene": "org_dev_adminorgbill_extension",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·组织调整单完整扩展（5 EP）"
+        },
+        {
+          "scene": "homs_orgbatchchgbill_maintenance",
+          "priority": 2,
+          "confidence": 0.6,
+          "note": "标品组织调整单·原生维护"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工档案 word 导出": {
+      "synonyms": [
+        "档案 word 导出",
+        "档案 word",
+        "员工档案 word",
+        "人事档案 word",
+        "档案 word 模板",
+        "word 模板导出"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_downermanfileword",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·员工档案 word 导出（含 8 EP）"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "首页规则校验": {
+      "synonyms": [
+        "首页规则校验",
+        "工作台规则",
+        "首页校验规则",
+        "工作台校验",
+        "首页规则"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_home_check_rule",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·首页规则校验（核心人力 hom 应用）"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "社保管理": {
+      "synonyms": [
+        "社保管理",
+        "社保",
+        "五险一金",
+        "社保信息维护",
+        "社保扩展",
+        "social security"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_sit_socialsecurity",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·社保管理（15 EP）"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "奖金核算": {
+      "synonyms": [
+        "奖金核算",
+        "奖金管理新版",
+        "奖金发放",
+        "奖金计算",
+        "奖金扩展",
+        "swc 奖金"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_swc_bonus_new",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·奖金新版（55 EP·swc 巨型）"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "薪酬审批": {
+      "synonyms": [
+        "薪酬审批",
+        "工资审批",
+        "薪酬审批流程",
+        "薪酬审核"
+      ],
+      "candidates": [
+        {
+          "scene": "payroll_swc_salaryapproval",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·薪酬审批扩展"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "考勤花名册": {
+      "synonyms": [
+        "考勤花名册",
+        "考勤员工清单",
+        "考勤花名册维护",
+        "wtc 花名册"
+      ],
+      "candidates": [
+        {
+          "scene": "attendance_wtc_roster",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "ISV 资产·考勤花名册"
+        }
+      ],
+      "antipattern_ids": [],
+      "default_recommendation_priority": 1
+    },
+    "员工档案加附表": {
+      "synonyms": [
+        "hrpi_employee 主表",
+        "hrpi_employee 主表加",
+        "主表加 entry",
+        "主表加证书",
+        "体检附表",
+        "健康附表",
+        "加附表",
+        "员工加证书附表",
+        "员工加附表",
+        "员工档案加",
+        "员工档案加 entry",
+        "员工档案加子表",
+        "员工档案加附表",
+        "员工档案扩展字段",
+        "员工档案附表",
+        "我要在 hrpi_employee 主表加",
+        "我要给员工档案加附表",
+        "教育附表",
+        "档案加体检",
+        "档案加健康",
+        "档案加子表",
+        "档案加教育",
+        "档案加紧急联系人",
+        "档案加证书",
+        "档案附表",
+        "添加员工档案附表",
+        "证书附表"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_employee",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "员工档案加 entry 字段·走 CS-01"
+        },
+        {
+          "scene": "core_hr_archive_my",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "我的档案 entry 扩展"
+        }
+      ],
+      "antipattern_ids": [
+        "AP-021",
+        "AP-022"
+      ],
+      "default_recommendation_priority": 1,
+      "must_read_first": [
+        "docs/PPT03_DEEP_TRACE.md#L239",
+        "docs/PPT03_DEEP_TRACE.md#L108",
+        "docs/PPT03_DEEP_TRACE.md#L276"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "if_user_pushes_isv_code": "提示用户先看 PPT03 第 11 节官方案例·确认为何需要 ISV 编码而非业务模型工具",
+      "inherits": "MODEL_TOOL_FIRST"
+    },
+    "调动后自动反写档案": {
+      "synonyms": [
+        "调动后自动生成档案变更记录",
+        "调动写档案",
+        "调动反写",
+        "调动自动生成档案",
+        "transferEffectOp",
+        "调动 chgaction"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_pfs_chgrecord",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "chgaction 引擎标品·零代码配置 hpfs_chgaction + filemapmanager"
+        },
+        {
+          "scene": "core_hr_transfer",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "调动单据本身·配 chgaction 入口"
+        }
+      ],
+      "antipattern_ids": [
+        "AP-019"
+      ],
+      "default_recommendation_priority": 1
+    },
+    "行政组织加字段": {
+      "synonyms": [
+        "haos_adminorg 加字段",
+        "我要给行政组织加",
+        "注册地址字段",
+        "组织加字段",
+        "组织加属性",
+        "组织加注册地址",
+        "组织实体加字段",
+        "组织扩展字段",
+        "组织维护加字段",
+        "给组织加字段",
+        "给行政组织加",
+        "行政组织加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "admin_org_quick_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具配置化·调整行政组织实体属性·0 行 Java"
+        },
+        {
+          "scene": "haos_adminorgdetail",
+          "priority": 2,
+          "confidence": 0.8,
+          "note": "标品行政组织维护·配置入口"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT02_DEEP_TRACE.md#L215"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "组织调整单加字段": {
+      "synonyms": [
+        "homs_adminorgbill 加字段",
+        "审批意见分录",
+        "我要给行政组织调整申请单加",
+        "组织变更单加字段",
+        "组织调整单加分录",
+        "组织调整单加字段",
+        "组织调整单加审批意见",
+        "组织调整单扩展",
+        "组织调整申请单加分录",
+        "组织调整申请单加字段",
+        "给组织调整单加"
+      ],
+      "candidates": [
+        {
+          "scene": "homs_orgbatchchgbill_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→组织调整申请单调整属性·0 行 Java"
+        },
+        {
+          "scene": "org_dev_adminorgbill_extension",
+          "priority": 2,
+          "confidence": 0.8,
+          "note": "ISV 资产·组织调整单扩展（仅在模型工具不够时用）"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT02_DEEP_TRACE.md#L215"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "岗位加字段": {
+      "synonyms": [
+        "hbpm_position 加字段",
+        "岗位加字段",
+        "岗位实体加字段",
+        "岗位扩展",
+        "岗位说明书",
+        "岗位说明书附件",
+        "我要给岗位加",
+        "给岗位加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "hbpm_position_maintenance",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→调整岗位实体属性·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "职位职级加字段": {
+      "synonyms": [
+        "hbjm 加字段",
+        "我要给职位加",
+        "给职位加字段",
+        "职位加字段",
+        "职位序列",
+        "职位扩展",
+        "职等加字段",
+        "职级加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "hbjm_joblevelhr",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具通用配置·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "入职单加字段": {
+      "synonyms": [
+        "hom_onboard 加字段",
+        "入职办理单加字段",
+        "入职单加字段",
+        "入职单加年龄",
+        "入职单扩展",
+        "入职单调整属性",
+        "入职须知字段",
+        "年龄自动计算字段",
+        "我要给入职办理单加",
+        "我要给入职单加",
+        "自定义入职须知"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_apply_emp",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→入职单调整属性·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT03_DEEP_TRACE.md#L276"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "调动单加分录": {
+      "synonyms": [
+        "hdm_transfer 加字段",
+        "原因明细分录",
+        "我要在调动单上加",
+        "给调动单加",
+        "调动单加 entry",
+        "调动单加分录",
+        "调动单加字段",
+        "调动原因明细"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_transfer",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→调动单添加分录·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "转正单加字段": {
+      "synonyms": [
+        "转正单加字段",
+        "转正单扩展",
+        "转正单加分录",
+        "hreg 加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_apply_base",
+          "priority": 1,
+          "confidence": 0.85,
+          "note": "HR 业务模型工具→转正单添加分录/调整属性"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "兼职单加字段": {
+      "synonyms": [
+        "兼职单加字段",
+        "兼职单扩展",
+        "hdm_parttime 加字段"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_apply_base",
+          "priority": 1,
+          "confidence": 0.85,
+          "note": "HR 业务模型工具→兼职单调整属性"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "离职单加分录": {
+      "synonyms": [
+        "htm_quit 加字段",
+        "我要给离职单加",
+        "离职单加分录",
+        "离职单加字段",
+        "离职单扩展",
+        "竞业限制",
+        "竞业限制条款",
+        "给离职单加"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_quit",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→离职单添加分录·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "候选人加附表": {
+      "synonyms": [
+        "候选人加字段",
+        "候选人加附表",
+        "候选人扩展",
+        "候选人教育经历",
+        "我要给候选人加",
+        "招聘加附表",
+        "教育经历附表",
+        "给候选人加"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_employee_resume",
+          "priority": 1,
+          "confidence": 0.85,
+          "note": "HR 业务模型工具→候选人加附表·选 6 大模板"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT03_DEEP_TRACE.md#L108"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "合同档案加字段": {
+      "synonyms": [
+        "hlcm_contract 加字段",
+        "合同加字段",
+        "合同档案加字段",
+        "合同档案扩展",
+        "合同违约金",
+        "我要给合同档案加",
+        "给合同档案加",
+        "违约金字段"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_contract",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→合同档案调整属性·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT05_DEEP_TRACE.md#L200"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "合同申请单加字段": {
+      "synonyms": [
+        "hlcm_contractapplyrenew 加字段",
+        "合同申请单加分录",
+        "合同申请单加字段",
+        "我要给合同申请单加",
+        "给合同申请单加",
+        "续签单加分录"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_contract_renew",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→合同申请单调整属性"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT05_DEEP_TRACE.md#L200"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "单据档案字段映射": {
+      "synonyms": [
+        "单据档案映射",
+        "字段映射",
+        "单据档案字段映射",
+        "filemap",
+        "单据-档案映射"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_pfs_chgrecord",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "HR 业务模型工具→关联档案配置→添加映射·0 行 Java"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT05_DEEP_TRACE.md#L200"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "外系统集成": {
+      "synonyms": [
+        "外系统集成",
+        "钉钉单点登录",
+        "钉钉登录",
+        "我要在员工档案上集成钉钉",
+        "集成钉钉",
+        "OA 集成",
+        "电子签集成",
+        "外部系统对接"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_employee",
+          "priority": 2,
+          "confidence": 0.5,
+          "note": "苍穹平台 OpenAPI + BEC 订阅"
+        }
+      ],
+      "must_read_first": [],
+      "primary_solution_type": "platform_native",
+      "antipattern_ids": [],
+      "default_recommendation_priority": 2
+    },
+    "任职信息加附表": {
+      "synonyms": [
+        "任职信息加附表",
+        "任职加附表",
+        "任职信息扩展",
+        "我要给任职信息加",
+        "给任职信息加",
+        "任职附表",
+        "任职信息加 entry",
+        "培训记录附表",
+        "任职培训记录",
+        "assigntpl",
+        "hrpi_assignment 加附表"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_assignment",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 业务模型工具→任职信息加附表·选 hrpi_assigntpl 类模板"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT03_DEEP_TRACE.md#L108"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    },
+    "新建人事单据": {
+      "synonyms": [
+        "新建人事单据",
+        "新增人事单据",
+        "新建单据",
+        "添加单据",
+        "做一个单据",
+        "做一个新单据",
+        "我要做一个单据",
+        "退休单",
+        "退休办理单",
+        "退休管理",
+        "退休单据",
+        "添加退休单",
+        "新建退休单",
+        "做退休单",
+        "做退休管理",
+        "借调单",
+        "外派单",
+        "停薪留职单",
+        "自定义人事单据",
+        "自建人事单据"
+      ],
+      "candidates": [
+        {
+          "scene": "core_hr_pfs_chgrecord",
+          "priority": 1,
+          "confidence": 0.9,
+          "note": "首选·HR 业务模型工具→chgaction 定义动作（hpfs_chgaction）+ filemapmanager·人员变动事件标准·0 代码"
+        },
+        {
+          "scene": "core_hr_quit",
+          "priority": 2,
+          "confidence": 0.7,
+          "note": "次选·若退休属于离职变种·扩展标品 htm_quit 调整属性·复用现成审批流"
+        },
+        {
+          "scene": "core_hr_apply_base",
+          "priority": 3,
+          "confidence": 0.7,
+          "note": "末选·HR 业务模型工具→新建人事单据·按 PPT01:155 三档铁律选模板：①业务领域→②hbp 6 大通用（含 hbp_histimeseqtpl）→③平台基础"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112",
+        "docs/PPT01_DEEP_TRACE.md#L160",
+        "docs/CHGACTION_DEEP_TRACE.md",
+        "knowledge/scenarios/core_hr_pfs_chgrecord/06_customization_solutions.md"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-022",
+        "AP-023",
+        "AP-025",
+        "AP-026",
+        "AP-027"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1,
+      "notes_for_llm": [
+        "PPT01:155 模板继承铁律：①业务领域模板（htm_quit/hom_onboard/hpfs_*）→②hbp 通用 6 大模板→③平台基础。**必须逐档评估**，不能跳过①直接选②",
+        "退休单模板选型：路径A=复用htm_quit扩展（推荐·继承审批流/状态机）→路径B=继承hbp_histimeseqtpl（合法第②档）→路径C=从零建",
+        "退休/调动/入职/转正/离职 等人员变动 → 优先评估 chgaction 路径（hpfs_chgaction + filemapmanager + fieldrelation）",
+        "【禁止】输出任何具体公式函数名——包括 YEARFRAC/DATEDIF/DATEDIFF/YEAR/MONTH/IF/ABS/ROUND 等。不是Excel！苍穹公式引擎函数名未知。只描述业务逻辑·让用户在公式编辑器'插入函数'菜单查",
+        "【禁止】在公式中用 {ISV}_xxx 占位符写伪代码——如 '退休时年龄 = YEARFRAC({ISV}_birthdate, {ISV}_retiredate)' 这种写法直接误导客户。正确做法是纯自然语言描述：'计算出生日期到退休日期的周岁差值'",
+        "中国 2025 起渐进式延迟退休·退休年龄已非固定 60/55/50·建议建基础资料表存'出生年份→法定退休年龄'映射·校验规则从映射表取值",
+        "字段设计区分两类：①快照字段（如'退休时岗位'·退休后组织引用失效·必需物理存储）②展示字段（如'姓名/性别/出生日期'·基础资料控件可直接跨实体显示·不必冗余存储）",
+        "字段定义前先查 entity_metadata/hrpi_employee.md·标品已有的字段不要在本实体重建"
+      ]
+    },
+    "HR 导入导出扩展": {
+      "synonyms": [
+        "HR 导入导出",
+        "HR 实体导入",
+        "HIES 导入",
+        "HIES-Pro",
+        "组织批量导入",
+        "批量导入扩展",
+        "导入导出模板",
+        "导入模板配置",
+        "导入字段映射",
+        "选了 HR 导入导出",
+        "已选 HR 导入导出",
+        "走 HIES",
+        "如何配置 HIES",
+        "HIES 怎么用",
+        "新加 HIES 导入"
+      ],
+      "candidates": [
+        {
+          "scene": "hies_entity_import",
+          "priority": 1,
+          "confidence": 0.95,
+          "note": "HR 实体导入（HIES-Pro）扩展·见 06_customization_solutions.md CS-00 完整 4 步 SOP"
+        },
+        {
+          "scene": "hies_diaesysparam",
+          "priority": 2,
+          "confidence": 0.85,
+          "note": "扩展点配置·注册业务对象到 HIES"
+        },
+        {
+          "scene": "hies_diaetplconf",
+          "priority": 3,
+          "confidence": 0.85,
+          "note": "模板配置·定义字段映射"
+        },
+        {
+          "scene": "hies_taskinfo",
+          "priority": 4,
+          "confidence": 0.7,
+          "note": "运行时监控·任务列表"
+        }
+      ],
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "antipattern_ids": [
+        "AP-024",
+        "AP-009"
+      ],
+      "inherits": "MODEL_TOOL_FIRST",
+      "default_recommendation_priority": 1
+    }
+  },
+  "_meta_intents": {
+    "MODEL_TOOL_FIRST": {
+      "description": "HR 业务模型工具优先元意图·所有基础扩展类需求继承",
+      "scope": "all_basic_extension",
+      "must_read_first": [
+        "docs/PPT01_DEEP_TRACE.md#L30",
+        "docs/PPT01_DEEP_TRACE.md#L112"
+      ],
+      "primary_solution_type": "model_tool_config",
+      "h0a_recommendation_template": "model_tool_first_6tier",
+      "antipattern_check": [
+        "AP-021",
+        "AP-022"
+      ],
+      "evidence_clouds": {
+        "org_dev": "PPT02:215",
+        "core_hr": "PPT03:276",
+        "hlcm": "PPT05:200"
+      }
+    }
+  }
+}

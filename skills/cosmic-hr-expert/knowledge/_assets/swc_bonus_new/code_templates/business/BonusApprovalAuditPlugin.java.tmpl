@@ -1,0 +1,131 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.operation;
+
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.operate.OperateOptionConst;
+import kd.bos.entity.operate.result.IOperateInfo;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.orm.util.StringUtils;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+import kd.sdk.plugin.Plugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.BonusWriteBackUtil;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.TdkwSendMessageUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * wanghansheng
+ * 奖金汇总审批审核时，调用生成【分配单】和【分配汇总单】和【奖金发放】的操作
+ */
+public class BonusApprovalAuditPlugin extends AbstractOperationServicePlugIn implements Plugin {
+    private static final Log logger = LogFactory.getLog(BonusApprovalAuditPlugin.class);
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        e.getFieldKeys().add("${ISV_FLAG}_hd_details.${ISV_FLAG}_billid");
+        e.getFieldKeys().add("${ISV_FLAG}_bos_usesr");
+        e.getFieldKeys().add("billno");
+        e.getFieldKeys().add("${ISV_FLAG}_name");
+        e.getFieldKeys().add("creator");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        super.onAddValidators(e);
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        if ("submiteffect".equals(operationKey) || "audit".equals(operationKey)){
+            // 收集核定单id
+            List<Long> checkId = Arrays.stream(entities)
+                    .map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_hd_details"))
+                    .flatMap(DynamicObjectCollection::stream)
+                    .map(item -> item.getLong("${ISV_FLAG}_billid"))
+                    .collect(Collectors.toList());
+            // 跳过权限
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue(OperateOptionConst.ISHASRIGHT, String.valueOf(true));
+            operateOption.setVariableValue(OperateOptionConst.SKIPCHECKPERMISSION, String.valueOf(true));
+
+            // 调用生成【分配单】和【分配汇总单】和【奖金发放】的操作
+            try {
+                logger.info("donothing_gen"+checkId);
+                OperationResult auditResult = OperationServiceHelper.executeOperate("donothing_gen", "${ISV_FLAG}_bonus_approval_2nd", checkId.toArray(), operateOption);
+                if (!auditResult.isSuccess()){
+                    List<IOperateInfo> allErrorOrValidateInfo = auditResult.getAllErrorOrValidateInfo();
+                    if (allErrorOrValidateInfo != null && allErrorOrValidateInfo.size() > 0) {
+                        List<String> messages = allErrorOrValidateInfo.stream().map(item -> item.getMessage() + "\n").collect(Collectors.toList());
+                        List<String> collect = IntStream.range(0, messages.size()).mapToObj(i -> (i + 1) + "、" + messages.get(i)).collect(Collectors.toList());
+                        throw new RuntimeException("审批出现错误\n" + String.join("", collect));
+                    }
+                    if (!StringUtils.isEmpty(auditResult.getMessage())){
+                        throw new RuntimeException("审批出现错误\n" + auditResult.getMessage());
+                    }
+                    logger.info("error{}",auditResult);
+                    throw new KDBizException("出现未知结果，请联系相关人员查看");
+                }
+                // 更新奖金计划
+                BonusWriteBackUtil.updateBonusPlanSure(checkId);
+
+            } catch (Exception ex) {
+                throw new KDBizException(ex.getMessage());
+            }
+        }
+
+
+        // 给抄送人发消息
+        if(operationKey.equals("donothing_send_message")){
+            Map<String, Object> messageParams = new HashMap<>();
+            messageParams.put("tagInfo","奖金核定汇总审批");
+            messageParams.put("titleInfo","奖金核定抄送");
+            messageParams.put("msgType", MessageInfo.TYPE_ACTIVITY);
+            messageParams.put("scence","");
+            messageParams.put("template","");
+            messageParams.put("entityNumber","${ISV_FLAG}_bonus_approval_flow");
+            messageParams.put("appId","${ISV_FLAG}_hsbm");
+            messageParams.put("isLinked",Boolean.TRUE);
+
+            List<Map<String,Object>> messageData = new ArrayList<>();
+            for (DynamicObject entity : entities) {
+                DynamicObjectCollection bosUsers = entity.getDynamicObjectCollection("${ISV_FLAG}_bos_usesr");
+                for (DynamicObject bosUser : bosUsers) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id",entity.getLong("id")); // 单据id
+
+                    String billNo = entity.getString("billno");
+                    String billName = entity.getString("${ISV_FLAG}_name");
+                    map.put("messageInfo",String.format("请查看（%S），单据编号（%S)。",billName,billNo)); // 消息内容
+
+
+                    map.put("handlerId",bosUser.getLong("fbasedataid.id")); // 消息处理人id
+                    map.put("senderId",entity.getLong("creator.id")); //消息发送人id
+                    messageData.add(map);
+                }
+            }
+            if (!CollectionUtils.isEmpty(messageData)){
+                boolean isSuccess = TdkwSendMessageUtil.sendMsg(messageParams, messageData);
+                if (!isSuccess){
+                    logger.info("消息发送失败");
+                }
+            }
+        }
+    }
+}

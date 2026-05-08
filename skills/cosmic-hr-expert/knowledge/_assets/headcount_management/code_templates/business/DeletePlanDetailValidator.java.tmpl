@@ -1,0 +1,76 @@
+package ${ISV_FLAG}.odc.homs.validator;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-02-20  10:00
+ * @Description: 删除编制详情, 校验不是最末级组织不能删除
+ */
+public class DeletePlanDetailValidator extends AbstractValidator {
+
+    private static Log logger = LogFactory.getLog(DeletePlanDetailValidator.class);
+
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+
+        QFilter qFilter = new QFilter("${ISV_FLAG}_planyear.id", QCP.in,
+                Arrays.stream(dataEntities).map(d -> d.getDataEntity().getDynamicObject("${ISV_FLAG}_planyear").getPkValue()));
+        Map<Object, List<DynamicObject>> planYearMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail",
+                        "id,${ISV_FLAG}_planyear.id,${ISV_FLAG}_adminorg1,${ISV_FLAG}_adminorg2,${ISV_FLAG}_adminorg3,${ISV_FLAG}_adminorg4,${ISV_FLAG}_adminorg5,${ISV_FLAG}_adminorg6",
+                        qFilter.toArray()))
+                .collect(Collectors.groupingBy(o -> o.get("${ISV_FLAG}_planyear.id")));
+
+        for (ExtendedDataEntity dataEntitie : dataEntities) {
+            DynamicObject dataEntity = dataEntitie.getDataEntity();
+            //编制计划
+            DynamicObject planyear = dataEntity.getDynamicObject("${ISV_FLAG}_planyear");
+            //末端组织
+            DynamicObject adminorg = dataEntity.getDynamicObject("adminorg");
+            String lastName = adminorg.getString("number");
+            logger.info("DeletePlanDetailValidator末端组织编码=" + lastName);
+            //组织层级
+            String hierarchy = planyear.getString("${ISV_FLAG}_orghierarchy");
+            int intHierarchy = Integer.parseInt(hierarchy);
+            logger.info("DeletePlanDetailValidator编制计划层级=" + intHierarchy);
+            String adminStr = "${ISV_FLAG}_adminorg";
+            List<String> adminList = new ArrayList<>();
+            for (int i = 1; i <= intHierarchy; i++) {
+                DynamicObject admin = dataEntity.getDynamicObject(adminStr + i);
+                adminList.add(adminStr + i);
+                if (admin.getString("number").equals(lastName)) {
+                    break;
+                }
+            }
+            logger.info("DeletePlanDetailValidator要匹配的集合=" + adminList);
+            //上级行政组织
+            String selectName = adminList.get(adminList.size() - 1);
+            logger.info("DeletePlanDetailValidator要匹配的行政组织=" + selectName);
+
+            List<DynamicObject> load = planYearMap.get(planyear.getPkValue());
+            load = load.stream().filter(o -> StringUtils.equals(o.getString(selectName + ".number"), lastName)).collect(Collectors.toList());
+
+            logger.info("DeletePlanDetailValidator查询长度=" + load.size());
+            if (load.size() > 1) {
+                throw new KDBizException("当前组织还存在下级组织,无法删除");
+            }
+        }
+    }
+}

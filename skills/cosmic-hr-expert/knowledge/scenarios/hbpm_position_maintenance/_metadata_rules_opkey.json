@@ -1,0 +1,818 @@
+{
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "6096194600001fac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "b599405400001aac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 9,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "RowKey": 3,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 4,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "控制使用状态",
+        "RowKey": 5,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型OP操作通用插件",
+        "RowKey": 6,
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "RowKey": 7,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型唯一性校验",
+        "RowKey": 7,
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "岗位保存",
+        "RowKey": 9,
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHrSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "disable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "47160c2b000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "id": "V_disable_1",
+        "ruleType": "HRDataBaseConfig",
+        "_type": null,
+        "enabled": true,
+        "description": "HR 基础资料状态校验",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hr.hbp.opplugin.validator.HRDataBaseConfigValidator"
+      },
+      {
+        "id": "V_disable_2",
+        "ruleType": "HisModelDisable",
+        "_type": null,
+        "enabled": true,
+        "description": "历史模型禁用校验（First 优先级）",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators（HisModelOPCommonPlugin 注入）",
+        "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelDisableOpValidator"
+      },
+      {
+        "id": "V_disable_3",
+        "ruleType": "HisModelCommon",
+        "_type": null,
+        "enabled": true,
+        "description": "历史模型通用校验",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator"
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "disable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "禁用",
+    "operationType": "disable",
+    "operationId": "b599405400001eac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 2,
+    "refreshFieldIds": [
+      "ac5Y5Dax1q"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型OP操作通用插件",
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "岗位禁用",
+        "RowKey": 1,
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHrDisableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "enable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "4730fc5d000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "id": "V_enable_1",
+        "ruleType": "HisModelCommon",
+        "_type": null,
+        "enabled": true,
+        "description": "历史模型通用校验-启用分支",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hr.hbp.opplugin.web.history.validator.HisModelOPCommonValidator"
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "enable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "启用",
+    "operationType": "enable",
+    "operationId": "b599405400001fac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 2,
+    "refreshFieldIds": [
+      "ac5Y5Dax1q"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型OP操作通用插件",
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "岗位启用",
+        "RowKey": 1,
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHrEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "submitandnew": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "804f6478000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2f5773ca0001b5ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存的数据才允许提交。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2f5773ca0001b6ac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "submitandnew",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并新增",
+    "operationType": "submitandnew",
+    "operationId": "f31a499a0000adac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "refreshFieldIds": [
+      "enable"
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "confirmchange": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "2DNXSYJWDART",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "4UXPTMTC=NCR",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "confirmchange",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "确认变更",
+    "operationType": "save",
+    "operationId": "4UXPMBA2=U8J",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 3,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型OP操作通用插件",
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "历史模型唯一性校验",
+        "RowKey": 1,
+        "ClassName": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "岗位变更",
+        "RowKey": 2,
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHrChangeOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "dochangerelation": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "AfterOperation": ""
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "4T7SDY=13RY6"
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "dochangerelation",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "汇报关系确认变更",
+    "operationType": "donothing",
+    "operationId": "4T7SFFXU9XDN",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "汇报关系变更插件",
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHrRelationChangeOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation"
+      ],
+      "AfterOperation": ""
+    }
+  },
+  "his_save": {
+    "parameter": null,
+    "permissionItemId": "501BTJ6744BE",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "id": "V_his_save_1",
+        "ruleType": "JobLevelGradeRange",
+        "_type": null,
+        "enabled": true,
+        "description": "职级职等关联校验",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.JobLevelGradeRangeImportValidator"
+      },
+      {
+        "id": "V_his_save_2",
+        "ruleType": "PositionHisLoop",
+        "_type": null,
+        "enabled": true,
+        "description": "岗位汇报关系成环校验（历史+协作）",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisLoopValidator"
+      },
+      {
+        "id": "V_his_save_3",
+        "ruleType": "PositionHis",
+        "_type": null,
+        "enabled": true,
+        "description": "岗位历史迁移综合校验",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": "onAddValidators",
+        "impl": "kd.hrmp.hbpm.opplugin.web.position.validate.PositionHisValidator"
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "his_save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "历史保存",
+    "operationType": "donothing",
+    "operationId": "5/2GRHBL33SR",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "岗位历史迁移OP",
+        "ClassName": "kd.hrmp.hbpm.opplugin.web.position.PositionHisSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "importdata_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"cusstartpage\":\"hismodel_importstart\",\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位中台导入插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false},{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位编码规则控制导入插件\\\",\\\"RowKey\\\":1,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+    },
+    "permissionItemId": "4730fc9f000003ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "id": "V_importdata_hr_1",
+        "ruleType": null,
+        "_type": null,
+        "enabled": true,
+        "description": "HIES-Pro 框架校验链",
+        "levelId": null,
+        "_pending_real_probe": true,
+        "phase": null,
+        "impl": null
+      }
+    ],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "importdata_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导入数据",
+    "operationType": "importdata_hr",
+    "operationId": "36NMYUPXH7+Y",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "cusstartpage": "hismodel_importstart",
+        "plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"岗位中台导入插件\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false},{\"FPK\":\"\",\"Type\":0,\"Description\":\"岗位编码规则控制导入插件\",\"RowKey\":1,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "pluginsParsed": [
+        {
+          "FPK": "",
+          "Type": 0,
+          "Description": "岗位中台导入插件",
+          "RowKey": 0,
+          "ClassName": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRImportPlugin",
+          "DisplayName": "",
+          "Enabled": true,
+          "BizAppId": "",
+          "Inherit": false
+        },
+        {
+          "FPK": "",
+          "Type": 0,
+          "Description": "岗位编码规则控制导入插件",
+          "RowKey": 1,
+          "ClassName": "kd.hrmp.hbpm.formplugin.web.impt.PositionRuleNumberImportPlugin",
+          "DisplayName": "",
+          "Enabled": true,
+          "BizAppId": "",
+          "Inherit": false
+        }
+      ]
+    }
+  },
+  "show_import_record_hr": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000003ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "show_import_record_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导入记录",
+    "operationType": "show_import_record_hr",
+    "operationId": "36NN+52WYF1Y",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "export_from_list_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"replaceentityname\":\"\",\"plugins\":\"\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "export_from_list_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按列表导出",
+    "operationType": "export_from_list_hr",
+    "operationId": "36NN1BHX+R/A",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "replaceentityname": "",
+        "plugins": ""
+      }
+    }
+  },
+  "export_from_impttpl_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"岗位按导入模板导出插件\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "export_from_impttpl_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按导入模板导出",
+    "operationType": "export_from_impttpl_hr",
+    "operationId": "36NN2SRUE7N/",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"岗位按导入模板导出插件\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "pluginsParsed": [
+        {
+          "FPK": "",
+          "Type": 0,
+          "Description": "岗位按导入模板导出插件",
+          "RowKey": 0,
+          "ClassName": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "DisplayName": "",
+          "Enabled": true,
+          "BizAppId": "",
+          "Inherit": false
+        }
+      ]
+    }
+  },
+  "export_from_expttpl_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"[{\\\"FPK\\\":\\\"\\\",\\\"Type\\\":0,\\\"Description\\\":\\\"协作关系导出\\\",\\\"RowKey\\\":0,\\\"ClassName\\\":\\\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\\\",\\\"DisplayName\\\":\\\"\\\",\\\"Enabled\\\":true,\\\"BizAppId\\\":\\\"\\\",\\\"Inherit\\\":false}]\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "export_from_expttpl_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按导出模板导出",
+    "operationType": "export_from_expttpl_hr",
+    "operationId": "36NN3ZT9PZNE",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": "[{\"FPK\":\"\",\"Type\":0,\"Description\":\"协作关系导出\",\"RowKey\":0,\"ClassName\":\"kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin\",\"DisplayName\":\"\",\"Enabled\":true,\"BizAppId\":\"\",\"Inherit\":false}]"
+      },
+      "pluginsParsed": [
+        {
+          "FPK": "",
+          "Type": 0,
+          "Description": "协作关系导出",
+          "RowKey": 0,
+          "ClassName": "kd.hrmp.hbpm.formplugin.web.impt.PositionHRExportPlugin",
+          "DisplayName": "",
+          "Enabled": true,
+          "BizAppId": "",
+          "Inherit": false
+        }
+      ]
+    }
+  },
+  "show_export_record_hr": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hbpm_position_maintenance",
+      "opKey": "show_export_record_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出记录",
+    "operationType": "show_export_record_hr",
+    "operationId": "36NN590J0H1R",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 13,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 5,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 18,
+        "parameterParsed_filled": 10,
+        "op_detail_errors": []
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 13,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 5,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 18,
+        "parameterParsed_filled": 10,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

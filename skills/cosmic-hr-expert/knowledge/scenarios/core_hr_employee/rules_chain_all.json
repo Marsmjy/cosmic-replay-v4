@@ -1,0 +1,2975 @@
+{
+  "scene": "core_hr_employee",
+  "formId": "hrpi_employee",
+  "description": "rules_chain_all.json · 场景 core_hr_employee",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类 · ISV 不允许继承）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看导入记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "change": {
+      "opKey": "change",
+      "name": "修改",
+      "opType": "donothing",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "hisversioninfo": {
+      "opKey": "hisversioninfo",
+      "name": "历史版本信息",
+      "opType": "donothing",
+      "overview": {
+        "scene": "历史版本信息（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "hiscopy": {
+      "opKey": "hiscopy",
+      "name": "复制",
+      "opType": "donothing",
+      "overview": {
+        "scene": "复制（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "newhisversion": {
+      "opKey": "newhisversion",
+      "name": "新增数据版本",
+      "opType": "donothing",
+      "overview": {
+        "scene": "新增数据版本（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "revise": {
+      "opKey": "revise",
+      "name": "修订",
+      "opType": "donothing",
+      "overview": {
+        "scene": "修订（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "versionchangecompare": {
+      "opKey": "versionchangecompare",
+      "name": "版本对比",
+      "opType": "donothing",
+      "overview": {
+        "scene": "版本对比（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "showallversion": {
+      "opKey": "showallversion",
+      "name": "查看所有版本",
+      "opType": "donothing",
+      "overview": {
+        "scene": "查看所有版本（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "modify": {
+      "opKey": "modify",
+      "name": "修改",
+      "opType": "modify",
+      "overview": {
+        "scene": "修改（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "reviserecord": {
+      "opKey": "reviserecord",
+      "name": "修订日志",
+      "opType": "donothing",
+      "overview": {
+        "scene": "修订日志（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "confirmchange": {
+      "opKey": "confirmchange",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（6 个插件 · 4 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "时态模型唯一性校验（同一 boid 同一时间段唯一）"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "重写 3 个方法：onPreparePropertys（声明读写字段）, beginOperationTransaction（事务中主业务）, afterExecuteOperationTransaction（事务后）"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "重写 2 个方法：onPreparePropertys（声明读写字段）, endOperationTransaction（事务中收尾）"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "重写 5 个方法：onPreparePropertys（声明读写字段）, onAddValidators（注册校验器）, beforeExecuteOperationTransaction（事务前预处理）, beginOperationTransaction（事务中主业务）, afterExecuteOperationTransaction（事务后）"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "重写 1 个方法：onAddValidators（注册校验器）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_EmployeeCommonStandardMustInputOp_1",
+          "name": "EmployeeCommonStandardMustInputValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 EmployeeCommonStandardMustInputValidator",
+          "impl": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "extensible": false,
+          "confidence": "distilled"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_OperateLogOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L38-L41",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_2",
+          "order": 2,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "调用 HrEntityCommonService.getParentEntity",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HrEntityCommonService.getParentEntity"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L43-L63",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_3",
+          "order": 3,
+          "name": "afterExecuteOperationTransaction 方法的业务逻辑",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "读 2 个字段",
+          "phase": "afterExecuteOperationTransaction（事务后）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [
+            "eventId",
+            "logBizCustomVal"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L65-L83",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L94-L101",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_2",
+          "order": 2,
+          "name": "endOperationTransaction 方法的业务逻辑",
+          "type": "endOperationTransaction",
+          "definition": "调用 IDevParamConfigDomainService.queryBusinessValueByBusinessKey · 读 3 个字段",
+          "phase": "endOperationTransaction（事务中收尾）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#endOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [
+            "hr_hrdmsynctag_of_datasource",
+            "hr_hrdmvalidatetag_of_datasource",
+            "type"
+          ],
+          "serviceCalls": [
+            "IDevParamConfigDomainService.queryBusinessValueByBusinessKey"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L103-L142",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L91-L105",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_2",
+          "order": 2,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "业务重写",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L107-L111",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_3",
+          "order": 3,
+          "name": "beforeExecuteOperationTransaction 方法的业务逻辑",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beforeExecuteOperationTransaction（事务前预处理）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L125-L139",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_4",
+          "order": 4,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L141-L151",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_5",
+          "order": 5,
+          "name": "afterExecuteOperationTransaction 方法的业务逻辑",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "业务重写",
+          "phase": "afterExecuteOperationTransaction（事务后）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L236-L238",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeCommonStandardMustInputOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "调用 IDevParamConfigService.queryBusinessValueByBusinessKey",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "IDevParamConfigService.queryBusinessValueByBusinessKey"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L26-L39",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "eventId",
+        "hr_hrdmsynctag_of_datasource",
+        "hr_hrdmvalidatetag_of_datasource",
+        "logBizCustomVal",
+        "type"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "4/6",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "cancel": {
+      "opKey": "cancel",
+      "name": "取消",
+      "opType": "donothing",
+      "overview": {
+        "scene": "取消（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（7 个插件 · 5 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "重写 1 个方法：onPreparePropertys（声明读写字段）"
+        },
+        {
+          "order": 2,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "时态模型唯一性校验（同一 boid 同一时间段唯一）"
+        },
+        {
+          "order": 3,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "重写 3 个方法：onPreparePropertys（声明读写字段）, beginOperationTransaction（事务中主业务）, afterExecuteOperationTransaction（事务后）"
+        },
+        {
+          "order": 4,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        },
+        {
+          "order": 5,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "重写 2 个方法：onPreparePropertys（声明读写字段）, endOperationTransaction（事务中收尾）"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "重写 5 个方法：onPreparePropertys（声明读写字段）, onAddValidators（注册校验器）, beforeExecuteOperationTransaction（事务前预处理）, beginOperationTransaction（事务中主业务）, afterExecuteOperationTransaction（事务后）"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "重写 1 个方法：onAddValidators（注册校验器）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_EmployeeCommonStandardMustInputOp_1",
+          "name": "EmployeeCommonStandardMustInputValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 EmployeeCommonStandardMustInputValidator",
+          "impl": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "extensible": false,
+          "confidence": "distilled"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_EmployeeNumberCodeRuleOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L18-L31",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L38-L41",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_2",
+          "order": 2,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "调用 HrEntityCommonService.getParentEntity",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HrEntityCommonService.getParentEntity"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L43-L63",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_3",
+          "order": 3,
+          "name": "afterExecuteOperationTransaction 方法的业务逻辑",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "读 2 个字段",
+          "phase": "afterExecuteOperationTransaction（事务后）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [
+            "eventId",
+            "logBizCustomVal"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L65-L83",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L94-L101",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_2",
+          "order": 2,
+          "name": "endOperationTransaction 方法的业务逻辑",
+          "type": "endOperationTransaction",
+          "definition": "调用 IDevParamConfigDomainService.queryBusinessValueByBusinessKey · 读 3 个字段",
+          "phase": "endOperationTransaction（事务中收尾）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#endOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [
+            "hr_hrdmsynctag_of_datasource",
+            "hr_hrdmvalidatetag_of_datasource",
+            "type"
+          ],
+          "serviceCalls": [
+            "IDevParamConfigDomainService.queryBusinessValueByBusinessKey"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L103-L142",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L91-L105",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_2",
+          "order": 2,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "业务重写",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L107-L111",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_3",
+          "order": 3,
+          "name": "beforeExecuteOperationTransaction 方法的业务逻辑",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beforeExecuteOperationTransaction（事务前预处理）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L125-L139",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_4",
+          "order": 4,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L141-L151",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeSaveOp_5",
+          "order": 5,
+          "name": "afterExecuteOperationTransaction 方法的业务逻辑",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "业务重写",
+          "phase": "afterExecuteOperationTransaction（事务后）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L236-L238",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeCommonStandardMustInputOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "调用 IDevParamConfigService.queryBusinessValueByBusinessKey",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "IDevParamConfigService.queryBusinessValueByBusinessKey"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L26-L39",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "eventId",
+        "hr_hrdmsynctag_of_datasource",
+        "hr_hrdmvalidatetag_of_datasource",
+        "logBizCustomVal",
+        "type"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 HisModelOPCommonPlugin/HisUniqueValidateOp/HisModelFormCommonPlugin/HisModelListCommonPlugin（@SdkInternal 平台历史版本内部类 · ISV 不得继承）",
+        "❌ 禁继承 AbsOrgBaseOp（非 HR 通用推荐 · 用 HRDataBaseOp 代替）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "5/7",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除（5 个插件 · 4 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "重写 1 个方法：onPreparePropertys（声明读写字段）"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "重写 3 个方法：onPreparePropertys（声明读写字段）, beginOperationTransaction（事务中主业务）, afterExecuteOperationTransaction（事务后）"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        },
+        {
+          "order": 4,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "重写 2 个方法：onAddValidators（注册校验器）, beginOperationTransaction（事务中主业务）"
+        },
+        {
+          "order": 5,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "重写 2 个方法：onPreparePropertys（声明读写字段）, endOperationTransaction（事务中收尾）"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_EmployeeNumberCodeRuleDeleteOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L16-L28",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L38-L41",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_2",
+          "order": 2,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "调用 HrEntityCommonService.getParentEntity",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "HrEntityCommonService.getParentEntity"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L43-L63",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_OperateLogOp_3",
+          "order": 3,
+          "name": "afterExecuteOperationTransaction 方法的业务逻辑",
+          "type": "afterExecuteOperationTransaction",
+          "definition": "读 2 个字段",
+          "phase": "afterExecuteOperationTransaction（事务后）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp#afterExecuteOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "writeFields": [],
+          "readFields": [
+            "eventId",
+            "logBizCustomVal"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L65-L83",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeDeleteOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "业务重写",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp#onAddValidators",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L23-L25",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_EmployeeDeleteOp_2",
+          "order": 2,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "调用 IEmployeeApplicationService.deleteEmployee、IEmployeeApplicationService.updateOldEmployeePrimaryEmployee",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp#beginOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [
+            "IEmployeeApplicationService.deleteEmployee",
+            "IEmployeeApplicationService.updateOldEmployeePrimaryEmployee"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L27-L34",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_1",
+          "order": 1,
+          "name": "onPreparePropertys 方法的业务逻辑",
+          "type": "onPreparePropertys",
+          "definition": "业务重写",
+          "phase": "onPreparePropertys（声明读写字段）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#onPreparePropertys",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L94-L101",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_ChgRecordSaveOp_2",
+          "order": 2,
+          "name": "endOperationTransaction 方法的业务逻辑",
+          "type": "endOperationTransaction",
+          "definition": "调用 IDevParamConfigDomainService.queryBusinessValueByBusinessKey · 读 3 个字段",
+          "phase": "endOperationTransaction（事务中收尾）",
+          "impl": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp#endOperationTransaction",
+          "implClass": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "writeFields": [],
+          "readFields": [
+            "hr_hrdmsynctag_of_datasource",
+            "hr_hrdmvalidatetag_of_datasource",
+            "type"
+          ],
+          "serviceCalls": [
+            "IDevParamConfigDomainService.queryBusinessValueByBusinessKey"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L103-L142",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "eventId",
+        "hr_hrdmsynctag_of_datasource",
+        "hr_hrdmvalidatetag_of_datasource",
+        "logBizCustomVal",
+        "type"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "4/5",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "abandon": {
+      "opKey": "abandon",
+      "name": "放弃",
+      "opType": "donothing",
+      "overview": {
+        "scene": "放弃（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "OperateLogOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.log.OperateLogOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "ChgRecordSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.chgrecord.ChgRecordSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "EmployeeSaveOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "EmployeeCommonStandardMustInputOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.common.EmployeeCommonStandardMustInputOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "EmployeeNumberCodeRuleOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "EmployeeNumberCodeRuleDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeNumberCodeRuleDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 9,
+          "plugin": "EmployeeDeleteOp",
+          "className": "kd.hrmp.hrpi.opplugin.web.employee.EmployeeDeleteOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 10,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "saveatt": {
+      "opKey": "saveatt",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "deleteatt": {
+      "opKey": "deleteatt",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除（1 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "EmployeeAuditCommonOP",
+          "className": "kd.sdk.hr.hspm.opplugin.reform.EmployeeAuditCommonOP",
+          "role": "enabled=True"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "first",
+        "previous",
+        "next",
+        "last",
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr",
+        "change",
+        "hisversioninfo",
+        "hiscopy",
+        "newhisversion",
+        "revise",
+        "versionchangecompare",
+        "showallversion",
+        "modify",
+        "reviserecord",
+        "confirmchange",
+        "cancel",
+        "close",
+        "save",
+        "delete",
+        "abandon",
+        "saveatt",
+        "deleteatt"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    }
+  }
+}

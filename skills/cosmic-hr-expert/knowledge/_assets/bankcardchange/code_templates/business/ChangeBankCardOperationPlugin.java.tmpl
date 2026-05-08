@@ -1,0 +1,229 @@
+package ${ISV_FLAG}.z8njs.swc.hsasext.plugin.form;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.MulBasedataDynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.args.BeforeOperationArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.DispatchServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+import kd.sdk.plugin.Plugin;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/** wanghansheng
+ * 单据操作
+ */
+public class ChangeBankCardOperationPlugin extends AbstractOperationServicePlugIn implements Plugin {
+    @Override
+    public void beforeExecuteOperationTransaction(BeforeOperationArgs e) {
+        List<ExtendedDataEntity> selectedRows = e.getSelectedRows();
+        for (ExtendedDataEntity selectedRow : selectedRows) {
+            DynamicObject bill = selectedRow.getDataEntity();
+            DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+
+            for (DynamicObject dynamicObject : entryentity) {
+                String isMobile = dynamicObject.getString("${ISV_FLAG}_is_mobile");
+                if ("true".equals(isMobile)) {
+                    //变更后银行卡
+                    DynamicObject modifyperbankcard = dynamicObject.getDynamicObject("modifyperbankcard");
+                    if (modifyperbankcard == null){
+                        //变更前银行卡
+                        modifyperbankcard = dynamicObject.getDynamicObject("perbankcard");
+                    }
+
+                    //todo如果变更前和变更后银行卡为空，则新生成一张银行卡
+                    if (modifyperbankcard == null){
+                        addNewBankCard(dynamicObject);
+                    }else {
+                        modifBank(dynamicObject);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 生成新的银行卡
+     * @param dynamicObject
+     */
+    private void addNewBankCard(DynamicObject dynamicObject) {
+        //档案历史,姓名、工号
+        DynamicObject salaryfilehis = dynamicObject.getDynamicObject("salaryfilehis");
+        DynamicObject employee = salaryfilehis.getDynamicObject("employee");
+        String personNumber = employee.getString("number");
+
+        //查询HR人员
+//        QFilter filter = new QFilter("number",QCP.equals,personNumber);
+//        filter.and(new QFilter("iscurrentversion", QCP.equals,"1"));
+//        filter.and(new QFilter("datastatus",QCP.equals,"1"));
+//        DynamicObject hrpiPerson = BusinessDataServiceHelper.loadSingle("hrpi_person", filter.toArray());
+//
+//        //查询企业人
+//        QFilter employeeFilter = new QFilter("person",QCP.equals,hrpiPerson.getLong("id"));
+//        employeeFilter.and(new QFilter("iscurrentversion", QCP.equals,"1"));
+//        employeeFilter.and(new QFilter("datastatus",QCP.equals,"1"));
+//        DynamicObject hrpiEmployee = BusinessDataServiceHelper.loadSingle("hrpi_employee", employeeFilter.toArray());
+
+        //填入的银行卡信息
+        String bankCard = dynamicObject.getString("${ISV_FLAG}_bank_card");//银行账号
+        DynamicObject bankName = dynamicObject.getDynamicObject("${ISV_FLAG}_bank_name");//收款银行
+        String accountName = dynamicObject.getString("${ISV_FLAG}_account_name"); //账户名
+        DynamicObject accountrelation = dynamicObject.getDynamicObject("${ISV_FLAG}_accountrelation");//账户关系
+        MulBasedataDynamicObjectCollection collection = (MulBasedataDynamicObjectCollection) dynamicObject.get("${ISV_FLAG}_cardpurpose");//银行卡用途
+
+
+        //校验是否账户名是否为人员姓名
+        boolean flag = HRStringUtils.equals(employee.getString("name"), accountName);
+        if (!flag){
+            throw new KDBizException("账户名需维护为员工本人，请修改");
+        }
+
+
+        //构建银行卡信息
+        /*DynamicObject billPerbankcard = BusinessDataServiceHelper.newDynamicObject("hrpi_perbankcard");
+        billPerbankcard.set("bankcardnum",bankCard);
+        billPerbankcard.set("bankdeposit",bankName);
+        billPerbankcard.set("username",accountName);
+        billPerbankcard.set("accountrelation",accountrelation);
+        billPerbankcard.set("cardpurpose",collection);
+        billPerbankcard.set("employee",employee);
+
+        OperationResult result = OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_social_prepayment",new DynamicObject[]{billPerbankcard}, operateOption);
+        if (result.isSuccess()){
+            QFilter filterBoid = new QFilter("boid", QCP.equals, result.getSuccessPkIds().get(0));
+            filterBoid.and("iscurrentversion", QCP.equals, "0");
+            filterBoid.and("datastatus", QCP.equals, "1");
+            filterBoid.and("status", QCP.equals, "C");
+            filterBoid.and("enable", QCP.equals, "1");
+
+            DynamicObject modifBank = BusinessDataServiceHelper.loadSingle("hrpi_perbankcard", filterBoid.toArray());
+            dynamicObject.set("modifyperbankcard", modifBank.getLong("id"));
+        }else {
+            throw new KDBizException("生成银行卡失败");
+        }*/
+    }
+
+    /**
+     * 调用接口对更新前的银行卡进行变更
+     * @param dynamicObject
+     */
+    private static void modifBank(DynamicObject dynamicObject) {
+        //赋值到变更后的银行卡上
+        String bankCard = dynamicObject.getString("${ISV_FLAG}_bank_card");//银行账号
+        DynamicObject bankName = dynamicObject.getDynamicObject("${ISV_FLAG}_bank_name");//收款银行
+        String accountName = dynamicObject.getString("${ISV_FLAG}_account_name"); //账户名
+        DynamicObject accountrelation = dynamicObject.getDynamicObject("${ISV_FLAG}_accountrelation");//账户关系
+
+        //银行卡用途
+        ArrayList<Long> cardpurposeList = new ArrayList<>();
+        MulBasedataDynamicObjectCollection collection = (MulBasedataDynamicObjectCollection) dynamicObject.get("${ISV_FLAG}_cardpurpose");
+        for (DynamicObject item : collection) {
+            cardpurposeList.add(item.getLong("fbasedataid_id"));
+        }
+
+        //变更后银行卡
+        DynamicObject modifyperbankcard = dynamicObject.getDynamicObject("modifyperbankcard");
+        //变更后银行卡为null,则默认取变更前银行卡
+        if (modifyperbankcard == null) {
+            modifyperbankcard = dynamicObject.getDynamicObject("perbankcard");
+        }
+
+        if (modifyperbankcard == null) {
+            throw new KDBizException("变更前无银行卡，请维护银行卡");
+        }
+        modifyperbankcard = BusinessDataServiceHelper.loadSingle(modifyperbankcard.getPkValue(), "hrpi_perbankcard");
+
+        //查询当前生效的变更银行卡数据
+        QFilter filter = new QFilter("number", QCP.equals, modifyperbankcard.getString("number"));
+        filter.and("iscurrentversion", QCP.equals, "1");
+        filter.and("datastatus", QCP.equals, "1");
+        filter.and("status", QCP.equals, "C");
+        filter.and("enable", QCP.equals, "1");
+        filter.and("boid", QCP.equals, modifyperbankcard.getLong("boid"));
+        DynamicObject perBankCard = BusinessDataServiceHelper.loadSingle("hrpi_perbankcard", "id", filter.toArray());
+        perBankCard = BusinessDataServiceHelper.loadSingle(perBankCard.getLong("id"), "hrpi_perbankcard");
+
+        if (perBankCard == null) {
+            throw new KDBizException("无当前生效版本银行卡");
+        }
+
+        //查看银行卡的用途是否含有工资卡
+        //没有不做处理，有则判断其他银行卡是否也后工资卡，如果有，则提示已有工资卡，请重新选择银行卡
+        for (DynamicObject item : collection) {
+            DynamicObject cardPurPose = item.getDynamicObject("fbasedataid");
+            String useCode = cardPurPose.getString("number");
+            //如果是工资卡进行校验
+            if ("HY001".equalsIgnoreCase(useCode)) {
+                //根据personId查询其他银行卡中是否有工资卡
+                QFilter filterUseCode = new QFilter("person", QCP.equals, perBankCard.getLong("person.id"));
+                filterUseCode.and("iscurrentversion", QCP.equals, "1");
+                filterUseCode.and("datastatus", QCP.equals, "1");
+                filterUseCode.and("status", QCP.equals, "C");
+                filterUseCode.and("enable", QCP.equals, "1");
+                filterUseCode.and("isdelete", QCP.not_equals, "1");
+                filterUseCode.and("id", QCP.not_equals, perBankCard.getLong("id"));//排除当前银行卡
+                DynamicObject[] perbankcardsUseCode = BusinessDataServiceHelper.load("hrpi_perbankcard", "id,cardpurpose", filterUseCode.toArray());
+                for (DynamicObject itemUseCode : perbankcardsUseCode) {
+                    MulBasedataDynamicObjectCollection cardpurpose = (MulBasedataDynamicObjectCollection) itemUseCode.getDynamicObjectCollection("cardpurpose");
+                    for (DynamicObject cardpurposedy : cardpurpose) {
+                        DynamicObject cardpurposedyBase = cardpurposedy.getDynamicObject("fbasedataid");
+                        String useCodeBase = cardpurposedyBase.getString("number");
+                        if ("HY001".equalsIgnoreCase(useCodeBase)) {
+                            throw new KDBizException("已有工资卡，请重新选择银行卡用途");
+                        }
+                    }
+                }
+            }
+        }
+
+        //校验是否账户名是否为人员姓名
+        boolean flag = HRStringUtils.equals(perBankCard.getString("person.name"), accountName);
+        if (!flag){
+            throw new KDBizException("账户名需维护为员工本人，请修改");
+        }
+
+        //封装数据，调用接口变更银行卡
+        List<Map<String, Object>> mapList = new ArrayList<>();
+        HashMap<String, Object> bankCardMap = new HashMap<>();
+        mapList.add(bankCardMap);
+        //银行卡用途
+        if (cardpurposeList.size() > 0) {
+            bankCardMap.put("cardpurpose.id", cardpurposeList);
+        }
+
+        //其他银行卡信息
+        bankCardMap.put("id", perBankCard.getLong("id"));
+        bankCardMap.put("username", accountName);
+        bankCardMap.put("bankdeposit.id", bankName.getLong("id"));
+        bankCardMap.put("accountrelation.id", accountrelation.getLong("id"));
+        bankCardMap.put("bankcardnum", bankCard);
+        bankCardMap.put("employee.id", perBankCard.getLong("employee.id"));
+        bankCardMap.put("person.id", perBankCard.getLong("person.id"));
+        bankCardMap.put("boid", perBankCard.getLong("boid"));
+
+        Boolean result = DispatchServiceHelper.invokeBizService("hrmp", "hrpi", "IHRPIPerBankCardService", "modifyPerBankCard", new Object[]{mapList});
+        if (!result) {
+            throw new KDBizException("银行卡变更失败，请联系相关专员");
+        }
+
+        QFilter filterBoid = new QFilter("boid", QCP.equals, perBankCard.getLong("id"));
+        filterBoid.and("iscurrentversion", QCP.equals, "0");
+        filterBoid.and("datastatus", QCP.equals, "1");
+        filterBoid.and("status", QCP.equals, "C");
+        filterBoid.and("enable", QCP.equals, "1");
+
+        DynamicObject modifBank = BusinessDataServiceHelper.loadSingle("hrpi_perbankcard", filterBoid.toArray());
+        dynamicObject.set("modifyperbankcard", modifBank.getLong("id"));
+    }
+}

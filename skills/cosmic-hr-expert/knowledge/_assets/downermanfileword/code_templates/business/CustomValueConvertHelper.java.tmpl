@@ -1,0 +1,50 @@
+package ${ISV_FLAG}.hspm;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.sdk.hr.hspm.common.utils.PropertyHelper;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+public class CustomValueConvertHelper {
+
+  public static String handleMulBaseData(List<?> data) {
+    if (data == null || data.isEmpty()) {
+        return "-";
+    }
+
+    List<String> result = new ArrayList<>();
+    for (Object item : data) {
+        DynamicObject fbasedataid = null;
+
+        try {
+            if (item instanceof DynamicObject) {
+                DynamicObject dynamicObj = (DynamicObject) item;
+                if (PropertyHelper.existProperty(dynamicObj, "fbasedataid")) {
+                    fbasedataid = dynamicObj.getDynamicObject("fbasedataid");
+                }
+            } else if (item instanceof Map) {
+                Map<?, ?> mapItem = (Map<?, ?>) item;
+                if (mapItem.containsKey("fbasedataid") && mapItem.get("fbasedataid") instanceof DynamicObject) {
+                    fbasedataid = (DynamicObject) mapItem.get("fbasedataid");
+                }
+            }
+
+            if (fbasedataid != null) {
+                if (PropertyHelper.existProperty(fbasedataid, "name")) {
+                    result.add(fbasedataid.getString("name"));
+                } else if (PropertyHelper.existProperty(fbasedataid, "number")) {
+                    result.add(fbasedataid.getString("number"));
+                }
+            }
+        } catch (Exception e) {
+            // 忽略单条记录解析失败，不影响整体执行
+        }
+    }
+
+    return String.join(";", result);
+}
+
+}

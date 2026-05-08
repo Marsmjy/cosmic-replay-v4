@@ -1,0 +1,247 @@
+package ${ISV_FLAG}.odc.homs.common;
+
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+public class DateTimeCommon {
+    private static final String[] weekDays = new String[]{"7", "1", "2", "3", "4", "5", "6"};
+    public static final ZoneId UTC_PLUS_8 = ZoneId.systemDefault();
+    /**
+     * 日期格式化
+     * @param startMonth 日期数据
+     * @return 日期字符串
+     */
+    public static String getDateMonthStr(Date startMonth)  {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy年MM月");
+        return  formatter.format(startMonth);
+    }
+
+    /**
+     * 日期格式化
+     * @param startMonth 日期数据
+     * @return 日期字符串
+     */
+    public static String getDateStr(Date startMonth)  {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMM");
+        return  formatter.format(startMonth);
+    }
+
+    public static Date ConvertToDateTime(String stime) {
+        SimpleDateFormat dateformatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Calendar cal = Calendar.getInstance();
+
+        try {
+            cal.setTime(dateformatter.parse(stime));
+        } catch (Exception arg3) {
+            return null;
+        }
+
+        return cal.getTime();
+    }
+
+    public static Date ConvertToDate(String stime) {
+        SimpleDateFormat dateformatter = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar cal = Calendar.getInstance();
+
+        try {
+            cal.setTime(dateformatter.parse(stime));
+        } catch (Exception arg3) {
+            return null;
+        }
+
+        return cal.getTime();
+    }
+
+    public static String covertToyyyyMMddHHmmss(Date date) {
+        if (date == null) {
+            return null;
+        } else {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            return sdf.format(date);
+        }
+    }
+
+    public static String covertToyyyyMMdd(Date date) {
+        if (date == null) {
+            return null;
+        } else {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            return sdf.format(date);
+        }
+    }
+
+    public static String GetWeek(String pTime) throws Throwable {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        Date tmpDate = format.parse(pTime);
+        Calendar cal = Calendar.getInstance();
+
+        try {
+            cal.setTime(tmpDate);
+        } catch (Exception arg4) {
+//            logger.error("时间转换错误", arg4);
+        }
+
+        int w = cal.get(7) - 1;
+        if (w < 0) {
+            w = 0;
+        }
+
+        return weekDays[w];
+    }
+
+    public static String ConvertToTime(String sCtime) {
+        if (sCtime.hashCode() == "".hashCode()) {
+            return null;
+        } else {
+            Integer ctime = Integer.valueOf(Integer.parseInt(sCtime));
+            return ctime == null ? null : ConvertToTime(ctime);
+        }
+    }
+
+    public static String ConvertToTime(Integer iCtime) {
+        if (iCtime == null) {
+            return null;
+        } else {
+            String hour = String.valueOf(iCtime.intValue() / 60 / 60);
+            String min = String.valueOf(iCtime.intValue() / 60 % 60);
+            if (hour.length() != 2) {
+                hour = "0" + hour;
+            }
+
+            if (min.length() != 2) {
+                min = "0" + min;
+            }
+
+            return hour + ":" + min + ":00";
+        }
+    }
+
+    public static Date GetDateFromTimeStamp(Long timestamp) {
+        Date date = new Date(timestamp.longValue());
+        return date;
+    }
+
+    public static String FormatDate(Date date, String sFormat) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(sFormat);
+        String sResult = simpleDateFormat.format(date);
+        return sResult;
+    }
+
+    public static String genCurrTimestamp() {
+        return String.valueOf(System.currentTimeMillis());
+    }
+
+    public static Date getNextDay(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(5, 1);
+        return calendar.getTime();
+    }
+
+    public static Date getWeekStartDate() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(7, 1);
+        Date date = cal.getTime();
+        return date;
+    }
+
+    public static Date getMonthStartDate() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.set(5, calendar.getActualMinimum(5));
+        return calendar.getTime();
+    }
+
+    public static Date getMonthStartDate(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(5, calendar.getActualMinimum(5));
+        return calendar.getTime();
+    }
+
+    public static Date getAnotherYearDate(Date date, int deltDays, int deltMonths, int deltYears) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(1, deltYears);
+        calendar.add(2, deltMonths);
+        calendar.add(6, deltDays);
+        return calendar.getTime();
+    }
+    public static int getYear(Date d) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(d);
+        int year = cal.get(1);
+        int era = cal.get(0);
+        return era == 0 ? -1 * year : year;
+    }
+
+    public static int getMonth(Date d) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(d);
+        return cal.get(2) + 1;
+    }
+
+    public static int getDay(Date d) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(d);
+        return cal.get(5);
+    }
+
+    public static final Date addMonth(Date date, int month) {
+        LocalDateTime localDateTime = date2localDateTime(date);
+        return localDateTime2date(localDateTime.plusMonths((long) month));
+    }
+
+    public static Date addDay(Date dDate, long iNbDay) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(dDate);
+        cal.add(5, (int)iNbDay);
+        Date result = cal.getTime();
+        return result;
+    }
+
+    private static Date localDateTime2date(LocalDateTime localDateTime) {
+        return Date.from(localDateTime.atZone(UTC_PLUS_8).toInstant());
+    }
+
+    private static LocalDateTime date2localDateTime(Date date) {
+        return date.toInstant().atZone(UTC_PLUS_8).toLocalDateTime();
+    }
+
+    //  日期添加天数
+    public static Date addDate(Date date, int i) {
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTime(date);
+        calendar.add(Calendar.DATE, i); //把日期往后增加i天,整数  往后推,负数往前移动
+        date = calendar.getTime(); //这个时间就是日期往后推i天的结果
+        return date;
+    }
+
+    //  日期增加分钟
+    public static Date addMinute(Date date, int i) {
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTime(date);
+        calendar.add(Calendar.MINUTE, i); //把日期往后增加i分钟,整数  往后推,负数往前移动
+        date = calendar.getTime(); //这个时间就是日期往后推i分钟的结果
+        return date;
+    }
+
+    public static Long reduceMon(Date startdate,Date actualenddate){
+        String startdateStr = covertToyyyyMMdd(startdate);
+        Temporal temporal1 = LocalDate.parse(startdateStr);
+        String actualenddateStr = covertToyyyyMMdd(actualenddate);
+        Temporal temporal2 = LocalDate.parse(actualenddateStr);
+        // 方法返回为相差月份
+        long l = ChronoUnit.MONTHS.between(temporal1, temporal2);
+        return l;
+
+    }
+
+}

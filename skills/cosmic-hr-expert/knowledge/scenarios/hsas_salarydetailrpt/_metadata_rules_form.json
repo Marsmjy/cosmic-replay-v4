@@ -1,0 +1,439 @@
+{
+  "formId": "hsas_salarydetailrpt",
+  "formName": null,
+  "sceneId": "hsas_salarydetailrpt",
+  "isv": "kingdee",
+  "modelType": "ReportFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1b760aa100003bac",
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "0R2WS3INI/R2",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_salarydetailrpt",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_salarydetailrpt.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_salarydetailrpt",
+      "type": "ReportEntity",
+      "title": "员工薪资明细表",
+      "physicalTable": null,
+      "fieldCount": 22
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "LockFieldAction": {
+          "RET": "251",
+          "ActionType": "LockFieldAction",
+          "Description": "锁定字段",
+          "Id": "1HHL0TTA3LSX",
+          "Fields": {
+            "FieldId": {
+              "Id": "Gj19ySZeJT"
+            }
+          }
+        }
+      },
+      "PreDescription": "期间类型不为空",
+      "TrueActions": {
+        "UnlockFieldAction": {
+          "RET": "251",
+          "ActionType": "UnlockFieldAction",
+          "Description": "解锁字段",
+          "Id": "1HHL0TTA3N4E",
+          "Fields": {
+            "FieldId": {
+              "Id": "Gj19ySZeJT"
+            }
+          }
+        }
+      },
+      "Description": "期间类型有值，才可操作期间",
+      "Id": "1HHL/5GGA/0G",
+      "PreCondition": "periodtype.id <> null"
+    }
+  ],
+  "clientRules": [
+    {
+      "PreDescription": "rowtype = '2' 总计行",
+      "TrueActions": {
+        "SetRowStyleAction": {
+          "RET": "134",
+          "ActionType": "SetRowStyleAction",
+          "RowStyles": {
+            "RowStyle": {
+              "BackgroundColor": "#FFF8E1",
+              "Degree": "100",
+              "Id": "16XSOG2VU8XA",
+              "ForeColor": "#ED812B"
+            }
+          },
+          "Description": "设置行样式",
+          "Id": "16YJ1YH3I6MI"
+        }
+      },
+      "Id": "16XSORM7EWXS",
+      "PreCondition": "rowtype = '2'"
+    },
+    {
+      "PreDescription": "rowtype = '3' 小计行",
+      "TrueActions": {
+        "SetRowStyleAction": {
+          "RET": "134",
+          "ActionType": "SetRowStyleAction",
+          "RowStyles": {
+            "RowStyle": {
+              "BackgroundColor": "#FFF8E1",
+              "Degree": "100",
+              "Id": "16YJ1ENYFFB5",
+              "ForeColor": "#ED812B"
+            }
+          },
+          "Description": "设置行样式",
+          "Id": "16YJ1YH3I7=S"
+        }
+      },
+      "Id": "16YJ1Q0B+I/T",
+      "PreCondition": "rowtype = '3'"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "period": {
+      "fieldId": "jkhdA50PVB",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资期间",
+      "physicalColumn": "—",
+      "_fieldApId": "jkhdA50PVB"
+    },
+    "startperiod": {
+      "fieldId": "TKe6YMz7rI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资起始年月",
+      "physicalColumn": "—",
+      "_fieldApId": "TKe6YMz7rI"
+    },
+    "endperiod": {
+      "fieldId": "UCfY6SVE0b",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资截止年月",
+      "physicalColumn": "—",
+      "_fieldApId": "UCfY6SVE0b"
+    },
+    "empgroup": {
+      "fieldId": "REr3omlkxo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资档案分组",
+      "physicalColumn": "—",
+      "_fieldApId": "REr3omlkxo"
+    },
+    "payrollgroup": {
+      "fieldId": "lUagF2YA7H",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资核算组",
+      "physicalColumn": "—",
+      "_fieldApId": "lUagF2YA7H"
+    },
+    "laborreltype": {
+      "fieldId": "wiBWWljck0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "用工关系类型",
+      "physicalColumn": "—",
+      "_fieldApId": "wiBWWljck0"
+    },
+    "calcurrency": {
+      "fieldId": "RCa4Er2Bel",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "CurrencyField",
+      "ref": "bd_currency",
+      "entity": "hsas_salarydetailrpt",
+      "title": "核算币种",
+      "physicalColumn": "—",
+      "_fieldApId": "RCa4Er2Bel"
+    },
+    "salaryitem": {
+      "fieldId": "YgmOI0RpmK",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪酬项目",
+      "physicalColumn": "—",
+      "_fieldApId": "YgmOI0RpmK"
+    },
+    "employeefield": {
+      "fieldId": "LyPhZ64OvL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "选择人员",
+      "physicalColumn": "—",
+      "_fieldApId": "LyPhZ64OvL"
+    },
+    "org": {
+      "fieldId": "0U1zLI8r83",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "算发薪管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "0U1zLI8r83"
+    },
+    "isshowdisabled": {
+      "fieldId": "vh7Zacg9V2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "是否显示禁用",
+      "physicalColumn": "—",
+      "_fieldApId": "vh7Zacg9V2"
+    },
+    "iscontainlower": {
+      "fieldId": "50OOFo88Vn",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "包含下级",
+      "physicalColumn": "—",
+      "_fieldApId": "50OOFo88Vn"
+    },
+    "displayscheme": {
+      "fieldId": "aB0r1C3lwp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsas_salaryrptdisplayschm",
+      "entity": "hsas_salarydetailrpt",
+      "title": "显示方案",
+      "physicalColumn": "—",
+      "_fieldApId": "aB0r1C3lwp"
+    },
+    "belongstartdate": {
+      "fieldId": "pbaXHT9uQh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资起始日期",
+      "physicalColumn": "—",
+      "_fieldApId": "pbaXHT9uQh"
+    },
+    "belongenddate": {
+      "fieldId": "MbbDOiGyDg",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资截止日期",
+      "physicalColumn": "—",
+      "_fieldApId": "MbbDOiGyDg"
+    },
+    "periodtype": {
+      "fieldId": "lAgv8U8f1i",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_calperiodtype",
+      "entity": "hsas_salarydetailrpt",
+      "title": "期间类型",
+      "physicalColumn": "—",
+      "_fieldApId": "lAgv8U8f1i"
+    },
+    "calperiod": {
+      "fieldId": "Gj19ySZeJT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "期间",
+      "physicalColumn": "—",
+      "_fieldApId": "Gj19ySZeJT"
+    },
+    "calstatus": {
+      "fieldId": "DZkRo4jLzV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulComboField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "核算状态",
+      "physicalColumn": "—",
+      "_fieldApId": "DZkRo4jLzV"
+    },
+    "adminorg": {
+      "fieldId": "qJaTedMV5u",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "qJaTedMV5u"
+    },
+    "payrollscene": {
+      "fieldId": "iCpMGCedTG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "薪资核算场景",
+      "physicalColumn": "—",
+      "_fieldApId": "iCpMGCedTG"
+    },
+    "attachadminorg": {
+      "fieldId": "iVyCNj1o5O",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "管理部门",
+      "physicalColumn": "—",
+      "_fieldApId": "iVyCNj1o5O"
+    },
+    "onholdstatus": {
+      "fieldId": "79OM9WQYsj",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulComboField",
+      "ref": null,
+      "entity": "hsas_salarydetailrpt",
+      "title": "停缓发状态",
+      "physicalColumn": "—",
+      "_fieldApId": "79OM9WQYsj"
+    }
+  },
+  "requiredFields": {
+    "hsas_salarydetailrpt": [
+      "period",
+      "startperiod",
+      "endperiod",
+      "calcurrency",
+      "org",
+      "displayscheme"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0R2WS3INI/R2_0oRCoVaD",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.report.SalaryDetailFormRptPlugin",
+      "Description": "kd.swc.hsas.formplugin.web.report.SalaryDetailFormRptPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 22,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 2,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 2
+      }
+    }
+  ]
+}

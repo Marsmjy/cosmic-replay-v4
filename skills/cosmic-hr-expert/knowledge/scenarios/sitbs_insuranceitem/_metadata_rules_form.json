@@ -1,0 +1,596 @@
+{
+  "formId": "sitbs_insuranceitem",
+  "formName": null,
+  "sceneId": "sitbs_insuranceitem",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "26752/CKCFX0",
+  "bizappId": "17/+7RIW4SCJ",
+  "metaIdTechnical": "2HNO9JUGHC4Q",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "sitbs_insuranceitem",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/sitbs_insuranceitem.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "sitbs_insuranceitem",
+      "type": "BaseEntity",
+      "title": "险种项目",
+      "physicalTable": null,
+      "fieldCount": 24
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "编码",
+      "physicalColumn": "t_sitbs_insuranceitem.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "名称",
+      "physicalColumn": "t_sitbs_insuranceitem_l.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "数据状态",
+      "physicalColumn": "t_sitbs_insuranceitem.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "sitbs_insuranceitem",
+      "title": "创建人",
+      "physicalColumn": "t_sitbs_insuranceitem.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "sitbs_insuranceitem",
+      "title": "修改人",
+      "physicalColumn": "t_sitbs_insuranceitem.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "使用状态",
+      "physicalColumn": "t_sitbs_insuranceitem.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "创建时间",
+      "physicalColumn": "t_sitbs_insuranceitem.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "修改时间",
+      "physicalColumn": "t_sitbs_insuranceitem.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "主数据内码",
+      "physicalColumn": "t_sitbs_insuranceitem.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "group": {
+      "fieldId": "cFK1ZS05Mg",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "GroupField",
+      "ref": "sitbs_welfaretype",
+      "entity": "sitbs_insuranceitem",
+      "title": "险种",
+      "physicalColumn": "—",
+      "_fieldApId": "cFK1ZS05Mg"
+    },
+    "disabler": {
+      "fieldId": "lpGOk8TY4R",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "sitbs_insuranceitem",
+      "title": "禁用人",
+      "physicalColumn": "t_sitbs_insuranceitem.fdisablerid",
+      "_fieldApId": "lpGOk8TY4R"
+    },
+    "disabledate": {
+      "fieldId": "HsvzNHhRDw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "禁用时间",
+      "physicalColumn": "t_sitbs_insuranceitem.fdisabledate",
+      "_fieldApId": "HsvzNHhRDw"
+    },
+    "initdatasource": {
+      "fieldId": "zAR6M2f1X0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "zAR6M2f1X0"
+    },
+    "issyspreset": {
+      "fieldId": "Hcnc0oReoH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "系统预置",
+      "physicalColumn": "t_sitbs_insuranceitem.fissyspreset",
+      "_fieldApId": "Hcnc0oReoH"
+    },
+    "orinumber": {
+      "fieldId": "mjFpSUie8Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "出厂编码",
+      "physicalColumn": "t_sitbs_insuranceitem.forinumber",
+      "_fieldApId": "mjFpSUie8Y"
+    },
+    "oristatus": {
+      "fieldId": "F7J9t9r1g0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "t_sitbs_insuranceitem.foristatus",
+      "_fieldApId": "F7J9t9r1g0"
+    },
+    "oriname": {
+      "fieldId": "662IrP680A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "出厂名称",
+      "physicalColumn": "t_sitbs_insuranceitem_l.foriname",
+      "_fieldApId": "662IrP680A"
+    },
+    "comenglishname": {
+      "fieldId": "FDZ3GbJrqX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "通用英文名",
+      "physicalColumn": "t_sitbs_insuranceitem.fcomenglishname",
+      "_fieldApId": "FDZ3GbJrqX"
+    },
+    "country": {
+      "fieldId": "eBHv3I7zqq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "sitbs_insuranceitem",
+      "title": "国家/地区",
+      "physicalColumn": "t_sitbs_insuranceitem.fcountryid",
+      "_fieldApId": "eBHv3I7zqq"
+    },
+    "description": {
+      "fieldId": "xijjgZQVsT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "sitbs_insuranceitem",
+      "title": "描述",
+      "physicalColumn": "t_sitbs_insuranceitem_l.fdescription",
+      "_fieldApId": "xijjgZQVsT"
+    },
+    "insurancetypeattr": {
+      "fieldId": "SSEbperabZ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "sitbs_insuranceprop",
+      "entity": "sitbs_insuranceitem",
+      "title": "险种属性",
+      "physicalColumn": "t_sitbs_insuranceitem.finsurancetypeattrid",
+      "_fieldApId": "SSEbperabZ"
+    },
+    "datatype": {
+      "fieldId": "ESkeYlKLBv",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "sitbs_datatype",
+      "entity": "sitbs_insuranceitem",
+      "title": "数据类型",
+      "physicalColumn": "t_sitbs_insuranceitem.fdatatypeid",
+      "_fieldApId": "ESkeYlKLBv"
+    },
+    "dataprecision": {
+      "fieldId": "oMxGSdvhy8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "sitbs_dataprecision",
+      "entity": "sitbs_insuranceitem",
+      "title": "数据精度",
+      "physicalColumn": "t_sitbs_insuranceitem.fdataprecisionid",
+      "_fieldApId": "oMxGSdvhy8"
+    },
+    "dataround": {
+      "fieldId": "NUrgn2HSQC",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "sitbs_dataround",
+      "entity": "sitbs_insuranceitem",
+      "title": "精度尾差处理",
+      "physicalColumn": "t_sitbs_insuranceitem.fdataroundid",
+      "_fieldApId": "NUrgn2HSQC"
+    }
+  },
+  "requiredFields": {
+    "sitbs_insuranceitem": [
+      "number",
+      "name",
+      "group",
+      "country",
+      "insurancetypeattr",
+      "datatype",
+      "dataround"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2+R939/K+92X_moblist_WurhRLkg",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "26752/CKCFX0_moblist_q2XhkVE4",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2HNO9JUGHC4Q_moblist_XhFQIrjk",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+R939/K+92X_OH8ZHVyk",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "26752/CKCFX0_GhO4s6pH",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2HNO9JUGHC4Q_xy6CNMOG",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+R939/K+92X_mob_g4bQbtBt",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "26752/CKCFX0_mob_lpPD7JY1",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2HNO9JUGHC4Q_mob_OsOru2Aa",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+R939/K+92X_list_CAPqUB3e",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "26752/CKCFX0_list_bqyiNBzs",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2HNO9JUGHC4Q_list_12K8iu0s",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateBaseGroupEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.sit.sitbs.formplugin.web.sinsur.SInsurCountryHandelEdit",
+      "Description": "国家地区表单处理",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.sit.sitbs.formplugin.web.sinsuritem.InsuranceItemEdit",
+      "Description": "险种项目adit插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateGroupBaseDataPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.sit.sitbs.formplugin.web.sinsur.SInsurCountryHandelList",
+      "Description": "国家地区列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.sit.sitbs.formplugin.web.sinsuritem.InsuranceItemList",
+      "Description": "险种项目列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:06",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 24,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 2,
+        "jsPlugins_count": 12,
+        "formPlugins_count": 17
+      }
+    }
+  ]
+}

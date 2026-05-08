@@ -1,0 +1,119 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.serialization.SerializationUtils;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static ${ISV_FLAG}.odc.homs.common.DateTimeCommon.getDateStr;
+
+/**
+ * @author lzf
+ * @date 2023/9/7 15:33
+ * @description 月度编制计划 保存和启用时校验: 同一编制规划单位，编制计划之间开始月份与结束月份不得有交集
+ */
+public class CompilationPlanMonthSaveOp extends AbstractOperationServicePlugIn {
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_org");
+        e.getFieldKeys().add("${ISV_FLAG}_startmonth");
+        e.getFieldKeys().add("${ISV_FLAG}_endmonth");
+        e.getFieldKeys().add("${ISV_FLAG}_year");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        // 添加自定义的校验器
+        e.addValidator(new CompilationPlanMonthSaveOpVal());
+    }
+}
+
+/*
+ * 自定义校验器
+ * */
+class CompilationPlanMonthSaveOpVal extends AbstractValidator {
+
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+
+        String entityKey = this.getEntityKey();
+        ArrayList<Date> yearList = new ArrayList<>();
+        ArrayList<Object> orgPkList = new ArrayList<>();
+        for (ExtendedDataEntity d : dataEntities) {
+            DynamicObject de = d.getDataEntity();
+            Date year = de.getDate("${ISV_FLAG}_year");
+            yearList.add(year);
+            Object orgPk = de.getDynamicObject("${ISV_FLAG}_org").getPkValue();
+            orgPkList.add(orgPk);
+        }
+        QFilter qf = new QFilter("${ISV_FLAG}_year", QCP.in, yearList)
+                .and(new QFilter("${ISV_FLAG}_org.id", QCP.in, orgPkList))
+                .and(new QFilter("iscurrentversion", QCP.equals, "1"));
+        Map<String, List<DynamicObject>> groupMap = Arrays.stream(BusinessDataServiceHelper.load(entityKey, "id,number,${ISV_FLAG}_startmonth,${ISV_FLAG}_endmonth,${ISV_FLAG}_year,${ISV_FLAG}_org.id", qf.toArray()))
+                .collect(Collectors.groupingBy(o -> o.getDate("${ISV_FLAG}_year") + o.getString("${ISV_FLAG}_org.id")));
+
+
+        for (ExtendedDataEntity dataEntity : dataEntities) {
+            DynamicObject obj = dataEntity.getDataEntity();//单据对象
+            String billKey = obj.getDataEntityType().getName();//获取当前单据标识
+            String number = obj.getString("number");
+            //获取编制规划单位
+            DynamicObject dgdlOrg = obj.getDynamicObject("${ISV_FLAG}_org");
+            long orgId = (long) dgdlOrg.getPkValue();
+            //获取开始月份
+            Date startMonth = obj.getDate("${ISV_FLAG}_startmonth");
+            int startMonthStr = Integer.parseInt(getDateStr(startMonth));
+            //获取结束月份
+            Date endMonth = obj.getDate("${ISV_FLAG}_endmonth");
+            int endMonthStr = Integer.parseInt(getDateStr(endMonth));
+            //获取所属年度
+            Date year = obj.getDate("${ISV_FLAG}_year");
+            //查询当前编制规划单位所有计划
+            List<DynamicObject> objects = groupMap.get(String.valueOf(year) + orgId);
+            objects =  objects.stream().filter(o -> !Objects.equals(o.getString("number"), number)).collect(Collectors.toList());
+
+            List<String> numbers = objects.stream().map(planMonthObj -> planMonthObj.getString("number")).collect(Collectors.toList());
+            //校验同一编制规划单位，编制计划之间开始月份与结束月份不得有交集
+            for (DynamicObject object : objects) {
+                Date oldStartMonth = object.getDate("${ISV_FLAG}_startmonth");
+                int oldStartMonthStr = Integer.parseInt(getDateStr(oldStartMonth));
+                Date oldEndMonth = object.getDate("${ISV_FLAG}_endmonth");
+                int oldEndMonthStr = Integer.parseInt(getDateStr(oldEndMonth));
+                //校验
+                if (startMonthStr >= oldStartMonthStr && startMonthStr <= oldEndMonthStr){
+                    String str = String.valueOf(startMonthStr);
+                    String substring4 = str.substring(str.length()-2,str.length());
+                    addErrorMessage(dataEntity, "已存在"+substring4+"月编制数据！");
+                    //"已存在当前年度"+substring4+"月的编制数据,单据编号为【"+object.getString("number")+"】"
+                    return;
+                }
+                if (endMonthStr >= oldStartMonthStr && endMonthStr <= oldEndMonthStr){
+                    String str = String.valueOf(endMonthStr);
+                    String substring4 = str.substring(str.length()-2,str.length());
+                    addErrorMessage(dataEntity, "已存在"+substring4+"月编制数据！");
+                    //"已存在当前年度"+substring4+"月的编制数据,单据编号为【"+object.getString("number")+"】"
+                    return;
+                }
+            }
+        }
+    }
+}

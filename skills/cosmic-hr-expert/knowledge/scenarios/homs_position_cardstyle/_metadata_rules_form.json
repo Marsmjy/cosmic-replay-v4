@@ -1,0 +1,912 @@
+{
+  "formId": "homs_position_cardstyle",
+  "formName": null,
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "1QRR3L4TKSB5",
+  "bizappId": "217WYC/L9U7E",
+  "metaIdTechnical": "2P49I0+V//VJ",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "homs_position_cardstyle",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/homs_position_cardstyle.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "homs_position_cardstyle",
+      "type": "BaseEntity",
+      "title": "关系卡片样式设置",
+      "physicalTable": null,
+      "fieldCount": 19
+    },
+    {
+      "name": "orgentryentity",
+      "type": "EntryEntity",
+      "title": "适用组织单据体",
+      "physicalTable": null,
+      "fieldCount": 4
+    },
+    {
+      "name": "cardentryentity",
+      "type": "EntryEntity",
+      "title": "卡片字段单据体",
+      "physicalTable": null,
+      "fieldCount": 22
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "ShowControlAction": {
+          "RET": "251",
+          "ActionType": "ShowControlAction",
+          "Description": "显示控件",
+          "Id": "26=/940PI6BA",
+          "Fields": {
+            "FieldId": {
+              "Id": "zlTJbHhEqT"
+            }
+          }
+        }
+      },
+      "PreDescription": "如果是系统预置数据, 则不显示修改按钮",
+      "TrueActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "26=2G7LGX8=U",
+          "Fields": {
+            "FieldId": [
+              {
+                "Id": "zlTJbHhEqT"
+              },
+              {
+                "Id": "17KhXrg4gD"
+              },
+              {
+                "Id": "HVX5nv5C2i"
+              }
+            ]
+          }
+        }
+      },
+      "Description": "是否是系统预置数据",
+      "Enabled": "false",
+      "Id": "26=/90/KHV6X",
+      "PreCondition": "issyspreset=true"
+    }
+  ],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "编码",
+      "physicalColumn": "t_homs_cardstyle.fnumber",
+      "_fieldApId": "h736cFwZ6e"
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "名称",
+      "physicalColumn": "t_homs_cardstyle_l.fname",
+      "_fieldApId": "8oq6R4m9CF"
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "数据状态",
+      "physicalColumn": "t_homs_cardstyle.fstatus",
+      "_fieldApId": "AkId5S4yTs"
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "homs_position_cardstyle",
+      "title": "创建人",
+      "physicalColumn": "t_homs_cardstyle.fcreatorid",
+      "_fieldApId": "jiRpZNc99A"
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "homs_position_cardstyle",
+      "title": "修改人",
+      "physicalColumn": "t_homs_cardstyle.fmodifierid",
+      "_fieldApId": "YTt25EstNq"
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "使用状态",
+      "physicalColumn": "t_homs_cardstyle.fenable",
+      "_fieldApId": "ac5Y5Dax1q"
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "创建时间",
+      "physicalColumn": "t_homs_cardstyle.fcreatetime",
+      "_fieldApId": "CIs7Psqw3q"
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "修改时间",
+      "physicalColumn": "t_homs_cardstyle.fmodifytime",
+      "_fieldApId": "vMAtxx40wA"
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "主数据内码",
+      "physicalColumn": "t_homs_cardstyle.fmasterid",
+      "_fieldApId": "O75mQrM58q"
+    },
+    "simplename": {
+      "fieldId": "gqZ5asQ06s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "简称",
+      "physicalColumn": "t_homs_cardstyle_l.fsimplename",
+      "_fieldApId": "gqZ5asQ06s"
+    },
+    "description": {
+      "fieldId": "zaveTaE81T",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "描述",
+      "physicalColumn": "t_homs_cardstyle_l.fdescription",
+      "_fieldApId": "zaveTaE81T"
+    },
+    "index": {
+      "fieldId": "TJLOdUhRYt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "排序号",
+      "physicalColumn": "t_homs_cardstyle.findex",
+      "_fieldApId": "TJLOdUhRYt"
+    },
+    "issyspreset": {
+      "fieldId": "bwFJZ504Tx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "系统预置",
+      "physicalColumn": "t_homs_cardstyle.fissyspreset",
+      "_fieldApId": "bwFJZ504Tx"
+    },
+    "disabler": {
+      "fieldId": "Ts8h2qRoVF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "homs_position_cardstyle",
+      "title": "禁用人",
+      "physicalColumn": "t_homs_cardstyle.fdisablerid",
+      "_fieldApId": "Ts8h2qRoVF"
+    },
+    "disabledate": {
+      "fieldId": "zc6fWQT855",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "禁用时间",
+      "physicalColumn": "t_homs_cardstyle.fdisabledate",
+      "_fieldApId": "zc6fWQT855"
+    },
+    "initdatasource": {
+      "fieldId": "RMkqRu1en6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "数据来源",
+      "physicalColumn": "—",
+      "_fieldApId": "RMkqRu1en6"
+    },
+    "orinumber": {
+      "fieldId": "GWZgDaCR43",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "出厂编码",
+      "physicalColumn": "t_homs_cardstyle.forinumber",
+      "_fieldApId": "GWZgDaCR43"
+    },
+    "oristatus": {
+      "fieldId": "KseEVBIdjS",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "出厂数据编辑状态",
+      "physicalColumn": "t_homs_cardstyle.foristatus",
+      "_fieldApId": "KseEVBIdjS"
+    },
+    "oriname": {
+      "fieldId": "P6qNEDrcgQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "homs_position_cardstyle",
+      "title": "出厂名称",
+      "physicalColumn": "t_homs_cardstyle_l.foriname",
+      "_fieldApId": "P6qNEDrcgQ"
+    },
+    "adminorgid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "orgentryentity",
+      "title": "组织名称",
+      "physicalColumn": "t_homs_cardstyleorgentry.fadminorgid"
+    },
+    "iscontainslower": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "orgentryentity",
+      "title": "包含下级",
+      "physicalColumn": "t_homs_cardstyleorgentry.fiscontainslower"
+    },
+    "adminorgnumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "orgentryentity",
+      "title": "组织编码",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "orgentryentity",
+      "title": "组织编码",
+      "physicalColumn": "—"
+    },
+    "cardcontentid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "homs_cardconfig",
+      "entity": "cardentryentity",
+      "title": "已选字段",
+      "physicalColumn": "t_homs_cardstyleentry.fcardcontentid"
+    },
+    "aftercontent": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "后置单位",
+      "physicalColumn": "t_homs_cardstyleentry_l.faftercontent"
+    },
+    "beforecontent": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "前置单位",
+      "physicalColumn": "t_homs_cardstyleentry_l.fbeforecontent"
+    },
+    "wordsize": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "字号",
+      "physicalColumn": "t_homs_cardstyleentry.fwordsize"
+    },
+    "rows": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "行数",
+      "physicalColumn": "t_homs_cardstyleentry.frows"
+    },
+    "bold": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "是否粗体",
+      "physicalColumn": "t_homs_cardstyleentry.fbold"
+    },
+    "xcoordinate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "横坐标",
+      "physicalColumn": "t_homs_cardstyleentry.fxcoordinate"
+    },
+    "ycoordinate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "纵坐标",
+      "physicalColumn": "t_homs_cardstyleentry.fycoordinate"
+    },
+    "wide": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "宽",
+      "physicalColumn": "t_homs_cardstyleentry.fwide"
+    },
+    "high": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "高",
+      "physicalColumn": "t_homs_cardstyleentry.fhigh"
+    },
+    "fontjustification": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "字体对齐",
+      "physicalColumn": "t_homs_cardstyleentry.ffontjustification"
+    },
+    "contentadaptation": {
+      "fieldId": "2DatM1Ax7L",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "内容自适应",
+      "physicalColumn": "t_homs_cardstyle.fcontentadaptation",
+      "_fieldApId": "2DatM1Ax7L"
+    },
+    "adminorg": {
+      "fieldId": "hV7JI420w6",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "cardentryentity",
+      "title": "所属组织",
+      "physicalColumn": "t_homs_cardstyleorgentry.fadminorgid",
+      "_fieldApId": "hV7JI420w6"
+    },
+    "displayfield": {
+      "fieldId": "NxSp98Rddd",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "显示字段",
+      "physicalColumn": "—",
+      "_fieldApId": "NxSp98Rddd"
+    },
+    "carddimension": {
+      "fieldId": "207Iu6358B",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "homs_carddimension",
+      "entity": "cardentryentity",
+      "title": "卡片维度",
+      "physicalColumn": "t_homs_cardstyle.fcarddimensionid",
+      "_fieldApId": "207Iu6358B"
+    },
+    "operate": {
+      "fieldId": "3kVeQDXDr2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "自定义控件当前操作",
+      "physicalColumn": "—",
+      "_fieldApId": "3kVeQDXDr2"
+    },
+    "usage": {
+      "fieldId": "Z2oEILEnSy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "使用用途",
+      "physicalColumn": "t_homs_cardstyle.fusage",
+      "_fieldApId": "Z2oEILEnSy"
+    },
+    "backgroundcolor": {
+      "fieldId": "O2rxfO0Hq2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "背景色",
+      "physicalColumn": "t_homs_cardstyle.fbackgroundcolor",
+      "_fieldApId": "O2rxfO0Hq2"
+    },
+    "bordercolor": {
+      "fieldId": "8yaWUXUzNt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "边框颜色",
+      "physicalColumn": "t_homs_cardstyle.fbordercolor",
+      "_fieldApId": "8yaWUXUzNt"
+    },
+    "topbordercolor": {
+      "fieldId": "Os9q11gw0a",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "上边框颜色",
+      "physicalColumn": "t_homs_cardstyle.ftopbordercolor",
+      "_fieldApId": "Os9q11gw0a"
+    },
+    "borderlinestype": {
+      "fieldId": "wsm4A8QETQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "边框线条类型",
+      "physicalColumn": "t_homs_cardstyle.fborderlinestype",
+      "_fieldApId": "wsm4A8QETQ"
+    },
+    "cardstyleflag": {
+      "fieldId": "19lgy6MPx0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "cardentryentity",
+      "title": "卡片样式类型",
+      "physicalColumn": "t_homs_cardstyle.fcardstyleflag",
+      "_fieldApId": "19lgy6MPx0"
+    }
+  },
+  "requiredFields": {
+    "homs_position_cardstyle": [
+      "number",
+      "name"
+    ],
+    "orgentryentity": [
+      "adminorgid"
+    ],
+    "cardentryentity": [
+      "adminorg",
+      "carddimension"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2+QE4JA9QV27_moblist_1jxWyepZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1QRR3L4TKSB5_moblist_ldcuWZZ8",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2P49I0+V//VJ_moblist_YK5SF8MU",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_jIBl0dK8",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1QRR3L4TKSB5_zX90ptSX",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "24EMR08Y=BJG_lI9MSrwF",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2P49I0+V//VJ_mbQff9lf",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_mob_tcERKdKL",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1QRR3L4TKSB5_mob_fDrZilta",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "24EMR08Y=BJG_mob_IN9Abi8s",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2P49I0+V//VJ_mob_TN01OIhS",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_list_fyn0N8Wu",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1QRR3L4TKSB5_list_3MkADNu6",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2P49I0+V//VJ_list_SgeEwfEV",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgchart.CardStylePlugin",
+      "Description": "卡片样式新增插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgchart.CardStyleListPlugin",
+      "Description": "卡片样式列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgchart.CardStyleFilterListPlugin",
+      "Description": "继承页面关闭此插件",
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgchart.PositionCardStyleListPlugin",
+      "Description": "kd.hr.homs.formplugin.web.orgchart.PositionCardStyleListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 30,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 2,
+        "jsPlugins_count": 14,
+        "formPlugins_count": 15
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 30,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 2,
+        "jsPlugins_count": 14,
+        "formPlugins_count": 15
+      }
+    }
+  ]
+}

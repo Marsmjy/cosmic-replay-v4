@@ -1,0 +1,168 @@
+package ${ISV_FLAG}.wtc.wtabm.formplugin;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.bill.OperationStatus;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.resource.ResManager;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.form.control.Button;
+import kd.bos.form.control.Label;
+import kd.bos.form.control.events.BeforeClickEvent;
+import kd.bos.form.control.events.ClickListener;
+import kd.bos.form.control.events.ItemClickListener;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.wtc.wtabm.utils.MarriageDateDealUtil;
+
+import java.util.Date;
+import java.util.EventObject;
+
+/**
+ * 3.2.2.休假信息/批量休假休假信息-婚嫁范围日期展示
+ */
+public class MarriageVerifyPlugin extends AbstractBillPlugIn implements ItemClickListener, ClickListener {
+    private static final Log LOG = LogFactory.getLog(MarriageVerifyPlugin.class);
+
+    private static final String MARRIAGE_DATE_CACHE_KEY = "MARRIAGE_DATE_CACHE_KEY";
+
+    @Override
+    /**
+     * 1-提示语：由于结婚登记日期YYYY-MM-NN，因此从结婚登记日期至YYYY+1-MM-NN，可申请婚假。
+     *  * 注：结婚登记日期取值来源：【核心人力云-人员档案-基本信息-结婚登记日】
+     */
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        String name = this.getModel().getDataEntityType().getName();
+        //休假信息
+        if (!name.equals("wtabm_batchvainfo") && "vacationtype".equals(e.getProperty().getName())) {
+            DynamicObject vacationType = this.getModel().getDataEntity(true).getDynamicObject("vacationtype");
+            if (vacationType != null && HRStringUtils.equalsIgnoreCase("1050_S", vacationType.getString("number"))) {
+                DynamicObject attPersonId = (DynamicObject) this.getModel().getValue("employee");
+                long personId = attPersonId.getLong("id");
+                Date marriageRegistDate = MarriageDateDealUtil.dealMarriageDate(personId, this.getView());
+                if(marriageRegistDate == null){
+                    String msg = String.format(ResManager.loadKDString("当前用户人员档案结婚登记日为空", "BatchDownloadAttachment_4", "bos-attachment", new Object[0]));
+                    this.getView().showTipNotification(msg);
+                    return;
+                }
+                this.setMarriageLableInfo(marriageRegistDate);
+            }
+        }
+        //批量休假信息
+        if (name.equals("wtabm_batchvainfo") && "vacationtype".equals(e.getProperty().getName())) {
+            boolean addNew = OperationStatus.ADDNEW == this.getView().getFormShowParameter().getStatus();
+            if (!addNew) {
+                DynamicObject vacationType = this.getModel().getDataEntity(true).getDynamicObject("vacationtype");
+                if (vacationType != null && HRStringUtils.equalsIgnoreCase("1050_S", vacationType.getString("number"))) {
+                    this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_flexpanelap");
+                    DynamicObject attPersonId = (DynamicObject) this.getModel().getValue("employee");
+                    long personId = attPersonId.getLong("id");
+                    Date marriageRegistDate = MarriageDateDealUtil.dealMarriageDate(personId, this.getView());
+                    if (marriageRegistDate == null) {
+                        String msg = String.format(ResManager.loadKDString("当前用户人员档案结婚登记日为空", "BatchDownloadAttachment_4", "bos-attachment", new Object[0]));
+                        this.getView().showTipNotification(msg);
+                        return;
+                    }
+                    this.setMarriageLableInfo(marriageRegistDate);
+                }else{
+                    this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_flexpanelap");
+                }
+            }
+        }
+    }
+
+    //设置标签值
+    private void setLblText(String key, String text) {
+        Label label = (Label) this.getControl(key);
+        if (label != null) {
+            label.setText(text);
+        }
+    }
+
+    private void setMarriageLableInfo(Date marriageRegistDate){
+        String dateStr = HRDateTimeUtils.formatDate(marriageRegistDate);
+        this.setLblText("${ISV_FLAG}_fetuses", dateStr); //结婚登记日
+        //结婚登记日加一年，作为婚假截至日期
+        Date marriageEndDate = MarriageDateDealUtil.getMarriageEndDate(marriageRegistDate);
+        String endDateStr = HRDateTimeUtils.formatDate(marriageEndDate);
+        setLblText("${ISV_FLAG}_borndate", endDateStr);
+    }
+
+
+    @Override
+    /**
+     * 1-提示语：由于结婚登记日期YYYY-MM-NN，因此从结婚登记日期至YYYY+1-MM-NN，可申请婚假。
+     *  * 注：结婚登记日期取值来源：【核心人力云-人员档案-基本信息-结婚登记日】
+     */
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        String name = this.getModel().getDataEntityType().getName();
+
+        //休假信息
+        if (!name.equals("wtabm_batchvainfo")){
+            DynamicObject vacationType = this.getModel().getDataEntity(true).getDynamicObject("vacationtype");
+            if (vacationType != null && HRStringUtils.equalsIgnoreCase("1050_S", vacationType.getString("number"))) {
+                DynamicObject attPersonId = (DynamicObject) this.getModel().getValue("employee");
+                long personId = attPersonId.getLong("id");
+                Date marriageRegistDate = MarriageDateDealUtil.dealMarriageDate(personId, this.getView());
+                if(marriageRegistDate == null){
+                    String msg = String.format(ResManager.loadKDString("当前用户人员档案结婚登记日为空", "BatchDownloadAttachment_4", "bos-attachment", new Object[0]));
+                    this.getView().showTipNotification(msg);
+                    return;
+                }
+                this.setMarriageLableInfo(marriageRegistDate);
+            }
+        }
+
+        //批量休假信息
+        if (name.equals("wtabm_batchvainfo")){
+            boolean addNew = OperationStatus.ADDNEW == this.getView().getFormShowParameter().getStatus();
+            if (!addNew){
+                DynamicObject vacationType = this.getModel().getDataEntity(true).getDynamicObject("vacationtype");
+                if (vacationType != null && HRStringUtils.equalsIgnoreCase("1050_S", vacationType.getString("number"))) {
+                    DynamicObject attPersonId = (DynamicObject) this.getModel().getValue("employee");
+                    long personId = attPersonId.getLong("id");
+                    Date marriageRegistDate = MarriageDateDealUtil.dealMarriageDate(personId, this.getView());
+                    if(marriageRegistDate == null){
+                        String msg = String.format(ResManager.loadKDString("当前用户人员档案结婚登记日为空", "BatchDownloadAttachment_4", "bos-attachment", new Object[0]));
+                        this.getView().showTipNotification(msg);
+                        return;
+                    }
+                    this.setMarriageLableInfo(marriageRegistDate);
+                    this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_flexpanelap");
+                    this.getView().updateView("${ISV_FLAG}_flexpanelap");
+                }else {
+                    this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_flexpanelap");
+                }
+            }else{
+                this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_flexpanelap");
+            }
+        }
+
+
+    }
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        Button toolbar = this.getControl("btnok");
+        toolbar.addClickListener(this);
+        toolbar.addItemClickListener(this);
+    }
+
+    @Override
+    public void beforeClick(BeforeClickEvent evt) {
+//        super.beforeClick(evt);
+//
+//        Date startdate = this.getModel().getDataEntity().getDate("startdate");//开始日期
+//        Date enddate = this.getModel().getDataEntity().getDate("enddate");//结束日期
+//
+//        //校验
+//        boolean valid = MarriageDateDealUtil.valideClick(startdate,enddate,this.getView());
+//        evt.setCancel(!valid);
+
+    }
+
+}

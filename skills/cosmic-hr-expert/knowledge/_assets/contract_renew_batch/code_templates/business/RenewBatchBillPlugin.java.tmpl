@@ -1,0 +1,263 @@
+package ${ISV_FLAG}.hr.hlcmext.plugin;
+
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.filter.FilterParameter;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.OpenStyle;
+import kd.bos.form.ShowType;
+import kd.bos.form.StyleCss;
+import kd.bos.form.control.Control;
+import kd.bos.form.control.events.ItemClickEvent;
+import kd.bos.form.events.*;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.ComboEdit;
+import kd.bos.form.field.DateEdit;
+import kd.bos.form.field.TextEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.ksql.util.StringUtil;
+import kd.bos.list.BillList;
+import kd.bos.list.ListShowParameter;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 批量劳动合同续签form插件
+ */
+public class RenewBatchBillPlugin extends AbstractFormPlugin implements HyperLinkClickListener, BeforeF7SelectListener {
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        this.addItemClickListeners("advcontoolbarap");
+        BillList billList = this.getControl("${ISV_FLAG}_billlistap");
+        billList.addHyperClickListener(new HyperLinkClickListener(){
+            @Override
+            public void hyperLinkClick(HyperLinkClickEvent event) {
+                Control control = (Control)event.getSource();
+                ListSelectedRow row = ((BillList)control).getCurrentSelectedRowInfo();
+                Object id = row.getPrimaryKeyValue();
+                BillShowParameter bill = new BillShowParameter();
+                bill.setFormId("hlcm_contractapplyrenew");
+                bill.setPkId(id);
+                bill.setCaption("劳动合同续签申请");
+                bill.getOpenStyle().setShowType(ShowType.Modal);
+                bill.setStatus(OperationStatus.VIEW);
+                bill.setCustomParam("isBatch", "1");
+                control.getView().showForm(bill);
+            }
+        });
+    }
+
+
+    @Override
+    public void beforeBindData(EventObject e) {
+        super.beforeBindData(e);
+        refreshBillList();
+    }
+
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        DynamicObject dynamicObject = this.getModel().getDataEntity();
+        String billStatus = dynamicObject.getString("billstatus");
+        if ("E".equals(billStatus)){
+            this.getView().setVisible(false, new String[]{ "bar_save", "bar_submit"});
+        }else{
+            this.getView().setVisible(false, new String[]{"${ISV_FLAG}_invalid"});
+        }
+    }
+
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        FormOperate operate = (FormOperate) args.getSource();
+        if ("save".equals(operate.getOperateKey())){
+            DynamicObject dataEntity = this.getModel().getDataEntity();
+            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+            if (StringUtils.isNotEmpty(itemIds)){
+                long id = dataEntity.getLong("id");
+                Object[] pkIds = Arrays.stream(itemIds.split(",")).map(n->Long.valueOf(n)).toArray();
+                DynamicObject[] dtos = BusinessDataServiceHelper.load("hlcm_contractapplyrenew",
+                        "empnumber,${ISV_FLAG}_renewbatch",
+                        new QFilter("id", QCP.in, pkIds).toArray());
+                List<String> failNumber = new ArrayList<>();
+                Arrays.stream(dtos).forEach(n->{
+                    long renewBatchId = n.getLong("${ISV_FLAG}_renewbatch.id");
+                    if (renewBatchId !=0L && renewBatchId != id){
+                        failNumber.add(n.getString("empnumber"));
+                    }
+                });
+                if (failNumber.size() > 0){
+                    args.setCancel(true);
+                    this.getView().showTipNotification(String.format("工号：%s,已被其他批量劳动合同续签单使用,请核对数据后重新发起。", StringUtils.join(failNumber.toArray(), ",")));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+        super.afterDoOperation(args);
+    }
+
+
+    @Override
+    public void itemClick(ItemClickEvent evt) {
+        super.itemClick(evt);
+        String itemKey = evt.getItemKey();
+        if ("tb_new".equals(itemKey)){
+            DynamicObject dataEntity = this.getModel().getDataEntity();
+            ListShowParameter listShowParameter = new ListShowParameter();
+            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+            List pkIds = StringUtils.isNotEmpty(itemIds)?Arrays.stream(itemIds.split(",")).mapToLong(n->Long.valueOf(n)).boxed().collect(Collectors.toList()):new ArrayList();
+            listShowParameter.setSelectedRows(pkIds.toArray());
+            // 设置模板id
+            listShowParameter.setFormId("bos_listf7");
+            // 设置单据或者基础资料的标识
+            listShowParameter.setBillFormId("hlcm_contractapplyrenew");
+            listShowParameter.setShowUsed(true);
+            listShowParameter.setLookUp(true);
+            listShowParameter.setMultiSelect(true);
+            OpenStyle style = listShowParameter.getOpenStyle();
+            StyleCss styleCss = new StyleCss();
+            styleCss.setHeight("580px");
+            styleCss.setWidth("960px");
+            style.setInlineStyleCss(styleCss);
+            style.setShowType(ShowType.Modal);
+            listShowParameter.setOpenStyle(style);
+            listShowParameter.setShowTitle(false);
+            listShowParameter.setCloseCallBack(new CloseCallBack(this, "addAfter"));
+            QFilter filter = new QFilter("billstatus", QCP.equals, "A");
+            long orgId = dataEntity.getLong("${ISV_FLAG}_affiliationord.id");
+            if (orgId == 0L){
+                this.getView().showTipNotification("请先选择所属组织。");
+                return;
+            }
+            if (orgId != 100000L) {
+                String structNumber = dataEntity.getString("${ISV_FLAG}_affiliationord.structnumber");
+                //查询所属组织所有下属组织
+                List<Long> hrOrgIdList = AdminOrgHrUtils.getLowerOrgIds(Arrays.asList(structNumber));
+                if (hrOrgIdList.size() > 0) {
+                    filter.and("curcompany", QCP.in, hrOrgIdList);
+                }
+            }
+            filter.or("id", QCP.in, pkIds);
+            listShowParameter.getListFilterParameter().setFilter(filter);
+            getView().showForm(listShowParameter);
+        } else if ("tb_del".equals(itemKey)) {
+            DynamicObject dataEntity = this.getModel().getDataEntity();
+            String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+            List pkIdsOld = StringUtils.isNotEmpty(itemIds)?Arrays.stream(itemIds.split(",")).map(n -> Long.valueOf(n)).collect(Collectors.toList()):new ArrayList();
+            BillList billList = this.getControl("${ISV_FLAG}_billlistap");
+            ListSelectedRowCollection selectedRows = billList.getSelectedRows();
+            if (selectedRows.size() == 0) {
+                this.getView().showTipNotification("请选择要执行的数据。");
+                return;
+            }
+            List pkIds = Arrays.stream(selectedRows.getPrimaryKeyValues()).collect(Collectors.toList());
+            pkIds.stream().forEach(n -> {
+                billList.removeSelectRow(String.valueOf(n));
+            });
+            if (selectedRows.size() == pkIdsOld.size()){
+                this.getModel().setValue("${ISV_FLAG}_personsize", 0);
+                this.getModel().setValue("${ISV_FLAG}_itemids_tag", "");
+            }else {
+                pkIdsOld.removeAll(pkIds);
+                this.getModel().setValue("${ISV_FLAG}_personsize", pkIdsOld.size());
+                this.getModel().setValue("${ISV_FLAG}_itemids_tag", StringUtils.join(pkIdsOld.toArray(), ","));
+            }
+            refreshBillList();
+        }
+    }
+
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+    }
+
+    /**
+     * 刷新分录列表
+     */
+    private void refreshBillList(){
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        String itemIds = dataEntity.getString("${ISV_FLAG}_itemids_tag");
+        BillList billList = this.getControl("${ISV_FLAG}_billlistap");
+        if (StringUtils.isNotEmpty(itemIds)){
+            Object[] pkIds = Arrays.stream(itemIds.split(",")).map(n->Long.valueOf(n)).toArray();
+//            billList.setFilter(new QFilter("id", QCP.in, pkIds));
+            FilterParameter parameter = new FilterParameter(new QFilter("id", QCP.in, pkIds), "id");
+            billList.setFilterParameter(parameter);
+        }else{
+            billList.setFilter(new QFilter("1", QCP.equals, 2));
+        }
+        billList.refresh();
+    }
+
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent evt) {
+        String actionId = evt.getActionId();
+        if ("addAfter".equals(actionId) && evt.getReturnData() != null){
+            ListSelectedRowCollection selectedRows = (ListSelectedRowCollection)evt.getReturnData();
+            Object[] pkIds = selectedRows.stream().map(ListSelectedRow::getPrimaryKeyValue).toArray();
+            this.getModel().setValue("${ISV_FLAG}_itemids_tag", StringUtils.join(pkIds, ","));
+            this.getModel().setValue("${ISV_FLAG}_personsize", pkIds.length);
+            refreshBillList();
+        }
+    }
+
+
+    /**
+     * 必填设置
+     * @param key
+     * @param value
+     */
+    private void setMustInput(String key, boolean value){
+        if (StringUtil.isEmpty(key)){
+            return;
+        }
+        Object control = this.getControl(key);
+        if (control == null){
+            return;
+        }
+        if (control instanceof TextEdit){
+            TextEdit textEdit = (TextEdit) control;
+            textEdit.setMustInput(value);
+        } else if (control instanceof DateEdit) {
+            DateEdit dateEdit = (DateEdit) control;
+            dateEdit.setMustInput(value);
+        }else if (control instanceof ComboEdit) {
+            ComboEdit comboEdit = (ComboEdit) control;
+            comboEdit.setMustInput(value);
+        } else if (control instanceof BasedataEdit) {
+            BasedataEdit basedataEdit = (BasedataEdit)control;
+            basedataEdit.setMustInput(value);
+        }
+    }
+
+    @Override
+    public void hyperLinkClick(HyperLinkClickEvent e) {}
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent e) {
+    }
+}

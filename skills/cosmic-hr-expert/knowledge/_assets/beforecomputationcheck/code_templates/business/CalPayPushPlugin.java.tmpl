@@ -1,0 +1,176 @@
+package ${ISV_FLAG}.af73s.swc.hsasext.plugin.form;
+
+import kd.bos.cache.CacheFactory;
+import kd.bos.cache.DistributeSessionlessCache;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.list.BillList;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.servicehelper.user.UserServiceHelper;
+import kd.bos.servicehelper.workflow.MessageCenterServiceHelper;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.List;
+
+/**
+ * Author: shichang
+ * Description: 薪资核算催办界面插件
+ */
+public class CalPayPushPlugin extends AbstractFormPlugin {
+
+    /**
+     * 默认两个小时间隔不允许重复催办
+     */
+    private static final int TWO_HOURS = 7200;
+    private static final String PUSHED = "1";
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        BillList list = this.getControl("${ISV_FLAG}_billlistap");
+        Object param = this.getView().getFormShowParameter().getCustomParam("needPushBillIds");
+        if (param != null) {
+            List<Object> ids = (List<Object>) param;
+            list.addSetFilterListener(setFilterEvent -> {
+                setFilterEvent.addCustomQFilter(new QFilter("id", QCP.in, ids));
+            });
+        }
+    }
+
+    @Override
+    public void afterCreateNewData(EventObject e) {
+        super.afterCreateNewData(e);
+        Object param = this.getView().getFormShowParameter().getCustomParam("needPushBillIds");
+        if (param != null) {
+            List<Object> ids = (List<Object>) param;
+            BillList list = this.getControl("${ISV_FLAG}_billlistap");
+            //初始化时单独添加一遍过滤
+            list.setFilter(new QFilter("id", QCP.in, ids));
+            this.getModel().setValue("${ISV_FLAG}_checktext", String.format("本期内存在%s张提报单处理非审批通过的状态，非审批通过的数据不能用于薪资核算，请跟进数据处理进度:", ids.size()));
+        }
+    }
+
+
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+        super.afterDoOperation(args);
+        String opKey = args.getOperateKey();
+        if ("push".equals(opKey)) {
+            BillList list = this.getControl("${ISV_FLAG}_billlistap");
+            ListSelectedRowCollection selectedRows = list.getSelectedRows();
+            if (!selectedRows.isEmpty()) {
+                Object[] ids = selectedRows.getPrimaryKeyValues();
+                //1. 获取到对应的业务提报单数据
+                DynamicObject[] bizDataBills = BusinessDataServiceHelper.load("hpdi_bizdatabill", "id, billno, billname, creator.id, ${ISV_FLAG}_pushstatus, ${ISV_FLAG}_latestpushtime", new QFilter("id", QCP.in, ids).toArray());
+                if (bizDataBills != null && bizDataBills.length > 0) {
+                    DistributeSessionlessCache redisCache = CacheFactory.getCommonCacheFactory().getDistributeSessionlessCache("${ISV_FLAG}_calpay_bill_push");
+
+                    List<DynamicObject> alreadys = new ArrayList<>(bizDataBills.length);
+                    List<MessageInfo> msgs = new ArrayList<>(bizDataBills.length);
+                    List<String> needCacheKeys = new ArrayList<>(bizDataBills.length);
+                    for (DynamicObject bill : bizDataBills) {
+                        String billNo = bill.getString("billno");
+                        String billName = bill.getString("billname");
+                        long creatorId = bill.getLong("creator.id");
+                        long dataId = bill.getLong("id");
+
+                        //使用redis记录催办记录，并设置两个小时的过期时间，两小时以内不再重复发送
+                        String cacheKey = getCacheKey(creatorId, billNo);
+                        if (redisCache.contains(cacheKey)) {
+                            alreadys.add(bill);
+                        } else {
+                            MessageInfo messageInfo = getMessageInfo(dataId, billNo, billName, creatorId);
+                            msgs.add(messageInfo);
+                            needCacheKeys.add(cacheKey);
+                        }
+                    }
+
+                    if (!msgs.isEmpty()) {
+                        //3. 调用平台的消息接口放松消息
+                        MessageCenterServiceHelper.batchSendMessages(msgs);
+                        //4. 将已催办的数据写入缓存
+                        for (String cacheKey : needCacheKeys) {
+                            redisCache.put(cacheKey, cacheKey, TWO_HOURS);
+                        }
+                    }
+
+                    //5. 在界面上提示催办结果
+                    List<DynamicObject> needSaveBills = new ArrayList<>();
+                    for (DynamicObject bill : bizDataBills) {
+                        String billName = bill.getString("billname");
+                        String billNo = bill.getString("billno");
+                        if (alreadys.contains(bill)) {
+                            this.getView().showTipNotification(String.format("单据“%1$s(%2$s)”已经在两小时内进行过催办，请勿频繁操作", billName, billNo));
+                        } else {
+                            this.getView().showSuccessNotification(String.format("单据“%1$s(%2$s)”已发送催办", billName, billNo));
+                            bill.set("${ISV_FLAG}_pushstatus", PUSHED);
+                            bill.set("${ISV_FLAG}_latestpushtime", new Date());
+                            needSaveBills.add(bill);
+                        }
+                    }
+
+                    //6. 将催办记录写入到提报数据单上
+                    if (!needSaveBills.isEmpty()) {
+                        SaveServiceHelper.update(needSaveBills.toArray(new DynamicObject[0]));
+                        list.refreshData();
+                    }
+                }
+            } else {
+                this.getView().showTipNotification("请先选择需要执行的数据。");
+            }
+        }
+    }
+
+    /**
+     * 构建消息对象
+     * @param dataId    提报单数据id
+     * @param billNo    提报单编号
+     * @param billName  提报单名称
+     * @param creatorId 提报单创建人id
+     * @return  消息对象
+     */
+    @NotNull
+    private static MessageInfo getMessageInfo(long dataId, String billNo, String billName, long creatorId) {
+        MessageInfo messageInfo = new MessageInfo();
+        //2. 找到创建人构建消息
+        messageInfo.setMessageTitle(new LocaleString("业务数据提报催办通知"));
+        messageInfo.setContent(String.format("单据编码 %1$s 单据名称 %2$s 的提报单处于非审批完成的状态，请尽快跟进处理。" +
+                "\n说明:未完成审批的提报数据无法参与薪资核算。", billNo, billName));
+        //这里使用了消息模板，会优先走平台消息中心配置的消息模板
+        messageInfo.setTemplateNumber("tw_calpay_push");
+        messageInfo.setMessageType(MessageInfo.TYPE_MESSAGE);
+        messageInfo.setEntityNumber("hpdi_bizdatabill");
+        messageInfo.setMessageTag(new LocaleString("HR薪资核算业务数据提报催办"));
+        List<Long> userIds = new ArrayList<>(2);
+        userIds.add(creatorId);
+        messageInfo.setUserIds(userIds);
+        messageInfo.setSenderId(UserServiceHelper.getCurrentUserId());
+        messageInfo.setBizDataId(dataId);
+        return messageInfo;
+    }
+
+    /**
+     * 构建缓存key
+     * @param creatorId    创建人id
+     * @param billNo    单据编号
+     * @return  缓存key
+     */
+    private static String getCacheKey(long creatorId, String billNo) {
+        RequestContext context = RequestContext.get();
+        String accountId = context.getAccountId();
+        String tanentId = context.getTenantId();
+        return accountId + "&" + tanentId + "&" + creatorId + "&" + billNo;
+    }
+}

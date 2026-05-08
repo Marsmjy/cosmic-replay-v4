@@ -1,0 +1,29 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import ${ISV_FLAG}.odc.homs.validator.MonthBillSaveValidator;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-03-29  15:02
+ * @Description: 月度编制信息管理保存校验
+ */
+public class MonthBillSaveOp extends AbstractOperationServicePlugIn {
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_planmonth_bill");
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_layer");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        super.onAddValidators(e);
+        e.addValidator(new MonthBillSaveValidator());
+    }
+
+}

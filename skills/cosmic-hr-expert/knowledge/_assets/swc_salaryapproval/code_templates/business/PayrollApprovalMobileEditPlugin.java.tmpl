@@ -1,0 +1,138 @@
+package ${ISV_FLAG}.swc.hsas.plugin.form.hsas_approvebill.mobile;
+
+import kd.bos.bill.AbstractMobBillPlugIn;
+import kd.bos.bill.BillShowParameter;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.resource.ResManager;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.form.*;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QFilter;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import ${ISV_FLAG}.swc.hsas.plugin.form.salmap.util.SWCPageCache;
+
+import java.util.ArrayList;
+import java.util.EventObject;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Date: 2024-1-24 13:57
+ * FileName:
+ * Description: 移動端薪資展示薪资概览数据
+ */
+public class PayrollApprovalMobileEditPlugin extends AbstractMobBillPlugIn {
+
+    protected static final Log logger = LogFactory.getLog(PayrollApprovalMobileEditPlugin.class);
+
+    public void afterLoadData(EventObject e) {
+        this.loadOverView();
+    }
+
+    protected boolean loadOverView() {
+        DynamicObjectCollection overViewDyCollection = null;
+        String ispreview = (String) this.getView().getFormShowParameter().getCustomParam("ispreview");
+        HRBaseServiceHelper taskHelper;
+        if (StringUtils.isNotEmpty(ispreview)) {
+            BillShowParameter billShowParameter = (BillShowParameter) this.getView().getFormShowParameter();
+            Long pkId = (Long) billShowParameter.getPkId();
+            taskHelper = new HRBaseServiceHelper("hsas_approvebill");
+            QFilter filter = new QFilter("id", "=", pkId);
+            DynamicObject approveBill = taskHelper.queryOne("id, approvebilltpl", new QFilter[]{filter});
+            Long approveBillTplId = approveBill.getLong("approvebilltpl.id");
+            HRBaseServiceHelper apvSchemeHelper = new HRBaseServiceHelper("hsas_approvebilltpl");
+            DynamicObject apvSchemeDy = apvSchemeHelper.loadSingle(approveBillTplId);
+            overViewDyCollection = apvSchemeDy.getDynamicObjectCollection("overviewentryentity");
+        } else {
+            DynamicObject apvSchemeDy = this.getModel().getDataEntity().getDynamicObject("approvebilltplv");
+            if (null == apvSchemeDy) {
+                this.getView().showErrorNotification(ResManager.loadKDString("审批单模板功能已上线，导致历史数据无法使用，请选择审批单模板生成新的审批单。", "CalApproveBillPlugin_5", "swc-hsas-formplugin", new Object[0]));
+                this.getView().setVisible(Boolean.FALSE, new String[]{"bar_modify"});
+                this.getView().setVisible(Boolean.FALSE, new String[]{"bar_submit"});
+                return false;
+            }
+
+            overViewDyCollection = apvSchemeDy.getDynamicObjectCollection("overviewentryentity");
+        }
+
+        boolean haveEnable = false;
+        Iterator var13 = overViewDyCollection.iterator();
+
+        while (var13.hasNext()) {
+            DynamicObject overViewDy = (DynamicObject) var13.next();
+            if (overViewDy.getBoolean("isenable")) {
+                haveEnable = true;
+                break;
+            }
+        }
+
+        if (!haveEnable) {
+            this.getView().setVisible(Boolean.FALSE, new String[]{"overallview"});
+        } else {
+            this.getView().setVisible(Boolean.TRUE, new String[]{"overallview"});
+            List<Long> calTaskIds = this.getCalTaskId();
+            taskHelper = new HRBaseServiceHelper("hsas_calpayrolltask");
+            DynamicObjectCollection tasks = taskHelper.queryOriginalCollection("id,calrulev.totalsalary.id,calrulev.netsalary.id", (new QFilter("id", "in", calTaskIds)).toArray());
+            if (calTaskIds.size() > tasks.size()) {
+                this.getView().setVisible(Boolean.FALSE, new String[]{"overallview"});
+                this.getView().showConfirm(ResManager.loadKDString("数据已不存在。", "PaySalaryAccountConfigList_3", "swc-hsas-formplugin", new Object[0]), MessageBoxOptions.OK, new ConfirmCallBackListener("delete_data_callback", this));
+                return false;
+            }
+
+            FormShowParameter para = new FormShowParameter();
+            para.getOpenStyle().setShowType(ShowType.InContainer);
+            para.getOpenStyle().setTargetKey("flexpanelap_text");
+            para.setFormId("hsas_approveoverview");
+            this.getView().showForm(para);
+        }
+
+        return true;
+    }
+
+
+    public void beforeBindData(EventObject e) {
+        String billStatus = this.getModel().getDataEntity().getString("billstatus");
+        if ("D".equals(billStatus) || "E".equals(billStatus) || "C".equals(billStatus)) {
+            this.getView().setVisible(Boolean.FALSE, new String[]{"bar_submit"});
+        }
+
+        SWCPageCache pageCache = new SWCPageCache(this.getView());
+        if (StringUtils.isEmpty((String) pageCache.get("openway", String.class))) {
+            String parentPageId = this.getView().getFormShowParameter().getParentPageId();
+            IFormView grandParentView = this.getView().getViewNoPlugin(parentPageId);
+            if (grandParentView != null) {
+                SWCPageCache grandPageCache = new SWCPageCache(grandParentView);
+                pageCache.put("openway", grandPageCache.get("openway", String.class));
+                pageCache.put("isneedcollapse", grandPageCache.get("isneedcollapse", String.class));
+            }
+        }
+
+    }
+
+    /**
+     * 获取薪资审批模板中核算任务基础资料id的集合
+     */
+    private List<Long> getCalTaskId() {
+        List<Long> calTaskIds = new ArrayList<>(10);
+        //获取薪资审批单元数据
+        DynamicObject dataEntity = this.getModel().getDataEntity();
+        if (dataEntity != null) {
+            //获取薪资审批对应的核算任务
+            DynamicObjectCollection caltasks = dataEntity.getDynamicObjectCollection("caltasks");
+            Iterator<DynamicObject> var4 = caltasks.iterator();
+
+            while (var4.hasNext()) {
+                DynamicObject caltask = (DynamicObject) var4.next();
+                //获取核算任务基础资料的id
+                calTaskIds.add(caltask.getLong("fbasedataid_id"));
+            }
+        }
+
+        calTaskIds = calTaskIds.stream().distinct().collect(Collectors.toList());
+        return calTaskIds;
+    }
+}

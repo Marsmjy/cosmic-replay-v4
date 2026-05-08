@@ -1,0 +1,63 @@
+{
+  "formId": "core_hr_contract",
+  "formName": "劳动合同 - 新签/续签/变更（hlcm · 4 单据）",
+  "isv": "kingdee",
+  "modelType": "AggregatedScene",
+  "sceneKind": "aggregate",
+  "hasSaveOpKey": true,
+  "parentTemplateId": null,
+  "bizappId": "0QO140ANVBBZ",
+  "_pending_real_probe": {
+    "fieldId_per_field": "聚合场景不到 fieldId 粒度 · 子 entity 元数据 md 各自记录",
+    "formRules": "需对每个子 entity 单独抓 listMeta",
+    "clientRules": "同上"
+  },
+  "_meta": {
+    "scene": "core_hr_contract",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_aggregate_scenes.py",
+    "note": "聚合场景 · 多 form 字典 · 字段位置在 _shared/_standard_metadata/entity_metadata/<entity>.md 各自有",
+    "last_updated": "2026-05-02",
+    "last_updated_by": "case_002_contract_renew · added entity hlcm_contractapplyrenew"
+  },
+  "entities": [
+    {
+      "name": "hlcm_contract",
+      "type": "BaseEntity",
+      "title": "hlcm_contract"
+    },
+    {
+      "name": "hlcm_contractapply",
+      "type": "BaseEntity",
+      "title": "hlcm_contractapply"
+    },
+    {
+      "name": "hlcm_empprotocol",
+      "type": "BaseEntity",
+      "title": "hlcm_empprotocol"
+    },
+    {
+      "name": "hlcm_otheragreements",
+      "type": "BaseEntity",
+      "title": "hlcm_otheragreements"
+    },
+    {
+      "name": "hlcm_renewinquery",
+      "type": "BaseEntity",
+      "title": "hlcm_renewinquery"
+    },
+    {
+      "name": "hlcm_contractapplyrenew",
+      "type": "BaseEntity",
+      "title": "合同续签申请单（hlcm 标品）",
+      "_added_by": "case_002_contract_renew · DCS-driven L2 reverse-feedback · 2026-05-02",
+      "_evidence": "tdkw 实战 RenewBatchOpPlugin 调用 BusinessDataServiceHelper.load(*, 'hlcm_contractapplyrenew')"
+    }
+  ],
+  "fieldProperties": {},
+  "requiredFields": {},
+  "invisibleFields": [],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": []
+}

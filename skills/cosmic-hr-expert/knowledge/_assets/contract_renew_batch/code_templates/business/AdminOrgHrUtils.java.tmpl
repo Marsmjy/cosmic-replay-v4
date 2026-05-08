@@ -1,0 +1,48 @@
+package ${ISV_FLAG}.hr.hlcmext.plugin;
+
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * HR行政组织工具类
+ */
+public class AdminOrgHrUtils {
+
+
+    /**
+     * 获取下级组织
+     * @structNumber 组织上下级关系编码
+     * @return
+     */
+    public static List<Long> getLowerOrgIds(List<String> structNumberList){
+        if (structNumberList.size() == 0){
+            return new ArrayList<>();
+        }
+        //查询所属组织所有下属组织
+        QFilter qFilter = new QFilter("enable", QCP.equals, "1")
+                .and("datastatus", QCP.equals, "1")
+                .and("iscurrentversion", QCP.equals, true);
+        QFilter structNumberFilter = null;
+        for (String structNumber:structNumberList){
+            if (structNumberFilter == null){
+                structNumberFilter = new QFilter("structlongnumber", QCP.like, "%" + structNumber + "%");
+            }else{
+                structNumberFilter.or("structlongnumber", QCP.like, "%" + structNumber + "%");
+            }
+        }
+        qFilter.and(structNumberFilter);
+
+//        DynamicObjectCollection collection = QueryServiceHelper.query("haos_adminorghr", "id", qFilter.toArray());
+        //jl-修改
+        DynamicObjectCollection collection = QueryServiceHelper.query("haos_adminorg", "id", qFilter.toArray());
+        return Arrays.stream(collection.stream().mapToLong(n->n.getLong("id"))
+                .toArray()).boxed().collect(Collectors.toList());
+    }
+}

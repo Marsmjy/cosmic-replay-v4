@@ -1,0 +1,454 @@
+package ${ISV_FLAG}.hr.hdm.orgtransfer.business;
+
+import com.google.common.collect.Maps;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.operate.OperateOptionConst;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.schedule.executor.AbstractTask;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.coderule.CodeRuleServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.business.util.OrgServiceUtil;
+import kd.hr.hbp.common.constants.HRBaseConstants;
+import kd.sdk.hr.hpfs.utils.PerChgBillTplLoadUtils;
+
+import java.time.LocalDate;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+/**
+ * @author: ws
+ * @date:2023/10/9 10:21
+ * @description:作业共有处理成建制划转业务逻辑 <p>
+ * 注 ：<br/>
+ * 1、注释中的步骤为原项目模块解耦剥离的二开逻辑 ，若需要参考原有逻辑请切换feature-init分支<br/>
+ * <p/>
+ */
+public abstract class AbstractCommonTask extends AbstractTask {
+
+    protected static Log LOGGER = LogFactory.getLog(AbstractCommonTask.class);
+
+
+    /**
+     * 批量调动单元数据标识
+     */
+    protected static final String PAGE_HDM_TRANSFER_BATCH = "hdm_transferbatch";
+
+    /**
+     * 查询最近5天的变动消费记录
+     */
+    private static final int EXECUTE_DAYS = 1;
+
+
+    /**
+     * @description: 构建批量调整单
+     * @param: empPosOrgRelArr
+     * orgId
+     * changeDate
+     * changeType
+     * @return: kd.bos.dataentity.entity.DynamicObject
+     * @author ningjie
+     * @date: 2025/7/23 20:50
+     */
+    protected DynamicObject buildBatchTranBill(DynamicObject[] empPosOrgRelArr, Long orgId, Date changeDate, String changeType) {
+        HRBaseServiceHelper transferBatchHelper = new HRBaseServiceHelper(PAGE_HDM_TRANSFER_BATCH);
+        // 创建批量调动单
+        DynamicObject dynamicObject = transferBatchHelper.generateEmptyDynamicObject();
+
+        //-------------------------单据头处理 start --------------------------
+        // 单据状态
+        dynamicObject.set("billstatus", "A");
+        // 审批状态
+        dynamicObject.set("auditstatus", "A");
+
+        //获取根组织
+        long rootOrgId = OrgServiceUtil.getBuRootOrgId();
+        DynamicObject orgDyn = BusinessDataServiceHelper.loadSingle(rootOrgId, "bos_org");
+        dynamicObject.set("org", orgDyn);
+
+        //所属组织
+        dynamicObject.set("affiliationord_id", orgId);
+
+        long currentUserId = RequestContext.get().getCurrUserId();
+
+        dynamicObject.set("creator_id", currentUserId);
+
+        //-------------------------单据头处理 end --------------------------
+
+        //-------------------------分录处理 start --------------------------
+
+        //构造单据体数据
+        DynamicObjectCollection transferApplyCollection = dynamicObject.getDynamicObjectCollection("entryentity");
+
+        AtomicInteger seq = new AtomicInteger(1);
+
+        //批量获取编码
+        HRBaseServiceHelper hrBaseServiceHelper = new HRBaseServiceHelper("hdm_transferbatchentry");
+        DynamicObject lsDynamicObject = hrBaseServiceHelper.generateEmptyDynamicObject();
+        String[] billNumberArr = CodeRuleServiceHelper.getBatchNumber("hdm_transferbatchentry", lsDynamicObject, String.valueOf(rootOrgId), empPosOrgRelArr.length);
+
+        //获取组织分配信息
+        Set<Long> assignmentIdSet = Arrays.stream(empPosOrgRelArr).map(empPosOrgRel -> empPosOrgRel.getLong("assignment.id")).collect(Collectors.toSet());
+        Map<Long, DynamicObject> assignmentMap = OrgTransferHelper.queryAssignmentByIdSet(assignmentIdSet);
+
+        //获取组织详情，查看当前组织是否
+
+        Arrays.stream(empPosOrgRelArr).forEach(empPosOrgRel -> {
+
+            DynamicObject entry = transferApplyCollection.addNew();
+
+            //雇佣信息处理
+            DynamicObject empRelDy = OrgTransferHelper.queryByEmployeeId(empPosOrgRel.getLong("employee.id"));
+            entry.set("bb_e_enterprise", empRelDy.get("enterprise"));
+            entry.set("bb_e_entrydate", empRelDy.get("entrydate"));
+            entry.set("bb_e_laborrelstatus", empRelDy.get("laborrelstatus"));
+            entry.set("bb_e_laborreltype", empRelDy.get("laborreltype"));
+
+            //编码处理
+            entry.set("ebillno", billNumberArr[seq.get() - 1]);
+
+            //批量调动单校验结果
+            entry.set("entryvalidateresult", "A");
+            entry.set("seq", seq.get());
+            //任职序号
+            entry.set("bb_po_orgrelseq", seq.get());
+
+            //人事管理组织
+            entry.set("bb_a_org", orgDyn);
+            entry.set("emporg", orgDyn);
+            entry.set("amainorg", orgDyn);
+            entry.set("bmainorg", orgDyn);
+            entry.set("ba_a_org", orgDyn);
+            entry.set("bb_a_manageadminorg", empPosOrgRel.get("adminorg"));
+            entry.set("ba_a_manageadminorg", empPosOrgRel.get("adminorg"));
+
+            entry.set("bb_a_manageadminorgbo", empPosOrgRel.get("adminorg"));
+            entry.set("ba_a_manageadminorgbo", empPosOrgRel.get("adminorg"));
+
+            entry.set("empmanageadminorgbo", empPosOrgRel.get("adminorg"));
+
+            entry.set("ba_po_adminorgbo", empPosOrgRel.get("adminorg"));
+            entry.set("bb_po_adminorgbo", empPosOrgRel.get("adminorg"));
+
+
+
+
+            entry.set("empmanageadminorg", empPosOrgRel.get("adminorg"));
+
+            //获取组织分配信息
+            DynamicObject assignment = assignmentMap.get(empPosOrgRel.getLong("assignment.id"));
+            if (assignment != null) {
+                //工号
+                entry.set("bb_em_empnumber", assignment.get("persongroup.number"));
+                entry.set("empmanageadminorg", assignment.get("adminorg"));
+                //原组织分配
+                entry.set("bb_a_tid", assignment);
+                //原组织分配号
+                entry.set("bb_a_priassignnum", assignment.get("number"));
+                //组织分配号
+                entry.set("bb_po_assignnum", assignment.get("number"));
+                entry.set("bb_a_assignnum", assignment.get("number"));
+                //员工组
+                entry.set("empempgroup", assignment.get("persongroup"));
+                entry.set("bb_a_empgroup", assignment.get("persongroup"));
+                //国家地区
+                entry.set("empconuntry", assignment.get("country"));
+                entry.set("bb_a_country", assignment.get("country"));
+            }
+
+            entry.set("bb_em_chgtype", 0);
+
+            //调出公司
+            entry.set("bcompany", empPosOrgRel.get("company"));
+            //实际调入公司
+            entry.set("arealitycompany", empPosOrgRel.get("company"));
+
+
+            //调动类型 辅助基础资料  （批量调动）
+            entry.set("transfertype", 1563784896172811264L);
+
+            //待调动人员
+            entry.set("bb_em_tid_id", empPosOrgRel.get("employee.id"));
+            entry.set("bb_po_tid", empPosOrgRel);
+
+
+            //主组织分配标识
+            entry.set("bb_a_ispriassign", "1");
+            //是否组织分配下主任职
+            entry.set("ba_po_isprimary", empPosOrgRel.get("isprimary"));
+            entry.set("bb_po_isprimary", empPosOrgRel.get("isprimary"));
+
+            //任职状态
+            entry.set("ba_po_posstatus", empPosOrgRel.get("posstatus"));
+            entry.set("bb_po_posstatus", empPosOrgRel.get("posstatus"));
+
+            //任职类型
+            entry.set("ba_po_postype", empPosOrgRel.get("postype"));
+            entry.set("bb_po_postype", empPosOrgRel.get("postype"));
+
+            //行政组织
+            entry.set("bb_po_adminorg", empPosOrgRel.get("adminorg"));
+            entry.set("ba_po_adminorg", empPosOrgRel.get("adminorg"));
+            entry.set("aorg", empPosOrgRel.get("adminorg"));
+            entry.set("aorgbo", empPosOrgRel.get("adminorg"));
+
+
+            //岗位
+            entry.set("ba_po_position", empPosOrgRel.get("position"));
+            entry.set("bb_po_position", empPosOrgRel.get("position"));
+            entry.set("aposition", empPosOrgRel.get("position"));
+            entry.set("apositionbo", empPosOrgRel.get("position"));
+
+            entry.set("bb_po_positionbo", empPosOrgRel.get("position"));
+            entry.set("ba_po_positionbo", empPosOrgRel.get("position"));
+
+
+            //职位
+            entry.set("ba_po_job", empPosOrgRel.get("job"));
+            entry.set("bb_po_job", empPosOrgRel.get("job"));
+            entry.set("ajob", empPosOrgRel.get("job"));
+
+            //组织架构调整
+            entry.set("chgreason_id", 2163353877158654976L);
+
+            //变动方式(2:新增  3:变更)
+            entry.set("ba_po_chgtype", 2);
+            //变动方式(0:不变  4:终止 3：变更)
+            entry.set("bb_po_chgtype", 4);
+            //变动方式（0：不变 3：变更）
+            entry.set("bb_a_chgtype", 3);
+
+            entry.set("acompany", empPosOrgRel.get("company"));
+
+            //变动操作 201050：公司内调动  201040：岗位调整   201060：跨公司调动
+            if ("C".equals(changeType)) {
+                entry.set("affaction_id", 201040L);
+            } else {
+                entry.set("affaction_id", 201050L);
+            }
+            // 预计调动日期
+            entry.set("plandate", changeDate);
+            entry.set("b_effectivedate", changeDate);
+            //调动日期
+            entry.set("transferdate", changeDate);
+
+            //创建人
+            entry.set("entrycreator_id", currentUserId);
+
+            //调出审批状态
+            entry.set("transferoutstatus","A");
+            //调入审批状态
+            entry.set("transferinstatus","A");
+
+            //-------------------------分录处理 end --------------------------
+
+            seq.incrementAndGet();
+
+        });
+
+        return dynamicObject;
+    }
+
+    /**
+     * @description: 保存并生效批量调整单
+     * @param: orgTran
+     * batchTranBill
+     * currentName
+     * currentTypeName
+     * @return: void
+     * @author ningjie
+     * @date: 2025/7/23 20:45
+     */
+    protected void saveAndEffectBatchBill(DynamicObject orgTran, DynamicObject batchTranBill, String currentName, String currentTypeName) {
+
+        List<DynamicObject> mainBillList = batchTranBill.getDynamicObjectCollection("entryentity").stream().collect(Collectors.toList());
+        PerChgBillTplLoadUtils.batchChangeEmployee(mainBillList);
+
+        //调用批量调动单save操作进行保存
+        OperateOption operateOption = OperateOption.create();
+        operateOption.setVariableValue(OperateOptionConst.ISHASRIGHT, "true");
+        OperationResult operationSaveResult =
+                OperationServiceHelper.executeOperate(HRBaseConstants.SAVE, PAGE_HDM_TRANSFER_BATCH, new DynamicObject[]{batchTranBill}, operateOption);
+
+        // 5、批量调动调整单处理
+        StringBuilder resultMsg = new StringBuilder();
+        boolean success = true;
+        if (!operationSaveResult.isSuccess()) {
+            String msg = currentTypeName + "，当前编码：：" + currentName + "，保存批量调动单失败, 原因：" + operationSaveResult;
+            resultMsg.append(msg).append("\n");
+            operationSaveResult.getAllErrorOrValidateInfo().stream().forEach(validData -> {
+                resultMsg.append(validData.getMessage()).append("\n");
+            });
+            success = false;
+        } else {
+            DynamicObject batchTranBillOri = OrgTransferHelper.queryTransferBatchBill(batchTranBill.getLong("id"));
+            OperationResult operationSubmitResult = OperationServiceHelper.executeOperate(HRBaseConstants.SUBMITEFFECT, PAGE_HDM_TRANSFER_BATCH, new DynamicObject[]{batchTranBillOri}, operateOption);
+            if (!operationSubmitResult.isSuccess()) {
+                String msg = currentTypeName + "当前编码：" + currentName + "，生效批量调动单失败, 原因：" + operationSubmitResult;
+                operationSubmitResult.getAllErrorOrValidateInfo().stream().forEach(validData -> {
+                    resultMsg.append(validData.getMessage()).append("\n");
+                });
+                success = false;
+            }
+        }
+        LOGGER.info(resultMsg.toString());
+        if (success) {
+            String msg = currentTypeName + "成建制划转，写入调动单成功，currentName: " + currentName;
+            resultMsg.append(msg).append("\n");
+            LOGGER.info(msg);
+            String canInfo = resultMsg.length()<=255?resultMsg.toString():resultMsg.substring(255);
+            orgTran.set("${ISV_FLAG}_resultmsg", canInfo);
+            orgTran.set("${ISV_FLAG}_resultmsg_tag", resultMsg.toString());
+            orgTran.set("${ISV_FLAG}_executestatus", "03");
+        } else {
+            String msg = currentTypeName + "成建制划转，写入调动单失败，currentName: " + currentName;
+            LOGGER.info(msg);
+            resultMsg.append(msg).append("\n");
+            String canInfo = resultMsg.length()<=255?resultMsg.toString():resultMsg.substring(255);
+            orgTran.set("${ISV_FLAG}_resultmsg", canInfo);
+            orgTran.set("${ISV_FLAG}_resultmsg_tag", resultMsg.toString());
+        }
+
+    }
+
+    /**
+     * @description: 根据组织集合刷新任职经历上的历史组织字段数据
+     * @param: [orgSet] 
+     * @return: void 
+     * @author ningjie
+     * @date: 2025/8/8 9:36
+     */ 
+    /** 
+     * @description:  根据组织集合刷新生效日期之后的任职经历上的历史组织字段数据
+     * @param: [orgSet, effectDate] 
+     * @return: void 
+     * @author ningjie
+     * @date: 2025/8/8 9:38
+     */ 
+    protected void changeEmpPosOrgRelHisDataByOrg(Set<Long> orgSet,Date effectDate) {
+
+        //根据组织获取所有的任职经历数据
+        DynamicObject[] empPosOrgRelArr = OrgTransferHelper.getAfterEffectDateEmpPosOrgRelArrByOrgIdSet(orgSet,effectDate);
+        if(ObjectUtils.isEmpty(empPosOrgRelArr)){
+            return;
+        }
+
+        //获取组织的历史版本数据
+        DynamicObject[] orgHisDateArr = OrgTransferHelper.queryOrgHisDataByIdAndEffectDate(orgSet,effectDate);
+        //先将组织数据按照boid进行分组
+        Map<Long,List<DynamicObject>> orgMap =
+                Arrays.stream(orgHisDateArr).collect(Collectors.groupingBy(data -> data.getLong("boid")));
+
+
+        List<DynamicObject> dealDataList = new ArrayList<>(HRBaseConstants.INITCAPACITY_ARRAYLIST);
+        Arrays.stream(empPosOrgRelArr).forEach(empPosOrgRel -> {
+            List<DynamicObject> orgHisDataList = orgMap.get(empPosOrgRel.getLong("adminorg.id"));
+            if(ObjectUtils.isEmpty(orgHisDataList)) return;
+            Date enddate = empPosOrgRel.getDate("enddate");
+            //如果任职经历的生效日期落在组织历史数据中的某一段，则将此组织历史版本id赋予它
+            Optional<DynamicObject> currentOrgHisOptional =  orgHisDataList.stream().filter(orgHisData -> {
+                Date orgBsEd = orgHisData.getDate("bsed");
+                Date orgEffDt = orgHisData.getDate("bsled");
+                if(orgBsEd.compareTo(enddate) <= 0 && orgEffDt.compareTo(enddate)>= 0){
+                    return true;
+                }
+                return false;
+            }).findAny();
+            if(currentOrgHisOptional.isPresent()){
+                empPosOrgRel.set("adminorgvid",currentOrgHisOptional.get().getLong("id"));
+                dealDataList.add(empPosOrgRel);
+            }
+        });
+
+        if(ObjectUtils.isEmpty(dealDataList)){
+            return;
+        }
+
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        helper.save(dealDataList.toArray(new DynamicObject[0]));
+        
+    }
+
+    /**
+     * @description:  根据岗位集合刷新生效日期之后的任职经历上的历史组织字段数据
+     * @param: [orgSet, effectDate]
+     * @return: void
+     * @author ningjie
+     * @date: 2025/8/8 9:38
+     */
+    protected void changeEmpPosOrgRelHisDataByPos(Set<Long> posSet,Date effectDate) {
+
+        //根据岗位获取所有的任职经历数据
+        DynamicObject[] empPosOrgRelArr = OrgTransferHelper.getAfterEffectDateEmpPosOrgRelArrByPosIdSet(posSet,effectDate);
+        if(ObjectUtils.isEmpty(empPosOrgRelArr)){
+            return;
+        }
+
+        //获取岗位的历史版本数据
+        DynamicObject[] orgHisDateArr = OrgTransferHelper.queryPosHisDataByIdAndEffectDate(posSet,effectDate);
+        //先将岗位数据按照boid进行分组
+        Map<Long,List<DynamicObject>> posMap =
+                Arrays.stream(orgHisDateArr).collect(Collectors.groupingBy(data -> data.getLong("boid")));
+
+
+        List<DynamicObject> dealDataList = new ArrayList<>(HRBaseConstants.INITCAPACITY_ARRAYLIST);
+        Arrays.stream(empPosOrgRelArr).forEach(empPosOrgRel -> {
+            List<DynamicObject> orgHisDataList = posMap.get(empPosOrgRel.getLong("position.id"));
+            if(ObjectUtils.isEmpty(orgHisDataList)) return;
+            Date enddate = empPosOrgRel.getDate("enddate");
+            //如果任职经历的生效日期落在组织历史数据中的某一段，则将此组织历史版本id赋予它
+            Optional<DynamicObject> currentOrgHisOptional =  orgHisDataList.stream().filter(orgHisData -> {
+                Date orgBsEd = orgHisData.getDate("bsed");
+                Date orgEffDt = orgHisData.getDate("bsled");
+                if(orgBsEd.compareTo(enddate) <= 0 && orgEffDt.compareTo(enddate)>= 0){
+                    return true;
+                }
+                return false;
+            }).findAny();
+            if(currentOrgHisOptional.isPresent()){
+                empPosOrgRel.set("positionvid",currentOrgHisOptional.get().getLong("id"));
+                dealDataList.add(empPosOrgRel);
+            }
+        });
+
+        if(ObjectUtils.isEmpty(dealDataList)){
+            return;
+        }
+
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        helper.save(dealDataList.toArray(new DynamicObject[0]));
+
+    }
+
+
+    /**
+     * 获取任务类处理时间区间
+     *
+     * @param map
+     * @return
+     */
+    protected Map<String, Object> getTaskDays(Map<String, Object> map) {
+        int days = EXECUTE_DAYS;
+        Object daysObj = map.get("days");
+        // 取定时任务设置的执行时间区间
+        if (Objects.nonNull(daysObj) && daysObj instanceof String) {
+            days = Integer.parseInt((String) daysObj);
+        }
+        LocalDate beforeDate = LocalDate.now().minusDays(days);
+        Map<String, Object> daysMap = Maps.newHashMapWithExpectedSize(2);
+        daysMap.put("currDt", LocalDate.now());
+        daysMap.put("beforeDt", beforeDate);
+        daysMap.put("currModifyDt", new Date());
+        return daysMap;
+    }
+
+
+}

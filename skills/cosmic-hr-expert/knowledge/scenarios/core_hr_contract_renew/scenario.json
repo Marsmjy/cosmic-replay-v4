@@ -1,0 +1,44 @@
+{
+  "scene": "core_hr_contract_renew",
+  "name": "批量劳动合同续签",
+  "name_en": "Contract Renew Batch",
+  "domain": "?/?",
+  "cloud": "core_hr",
+  "app": "hlcm",
+  "scene_type": "business_flow_aggregate",
+  "tier": 2,
+  "modelType": "ScheduleTaskAsset",
+  "asset_ref": "_assets/contract_renew_batch",
+  "consumed_forms": [
+    "hlcm_contractapplyrenew",
+    "hlcm_contract",
+    "hlcm_contractapplynew",
+    "hlcm_contractapplyend",
+    "hlcm_contractapplychange",
+    "hlcm_contractapplycancel",
+    "hlcm_contractfileemp",
+    "hlcm_contractfileother",
+    "hlcm_empprotocolnew",
+    "hlcm_empprotocolrelieve",
+    "hlcm_empprotocolterminate",
+    "hlcm_otheragreements"
+  ],
+  "isv_self_built_forms": [
+    "${ISV_FLAG}_hlcm_renewbatch"
+  ],
+  "intents": [
+    "合同续签",
+    "批量续签",
+    "合同到期续约",
+    "劳动合同到期处理"
+  ],
+  "metadata": {
+    "source": [
+      "dcs-asset-replicate contract_renew_batch (来自 dcs-case-run case)",
+      "",
+      ""
+    ],
+    "evidence_anchors": "deep_scan_audit.md (case Phase D 真扫)",
+    "built_at": "2026-05-06"
+  }
+}

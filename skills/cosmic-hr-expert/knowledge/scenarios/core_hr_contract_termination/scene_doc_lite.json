@@ -1,0 +1,27 @@
+{
+  "scene": "core_hr_contract_termination",
+  "title": "合同终止 + 协议解除（hlcm）",
+  "cloud": "core_hr",
+  "description": "合同终止 / 解除 / 改签 · chgaction 大类 = 用工终止类 (复用 hpfs_hrhtmbillorgtplext) 或专属终止逻辑。影响 hrpi_empentrel 状态 (laborrelstatus 转 'terminated' 或 'changed')。ISV 扩展：基础资料配置自定义终止/解除原因 + 业务规则关联校验。",
+  "entities": [
+    "core_hr_contract_termination"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (终止变动操作)",
+    "chgEvent": "合同终止 (复用 INFO_QUIT 或专属)",
+    "createsHrpi": [
+      "hlcm_contract (终结合同档案 · enddate)",
+      "hrpi_empentrel.laborrelstatus 联动"
+    ],
+    "isvExtPoints": []
+  },
+  "_decompile_anchors": [],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 0 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

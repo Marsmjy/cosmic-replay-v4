@@ -1,0 +1,807 @@
+{
+  "view": {
+    "parameter": null,
+    "permissionItemId": "47150e89000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "view",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看",
+    "operationType": "view",
+    "operationId": "b5994054000018ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "6096194600001fac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "不能保存禁用的数据。",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "RuleType": "FormValidate",
+        "Id": "1VRALXJOVNKD"
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "编码唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "RuleType": "GroupFieldUnique",
+        "Id": "2+R3Y9FBSJ51",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "名称唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "name"
+          }
+        ],
+        "RuleType": "GroupFieldUnique",
+        "Id": "2+R3ZR7WI4N2",
+        "IsCheckMultilang": true,
+        "CustomPromp": "",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "b599405400001aac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 4,
+    "pluginCount": 7,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "RowKey": 2,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 3,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "控制使用状态",
+        "RowKey": 4,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "RowKey": 5,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.SaveConfirmOp",
+        "RowKey": 6,
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.SaveConfirmOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "close": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "close",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "关闭",
+    "operationType": "close",
+    "operationId": "b5994054000021ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "returndata": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "returndata",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "返回数据",
+    "operationType": "returndata",
+    "operationId": "c54e30e7000010ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f381c03f000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "option": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "option",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选项设置",
+    "operationType": "option",
+    "operationId": "c8d21820000086ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "first": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "first",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "第一",
+    "operationType": "first",
+    "operationId": "S=VTOGXYQBY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "previous": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "previous",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "前一",
+    "operationType": "previous",
+    "operationId": "S=VUN3Y4R6Q",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "next": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "next",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "后一",
+    "operationType": "next",
+    "operationId": "S=VVFX/B38V",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "last": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "last",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "最后",
+    "operationType": "last",
+    "operationId": "S=VW0K6WD7R",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarselect": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "mobtoolbarselect",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选择",
+    "operationType": "mobtoolbarselect",
+    "operationId": "2MMZBM6FC174",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarcancel": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "mobtoolbarcancel",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "取消",
+    "operationType": "mobtoolbarcancel",
+    "operationId": "2MMZF4V/MARY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "namehistory": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "namehistory",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "改名",
+    "operationType": "donothing",
+    "operationId": "2PVU302I5+FH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "namehistoryview": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "namehistoryview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "名称历史查询",
+    "operationType": "donothing",
+    "operationId": "2PVU5DLAO/49",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_sendconfirm": {
+    "parameter": null,
+    "permissionItemId": "2JZRHMKU12X8",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_sendconfirm",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "发送定调薪确认",
+    "operationType": "donothing",
+    "operationId": "5+CXM1D2ZABW",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "发送定调薪确认成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.SendConfirmOp",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.SendConfirmOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "donothing_offlineconfirm": {
+    "parameter": null,
+    "permissionItemId": "2JZRIIZRLF/I",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_offlineconfirm",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "线下确认",
+    "operationType": "donothing",
+    "operationId": "5+CXNZRN85C2",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_repeatsend": {
+    "parameter": null,
+    "permissionItemId": "2B98+EA8RMBP",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_repeatsend",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "催办",
+    "operationType": "donothing",
+    "operationId": "5+CXQ=P2JDZC",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "催办成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.RepeatSendConfirmOp",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.RepeatSendConfirmOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "donothing_batchdownload": {
+    "parameter": null,
+    "permissionItemId": "2NJ5XVVCMBCL",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_batchdownload",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "批量下载",
+    "operationType": "donothing",
+    "operationId": "5+CXSFQ/+ZRG",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_batchprint": {
+    "parameter": null,
+    "permissionItemId": "4730fc9e000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_batchprint",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "批量打印",
+    "operationType": "donothing",
+    "operationId": "5+CXTWFKBEWF",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_downloadattachment": {
+    "parameter": null,
+    "permissionItemId": "2NJ5XVVCMBCL",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_downloadattachment",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "下载",
+    "operationType": "donothing",
+    "operationId": "5+G170OL047R",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_preview": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_preview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "预览",
+    "operationType": "donothing",
+    "operationId": "5+G18DWI5/9L",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_batchupload": {
+    "parameter": null,
+    "permissionItemId": "2NJ5SR4NUEJ=",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_batchupload",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "批量上传附件",
+    "operationType": "donothing",
+    "operationId": "5/EPRNP5+A4Q",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_batchedittpl": {
+    "parameter": null,
+    "permissionItemId": "52UK2XISAADG",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_batchedittpl",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "批量修改模板",
+    "operationType": "donothing",
+    "operationId": "5/EQ+Q0JQZYY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "批量修改模板成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.ModifyConfirmTplOp",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.ModifyConfirmTplOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "donothing_updateinfo": {
+    "parameter": null,
+    "permissionItemId": "52UK9HFWWTWE",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_updateinfo",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "更新定调薪确认信息",
+    "operationType": "donothing",
+    "operationId": "5/MI1XCC4N27",
+    "opMessageEnable": false,
+    "confirmMsg": "将按最新的定调薪确认模板更新人员的定调薪确认信息",
+    "successMsg": "更新定调薪确认信息成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.UpdateConfirmInfoOp",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.UpdateConfirmInfoOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "donothing_edittpl": {
+    "parameter": null,
+    "permissionItemId": "52UK2XISAADG",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_edittpl",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "修改模板",
+    "operationType": "donothing",
+    "operationId": "51GSUKC/H9GH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "修改模板成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.decadjconfirm.ModifyConfirmTplOp",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.ModifyConfirmTplOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "donothing_update": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_update",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新数据",
+    "operationType": "donothing",
+    "operationId": "51KW=BETWR=L",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "viewonelog": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "viewonelog",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看日志",
+    "operationType": "donothing",
+    "operationId": "53BTLPQCF8K/",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_revoke": {
+    "parameter": null,
+    "permissionItemId": "5ACUF9XAMBSD",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_decadjconfirm",
+      "opKey": "donothing_revoke",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "撤回",
+    "operationType": "donothing",
+    "operationId": "5ACH=QNBLH=D",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "撤回成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "refreshFieldIds": [
+      "7Qzi4B3858"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "撤回插件",
+        "ClassName": "kd.swc.hcdm.opplugin.decadjconfirm.RevokeConfirmOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:04",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 28,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 4,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 13,
+        "parameterParsed_filled": 2,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

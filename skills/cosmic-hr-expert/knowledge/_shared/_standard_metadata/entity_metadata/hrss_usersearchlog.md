@@ -1,0 +1,33 @@
+# hrss_usersearchlog — 用户搜索记录
+
+**表单编码**: `hrss_usersearchlog`  
+**表单ID**: `40HGUDD0T33X`  
+**归属**: HR基础服务云 / HR智能搜索  
+**来源系统**: 金蝶苍穹 HCM 人力资源  
+
+---
+
+## 实体: hrss_usersearchlog（用户搜索记录） [BaseEntity]
+
+- **数据库表**: `t_hrss_usersearchlog`  
+
+### 字段列表
+
+| 字段Key | 中文名 | 类型 | 数据库字段名 | 必填 | 引用 |
+|---------|--------|------|-------------|------|------|
+| creator | 创建人 | CreaterField | fcreatorid |  | bos_user |
+| createtime | 创建时间 | CreateDateField | fcreatetime |  |  |
+| modifier | 修改人 | ModifierField | fmodifierid |  | bos_user |
+| modifytime | 修改时间 | ModifyDateField | fmodifytime |  |  |
+| initdatasource | 数据来源 | ComboField | finitdatasource |  |  |
+| user | 操作人 | UserField | fuserid |  | bos_user |
+| searchtime | 搜索时间 | DateTimeField | fsearchtime |  |  |
+| searchscene | 搜索场景 | BasedataField | fsearchsceneid |  | hrss_searchscene |
+| searchpage | 搜索页面 | BasedataField | fsearchpageid |  | hrss_searchconfig |
+| searchkey | 搜索关键词 | TextField | fsearchkey |  |  |
+| runfilter | 过滤条件实际值 | TextField | frunfilter |  |  |
+| gptreturn | GPT返回结果原始值 | TextField | fgptreturn |  |  |
+| gptreturnstr | GPT返回结果 | TextAreaField | fgptreturnstr |  |  |
+| viewfilter | 过滤条件 | TextAreaField | fviewfilter |  |  |
+| dsl | ES执行条件 | TextAreaField | fdsl |  |  |
+

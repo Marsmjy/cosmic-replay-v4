@@ -1,0 +1,686 @@
+{
+  "formId": "pcs_allotbill",
+  "formName": null,
+  "sceneId": "pcs_allotbill",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0AXRY53TF14G",
+  "bizappId": "1ANC8T4UC434",
+  "metaIdTechnical": "1PAGSF158TOK",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "pcs_allotbill",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/pcs_allotbill.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "pcs_allotbill",
+      "type": "BillEntity",
+      "title": "成本分配单",
+      "physicalTable": null,
+      "fieldCount": 14
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "明细数据",
+      "physicalTable": null,
+      "fieldCount": 22
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "分配单编号",
+      "physicalColumn": "t_pcs_allotbill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "单据状态",
+      "physicalColumn": "t_pcs_allotbill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "pcs_allotbill",
+      "title": "创建人",
+      "physicalColumn": "t_pcs_allotbill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "pcs_allotbill",
+      "title": "修改人",
+      "physicalColumn": "t_pcs_allotbill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "pcs_allotbill",
+      "title": "审核人",
+      "physicalColumn": "t_pcs_allotbill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "审核日期",
+      "physicalColumn": "t_pcs_allotbill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "修改时间",
+      "physicalColumn": "t_pcs_allotbill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "创建日期",
+      "physicalColumn": "t_pcs_allotbill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "barcode": {
+      "fieldId": "yVFbeDr4Sh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "条形码",
+      "physicalColumn": "t_pcs_allotbill.fbarcode",
+      "_fieldApId": "yVFbeDr4Sh"
+    },
+    "eventeffectdate": {
+      "fieldId": "HHgn7rz5rI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "t_pcs_allotbill.feventeffectdate",
+      "_fieldApId": "HHgn7rz5rI"
+    },
+    "isexistsworkflow": {
+      "fieldId": "88COGNO1Kl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "是否有工作流",
+      "physicalColumn": "t_pcs_allotbill.fisexistsworkflow",
+      "_fieldApId": "88COGNO1Kl"
+    },
+    "inputdevicetype": {
+      "fieldId": "tHeQGA14j3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "输入设备",
+      "physicalColumn": "t_pcs_allotbill.finputdevicetype",
+      "_fieldApId": "tHeQGA14j3"
+    },
+    "auditstatus": {
+      "fieldId": "CzgBL9dCew",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "审批状态",
+      "physicalColumn": "t_pcs_allotbill.fauditstatus",
+      "_fieldApId": "CzgBL9dCew"
+    },
+    "personcount": {
+      "fieldId": "LYsnuT6FSA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "pcs_allotbill",
+      "title": "包含人数",
+      "physicalColumn": "t_pcs_allotbill.fpersoncount",
+      "_fieldApId": "LYsnuT6FSA"
+    },
+    "costitem": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "lcs_costitem",
+      "entity": "entryentity",
+      "title": "成本项目",
+      "physicalColumn": "t_pcs_allotbillentry.fcostitemid"
+    },
+    "costsetupconstval": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "人力成本维度组合值",
+      "physicalColumn": "t_pcs_allotbillentry.fcostsetupconstval"
+    },
+    "costsetupconst": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "pcs_costsetupconst",
+      "entity": "entryentity",
+      "title": "核算方案常量",
+      "physicalColumn": "t_pcs_allotbillentry.fcostsetupconstid"
+    },
+    "oriamount": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "原币金额",
+      "physicalColumn": "t_pcs_allotbillentry.foriamount"
+    },
+    "startdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "薪资起始日期",
+      "physicalColumn": "t_pcs_allotbillentry.fstartdate"
+    },
+    "enddate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "薪资结束日期",
+      "physicalColumn": "t_pcs_allotbillentry.fenddate"
+    },
+    "paydate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "预计支付日期",
+      "physicalColumn": "t_pcs_allotbillentry.fpaydate"
+    },
+    "assuamount": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "AmountField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "承担金额",
+      "physicalColumn": "t_pcs_allotbillentry.fassuamount"
+    },
+    "costadapter": {
+      "fieldId": "QTJ18ljly3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "lcs_costadaption",
+      "entity": "entryentity",
+      "title": "人力成本维度方案",
+      "physicalColumn": "t_pcs_allotbill.fcostadapterid",
+      "_fieldApId": "QTJ18ljly3"
+    },
+    "basedatapropfield": {
+      "fieldId": "zvVH8Uhf2U",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "承担币种",
+      "physicalColumn": "—",
+      "_fieldApId": "zvVH8Uhf2U"
+    },
+    "org": {
+      "fieldId": "N7zINMrztx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity",
+      "title": "算发薪管理组织",
+      "physicalColumn": "t_pcs_allotbill.forgid",
+      "_fieldApId": "N7zINMrztx"
+    },
+    "description": {
+      "fieldId": "kqFXtTbIFk",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "备注：",
+      "physicalColumn": "t_pcs_allotbill_l.fdescription",
+      "_fieldApId": "kqFXtTbIFk"
+    },
+    "amountsum": {
+      "fieldId": "Ni71mtEh90",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "AmountField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "费用总额",
+      "physicalColumn": "t_pcs_allotbill.famountsum",
+      "_fieldApId": "Ni71mtEh90"
+    },
+    "financingstatus": {
+      "fieldId": "GUnd7TVZmG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "提交财务状态",
+      "physicalColumn": "t_pcs_allotbill.ffinancingstatus",
+      "_fieldApId": "GUnd7TVZmG"
+    },
+    "finaccountstatus": {
+      "fieldId": "IOqlmfs6e7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "财务记账状态",
+      "physicalColumn": "t_pcs_allotbill.ffinaccountstatus",
+      "_fieldApId": "IOqlmfs6e7"
+    },
+    "assucurrency": {
+      "fieldId": "zomV1R38j3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CurrencyField",
+      "ref": "bd_currency",
+      "entity": "entryentity",
+      "title": "币种",
+      "physicalColumn": "—",
+      "_fieldApId": "zomV1R38j3"
+    },
+    "number": {
+      "fieldId": "MWcEF241lL",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "编码",
+      "physicalColumn": "—",
+      "_fieldApId": "MWcEF241lL"
+    },
+    "showcreatetime": {
+      "fieldId": "kE3raLbX1aDzF5oyKe",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "创建时间",
+      "physicalColumn": "—",
+      "_fieldApId": "kE3raLbX1aDzF5oyKe"
+    },
+    "accountorg": {
+      "fieldId": "gmHdet5RDvpyM5q54O",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity",
+      "title": "记账组织",
+      "physicalColumn": "t_pcs_allotbill.faccountorgid",
+      "_fieldApId": "gmHdet5RDvpyM5q54O"
+    },
+    "postingdate": {
+      "fieldId": "UImfk2BYtJ3kft94v7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BookdateField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "记账日期",
+      "physicalColumn": "t_pcs_allotbill.fpostingdate",
+      "_fieldApId": "UImfk2BYtJ3kft94v7"
+    },
+    "splitcondition": {
+      "fieldId": "GyfpNV4SQci7Zldwdf",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "拆单条件",
+      "physicalColumn": "t_pcs_allotbill.fsplitcondition",
+      "_fieldApId": "GyfpNV4SQci7Zldwdf"
+    },
+    "splitconditionvalue": {
+      "fieldId": "BTFaGiUvgDrQcNmhJT",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "拆单条件值",
+      "physicalColumn": "t_pcs_allotbill.fsplitconditionvalue",
+      "_fieldApId": "BTFaGiUvgDrQcNmhJT"
+    }
+  },
+  "requiredFields": {
+    "pcs_allotbill": [
+      "billno"
+    ],
+    "entryentity": [
+      "costitem",
+      "costsetupconst",
+      "startdate",
+      "enddate",
+      "paydate",
+      "assuamount",
+      "costadapter",
+      "org",
+      "amountsum"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0LI5VZUESHUD_moblist_POrM3DL1",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_moblist_cLh8Y0yN",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1PAGSF158TOK_moblist_Eh9jdzIl",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_ckKy3s7O",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_HA5wOe8y",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1PAGSF158TOK_hvqczC7C",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_mob_Nm4HFTcx",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_mob_gq1c2ehi",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1PAGSF158TOK_mob_AwrZrfj3",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_list_JVAzvQts",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_list_I7lmEzYz",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "1PAGSF158TOK_list_3pzg2PqE",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.pcs.formplugin.web.costallot.CostAllotBillFieldControlEdit",
+      "Description": "费用分配单字段控制",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.pcs.formplugin.web.costallot.CostAllotBillFieldSummaryEdit",
+      "Description": "成本分配单摘要",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.pcs.formplugin.web.costallot.CostAllotBillList",
+      "Description": "分配单列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:09",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 28,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 12,
+        "formPlugins_count": 14
+      }
+    }
+  ]
+}

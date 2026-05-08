@@ -1,0 +1,30 @@
+{
+  "scene": "core_hr_infochange",
+  "title": "⭐⭐⭐ 调配管理 - 信息变更（chgaction 用得最纯粹的场景）",
+  "cloud": "core_hr",
+  "description": "**chgaction 用得最纯粹的场景** · 信息变更单 → 通过 chgaction 直接驱动 hrpi 字段变更，不涉及任职变化（chgEvent = INFO_MODIFY）· 100% 体现'零代码 ISV 扩展'。ISV 加 hrpi_employee/empentrel 等字段后，配置 hpfs_filemapmanager 即可让标品自动写入。通用 OP：PerChgTplSaveOp / PerChgTplEffectOp / PerChgTplSubmitOp（通用人事变动模板 OP · hpfs_hrcommonbilltplext 模板派生）。",
+  "entities": [
+    "core_hr_infochange"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction",
+    "chgEvent": "INFO_MODIFY",
+    "createsHrpi": [
+      "按 filemapmanager 配置 · 任意 hrpi_* 字段"
+    ],
+    "isvExtPoints": [],
+    "uniqueValue": "ISV 100% 零代码扩展典型场景 · 配 filemapmanager 即可"
+  },
+  "_decompile_anchors": [
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp",
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 0 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

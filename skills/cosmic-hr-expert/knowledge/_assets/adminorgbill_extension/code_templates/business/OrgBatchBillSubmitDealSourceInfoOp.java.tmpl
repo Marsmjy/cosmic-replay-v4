@@ -1,0 +1,59 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.plugin.args.EndOperationTransactionArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.opplugin.web.HRCoreBaseBillOp;
+import ${ISV_FLAG}.odc.homs.utils.OrgBatchBillInfoHelper;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * @author ningjie
+ * @version 1.0
+ * @description: 单据提交时，保存变动前信息
+ * @date 2025/8/8 13:44
+ */
+public class OrgBatchBillSubmitDealSourceInfoOp extends HRCoreBaseBillOp {
+
+
+    @Override
+    public void endOperationTransaction(EndOperationTransactionArgs e) {
+        super.endOperationTransaction(e);
+        DynamicObject[] entityArr = e.getDataEntities();
+        if (ObjectUtils.isEmpty(entityArr)) return;
+
+        if ("submit".equals(e.getOperationKey())) {
+            Set<Long> billIdSet = Arrays.stream(entityArr).map(data -> data.getLong("id")).collect(Collectors.toSet());
+            //查询单据对应的所有分录
+            HRBaseServiceHelper batchOrgEntityHelper = new HRBaseServiceHelper("homs_batchorgentity");
+            DynamicObject[] billEntries = batchOrgEntityHelper.load("billid,adminorg,${ISV_FLAG}_chgsourcevid", (new QFilter("billid", QCP.in, billIdSet)).toArray());
+
+            //获取所有做了信息变更的数据，去查询当前版本的数据，并且转成json进行字段保存
+            Set<Long> orgSet = Arrays.stream(billEntries).map(data -> data.getLong("adminorg.id")).collect(Collectors.toSet());
+            // 查询所有组织当前版本对应的历史版本id
+            DynamicObject[] orgDataArr = OrgBatchBillInfoHelper.getHisDataById(orgSet);
+            if (ObjectUtils.isEmpty(orgDataArr)) return;
+
+            Map<Long, Long> orgDataMap = Arrays.stream(orgDataArr).collect(Collectors.toMap(data -> data.getLong("id"),
+                    data -> data.getLong("sourcevid"), (v1, v2) -> v2));
+
+            Arrays.stream(billEntries).forEach(billEntry -> {
+                Long currentOrgBoId = billEntry.getLong("adminorg.id");
+                Long vId = orgDataMap.get(currentOrgBoId);
+                if (vId != null && vId != 0) {
+                    billEntry.set("${ISV_FLAG}_chgsourcevid", vId);
+                }
+            });
+
+            batchOrgEntityHelper.save(billEntries);
+
+        }
+    }
+}

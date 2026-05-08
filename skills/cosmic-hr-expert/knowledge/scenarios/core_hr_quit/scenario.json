@@ -1,0 +1,37 @@
+{
+  "scene": "core_hr_quit",
+  "name": "离职管理（htm · 5 单据 · INFO_QUIT 大类）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "htm_quitapply",
+    "htm_quitapplybill"
+  ],
+  "referenced_entities": [
+    "htm_quitapply",
+    "htm_quitapplybill"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction → hpfs_chgaction",
+    "chgEvent": "INFO_QUIT",
+    "createsHrpi": [
+      "hrpi_empentrel (laborrelstatus = quit)",
+      "hrpi_terminationinfo (新增离职信息)",
+      "hrpi_assignment (enable = 失效)",
+      "hrpi_empcadre (终结干部身份)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.htm.business.extpoint.IStaffQuitExtPlugin",
+      "kd.sdk.hr.htm.business.extpoint.IShareTaskExtPlugin",
+      "kd.sdk.hr.htm.business.extpoint.IActivityExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hpfs.opplugin.op.htmtpl.HtmTplEffectOp",
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplEffectOp",
+    "kd.hr.hpfs.opplugin.op.tpl.PerChgTplSaveOp"
+  ]
+}

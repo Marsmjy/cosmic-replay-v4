@@ -1,0 +1,224 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.util.CollectionUtils;
+import ${ISV_FLAG}.swc.sit.other.hsbs_triggercolla.SinsurfileHelper;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Author: wanghansheng
+ * 社保公积金代缴申请单校验插件
+ */
+public class SocialSecurityPayValidator extends AbstractValidator {
+    private static final String SOCIALSECURITY = "A"; //社保
+    private static final String RESERVEFUND = "B"; //公积金
+    private static final String SocailMessage = "代缴明细中，代缴险种为社保的明细中，存在缴费基数为0的险种，请重新检查代缴明细数据。\n";
+    private static final String HouseMessage = "代缴明细中，代缴险种为公积金的明细中，存在缴费基数为0的险种，请重新检查代缴明细数据。\n";
+
+    private static final String SocailMessageYX = "代缴明细中，代缴险种为社保的明细中，无缴费基数，请重新检查代缴明细数据。\n";
+    private static final String HouseMessageYX = "代缴明细中，代缴险种为公积金的明细中，无缴费基数，请重新检查代缴明细数据。\n";
+
+    /**
+     * 给校验器传入上下文环境及单据数据包之后，调用此方法；
+     * 自定义校验器，可以在此事件进行本地变量初始化：如确认需要校验的主实体
+     */
+    @Override
+    public void initializeConfiguration() {
+        super.initializeConfiguration();
+        // 在此方法中，确认校验器检验的主实体：
+        this.entityKey = "${ISV_FLAG}_social_security";
+    }
+
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] entities = this.getDataEntities();
+        List<Long> sinSurStdAndArIds = new ArrayList<>(entities.length);
+        for (ExtendedDataEntity entity : entities) {
+            DynamicObject dataEntity = entity.getDataEntity();
+            //根据代缴公司获取其参保标准的险种
+            DynamicObject payingCompany = dataEntity.getDynamicObject("${ISV_FLAG}_paying_company");
+            if (Objects.nonNull(payingCompany)){
+                DynamicObjectCollection mulSinSurStd = payingCompany.getDynamicObjectCollection("mulsinsurstd");
+                if (CollectionUtils.isNotEmpty(mulSinSurStd)) {
+                    sinSurStdAndArIds.add(mulSinSurStd.get(0).getLong("fbasedataid.id"));
+                }
+            }
+     }
+        Map<Long, List<String>> sinSurStdMap = new HashMap<>();
+        Map<Long, DynamicObject> darMap = new HashMap<>();
+        DynamicObject[] sitSinSurStd = BusinessDataServiceHelper.load("sitbs_sinsurstd",
+                "id,stdentryentity.insurtype",
+                new QFilter[]{new QFilter("id", QCP.in,sinSurStdAndArIds)});
+        for (DynamicObject sin : sitSinSurStd) {
+            long id = sin.getLong("id");
+            darMap.put(sin.getLong("id"),sin);
+            DynamicObjectCollection stdEntryEntity = sin.getDynamicObjectCollection("stdentryentity");
+            for (DynamicObject entry : stdEntryEntity) {
+                DynamicObject inSurType = entry.getDynamicObject("insurtype");
+                if (Objects.isNull(inSurType)){
+                    continue;
+                }
+                String inSurTypeNumber = inSurType.getString("number");
+                sinSurStdMap.computeIfAbsent(id, k -> new ArrayList<>()).add(inSurTypeNumber);
+            }
+        }
+        for (ExtendedDataEntity entity : entities) {
+            DynamicObject dataEntity = entity.getDataEntity();
+            String orgNumber = dataEntity.getString("org.number");
+            DynamicObject paymentServiceType = (DynamicObject)dataEntity.get("${ISV_FLAG}_payment_service_type");
+            String name = paymentServiceType.getString("number");
+
+            //根据代缴公司获取其参保标准的险种
+            ArrayList<String> insurTypeList = new ArrayList<>();
+            Long sinSurstdandarId = 0L;
+            DynamicObject payingCompany = dataEntity.getDynamicObject("${ISV_FLAG}_paying_company");
+            if (Objects.nonNull(payingCompany)){
+                DynamicObjectCollection mulSinSurStd = payingCompany.getDynamicObjectCollection("mulsinsurstd");
+                if (CollectionUtils.isNotEmpty(mulSinSurStd)) {
+                    sinSurstdandarId = mulSinSurStd.get(0).getLong("fbasedataid.id");
+                }
+            }
+            DynamicObject sitbsSinsurstd = darMap.get(sinSurstdandarId);
+            DynamicObjectCollection stdentryentity = sitbsSinsurstd.getDynamicObjectCollection("stdentryentity");
+            for (DynamicObject entry : stdentryentity) {
+                String insurTypeNumber = entry.getString("insurtype.number");
+                insurTypeList.add(insurTypeNumber);
+            }
+            //错误信息
+            StringBuffer errmessage = new StringBuffer();
+
+            if ("001".equals(name)){
+                //获取单据体
+                DynamicObjectCollection entryentity = dataEntity.getDynamicObjectCollection("entryentity");
+                for (DynamicObject dynamicObject : entryentity) {
+                    //获取代缴险种
+                    String paymentInsurance = dynamicObject.getString("${ISV_FLAG}_payment_insurance_e");
+                    if (SOCIALSECURITY.equals(paymentInsurance)){
+                        checkEntryFiled(insurTypeList, errmessage, dynamicObject,SocailMessage,SOCIALSECURITY,0);
+                    }
+
+                    //若代缴险种为公积金，那么公积金缴纳基数必填
+                    if (RESERVEFUND.equals(paymentInsurance)){
+                        checkEntryFiled(insurTypeList, errmessage, dynamicObject,HouseMessage,RESERVEFUND,0);
+                    }
+                }
+            }
+
+            if ("003".equals(name)){
+                Date effectiveDate = dataEntity.getDate("${ISV_FLAG}_effective_date");
+                //获取单据体
+                DynamicObjectCollection entryentity = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_base_entryentity");
+                for (DynamicObject dynamicObject : entryentity) {
+
+                    //获取代缴险种
+                    String paymentInsurance = dynamicObject.getString("${ISV_FLAG}_base_insurance_e");
+                    Date baseEffectiveDate = dynamicObject.getDate("${ISV_FLAG}_base_effective_date");
+
+                    //若代缴险种为社保，那么养老保险基数、医疗保险基数、失业保险基数、工伤保险基数、补充医疗保险基数必填
+                    if (SOCIALSECURITY.equals(paymentInsurance)){
+                        checkEntryFiled(insurTypeList, errmessage, dynamicObject,SocailMessage,SOCIALSECURITY,3);
+                    }
+
+                    //若代缴险种为公积金，那么公积金缴纳基数必填
+                    if (RESERVEFUND.equals(paymentInsurance)){
+                        checkEntryFiled(insurTypeList, errmessage, dynamicObject,HouseMessage,RESERVEFUND,3);
+                    }
+                    //代缴基数调整的  “生效日期”不能早于代缴明细的原生效日期
+                    if (effectiveDate.compareTo(baseEffectiveDate) < 0){
+                        errmessage.append("代缴基数调整的  “生效日期”不能早于代缴明细的原生效日期。\n");
+                        break;
+                    }
+                }
+            }
+
+            if ("002".equals(name)){
+                Date effectiveDate = dataEntity.getDate("${ISV_FLAG}_effective_date");
+                //获取单据体
+                DynamicObjectCollection entryentity = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_stop_entryentity");
+                for (DynamicObject dynamicObject : entryentity) {
+                    //获取代缴险种
+                    Date stopEffectiveDate = dynamicObject.getDate("${ISV_FLAG}_stop_effective_date");
+                    //停止缴纳的“生效日期”不能早于代缴明细的原生效日期
+                    if (effectiveDate.compareTo(stopEffectiveDate) < 0){
+                        errmessage.append("停止代缴的  “生效日期”不能早于代缴明细的原生效日期。\n");
+                        break;
+                    }
+                }
+            }
+
+            if (errmessage.length() > 0){
+                this.addFatalErrorMessage(entity, errmessage.toString());
+            }
+        }
+    }
+
+    /**
+     *
+     * @param insurTypeList 代缴公司的参保险种
+     * @param errmessage 收集错误信息
+     * @param dynamicObject 单据
+     * @param message 错误信息
+     * @param type 险种 A社保，B公积金
+     * @param index 对应标识的索引
+     */
+    private static void checkEntryFiled(ArrayList<String> insurTypeList, StringBuffer errmessage, DynamicObject dynamicObject,String message,String type,Integer index) {
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = SocialSecurityPayFormPlugin.getInsuranceConfigs(SocialSecurityPayFormPlugin.getSocialConfigs(), SocialSecurityPayFormPlugin.getFundConfigs());
+        HashMap<String, String[]> socaiMap = insuranceConfigs.get(type);
+        Set<String> socailKeySet = socaiMap.keySet();
+        for (String key : socailKeySet) {
+            String[] formId = socaiMap.get(key);
+            if (insurTypeList.contains(key)){
+                //检查其缴费基数是否为0
+                BigDecimal value = dynamicObject.getBigDecimal(formId[index]);
+                if (value == null || BigDecimal.ZERO.compareTo(value) == 0){
+                    errmessage.append(message);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     *
+     * @param insurTypeList 代缴公司的参保险种
+     * @param errmessage 收集错误信息
+     * @param dynamicObject 单据
+     * @param message 错误信息
+     * @param type 险种 A社保，B公积金
+     * @param index 对应标识的索引
+     */
+    private static void checkEntryFiledYX(ArrayList<String> insurTypeList, StringBuffer errmessage, DynamicObject dynamicObject,String message,String type,Integer index) {
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = SocialSecurityPayFormPlugin.getInsuranceConfigs(SocialSecurityPayFormPlugin.getSocialConfigs(), SocialSecurityPayFormPlugin.getFundConfigs());
+        HashMap<String, String[]> socaiMap = insuranceConfigs.get(type);
+        Set<String> socailKeySet = socaiMap.keySet();
+        boolean flag = false;
+        for (String key : socailKeySet) {
+            String[] formId = socaiMap.get(key);
+            if (insurTypeList.contains(key)){
+                //检查其缴费基数是否为0
+                BigDecimal value = dynamicObject.getBigDecimal(formId[index]);
+                if (value != null && value.compareTo(BigDecimal.ZERO) > 0){
+                    flag = true;
+                }
+            }
+        }
+
+        if (!flag){
+            errmessage.append(message);
+        }
+    }
+}

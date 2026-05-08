@@ -1,0 +1,249 @@
+package ${ISV_FLAG}.odc.homs.validator;
+
+import com.alibaba.druid.support.logging.Log;
+import com.alibaba.druid.support.logging.LogFactory;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.util.StringUtils;
+import kd.sdk.hr.haos.business.helper.HAOSServiceHelper;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class MonthBillSaveValidator extends AbstractValidator {
+
+    private static Log logger = LogFactory.getLog(MonthBillSaveValidator.class);
+
+    private final static String Filed = "adminorg,${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_jz1,${ISV_FLAG}_jz2,${ISV_FLAG}_jz3,${ISV_FLAG}_jz4,${ISV_FLAG}_jz5,${ISV_FLAG}_jz6,${ISV_FLAG}_jz7" +
+            ",${ISV_FLAG}_jz8,${ISV_FLAG}_jz9,${ISV_FLAG}_jz10,${ISV_FLAG}_jz11,${ISV_FLAG}_jz12,${ISV_FLAG}_bz1,${ISV_FLAG}_bz2,${ISV_FLAG}_bz3,${ISV_FLAG}_bz4,${ISV_FLAG}_bz5,${ISV_FLAG}_bz6,${ISV_FLAG}_bz7,${ISV_FLAG}_bz8,${ISV_FLAG}_bz9,${ISV_FLAG}_bz10,${ISV_FLAG}_bz11,${ISV_FLAG}_bz12,${ISV_FLAG}_planmonth_bill.id";
+
+
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+
+
+        QFilter qf = new QFilter("${ISV_FLAG}_planmonth_bill.id", QCP.in,
+                Arrays.stream(dataEntities).map(d -> (Long) d.getDataEntity().getPkValue()).collect(Collectors.toList()));
+        Map<Long, List<DynamicObject>> groupMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz", Filed, qf.toArray()))
+                .collect(Collectors.groupingBy(o -> o.getLong("${ISV_FLAG}_planmonth_bill.id")));
+
+        for (ExtendedDataEntity dataEntitie : dataEntities) {
+            DynamicObject dataEntity = dataEntitie.getDataEntity();
+            Long pkValue = (Long) dataEntity.getPkValue();
+            DynamicObject planMonth = dataEntity.getDynamicObject("${ISV_FLAG}_planmonth");
+            //编制信息
+            List<DynamicObject> bzLoads = groupMap.get(pkValue);
+            if (bzLoads ==null || bzLoads.isEmpty()) {
+                continue;
+            }
+            //维度
+            String labeldimension = dataEntity.getDynamicObject("${ISV_FLAG}_planmonth").getString("${ISV_FLAG}_labeldimension");
+            logger.info("MonthBillSaveValidator用工关系类型=" + labeldimension);
+            if (bzLoads.size() > 0 && StringUtils.isNotEmpty(labeldimension)) {
+                //1=用工关系类型:${ISV_FLAG}_bz_laborreltype,2=一线非一线:${ISV_FLAG}_bz_jobproperty
+                int i = 0;
+                if (labeldimension.contains("1") && labeldimension.contains("2")) {
+                    i = 3;
+                } else if (labeldimension.contains("1")) {
+                    i = 1;
+                } else if (labeldimension.contains("2")) {
+                    i = 2;
+                }
+                Map<String, List<DynamicObject>> classifyData = new HashMap<>();
+
+                if (i == 3) {
+                    classifyData = bzLoads.stream().collect(Collectors.groupingBy(f -> f.getString("${ISV_FLAG}_bz_jobproperty")));
+                    Set<String> keySet = classifyData.keySet();
+                    for (String key : keySet) {
+                        List<DynamicObject> objectList = classifyData.get(key);
+                        //最小颗粒度
+                        Map<String, List<DynamicObject>> dgdlBzLaborreltype = objectList.stream().collect(Collectors.groupingBy(f -> f.getString("${ISV_FLAG}_bz_laborreltype")));
+                        groupAdmin(dgdlBzLaborreltype, planMonth);
+                    }
+                } else {
+                    if (i == 1) {
+                        //用工关系类型
+                        classifyData = bzLoads.stream().collect(Collectors.groupingBy(f -> f.getString("${ISV_FLAG}_bz_laborreltype")));
+                    } else if (i == 2) {
+                        //一线非一线
+                        classifyData = bzLoads.stream().collect(Collectors.groupingBy(f -> f.getString("${ISV_FLAG}_bz_jobproperty")));
+                    }
+                    groupAdmin(classifyData, planMonth);
+                }
+            }
+        }
+    }
+
+    private void groupAdmin(Map<String, List<DynamicObject>> classifyData, DynamicObject planMonth) {
+        //开始日期
+        Date startmonth = planMonth.getDate("${ISV_FLAG}_startmonth");
+        //结束日期
+        Date endmonth = planMonth.getDate("${ISV_FLAG}_endmonth");
+        //格式化日期
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        int startInt = Integer.parseInt(dateFormat.format(startmonth).split("-")[1]);
+        int endStrInt = Integer.parseInt(dateFormat.format(endmonth).split("-")[1]);
+        //层级
+        int orghierarchy = planMonth.getInt("${ISV_FLAG}_orghierarchy");
+        //下级基准数
+        StringBuilder jzSb = new StringBuilder();
+        //下级编制数
+        StringBuilder bzSb = new StringBuilder();
+        //当月校验
+        StringBuilder thisSb = new StringBuilder();
+        //码值存储
+        //岗位属性
+        Map<String, String> propertyMap = new HashMap<>();
+        propertyMap.put("0", "一线");
+        propertyMap.put("1", "非一线");
+        //用工关系类型
+        Map<String, String> typeMap = new HashMap<>();
+        typeMap.put("helpmate", "合作伙伴");
+        typeMap.put("interns_reserve_personnel", "实习生");
+        typeMap.put("labor_dispatch", "劳务派遣");
+        typeMap.put("regular_workers", "正式工");
+        typeMap.put("rehired_after_retirement", "退休返聘");
+        typeMap.put("dayan", "大雁");
+        
+        //最终分组数据
+        for (String bzStr : classifyData.keySet()) {
+            List<DynamicObject> bzList = classifyData.get(bzStr);
+            List<Long> idList = bzList.stream().map(bzData -> bzData.getDynamicObject("adminorg").getLong("id")).collect(Collectors.toList());
+            Map<String, Map<String, Object>> structInfoMap = HAOSServiceHelper.queryStructInfoByProId(idList, new Date(), 1010L, true);
+            Map<String, String> orgLongNameMap = structInfoMap.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, s -> String.valueOf(s.getValue().get("longname"))));
+            Map<Long, List<DynamicObject>> orgMap=new HashMap<>();
+
+
+            for (int j = 1; j < orghierarchy; j++) {
+                for (DynamicObject bz : bzList) {
+
+                    //
+                    DynamicObject lastOrg = bz.getDynamicObject("adminorg");
+
+                    DynamicObject adminOrg = bz.getDynamicObject("${ISV_FLAG}_bz_adminorg" + j);
+
+
+
+                    if(adminOrg==null||lastOrg.getPkValue().equals(adminOrg.getPkValue())) {
+
+                        continue;
+                    }
+
+                    if(orgMap.containsKey(adminOrg.getLong("id"))){
+
+                        List<DynamicObject> sonAdminList =orgMap.get(adminOrg.getLong("id"));
+                        sonAdminList.add(bz);
+                        orgMap.put(adminOrg.getLong("id"),sonAdminList);
+
+                    }else{
+                        List<DynamicObject> sonAdminList =new ArrayList<>();
+                        sonAdminList.add(bz);
+                        orgMap.put(adminOrg.getLong("id"),sonAdminList);
+                    }
+
+
+                }
+            }
+           
+            for (DynamicObject bzData : bzList) {
+                DynamicObject lastOrg = bzData.getDynamicObject("adminorg");
+                //行政组织-组织长名称
+                String orgLongName = orgLongNameMap.get(lastOrg.getString("id"));
+                if (StringUtils.isNotEmpty(orgLongName)) {
+                    orgLongName = orgLongName.substring(orgLongName.indexOf("_") + 1).replaceAll("_", "-");
+                }
+                //获取当前组织层级
+//                int hierarchy = 0;
+//                for (int j = 1; j < orghierarchy; j++) {
+//                    hierarchy = j;
+//                    DynamicObject adminOrg = bzData.getDynamicObject("${ISV_FLAG}_bz_adminorg" + j);
+//                    if (Objects.isNull(adminOrg)) {
+//                        break;
+//                    }
+//                }
+                //过滤标识
+//                String adminStr = "${ISV_FLAG}_bz_adminorg" + hierarchy;
+                //过滤出当前组织下的组织
+                List<DynamicObject> sonAdminList = orgMap.get(lastOrg.getLong("id"));
+
+//                List<DynamicObject> sonAdminList = bzList.stream()
+//                        .filter(bz -> Objects.nonNull(bz.getDynamicObject(adminStr)))
+//                        .filter(bz -> bz.getDynamicObject(adminStr).getPkValue().equals(lastOrg.getPkValue())
+//                                && !bz.getDynamicObject("adminorg").getPkValue().equals(lastOrg.getPkValue())
+//                        ).collect(Collectors.toList());
+                //基准数标识
+                String jz_Str = "${ISV_FLAG}_jz";
+                //编制数标识
+                String bz_Str = "${ISV_FLAG}_bz";
+                for (int j = startInt; j <= endStrInt; j++) {
+                    //当前组织基准数
+                    int thisJzCount = Objects.isNull(bzData.get(jz_Str + j)) ? 0 : bzData.getInt(jz_Str + j);
+                    //当前组织编制数
+                    int thisBzCount = Objects.isNull(bzData.get(bz_Str + j)) ? 0 : bzData.getInt(bz_Str + j);
+                    if (thisBzCount > thisJzCount) {
+                        thisSb.append(orgLongName).append(j).append("月份编制数超过基准数;").append("\n");
+                    }
+
+                    //子级基准数
+                    int sonJzCount = 0;
+                    //编制基准数
+                    int sonBzCount = 0;
+                    if(sonAdminList==null){
+                        continue;
+                    }
+                    for (DynamicObject sonAdmin : sonAdminList) {
+                        sonJzCount = sonJzCount + (Objects.isNull(sonAdmin.get(jz_Str + j)) ? 0 : sonAdmin.getInt(jz_Str + j));
+                        //岗位属性
+                        String property = sonAdmin.getString("${ISV_FLAG}_bz_jobproperty");
+                        //用工关系类型
+                        String type = sonAdmin.getString("${ISV_FLAG}_bz_laborreltype");
+                        if (sonJzCount > thisJzCount) {
+                            jzSb.append(orgLongName).append("的下级组织")
+                                    .append(StringUtils.isEmpty(property) ? "" : propertyMap.get(property))
+                                    .append(StringUtils.isEmpty(type) ? "" : typeMap.get(type))
+                                    .append(j).append("月份基准数超过当前组织;")
+                                    .append("\n");
+                            break;
+                        }
+
+                        sonBzCount = sonBzCount + (Objects.isNull(sonAdmin.get(bz_Str + j)) ? 0 : sonAdmin.getInt(bz_Str + j));
+                        if (sonBzCount > thisBzCount) {
+                            bzSb.append(orgLongName).append("的下级组织")
+                                    .append(StringUtils.isEmpty(property) ? "" : propertyMap.get(property))
+                                    .append(StringUtils.isEmpty(type) ? "" : typeMap.get(type))
+                                    .append(j).append("月份编制数超过当前组织;")
+                                    .append("\n");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        //基准数校验(强管控)
+        if (!jzSb.toString().isEmpty()) {
+            jzSb.append("请调整。");
+            throw new KDBizException(jzSb.toString());
+        }
+
+        //本身基准数校验(弱管控)
+        if (!thisSb.toString().isEmpty()) {
+            thisSb.append("请注意。");
+            this.addWarningMessage(this.getDataEntities()[0], thisSb.toString());
+        }
+
+        //编制数校验(弱管控)
+        if (!bzSb.toString().isEmpty()) {
+            bzSb.append("请注意。");
+            this.addWarningMessage(this.getDataEntities()[0], bzSb.toString());
+        }
+    }
+}

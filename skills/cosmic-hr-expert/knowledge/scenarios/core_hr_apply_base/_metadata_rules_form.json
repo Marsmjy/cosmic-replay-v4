@@ -1,0 +1,585 @@
+{
+  "formId": "hrom_applybill",
+  "formName": null,
+  "sceneId": "core_hr_apply_base",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0H+/G119RC+2",
+  "bizappId": "3+JJD4IUAS56",
+  "metaIdTechnical": "51U/E4YZZXIA",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "core_hr_apply_base",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/core_hr_apply_base.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·申请单底座 hrom 派生)"
+  },
+  "entities": [
+    {
+      "name": "hrom_applybill",
+      "type": "BillEntity",
+      "title": "HR服务申请基础模板",
+      "physicalTable": null,
+      "fieldCount": 27
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "单据编号",
+      "physicalColumn": "t_hrom_applybill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "单据状态",
+      "physicalColumn": "t_hrom_applybill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hrom_applybill",
+      "title": "创建人",
+      "physicalColumn": "t_hrom_applybill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hrom_applybill",
+      "title": "修改人",
+      "physicalColumn": "t_hrom_applybill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrom_applybill",
+      "title": "审核人",
+      "physicalColumn": "t_hrom_applybill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "审核时间",
+      "physicalColumn": "t_hrom_applybill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "修改时间",
+      "physicalColumn": "t_hrom_applybill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "创建时间",
+      "physicalColumn": "t_hrom_applybill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "org": {
+      "fieldId": "MwLyMGIJQa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hrom_applybill",
+      "title": "HR管理组织",
+      "physicalColumn": "t_hrom_applybill.forgid",
+      "_fieldApId": "MwLyMGIJQa"
+    },
+    "barcode": {
+      "fieldId": "8fnH4w28dD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "条形码",
+      "physicalColumn": "t_hrom_applybill.fbarcode",
+      "_fieldApId": "8fnH4w28dD"
+    },
+    "inputdevicetype": {
+      "fieldId": "vcRvWS1cQt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "输入设备",
+      "physicalColumn": "t_hrom_applybill.finputdevicetype",
+      "_fieldApId": "vcRvWS1cQt"
+    },
+    "isexistsworkflow": {
+      "fieldId": "ds9gX9jj7Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "是否存在工作流",
+      "physicalColumn": "t_hrom_applybill.fisexistsworkflow",
+      "_fieldApId": "ds9gX9jj7Y"
+    },
+    "auditstatus": {
+      "fieldId": "snD7v1lrWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "审批状态",
+      "physicalColumn": "t_hrom_applybill.fauditstatus",
+      "_fieldApId": "snD7v1lrWb"
+    },
+    "eventeffectdate": {
+      "fieldId": "P37ig11JcQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "—",
+      "_fieldApId": "P37ig11JcQ"
+    },
+    "issubmit": {
+      "fieldId": "rxHyYP8qU1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "是否进行过提交(废弃)",
+      "physicalColumn": "—",
+      "_fieldApId": "rxHyYP8qU1"
+    },
+    "billtype": {
+      "fieldId": "uljumb7CxWGK7rslDB",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillTypeField",
+      "ref": "bos_billtype",
+      "entity": "hrom_applybill",
+      "title": "单据类型",
+      "physicalColumn": "—",
+      "_fieldApId": "uljumb7CxWGK7rslDB"
+    },
+    "applycontent": {
+      "fieldId": "9rJRnHgjrf3r5boyp2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "申请内容",
+      "physicalColumn": "t_hrom_applybill_l.fapplycontent",
+      "_fieldApId": "9rJRnHgjrf3r5boyp2"
+    },
+    "applytype": {
+      "fieldId": "qr4SmPJyNXTiwdfc8R",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "服务申请类型",
+      "physicalColumn": "t_hrom_applybill.fapplytype",
+      "_fieldApId": "qr4SmPJyNXTiwdfc8R"
+    },
+    "applicant": {
+      "fieldId": "u4yFnwURa23OWShy57",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrom_applybill",
+      "title": "申请人",
+      "physicalColumn": "t_hrom_applybill.fapplicantid",
+      "_fieldApId": "u4yFnwURa23OWShy57"
+    },
+    "applicantno": {
+      "fieldId": "oraaZZ7QR8a7tZvvFw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "申请人工号",
+      "physicalColumn": "—",
+      "_fieldApId": "oraaZZ7QR8a7tZvvFw"
+    },
+    "positionhr": {
+      "fieldId": "3bLMeI7DwH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_position",
+      "entity": "hrom_applybill",
+      "title": "岗位",
+      "physicalColumn": "—",
+      "_fieldApId": "3bLMeI7DwH"
+    },
+    "applytime": {
+      "fieldId": "e7A8T069l6fFVaSjLj",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "申请日期",
+      "physicalColumn": "t_hrom_applybill.fapplytime",
+      "_fieldApId": "e7A8T069l6fFVaSjLj"
+    },
+    "sourcetype": {
+      "fieldId": "XVbwolSuQFACPxbB39",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "单据来源类型",
+      "physicalColumn": "t_hrom_applybill.fsourcetype",
+      "_fieldApId": "XVbwolSuQFACPxbB39"
+    },
+    "company": {
+      "fieldId": "6evRYp7btAPJVYmvrF",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_adminorg",
+      "entity": "hrom_applybill",
+      "title": "所属公司",
+      "physicalColumn": "—",
+      "_fieldApId": "6evRYp7btAPJVYmvrF"
+    },
+    "applydept": {
+      "fieldId": "pUx131rf1o",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hrom_applybill",
+      "title": "申请部门",
+      "physicalColumn": "t_hrom_applybill.fapplydeptid",
+      "_fieldApId": "pUx131rf1o"
+    },
+    "applierpositionv": {
+      "fieldId": "hy91oIyzf8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hrom_applybill",
+      "title": "职位",
+      "physicalColumn": "—",
+      "_fieldApId": "hy91oIyzf8"
+    },
+    "dept": {
+      "fieldId": "5fq6DYtaIW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_adminorg",
+      "entity": "hrom_applybill",
+      "title": "任职部门",
+      "physicalColumn": "t_hrom_applybill.fdeptid",
+      "_fieldApId": "5fq6DYtaIW"
+    }
+  },
+  "requiredFields": {
+    "hrom_applybill": [
+      "billno",
+      "billstatus",
+      "org",
+      "auditstatus",
+      "billtype"
+    ]
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-04-29 16:55",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 27,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 27,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 13
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 27,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 13
+      }
+    }
+  ],
+  "sceneCategory": "config_subform",
+  "jsPlugins": [
+    {
+      "ClassName": "0H+/G119RC+2_moblist_vMq72P4B",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "51U/E4YZZXIA_moblist_dlmMTZlx",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_fnPEMP2c",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "51U/E4YZZXIA_6QDF0OZR",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_mob_7coBMts2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "51U/E4YZZXIA_mob_zltRWUkZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_list_7R6f0bsM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "51U/E4YZZXIA_list_g4JUhXgL",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hros.hrom.formplugin.route.apply.ApplyBaseFormPlugin",
+      "Description": "kd.hros.hrom.formplugin.route.apply.ApplyBaseFormPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hros.hrom.formplugin.route.apply.ApplyBaseListPlugin",
+      "Description": "kd.hros.hrom.formplugin.route.apply.ApplyBaseListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

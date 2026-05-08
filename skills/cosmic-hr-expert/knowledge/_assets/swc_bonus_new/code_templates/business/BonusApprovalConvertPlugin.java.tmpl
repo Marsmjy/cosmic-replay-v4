@@ -1,0 +1,154 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.convert;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.botp.plugin.AbstractConvertPlugIn;
+import kd.bos.entity.botp.plugin.args.AfterConvertEventArgs;
+import kd.bos.entity.botp.plugin.args.AfterGetSourceDataEventArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.sdk.plugin.Plugin;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * 奖金核定下推汇总单
+ *
+ * @author 王汉升
+ */
+public class BonusApprovalConvertPlugin extends AbstractConvertPlugIn implements Plugin {
+    @Override
+    public void afterGetSourceData(AfterGetSourceDataEventArgs e) {
+        super.afterGetSourceData(e);
+        List<DynamicObject> sourceRows = e.getSourceRows();
+        List<String> stateList = new ArrayList<>();
+        stateList.add("A");//暂存
+        stateList.add("B");//已提交
+        stateList.add("G");//待重新提交
+        stateList.add("D");//审批中
+        stateList.add("C");//审批通过
+        List<String> srcIdList = sourceRows.stream().map(o -> o.getString("id")).collect(Collectors.toList());
+        DynamicObjectCollection bonusPlanApprovalList = QueryServiceHelper.query("${ISV_FLAG}_bonus_approval_flow", "id,${ISV_FLAG}_hd_details.${ISV_FLAG}_billid",
+                new QFilter[]{
+                        new QFilter("${ISV_FLAG}_hd_details.${ISV_FLAG}_billid", QCP.in, srcIdList),
+                        new QFilter("billstatus", QCP.in, stateList)
+                });
+        DynamicObject[] bonusSure = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_approval_2nd", "id,billstatus,${ISV_FLAG}_bpsm", new QFilter[]{new QFilter("id", QCP.in, sourceRows.stream().map(o -> o.getLong("id")).collect(Collectors.toList()))});
+        Map<Long, DynamicObject> bonusPlanMap = Arrays.stream(bonusSure).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+        List<String> approvalExplains =Arrays.asList("1","2","3");
+        for (DynamicObject sourceRow : sourceRows) {
+            String srcId = String.valueOf(sourceRow.getLong("id"));
+            sourceRow = bonusPlanMap.get(sourceRow.getLong("id"));
+            String billstatus = sourceRow.getString("billstatus");
+
+            String approvalExplain = sourceRow.getString("${ISV_FLAG}_bpsm");
+            if (!billstatus.equals("C") && !approvalExplains.contains(approvalExplain)){
+                // 已报批、已发文、执行制度，提交审批后直接生成汇总审批单
+                throw new KDBizException("当前奖金核定中存在单据状态不为已审核，不能进行推送");
+            }
+            if (bonusPlanApprovalList.stream().filter(item -> item.getString("${ISV_FLAG}_hd_details.${ISV_FLAG}_billid").equalsIgnoreCase(srcId)).count() > 0){
+                throw new KDBizException("当前奖金核定中已生成了暂存、已提交、待重新提交、审批中、审批通过的核定汇总审批单，不能再次推送");
+            }
+        }
+    }
+
+    @Override
+    public void afterConvert(AfterConvertEventArgs e) {
+        super.afterConvert(e);
+        ExtendedDataEntity[] billDataEntitys = e.getTargetExtDataEntitySet().FindByEntityKey("${ISV_FLAG}_bonus_approval_flow");
+
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+        filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+        DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+        List<Long> billIds = new ArrayList<>();
+        for (ExtendedDataEntity billDataEntity : billDataEntitys) {
+            DynamicObject bill = billDataEntity.getDataEntity();
+            DynamicObjectCollection tdkwEntryPlanDetail = bill.getDynamicObjectCollection("${ISV_FLAG}_hd_details");
+            billIds.addAll(tdkwEntryPlanDetail.stream().map(item -> item.getLong("${ISV_FLAG}_billid")).collect(Collectors.toSet()));
+        }
+
+        DynamicObject[] bonusSureList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_approval_2nd", "id,createtime",
+                new QFilter[]{new QFilter("id", QCP.in, billIds)});
+        Map<Long, DynamicObject> approvalMap = new HashMap<>();
+        for (DynamicObject bonus : bonusSureList) {
+            approvalMap.put(bonus.getLong("id"), bonus);
+        }
+
+        for (ExtendedDataEntity billDataEntity : billDataEntitys) {
+            DynamicObject bill = billDataEntity.getDataEntity();
+
+            DynamicObjectCollection tdkwEntryPlanDetail = bill.getDynamicObjectCollection("${ISV_FLAG}_hd_details");
+
+            // 收集报批说明标识
+            Set<String> isApprovalRemark = tdkwEntryPlanDetail.stream().map(item -> item.getString("${ISV_FLAG}_bpsm")).collect(Collectors.toSet());
+            //存在已报批/发文/执行制度
+            bill.set("${ISV_FLAG}_approval_explain", isApprovalRemark.contains("1") || isApprovalRemark.contains("2") || isApprovalRemark.contains("3") ? "1" : "0");
+            // 收集奖金业务类别
+            Set<String> isPersonal = tdkwEntryPlanDetail.stream().map(item -> item.getString("${ISV_FLAG}_personalization")).collect(Collectors.toSet());
+
+            BigDecimal totalBudget = tdkwEntryPlanDetail.stream().map(item -> item.getBigDecimal("${ISV_FLAG}_approval_total")).reduce(BigDecimal.ZERO, BigDecimal::add);
+            bill.set("${ISV_FLAG}_approval_all",totalBudget);
+            Set<DynamicObject> bonusItemIds = tdkwEntryPlanDetail.stream().map(item -> item.getDynamicObject("${ISV_FLAG}_award_project")).collect(Collectors.toSet());
+            if (CollectionUtils.isNotEmpty(bonusItemIds)) {
+                DynamicObjectCollection mulBonusItems = bill.getDynamicObjectCollection("${ISV_FLAG}_mul_bonus_items");
+                mulBonusItems.clear();
+                for (DynamicObject bonusItemId : bonusItemIds) {
+                    DynamicObject mulBonusItem = mulBonusItems.addNew();
+                    mulBonusItem.set("fbasedataid",bonusItemId);
+                }
+            }
+
+
+            // 存在个性化奖励
+            bill.set("${ISV_FLAG}_personal_rewards", isPersonal.contains("1") ? "1" : "0");
+            // 奖金管理组织
+//            bill.set("org",orgBu);
+            // 创建人信息
+            bill.set("${ISV_FLAG}_dept_person2",empPosRel);
+            bill.set("${ISV_FLAG}_attribut_post2",empPosRel != null ?empPosRel.getDynamicObject("position") : null);
+            bill.set("${ISV_FLAG}_attribut_dept2",empPosRel != null ? empPosRel.getDynamicObject("adminorg") : null);
+            bill.set("${ISV_FLAG}_attribut_company2",empPosRel != null ? empPosRel.getDynamicObject("company") : null);
+            Set<Long> billIdSet = tdkwEntryPlanDetail.stream().map(item -> item.getLong("${ISV_FLAG}_billid")).collect(Collectors.toSet());
+            List<DynamicObject> objects = new ArrayList<>();
+            for (Long billId : billIdSet) {
+                objects.add(approvalMap.get(billId));
+            }
+            for(DynamicObject item:tdkwEntryPlanDetail){
+                Long billid = item.getLong("${ISV_FLAG}_billid");
+                DynamicObject bonusSure = objects.stream().filter(
+                        temp ->temp.getLong("id") == billid
+                ).findFirst().orElse(null);
+                if(bonusSure != null){
+                    item.set("${ISV_FLAG}_check_time",bonusSure.getDate("createtime"));
+                }
+            }
+            // 发起组织 创建单据人员主任职所属公司
+            bill.set("${ISV_FLAG}_init_org",empPosRel != null ? empPosRel.getDynamicObject("company") : null);
+
+            // 如果存在已报批/发文/执行制度为是，那么单据名称为奖金计划单名称
+            String approvalExplain = bill.getString("${ISV_FLAG}_approval_explain");
+            if ("1".equals(approvalExplain)){
+                bill.set("${ISV_FLAG}_name",tdkwEntryPlanDetail.get(0).getString("${ISV_FLAG}_approval_name"));
+                bill.set("${ISV_FLAG}_notes_ext","已报批/已发文/执行制度，无需重复走流程。");
+            }
+
+            // 奖金业务类别汇总去重
+            bill.set("${ISV_FLAG}_mul_personal_rewards",","+String.join(",",isPersonal)+",");
+        }
+    }
+}

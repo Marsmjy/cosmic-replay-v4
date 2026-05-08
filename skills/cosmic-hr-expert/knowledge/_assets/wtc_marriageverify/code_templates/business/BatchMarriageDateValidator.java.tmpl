@@ -1,0 +1,103 @@
+package ${ISV_FLAG}.wtc.wtabm.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.resource.ResManager;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import ${ISV_FLAG}.wtc.wtabm.utils.MarriageDateDealUtil;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import kd.bos.entity.validate.AbstractValidator;
+
+
+/**
+ * 批量休假-婚嫁有效期验证
+ */
+public class BatchMarriageDateValidator extends AbstractValidator {
+    @Override
+    public void validate() {
+//        super.validate();
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+        //1.收集-婚嫁行数据
+        HashMap<DynamicObject, ExtendedDataEntity> allvalidDataMap = new HashMap<>();
+        for (ExtendedDataEntity dataEntitie : dataEntities) {
+            DynamicObject bill = dataEntitie.getDataEntity();
+            DynamicObjectCollection singleBillCollection = bill.getDynamicObjectCollection("entryentity");
+            //过滤分录无数据的单
+            if (ObjectUtils.isEmpty(singleBillCollection)) {
+               continue;
+            }
+            for (DynamicObject row : singleBillCollection) {
+                DynamicObjectCollection vacationtypelist = row.getDynamicObjectCollection("vacationtypelist");
+                DynamicObject vacationtype = vacationtypelist.get(0);
+                DynamicObject fbasedataid = vacationtype.getDynamicObject("fbasedataid");
+                String vacationType = fbasedataid.getString("number");
+                if ("1050_S".equals(vacationType)){
+                    allvalidDataMap.put(row,dataEntitie);
+                }
+            }
+        }
+        if (allvalidDataMap.size() == 0){
+            return;
+        }
+
+        // 将批量数据进行分组，以员工id为key
+        List<DynamicObject> allvalidData = allvalidDataMap.keySet().stream().collect(Collectors.toList());
+        Map<Long, List<DynamicObject>> empIdToBillDyMap = allvalidData.stream().collect(Collectors.groupingBy(data -> data.getLong("employee.id")));
+
+        List<Long> allEmployeeId = empIdToBillDyMap.keySet().stream().collect(Collectors.toList());
+        // 获取所有员工的婚假信息
+        DynamicObject[] allMarriageInfo = MarriageDateDealUtil.getMarriageInfo(allEmployeeId);
+        Map<Long, Date> marriageMap =
+                Arrays.stream(allMarriageInfo).filter(data -> data.getDate("marriageregistdate") != null)
+                        .collect(Collectors.toMap(data -> data.getLong("id"), dy -> dy.getDate("marriageregistdate"), (v1, v2) -> v2));
+
+        // 进行数据校验
+        allvalidData.stream().forEach(needValidData -> {
+            ExtendedDataEntity extendedDataEntity = allvalidDataMap.get(needValidData);
+            String billno = extendedDataEntity.getDataEntity().getString("billno");
+            DynamicObject employee = needValidData.getDynamicObject("employee");
+            String name = employee.getString("name");//姓名
+            String empnumber = employee.getString("empnumber");//工号
+            String info = "单据编号："+billno+" 中 工号为："+empnumber;
+
+            Long currentEmployeeId = needValidData.getLong("employee.id");
+            Date marriageDate = marriageMap.get(currentEmployeeId);
+            if (marriageDate == null) {
+                String msg = String.format(ResManager.loadKDString(info+"的用户结婚登记日为空", "MarriageDateValidator_0", "bos-attachment", new Object[0]));
+                this.addErrorMessage(extendedDataEntity, msg);//只会存在一个单
+                return;
+            }
+                Date startdate = needValidData.getDate("startdateshowstr");//开始日期
+                Date enddate = needValidData.getDate("enddateshowstr");//结束日期
+
+                String yMd = HRDateTimeUtils.formatDate(startdate);
+                String endyMd = HRDateTimeUtils.formatDate(enddate);
+
+                Date marriageEndDate = MarriageDateDealUtil.getMarriageEndDate(marriageDate);
+                // 结婚登记日期开始时间超有效期 ||  若婚假申请开始或结束时间超有效期 || 婚假结果日期早于申请开始日期
+            if (marriageDate.after(startdate) && marriageDate.after(enddate)) { // 结婚登记日期开始时间和结束日期都超出
+                this.addErrorMessage(extendedDataEntity, ResManager.loadKDString(info+" "+yMd + "~" + endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+                return ;
+            }
+            if (marriageDate.after(startdate)) { // 结婚登记日期开始时间超有效期
+                this.addErrorMessage(extendedDataEntity, ResManager.loadKDString(info+" "+yMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+                return ;
+            }
+            if (marriageEndDate.before(startdate)) { // 若婚假申请开始或结束时间超有效期
+                this.addErrorMessage(extendedDataEntity, ResManager.loadKDString(info+" "+yMd + "~" + endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+                return ;
+            }
+            if (marriageEndDate.before(enddate)) {
+                this.addErrorMessage(extendedDataEntity, ResManager.loadKDString(info+" "+endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+                return ;
+            }
+        });
+    }
+}

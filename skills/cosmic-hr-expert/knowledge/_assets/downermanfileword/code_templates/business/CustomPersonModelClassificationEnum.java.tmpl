@@ -1,0 +1,41 @@
+package ${ISV_FLAG}.hspm;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+public enum CustomPersonModelClassificationEnum {
+    PERSONMODEL("personmodel", null),
+    PERATTACHED("perattached", "person"),
+    EMPATTACHED("empattached", "employee"),
+    CMPEMPATTACHED("cmpempattached", "cmpemp"),
+    DEPEMPATTACHED("depempattached", "depemp");
+
+    private final String code;
+    private final String mainKey;
+
+    private static final Map<String, CustomPersonModelClassificationEnum> CODE_MAP = new HashMap<>();
+
+    static {
+        for (CustomPersonModelClassificationEnum value : values()) {
+            CODE_MAP.put(value.code, value);
+        }
+    }
+
+    CustomPersonModelClassificationEnum(String code, String mainKey) {
+        this.code = code;
+        this.mainKey = mainKey;
+    }
+
+    public static CustomPersonModelClassificationEnum getByCode(String code) {
+        return CODE_MAP.get(code);
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getMainKey() {
+        return mainKey;
+    }
+}

@@ -1,0 +1,456 @@
+{
+  "scene": "haos_staffcase",
+  "formId": "haos_staffcase",
+  "description": "rules_chain_all.json · 场景 haos_staffcase",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "HR 实体导入（HIES-Pro 标准按钮 · Excel 模板驱动 · 核心业务类：(未挂业务插件)）",
+        "frequency": "高频 · 几乎所有 HR 列表都有此按钮",
+        "stateTransition": "未导入 → 解析 → 校验 → 入库 → 完成",
+        "extValue": 5,
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": ""
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "afterLoadStartPage",
+          "className": "",
+          "role": "启动页加载后 · 设置导入上下文默认值 · 挂扩展参数",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 2,
+          "plugin": "afterInitContext",
+          "className": "",
+          "role": "上下文就绪 · 配置唯一值字段 / 并发参数",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 3,
+          "plugin": "beforeCreateHeaderColumn",
+          "className": "",
+          "role": "生成表头列 · 按 importType 隐藏/展示列",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 4,
+          "plugin": "afterParseBillData",
+          "className": "",
+          "role": "Excel 解析后 · 清理互斥字段",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 5,
+          "plugin": "beforeValidate",
+          "className": "",
+          "role": "主校验前 · 行级数据预处理",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 6,
+          "plugin": "beforeInitValidator",
+          "className": "",
+          "role": "注册自定义校验器 (AbstractValidateHandler · ValidatorOrderEnum.AFTER)",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 7,
+          "plugin": "beforeQueryRefBd",
+          "className": "",
+          "role": "F7 引用基础资料查询前 · 修改 QFilter",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 8,
+          "plugin": "beforeLoadEntity",
+          "className": "",
+          "role": "加载存量实体前 · 修改实体查询条件",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 9,
+          "plugin": "afterConvertDynamicObjects",
+          "className": "",
+          "role": "转成 DynamicObject 后 · 二次分组",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 10,
+          "plugin": "beforeTempStoreInstore",
+          "className": "",
+          "role": "临时存储入库前 · 批量跨行业务校验",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 11,
+          "plugin": "beforeCallOperation",
+          "className": "",
+          "role": "调 save OP 前 · 最后改写实体",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 12,
+          "plugin": "afterImportComplete",
+          "className": "",
+          "role": "导入完成后 · 清理缓存 / 发消息",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [
+        {
+          "name": "HIES-Pro 框架校验链",
+          "role": "按 ValidatorOrderEnum 顺序执行 · BEFORE / REPLACE / AFTER（自定义通常 AFTER）",
+          "definition": "自定义跨行/跨表校验必须注册为 Validator · 不能写在 beforeValidate · 见 R3/R4/R5",
+          "id": "V_importdata_hr_1"
+        }
+      ],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [
+        "(按业务插件实现决定)"
+      ],
+      "readFields": [
+        "(从 Excel 解析 · 动态字段)"
+      ],
+      "events": [
+        "afterLoadStartPage",
+        "afterInitContext",
+        "beforeCreateHeaderColumn",
+        "afterParseBillData",
+        "beforeValidate",
+        "beforeInitValidator",
+        "beforeQueryRefBd",
+        "beforeLoadEntity",
+        "afterConvertDynamicObjects",
+        "beforeTempStoreInstore",
+        "beforeCallOperation",
+        "afterImportComplete"
+      ],
+      "mines": [
+        "⚠ 忘记调 super.beforeXxx(args) → 框架装箱失效 (R1)",
+        "⚠ 校验在 beforeValidate 里抛异常 → 整个导入中止 (R5)",
+        "⚠ 不跳过已错行 → 同一行报两种错误 (R4)",
+        "⚠ 在 afterCallOperation 改字段 → 对象已保存改动不生效 (R9)",
+        "⚠ 自己写 QueryServiceHelper 查 attfile → 漏启用范围/权限 (R10)",
+        "❌ 禁继承 StaffCaseEdit（场景专属 FormPlugin · ISV 用 HRDataBaseEdit 并列挂）",
+        "❌ 禁继承 StaffCaseListPlugin（场景专属 ListPlugin · ISV 用 HRDataBaseList 并列挂）",
+        "❌ 禁继承 StaffCaseSaveOp（场景专属 SaveOp · ISV 用 HRDataBaseOp 并列挂）",
+        "❌ 禁继承 AbsOrgBaseOp（not in SDK whitelist · 禁止继承）",
+        "❌ 禁继承 HRBaseDataTplEdit（标品基础资料模板 · ISV 应并列挂 HRDataBaseEdit · PR-001）",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "metadataConfig": {
+        "operationId": "36NMYUPXH7+Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "cusstartpage": "",
+        "plugins": [],
+        "isPlatformDefined": true,
+        "sourceOfTruth": "OpenAPI listOperations + getOperation"
+      },
+      "_synthesized": {
+        "from": "probe_opkey_registry.py + curated_rules",
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导入记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN+52WYF1Y"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN+52WYF1Y",
+        "permissionItemId": "4730fc9f000003ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按列表导出 · 核心类：(未挂业务插件)）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "(平台内建)",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "(平台内建)",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_list_hr_R1",
+          "order": 1,
+          "name": "按列表导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 0 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_list_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN1BHX+R/A",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按导入模板导出 · 核心类：(未挂业务插件)）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "(平台内建)",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "(平台内建)",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_impttpl_hr_R1",
+          "order": 1,
+          "name": "按导入模板导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 0 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_impttpl_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN2SRUE7N/",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "HR 实体导出（HIES-Pro · 按导出模板导出 · 核心类：(未挂业务插件)）",
+        "frequency": "中高频",
+        "stateTransition": "查询 → 转换 → 写 Excel → 下载",
+        "extValue": 3,
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "beforeWriteData",
+          "className": "(平台内建)",
+          "role": "写入 Excel 前 · 修改模板内容",
+          "pluginsInvoked": []
+        },
+        {
+          "order": 2,
+          "plugin": "afterQueryData",
+          "className": "(平台内建)",
+          "role": "查询数据后 · 二次加工行数据",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_export_from_expttpl_hr_R1",
+          "order": 1,
+          "name": "按导出模板导出 规则待蒸馏",
+          "type": "HR导出开发规范",
+          "definition": "本 opKey 挂了 0 个插件 · 规则可从 hies-dev 的 6 个 HRExportPlugin demo 蒸馏",
+          "edgeCase": "F7 字段直接导出 ID · 用户看到数字 · 需配置反查成 NUMBER/NAME",
+          "phase": "beforeWriteData / afterQueryData",
+          "confidence": "pending",
+          "_originalId": "EXP_R_export_from_expttpl_hr"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "(从列表或模板查询)"
+      ],
+      "events": [
+        "beforeWriteData",
+        "afterQueryData"
+      ],
+      "mines": [
+        "⚠ F7 字段直接导出 ID · 应配置反查",
+        "⚠ 大数据量同步导出 · 应走流式 (SXSSFWorkbook)"
+      ],
+      "metadataConfig": {
+        "operationId": "36NN3ZT9PZNE",
+        "permissionItemId": "4730fc9f000004ae",
+        "plugins": [],
+        "isPlatformDefined": true
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "HIES-Pro 平台内建 · 查看导出记录 · 跳转到标准记录列表",
+        "frequency": "低频",
+        "stateTransition": "click → 打开记录列表页",
+        "extValue": 1,
+        "operationId": "36NN590J0H1R"
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "click",
+          "className": "(HIES 平台内建)",
+          "role": "打开 HIES 标准记录列表（hies_impt_record / hies_expt_record）",
+          "pluginsInvoked": []
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [],
+      "metadataConfig": {
+        "operationId": "36NN590J0H1R",
+        "permissionItemId": "4730fc9f000004ae",
+        "isPlatformDefined": true,
+        "customizable": false
+      },
+      "_synthesized": {
+        "generatedBy": "scripts/gen_rules_chain_from_opkeys.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    }
+  }
+}

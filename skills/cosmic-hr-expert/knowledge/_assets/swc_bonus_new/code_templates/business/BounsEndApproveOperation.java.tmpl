@@ -1,0 +1,91 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_end_approval.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Description: 终止审批单审批通过后，更新对应奖金发放数据
+ */
+public class BounsEndApproveOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        fieldKeys.add("${ISV_FLAG}_sourceid");
+        fieldKeys.add("${ISV_FLAG}_end_amout_entry");
+        fieldKeys.add("billstatus");
+        fieldKeys.add("auditstatus");
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+
+        // 审核或提交并生效后更新对应的发放单
+        if ("audit".equals(operationKey) || "submiteffect".equals(operationKey)){
+            // 查询发放人员
+            List<Long> sourceId = Arrays.stream(entities)
+                    .map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_entryentity"))
+                    .flatMap(DynamicObjectCollection::stream)
+                    .map(item -> item.getLong("${ISV_FLAG}_sourceid"))
+                    .collect(Collectors.toList());
+
+            // 锁住数据
+            BounsPaymentUtils.bounsForUpdate(sourceId);
+            DynamicObject[] bonusPayments = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment", "id,${ISV_FLAG}_amount,${ISV_FLAG}_grant_amount,${ISV_FLAG}_cancelled_amount,${ISV_FLAG}_redeem_amount,${ISV_FLAG}_is_zero", new QFilter[]{new QFilter("id", QCP.in, sourceId)});
+            Map<Long, DynamicObject> bonusPaymentsMap = Arrays.stream(bonusPayments).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+
+            // 查询终止单据状态
+            DynamicObject[] load = BusinessDataServiceHelper.load("${ISV_FLAG}_bouns_end_approval", "id,billstatus", new QFilter[]{new QFilter("id", QCP.in, Arrays.stream(entities).map(item -> item.getLong("id")).collect(Collectors.toList()))});
+            Map<Long, String> bounsEndApprovalMap = Arrays.stream(load).collect(Collectors.toMap(item -> item.getLong("id"), value -> value.getString("billstatus")));
+
+
+            for (DynamicObject bill : entities) {
+                Long billId = bill.getLong("id");
+                String billstatus = bounsEndApprovalMap.get(billId);
+                if (billstatus.equals("C")){
+                    throw new KDBizException("奖金终止单已审批通过，无法再次审批通过，请联系相关人员查看。");
+                }
+                DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+                for (DynamicObject entryBill : entryentity) {
+                    // 终止金额
+                    BigDecimal endAmout = entryBill.getBigDecimal("${ISV_FLAG}_end_amout_entry");
+                    endAmout = endAmout == null ? BigDecimal.ZERO:endAmout;
+
+                    // 奖金发放数据更新
+                    DynamicObject bonusPayment = bonusPaymentsMap.get(entryBill.getLong("${ISV_FLAG}_sourceid"));
+                    // 作废总额
+                    BigDecimal cancelledAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_cancelled_amount");
+                    cancelledAmount = cancelledAmount == null ? BigDecimal.ZERO:cancelledAmount;
+                    // 可兑换总额
+                    BigDecimal redeemAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                    redeemAmount = redeemAmount == null ? BigDecimal.ZERO:redeemAmount;
+
+                    // 作废金额 = (原)作废金额 + 终止金额
+                    bonusPayment.set("${ISV_FLAG}_cancelled_amount",cancelledAmount.add(endAmout));
+                    // 可兑换总额 = 可兑换总额 - 终止金额
+                    bonusPayment.set("${ISV_FLAG}_redeem_amount",redeemAmount.subtract(endAmout));
+                    // 可兑现金额是否为0
+                    bonusPayment.set("${ISV_FLAG}_is_zero",redeemAmount.subtract(endAmout).compareTo(BigDecimal.ZERO) == 0? "1" : "0");
+                }
+            }
+            SaveServiceHelper.update(bonusPayments);
+        }
+    }
+}

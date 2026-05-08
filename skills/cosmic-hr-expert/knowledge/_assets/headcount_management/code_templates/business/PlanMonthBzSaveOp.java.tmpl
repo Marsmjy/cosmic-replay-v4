@@ -1,0 +1,231 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.EndOperationTransactionArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: 姚帅
+ * @CreateTime: 2024-04-15  15:02
+ * @Description: 批量调整当前组织下级的所有父级编制数，列表变色需要
+ */
+public class PlanMonthBzSaveOp extends AbstractOperationServicePlugIn {
+
+    private static Log logger = LogFactory.getLog(PlanMonthBzSaveOp.class);
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_planmonth_bill");
+        e.getFieldKeys().add("${ISV_FLAG}_layer");
+        e.getFieldKeys().add("${ISV_FLAG}_bz_laborreltype");
+        e.getFieldKeys().add("${ISV_FLAG}_bz_jobproperty");
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_bz1");
+        e.getFieldKeys().add("${ISV_FLAG}_bz2");
+        e.getFieldKeys().add("${ISV_FLAG}_bz3");
+        e.getFieldKeys().add("${ISV_FLAG}_bz4");
+        e.getFieldKeys().add("${ISV_FLAG}_bz5");
+        e.getFieldKeys().add("${ISV_FLAG}_bz6");
+        e.getFieldKeys().add("${ISV_FLAG}_bz7");
+        e.getFieldKeys().add("${ISV_FLAG}_bz8");
+        e.getFieldKeys().add("${ISV_FLAG}_bz9");
+        e.getFieldKeys().add("${ISV_FLAG}_bz10");
+        e.getFieldKeys().add("${ISV_FLAG}_bz11");
+        e.getFieldKeys().add("${ISV_FLAG}_bz12");
+    }
+
+    @Override
+    public void endOperationTransaction(EndOperationTransactionArgs e) {
+        super.endOperationTransaction(e);
+        DynamicObject[] dataEntities = e.getDataEntities();
+        //操作标识
+        String operationKey = e.getOperationKey();
+        logger.info("PlanMonthBzSaveOp操作标识="+operationKey);
+        if ("save".equals(operationKey)){
+
+            //岗位属性
+            ArrayList<String> propertyList = new ArrayList<>();
+            //用公关系类型
+            ArrayList<String> typeList = new ArrayList<>();
+            //下一层级
+            ArrayList<Integer> lastLayerList = new ArrayList<>();
+            //当前管理信息
+            ArrayList<Long> pkValueList = new ArrayList<>();
+            //当前层级
+            ArrayList<Integer> layerList = new ArrayList<>();
+
+            for (DynamicObject d : dataEntities) {
+                propertyList.add(d.getString("${ISV_FLAG}_bz_jobproperty"));
+                typeList.add(d.getString("${ISV_FLAG}_bz_laborreltype"));
+                lastLayerList.add(d.getInt("${ISV_FLAG}_layer") + 1);
+                pkValueList.add((Long) d.getDynamicObject("${ISV_FLAG}_planmonth_bill").getPkValue());
+                layerList.add(d.getInt("${ISV_FLAG}_layer"));
+            }
+
+            QFilter qf = new QFilter("${ISV_FLAG}_planmonth_bill.id", QCP.in, pkValueList)
+                    .and(new QFilter("${ISV_FLAG}_bz_jobproperty", QCP.in, propertyList))
+                    .and(new QFilter("${ISV_FLAG}_bz_laborreltype", QCP.in, typeList))
+                    .and(new QFilter("${ISV_FLAG}_layer", QCP.in, lastLayerList));
+
+            DynamicObject[] bzDyObjs = BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz",
+                    "adminorg,${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6," +
+                    "${ISV_FLAG}_p_bz1,${ISV_FLAG}_p_bz2,${ISV_FLAG}_p_bz3,${ISV_FLAG}_p_bz4,${ISV_FLAG}_p_bz5,${ISV_FLAG}_p_bz6," + "${ISV_FLAG}_p_bz7,${ISV_FLAG}_p_bz8,${ISV_FLAG}_p_bz9,${ISV_FLAG}_p_bz10,${ISV_FLAG}_p_bz11,${ISV_FLAG}_p_bz12," +
+                            "${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6," +
+                            "${ISV_FLAG}_planmonth_bill.id,${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_layer",
+                    qf.toArray());
+
+            Map<String, List<DynamicObject>> bzGroupMap = Arrays.stream(bzDyObjs).collect(Collectors.groupingBy(o ->
+                    o.getString("${ISV_FLAG}_bz_jobproperty")
+                            + o.getString("${ISV_FLAG}_bz_laborreltype")
+                            + o.getString("${ISV_FLAG}_layer")
+                            + o.getString("${ISV_FLAG}_planmonth_bill.id")
+            ));
+
+
+            QFilter qf1 = new QFilter("${ISV_FLAG}_planmonth_bill.id", QCP.in, pkValueList)
+                    .and(new QFilter("${ISV_FLAG}_bz_jobproperty", QCP.in, propertyList))
+                    .and(new QFilter("${ISV_FLAG}_bz_laborreltype", QCP.in, typeList))
+                    .and(new QFilter("${ISV_FLAG}_layer", QCP.in, layerList));
+
+            Map<String, List<DynamicObject>> layerBzGroupMap = Arrays.stream(BusinessDataServiceHelper.load("${ISV_FLAG}_planmonth_bz",
+                            "${ISV_FLAG}_bz1,${ISV_FLAG}_bz2,${ISV_FLAG}_bz3,${ISV_FLAG}_bz4,${ISV_FLAG}_bz5,${ISV_FLAG}_bz6,${ISV_FLAG}_bz7,${ISV_FLAG}_bz8,${ISV_FLAG}_bz9,${ISV_FLAG}_bz10,${ISV_FLAG}_bz11,${ISV_FLAG}_bz12," +
+                                    "${ISV_FLAG}_all_bz1,${ISV_FLAG}_all_bz2,${ISV_FLAG}_all_bz3,${ISV_FLAG}_all_bz4,${ISV_FLAG}_all_bz5,${ISV_FLAG}_all_bz6,${ISV_FLAG}_all_bz7,${ISV_FLAG}_all_bz8,${ISV_FLAG}_all_bz9,${ISV_FLAG}_all_bz10,${ISV_FLAG}_all_bz11,${ISV_FLAG}_all_bz12," +
+                                    "${ISV_FLAG}_bz_adminorg1,${ISV_FLAG}_bz_adminorg2,${ISV_FLAG}_bz_adminorg3,${ISV_FLAG}_bz_adminorg4,${ISV_FLAG}_bz_adminorg5,${ISV_FLAG}_bz_adminorg6," +
+                                    "${ISV_FLAG}_planmonth_bill.id,${ISV_FLAG}_bz_jobproperty,${ISV_FLAG}_bz_laborreltype,${ISV_FLAG}_layer",
+                            qf1.toArray()))
+                    .collect(Collectors.groupingBy(o ->
+                            o.getString("${ISV_FLAG}_bz_jobproperty")
+                                    + o.getString("${ISV_FLAG}_bz_laborreltype")
+                                    + o.getString("${ISV_FLAG}_layer")
+                                    + o.getString("${ISV_FLAG}_planmonth_bill.id")
+                    ));
+
+
+            ArrayList<DynamicObject> bzResultList = new ArrayList<>();
+            ArrayList<DynamicObject> layerBzResultList = new ArrayList<>();
+
+            for (DynamicObject dataEntitie : dataEntities) {
+                //当前管理信息
+                Long pkValue = (Long) dataEntitie.getDynamicObject("${ISV_FLAG}_planmonth_bill").getPkValue();
+                //当前编制数
+                int bz1 = dataEntitie.getInt("${ISV_FLAG}_bz1");
+                int bz2 = dataEntitie.getInt("${ISV_FLAG}_bz2");
+                int bz3 = dataEntitie.getInt("${ISV_FLAG}_bz3");
+                int bz4 = dataEntitie.getInt("${ISV_FLAG}_bz4");
+                int bz5 = dataEntitie.getInt("${ISV_FLAG}_bz5");
+                int bz6 = dataEntitie.getInt("${ISV_FLAG}_bz6");
+                int bz7 = dataEntitie.getInt("${ISV_FLAG}_bz7");
+                int bz8 = dataEntitie.getInt("${ISV_FLAG}_bz8");
+                int bz9 = dataEntitie.getInt("${ISV_FLAG}_bz9");
+                int bz10 = dataEntitie.getInt("${ISV_FLAG}_bz10");
+                int bz11 = dataEntitie.getInt("${ISV_FLAG}_bz11");
+                int bz12 = dataEntitie.getInt("${ISV_FLAG}_bz12");
+                //末级组织
+                DynamicObject adminorg = dataEntitie.getDynamicObject("adminorg");
+                //当前组织层级
+                String layer = dataEntitie.getString("${ISV_FLAG}_layer");
+                String adminStr = "${ISV_FLAG}_bz_adminorg" + layer + ".id";
+                int intLayer = Integer.parseInt(layer);
+                //下一层级
+                String nextAdminStr = "${ISV_FLAG}_bz_adminorg" + (intLayer + 1);
+                //岗位属性
+                String property = dataEntitie.getString("${ISV_FLAG}_bz_jobproperty");
+                //用公关系类型
+                String type = dataEntitie.getString("${ISV_FLAG}_bz_laborreltype");
+                if (intLayer < 6) {
+                    //当前组织直接下级组织
+                    List<DynamicObject> bzObjs = bzGroupMap.get(property + type + (intLayer + 1) + pkValue);
+                    if (bzObjs != null && !bzObjs.isEmpty()) {
+                        bzObjs = bzObjs.stream().filter(o -> StringUtils.equals(o.getString(adminStr), adminorg.getString("id"))).collect(Collectors.toList());
+
+                        for (DynamicObject bzObj : bzObjs) {
+                            bzObj.set("${ISV_FLAG}_p_bz1", bz1);
+                            bzObj.set("${ISV_FLAG}_p_bz2", bz2);
+                            bzObj.set("${ISV_FLAG}_p_bz3", bz3);
+                            bzObj.set("${ISV_FLAG}_p_bz4", bz4);
+                            bzObj.set("${ISV_FLAG}_p_bz5", bz5);
+                            bzObj.set("${ISV_FLAG}_p_bz6", bz6);
+                            bzObj.set("${ISV_FLAG}_p_bz7", bz7);
+                            bzObj.set("${ISV_FLAG}_p_bz8", bz8);
+                            bzObj.set("${ISV_FLAG}_p_bz9", bz9);
+                            bzObj.set("${ISV_FLAG}_p_bz10", bz10);
+                            bzObj.set("${ISV_FLAG}_p_bz11", bz11);
+                            bzObj.set("${ISV_FLAG}_p_bz12", bz12);
+                        }
+                        bzResultList.addAll(bzObjs);
+                    }
+                }
+
+
+                //上一层级
+                String topAdminStr = "${ISV_FLAG}_bz_adminorg" + (intLayer - 1);
+                //调整当前同级组织的编辑数
+                if (intLayer > 1) {
+                    //上级组织
+                    DynamicObject topAdminOrg = dataEntitie.getDynamicObject(topAdminStr);
+                    if (Objects.nonNull(topAdminOrg)) {
+                        //当前组织直接同级组织
+                        List<DynamicObject> bzObjs = layerBzGroupMap.get(property + type + intLayer + pkValue);
+                        bzObjs = bzObjs.stream().filter(o -> StringUtils.equals(o.getString(topAdminStr + ".id"), String.valueOf(topAdminOrg.getPkValue()))).collect(Collectors.toList());
+                        if (bzObjs.size() > 0) {
+                            int allBz1 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz1")).sum();
+                            int allBz2 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz2")).sum();
+                            int allBz3 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz3")).sum();
+                            int allBz4 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz4")).sum();
+                            int allBz5 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz5")).sum();
+                            int allBz6 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz6")).sum();
+                            int allBz7 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz7")).sum();
+                            int allBz8 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz8")).sum();
+                            int allBz9 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz9")).sum();
+                            int allBz10 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz10")).sum();
+                            int allBz11 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz11")).sum();
+                            int allBz12 = bzObjs.stream().mapToInt(a -> a.getInt("${ISV_FLAG}_bz12")).sum();
+                            for (DynamicObject bzObj : bzObjs) {
+                                bzObj.set("${ISV_FLAG}_all_bz1", allBz1);
+                                bzObj.set("${ISV_FLAG}_all_bz2", allBz2);
+                                bzObj.set("${ISV_FLAG}_all_bz3", allBz3);
+                                bzObj.set("${ISV_FLAG}_all_bz4", allBz4);
+                                bzObj.set("${ISV_FLAG}_all_bz5", allBz5);
+                                bzObj.set("${ISV_FLAG}_all_bz6", allBz6);
+                                bzObj.set("${ISV_FLAG}_all_bz7", allBz7);
+                                bzObj.set("${ISV_FLAG}_all_bz8", allBz8);
+                                bzObj.set("${ISV_FLAG}_all_bz9", allBz9);
+                                bzObj.set("${ISV_FLAG}_all_bz10", allBz10);
+                                bzObj.set("${ISV_FLAG}_all_bz11", allBz11);
+                                bzObj.set("${ISV_FLAG}_all_bz12", allBz12);
+                            }
+                            layerBzResultList.addAll(bzObjs);
+                        }
+                    }
+                }
+            }
+
+            //批量保存
+            if (!bzResultList.isEmpty()) {
+                SaveServiceHelper.update(bzResultList.toArray(new DynamicObject[]{}));
+            }
+            if (!layerBzResultList.isEmpty()) {
+                SaveServiceHelper.update(layerBzResultList.toArray(new DynamicObject[]{}));
+            }
+
+
+        }
+    }
+}

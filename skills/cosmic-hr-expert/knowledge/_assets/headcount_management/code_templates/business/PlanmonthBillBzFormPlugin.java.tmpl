@@ -1,0 +1,92 @@
+package ${ISV_FLAG}.odc.homs.formplugin.Import;
+
+import kd.bos.dataentity.entity.DataEntityBase;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.datamodel.BasedataItem;
+import kd.bos.entity.datamodel.events.QueryImportBasedataEventArgs;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+
+/**
+ * @author: YS
+ * @date:2024/5/23 15:09
+ * @description: 月度编制计划导入过滤
+ */
+public class PlanMonthBillBzFormPlugin  extends AbstractFormPlugin {
+
+
+    /**
+     * 导入状态
+     */
+    private static final String ISIMPORTSTATUS = "isImportStatus";
+
+    private static final Log logger = LogFactory.getLog(PlanMonthBillBzFormPlugin.class);
+
+    /**
+     * 当基础资料查不到或者查到多个结果时，设置正确的id
+     *
+     * @param e
+     */
+    @Override
+    public void queryImportBasedata(QueryImportBasedataEventArgs e) {
+        super.queryImportBasedata(e);
+        this.getPageCache().put(ISIMPORTSTATUS, "true");
+        Map<BasedataItem, List<Object>> searchResult = e.getSearchResult();
+        try {
+            for (Map.Entry<BasedataItem, List<Object>> entry : searchResult.entrySet()) {
+                //导入字段
+                BasedataItem basedataItem = entry.getKey();
+                //字段标识
+                String fieldKey = basedataItem.getFieldKey();
+                //导入值
+                List<Object> basedata = entry.getValue();
+                //基础资料匹配了多个值
+                if (basedata.size() > 1) {
+
+                    Map<Object, DynamicObject> baseMap = Arrays.stream(BusinessDataServiceHelper.load(basedataItem.getEntityNumber(),
+                                    "iscurrentversion,datastatus",
+                                    new QFilter[]{new QFilter("id", QCP.in, basedata)}))
+                            .collect(Collectors.toMap(DataEntityBase::getPkValue, b -> b));
+
+                    Iterator it = basedata.iterator();
+                    while (it.hasNext()) {
+                        Object id = it.next();
+                        DynamicObject basedataObj = baseMap.get(id);
+                        switch (fieldKey) {
+                            //员工工号
+                            case "${ISV_FLAG}_bz_adminorg1":
+                            case "${ISV_FLAG}_bz_adminorg2":
+                            case "${ISV_FLAG}_bz_adminorg3":
+                            case "${ISV_FLAG}_bz_adminorg4":
+                            case "${ISV_FLAG}_bz_adminorg5":
+                            case "${ISV_FLAG}_bz_adminorg6":
+                            case "adminorg":
+                                if (!basedataObj.getBoolean("iscurrentversion")
+                                        || !"1".equals(basedataObj.getString("datastatus"))
+                                ) {
+                                    it.remove();
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("PlanMonthBillBzFormPlugin：", ex);
+            throw ex;
+        }
+    }
+}

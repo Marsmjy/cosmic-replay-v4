@@ -1,0 +1,59 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_fund;
+
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.QueryServiceHelper;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/7/1 15:08
+ * FileName: SocialSecurityFundCommon
+ * Description: 社保公积金基数表的一些公共常量类
+ */
+public class SocialSecurityFundCommon {
+
+    // 社保公积金基数表的表单标识
+    public static final String FORM_ID = "${ISV_FLAG}_social_security_fund";
+    // 永祥需要显示的字段
+    public static final String[] YONG_XIANG_FIELD = {"${ISV_FLAG}_pension_insurance","${ISV_FLAG}_medical_insurance","${ISV_FLAG}_unemployment_insuran","${ISV_FLAG}_commercial_insurance","${ISV_FLAG}_mul_insured_entity","${ISV_FLAG}_supply_medical"};
+    // 永祥需要显示的按钮
+    public static final String[] YONG_XIANG_BTN_KEY = {"${ISV_FLAG}_yx_insertdatabtn","${ISV_FLAG}_show_flow_chart"};
+    // 股份需要显示的字段
+    public static final String[] OTHER_FILED = {"${ISV_FLAG}_social_medical","${ISV_FLAG}_insured_entity"};
+    // 股份需要显示的按钮
+    public static final String[] OTHER_BTN_KEY = {"insertdatabtn"};
+    // 永祥的业务单元的编码
+    public static final String YONG_XIANG_NUMBER = "TW02"; // 永祥对应的社保公积金管理组织的编码
+    public static final String TAI_YANG_NENG_NUMBER = "TW03"; // 太阳能对应的社保公积金管理组织的编码
+    public static final String[] TAI_YANG_NENG_FIELD = {"${ISV_FLAG}_pension_insurance","${ISV_FLAG}_medical_insurance","${ISV_FLAG}_unemployment_insuran","${ISV_FLAG}_commercial_insurance","${ISV_FLAG}_mul_insured_entity"};
+
+    /**
+     * 获取同BU下的生效中的且审批通过的社保公积金基数表上的参保单位的id
+     * @param createOrgNumber BU的编码（社保公积金管理组织）
+     * @return 已存在的参保单位的id
+     */
+    @NotNull
+    public static Set<Long> getBUInsuredUnitIds(String createOrgNumber) {
+        // 2.根据BU查询对应社保基数表的对象
+        String selectField = "id,number,${ISV_FLAG}_insured_entity";
+        QFilter qFilter = new QFilter("status", QCP.equals,"C")
+                .and(new QFilter("enable",QCP.equals,"1"))
+                .and(new QFilter("datastatus",QCP.equals,"1"))
+                .and(new QFilter("iscurrentversion",QCP.equals,"1"))
+                .and(new QFilter("createorg.number",QCP.equals,createOrgNumber));
+        DynamicObjectCollection SocialBaseTable = QueryServiceHelper.query(FORM_ID, selectField, qFilter.toArray());
+        // 单选参保单位的id
+        Set<Long> singletonInsuredUnitIds = SocialBaseTable.stream().map(singletonInsuredUnit -> singletonInsuredUnit.getLong("${ISV_FLAG}_insured_entity")).collect(Collectors.toSet());
+//        Set<Long> multipleInsuredUnitIds = SocialBaseTable.stream().map(multipleInsuredUnit -> multipleInsuredUnit.getLong("${ISV_FLAG}_mul_insured_entity.fbasedataid")).collect(Collectors.toSet());
+        // 将单选和多选合并到一起
+//        singletonInsuredUnitIds.addAll(multipleInsuredUnitIds);
+        singletonInsuredUnitIds.remove(0L);
+        return singletonInsuredUnitIds;
+    }
+}

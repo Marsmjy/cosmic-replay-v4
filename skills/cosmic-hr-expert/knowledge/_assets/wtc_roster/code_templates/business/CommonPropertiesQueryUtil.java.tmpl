@@ -1,0 +1,137 @@
+package ${ISV_FLAG}.wtc.common.util;
+
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.openapi.common.util.StringUtil;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.QueryServiceHelper;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author lzhh
+ * @createDate 2024-04-23 13:56
+ * @module
+ * @location
+ * @description
+ * @className kd.cd.tw.twhr.common.util.CommonPropertiesQueryUtil
+ */
+public class CommonPropertiesQueryUtil {
+
+    public static Map<String, String> queryByNumber(String number) {
+        Map<String, Map<String, String>> groupByNumberPropertiesMap = queryByNumbers(Collections.singletonList(number));
+        return groupByNumberPropertiesMap.containsKey(number) ? groupByNumberPropertiesMap.get(number) : new HashMap<>();
+    }
+
+    public static Map<String, Map<String, String>> queryByNumbers(List<String> numbers) {
+        DynamicObjectCollection collection = queryProperties(numbers);
+        if (!collection.isEmpty()) {
+            Map<String, List<DynamicObject>> groupByNumberListMap = collection.stream().collect(Collectors.groupingBy(s -> s.getString("number")));
+            return groupByNumberListMap.keySet().stream().collect(Collectors.toMap(s -> s, s -> groupByNumberListMap.get(s).stream().collect(Collectors.toMap(j -> j.getString("key"), j -> j.getString("value"), (j1, j2) -> j2))));
+        }
+        return new HashMap<>();
+    }
+
+    public static Map<String, List<String>> queryByNumberJoinKey(String number) {
+        Map<String, Map<String, List<String>>> resultMap = queryByNumbersJoinKey(Collections.singletonList(number));
+        return resultMap.containsKey(number) ? resultMap.get(number) : new HashMap<>();
+    }
+
+    public static Map<String, Map<String, List<String>>> queryByNumbersJoinKey(List<String> numbers) {
+        DynamicObjectCollection collection = queryProperties(numbers);
+        if (!collection.isEmpty()) {
+            Map<String, List<DynamicObject>> groupByNumberMap = collection.stream().collect(Collectors.groupingBy(s -> s.getString("number")));
+            return groupByNumberMap.keySet().stream().collect(Collectors.toMap(s -> s, s -> {
+                List<DynamicObject> afterGroupDyList = groupByNumberMap.get(s);
+                Map<String, List<DynamicObject>> groupByKeyListMap = afterGroupDyList.stream().collect(Collectors.groupingBy(j -> j.getString("key")));
+                return groupByKeyListMap.keySet().stream().collect(Collectors.toMap(j -> j, j -> groupByKeyListMap.get(j).stream().map(s1 -> s1.getString("value")).collect(Collectors.toList())));
+            }));
+        }
+        return new HashMap<>();
+    }
+
+    public static DynamicObjectCollection queryProperties(List<String> numbers) {
+        QFilter filter = new QFilter("number", QCP.in, numbers);
+        String properties = String.join(",", "number", "${ISV_FLAG}_properties.${ISV_FLAG}_key key", "${ISV_FLAG}_properties.${ISV_FLAG}_value value");
+        return QueryServiceHelper.query("${ISV_FLAG}_config_properties", properties, filter.toArray());
+    }
+
+    /**
+     * 人事管理组织是否为太阳能公司
+     *
+     * @param orgNumber 人事管理组织编码
+     * @return
+     */
+    public static Boolean isSunCompany(String orgNumber) {
+        Map<String, String> orgConfig = queryByNumber("cfw-org-config");
+        //太阳能编码
+        String sunOrgNumber = orgConfig.get("TYNADMINNUMBER");
+        return StringUtil.equals(sunOrgNumber, orgNumber);
+    }
+
+    /**
+     * 人事管理组织是否为太阳能或永祥公司
+     *
+     * @param orgNumber 人事管理组织编码
+     * @return
+     */
+    public static Boolean isSunOrYxCompany(String orgNumber) {
+        Map<String, String> orgConfig = queryByNumber("cfw-org-config");
+        //太阳能编码
+        String sunOrgNumber = orgConfig.get("TYNADMINNUMBER");
+        String yxOrgNumber = orgConfig.get("YXADMINNUMBER");
+        return StringUtil.equals(sunOrgNumber, orgNumber) || StringUtil.equals(yxOrgNumber, orgNumber);
+    }
+
+    /**
+     * 人事管理组织是否为永祥公司
+     *
+     * @param orgNumber 人事管理组织编码
+     * @return
+     */
+    public static Boolean isYxCompany(String orgNumber) {
+        Map<String, String> orgConfig = queryByNumber("cfw-org-config");
+        //永祥编码
+        String yxOrgNumber = orgConfig.get("YXADMINNUMBER");
+        return StringUtil.equals(yxOrgNumber, orgNumber);
+    }
+
+    /**
+     * 人事管理组织是否为一期组织编码
+     *
+     * @param orgNumber 人事管理组织编码
+     * @return
+     */
+    public static Boolean isZjCompany(String orgNumber) {
+        Map<String, String> orgConfig = queryByNumber("cfw-org-config");
+        //一期组织编码
+        String oneOrgNumber = orgConfig.get("ONEADMINNUMBER");
+        if (StringUtil.isNotEmpty(oneOrgNumber)) {
+            return oneOrgNumber.contains(orgNumber);
+        }
+        return false;
+    }
+
+    /**
+     * 人事管理组织是否为一期组织编码
+     *
+     * @param orgNumber 人事管理组织编码
+     * @return
+     */
+    public static Boolean isXNYCompany(String orgNumber) {
+        Map<String, String> orgConfig = queryByNumber("cfw-org-config");
+        //新能源组织编码
+        String oneOrgNumber = orgConfig.get("XNYADMINNUMBER");
+        if (StringUtil.isNotEmpty(oneOrgNumber)) {
+            return oneOrgNumber.contains(orgNumber);
+        }
+        return false;
+    }
+
+}

@@ -1,0 +1,49 @@
+{
+  "scene": "core_hr_onboard",
+  "name": "入职管理（hom · 入职办理 + 预入职 + 候选人协作）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "hom_onbrdinfo",
+    "hom_onbrdinfo_emp",
+    "hom_preonbrdbasebill",
+    "hom_prebatchonbrdbill",
+    "hom_personallonbrd",
+    "hom_personwaitstart",
+    "hom_candidate"
+  ],
+  "referenced_entities": [
+    "hom_onbrdinfo",
+    "hom_onbrdinfo_emp",
+    "hom_preonbrdbasebill",
+    "hom_prebatchonbrdbill",
+    "hom_personallonbrd",
+    "hom_personwaitstart",
+    "hom_candidate"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (BasedataField → hpfs_chgaction)",
+    "chgEvent": "INFO_INIT (入职大类)",
+    "createsHrpi": [
+      "hrpi_employee",
+      "hrpi_assignment",
+      "hrpi_empentrel",
+      "hrpi_empposorgrel",
+      "hrpi_trialperiod"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IStaffOnbrdExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IHOMLoginExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.onbrd.IOnbrdInviteSupportAttachmentExtPlugin",
+      "kd.sdk.hr.hom.business.extpoint.activity.IActivityDomainExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hom.opplugin.onbrd.OnbrdBillSaveOp",
+    "kd.hr.hom.opplugin.onbrd.OnbrdEffectOp",
+    "kd.hr.hom.opplugin.onbrd.OnbrdAfterEffectOp"
+  ]
+}

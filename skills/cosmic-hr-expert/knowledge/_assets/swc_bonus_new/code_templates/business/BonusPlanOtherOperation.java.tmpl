@@ -1,0 +1,98 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.cd.common.operate.chain.OperateChain;
+import kd.cd.common.util.BotpUtils;
+import kd.cd.common.util.PushResult;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: whs
+ * Date: 2025/3/13 17:40
+ * FileName: BonusPlanOtherOperation
+ * Description: 推送插件
+ */
+public class BonusPlanOtherOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        fieldKeys.add("${ISV_FLAG}_approval_explain");
+        fieldKeys.add("${ISV_FLAG}_file_number");
+        fieldKeys.add("${ISV_FLAG}_plan_summary");
+        fieldKeys.add("${ISV_FLAG}_plan_status");
+        fieldKeys.add("billstatus");
+        fieldKeys.add("${ISV_FLAG}_expiring_date");
+        fieldKeys.add("${ISV_FLAG}_file_size");
+        fieldKeys.add("${ISV_FLAG}_personal_rewards");
+        fieldKeys.add("org");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        e.addValidator(new BonusPlanValidator());
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        if ("donothing_push_check".equals(operationKey)){
+            List<ListSelectedRow> rows = new ArrayList<>();
+            for (DynamicObject bill : entities) {
+                ListSelectedRow row = new ListSelectedRow();
+                row.setPrimaryKeyValue(bill.getLong("id"));
+                rows.add(row);
+            }
+            try {
+                PushResult pushResult = BotpUtils.push(false,"${ISV_FLAG}_bonus_plan", "${ISV_FLAG}_bonus_plan_approval", rows, "2372688378664881152");
+                // 下推是否成功
+                if (pushResult.isSuccess()) {
+                    // 收集计划汇总审批单id
+                    HashMap<Long, Long> resourseMap = new HashMap<>();
+                    DynamicObject[] dataPacks = pushResult.getDatapacks();
+                    for (DynamicObject dataPack : dataPacks) {
+                        Long bonusPlanApprovalId = dataPack.getLong("id");
+                        DynamicObjectCollection tdkwEntryPlanDetail = dataPack.getDynamicObjectCollection("${ISV_FLAG}_entry_plan_detail");
+                        Set<Long> srcbillIds = tdkwEntryPlanDetail.stream().map(item -> Long.valueOf(item.getString("${ISV_FLAG}_srcbillid"))).collect(Collectors.toSet());
+                        srcbillIds.forEach(srcbillId -> resourseMap.put(srcbillId,bonusPlanApprovalId));
+                        // 保存数据
+                        OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+                    }
+                    for (DynamicObject bill : entities) {
+                        bill.set("${ISV_FLAG}_plan_summary",resourseMap.get(bill.getLong("id")));
+                    }
+                }else {
+                    String errMsg = pushResult.getErrMsg();
+                    throw new KDBizException("生成汇总审批失败。"+errMsg);
+                }
+                SaveServiceHelper.update(entities);
+            } catch (Exception ex) {
+                throw new KDBizException(ex.getMessage());
+            }
+        }
+
+        // 失效计划
+        if ("donothing_fail_invalid_plan".equals(operationKey)){
+            Calendar instance = Calendar.getInstance();
+            for (DynamicObject bill : entities) {
+                bill.set("${ISV_FLAG}_plan_status","0");
+                bill.set("${ISV_FLAG}_expiring_date",instance.getTime());
+            }
+            SaveServiceHelper.update(entities);
+        }
+    }
+}

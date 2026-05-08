@@ -1,0 +1,69 @@
+{
+  "id": "admin_org_quick_maintenance",
+  "name": "行政组织快速维护",
+  "domain": "organization",
+  "domain_label": "组织管理",
+  "sub_scenarios": [
+    {"id": "list", "name": "列表展示"},
+    {"id": "create", "name": "新增行政组织"},
+    {"id": "modify", "name": "信息变更"},
+    {"id": "move_parent", "name": "调整上级"}
+  ],
+  "referenced_entities": [
+    "haos_adminorgtablist",
+    "org_unit",
+    "haos_adminorg"
+  ],
+  "referenced_ext_points": [
+    "ep_before_save_haos_adminorg",
+    "ep_after_save_haos_adminorg",
+    "ep_on_parent_change_haos_adminorg",
+    "ep_on_list_query_haos_adminorgtablist",
+    "ep_before_delete_haos_adminorg"
+  ],
+  "referenced_flows": [
+    "flow_admin_org_create",
+    "flow_admin_org_modify",
+    "flow_admin_org_move_parent"
+  ],
+  "referenced_cross_module_links": [
+    "link_adminorg_to_hr_position",
+    "link_adminorg_to_pay_cost_center",
+    "link_adminorg_to_attendance_scope"
+  ],
+  "referenced_cases": [],
+  "referenced_exceptions": [
+    "ex_org_circular_reference",
+    "ex_org_status_locked",
+    "ex_org_code_duplicate"
+  ],
+  "cross_module_impact": ["hrpi", "pay", "attendance", "perf"],
+  "metadata": {
+    "version_range": ">=2022R1,<=2025",
+    "source": ["metadata_export", "jar_decompile", "expert_interview"],
+    "source_detail": "基于 kd.hr.haos.*.jar + hspm 元数据导出 + 实测",
+    "confidence": "likely",
+    "verified_at": "2026-04-18",
+    "authors": ["system"],
+    "last_updated": "2026-04-18"
+  },
+  "default_expanded_cards_by_role": {
+    "developer": ["model_design", "ext_points", "customization_solutions", "cases", "exceptions"],
+    "consultant": ["capability_boundary", "business_rules", "business_flow", "upstream_downstream_logic", "data_flow"],
+    "architect": "all"
+  },
+  "dimensions": [
+    "01_capability_boundary",
+    "02_business_rules",
+    "03_model_design",
+    "04_business_flow",
+    "05_data_flow",
+    "06_customization_solutions",
+    "07_ext_points",
+    "08_impact_analysis",
+    "09_cases",
+    "10_exceptions",
+    "11_upstream_downstream_logic"
+  ],
+  "tags": ["高频", "核心组织", "MVP样板"]
+}

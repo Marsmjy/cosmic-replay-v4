@@ -1,0 +1,157 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribution.second;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.entity.datamodel.events.BeforePackageDataEvent;
+import kd.bos.entity.operate.Donothing;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.IFormView;
+import kd.bos.form.ShowType;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.events.HyperLinkClickArgs;
+import kd.bos.form.events.SetFilterEvent;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan.CreateApproval;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * 奖金分配列表插件，${ISV_FLAG}_bonus_approval_2nd
+ */
+public class BonusDisListPlugin extends AbstractListPlugin {
+
+    private static final Log log = LogFactory.getLog(CreateApproval.class);
+
+    @Override
+    public void registerListener(EventObject e) {
+        this.addItemClickListeners("${ISV_FLAG}_baritemap,${ISV_FLAG}_abandoned");
+    }
+
+    @Override
+    public void setFilter(SetFilterEvent e) {
+        super.setFilter(e);
+
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        Object source = args.getSource();
+        if(source instanceof Donothing){
+            // 获取当前空操作的名称
+            String operationKey = ((Donothing)source).getOperateKey();
+
+            if("donothing_fsh".equals(operationKey)){
+                List<String> billFpList = new ArrayList<>();
+                ListSelectedRowCollection listSelectedData = args.getListSelectedData();
+                // 分配单id集合
+                List<Long> ids = listSelectedData.stream().map(item ->(Long)item.getPrimaryKeyValue()).collect(Collectors.toList());
+                // 勾选中的奖金分配详情
+                DynamicObject[] disDetailList = BusinessDataServiceHelper.load(ids.toArray(),
+                        EntityMetadataCache.getDataEntityType("${ISV_FLAG}_bonus_dis_detail")
+                );
+                // 对应分配汇总单编码列表
+                Set<String> sumBillNo = Arrays.stream(disDetailList).map(item ->
+                        item.getString("${ISV_FLAG}_dis_billno")
+                ).collect(Collectors.toSet());
+                // ${ISV_FLAG}_bonus_distribute_sum
+                QFilter filter = new QFilter("billno", QCP.in, sumBillNo);
+                // 分配汇总单状态信息
+                DynamicObject[] disSumList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_distribute_sum",
+                        "id,billno,billstatus", filter.toArray());
+
+                listSelectedData.stream().forEach(item ->{
+                    Long id = (Long)item.getPrimaryKeyValue();
+                    // 奖金分配单
+                    DynamicObject disDetail = Arrays.stream(disDetailList).filter(temp ->
+                                    id != null && id.longValue() > 0l &&
+                            temp.getLong("id") == id
+                    ).findFirst().orElse(null);
+                    if(disDetail == null){
+                        throw new KDBizException("未找到分配单信息，id："+id);
+                    } else{
+                        String sumNo = disDetail.getString("${ISV_FLAG}_dis_billno");
+                        DynamicObject disSum = Arrays.stream(disSumList).filter(temp ->
+                                temp.getString("billno").equals(sumNo)
+                        ).findFirst().orElse(null);
+                        if(disSum == null){
+                            throw new KDBizException("未找到分配单汇总单信息，billno："+sumNo);
+                        } else{
+                            // 分配汇总单状态
+                            String status = disSum.getString("billstatus");
+                            boolean canFsh = "C".equals(item.getBillStatus()) && !"I".equals(status);
+                            if(!canFsh){
+                                // 审批通过
+                                throw new KDBizException("仅“已审核”且对应分配汇总单非“已确认”时才可反审核");
+                            }
+                        }
+                    }
+                    billFpList.add(item.getBillNo());
+                });
+                // 构造customMap进行页面传参
+                Map<String, Object> customMap = new HashMap<>();
+                customMap.put("yes_reject",billFpList);
+                // 操作来源-反审核
+                customMap.put("operate_source","fsh");
+                // 打开【驳回弹窗】
+                openForm(this.getView(), BonusUtil.REJECT_CONFIRM_FORM_ID,customMap);
+            }
+
+        }
+    }
+
+    public void openForm(IFormView view, String entityName, Map<String, Object> customMap) {
+        FormShowParameter formShowParameter = new FormShowParameter();
+        formShowParameter.setFormId(entityName);
+        formShowParameter.setCustomParams(customMap);
+        formShowParameter.getOpenStyle().setShowType(ShowType.Modal);
+        formShowParameter.setCloseCallBack(new CloseCallBack(this, "refreshDistList"));
+        view.showForm(formShowParameter);
+    }
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent closedCallBackEvent) {
+        String actionId = closedCallBackEvent.getActionId();
+        Object returnData = closedCallBackEvent.getReturnData();
+        // 关闭弹窗并刷新
+        if(HRStringUtils.equals(actionId,"refreshDistList")){
+//            this.getView().showSuccessNotification("操作成功");
+            reload();
+        }
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+
+    }
+
+
+    @Override
+    public void billListHyperLinkClick(HyperLinkClickArgs args) {
+
+    }
+
+    @Override
+    public void beforePackageData(BeforePackageDataEvent e) {
+
+    }
+
+}

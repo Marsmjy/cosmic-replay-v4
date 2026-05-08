@@ -1,0 +1,36 @@
+{
+  "scene": "core_hr_promotion",
+  "name": "试用和转正（hdm · 自助/批量/补录 6 单据）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "hdm_regselfhelpbill",
+    "hdm_regbasebill",
+    "hdm_batchregbill"
+  ],
+  "referenced_entities": [
+    "hdm_regselfhelpbill",
+    "hdm_regbasebill",
+    "hdm_batchregbill"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (转正变动操作)",
+    "chgEvent": "INFO_MODIFY (用工关系转正)",
+    "createsHrpi": [
+      "hrpi_trialperiod (status 变更)",
+      "hrpi_employee.regstatus",
+      "hrpi_empentrel (用工关系)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hdm.business.extpoint.reg.IProbationMessageExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hdm.opplugin.web.reg.RegSaveOp",
+    "kd.hr.hdm.opplugin.web.reg.RegEffectOp",
+    "kd.hr.hdm.opplugin.reg.RegAfterEffectOp"
+  ]
+}

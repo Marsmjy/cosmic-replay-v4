@@ -1,0 +1,84 @@
+package ${ISV_FLAG}.hr.hspm;
+
+import kd.bos.entity.tree.TreeNode;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Description 汇报关系树对象模型
+ * @Version 1.0.0
+ * @Date 2024/7/2 14:28
+ * @Created by sxf
+ */
+public class EmpSuprelChartTreeNode extends TreeNode {
+
+    private static final long serialVersionUID = 102204669469186540L;
+    // 展示信息
+    private Map<String, Object> showFields = new HashMap<>();
+
+    // 人员id
+    private String personId;
+    // 层级
+    private int currentLevel = 1;
+    // 子节点数
+    private int childrenCount;
+    // 展示方向
+    private String showDirection;
+
+    public String getShowDirection() {
+        return showDirection;
+    }
+
+    public void setShowDirection(String showDirection) {
+        this.showDirection = showDirection;
+    }
+
+    private Map<String, String> otherInfo = new HashMap<>();
+
+    public EmpSuprelChartTreeNode() {
+
+    }
+
+    public EmpSuprelChartTreeNode(String parentId, String id, String text, boolean isParent) {
+        super(parentId, id, text, isParent, (Object)null);
+    }
+
+
+
+    public Integer getChildrenCount() {
+        return childrenCount;
+    }
+
+    public void setChildrenCount(Integer childrenCount) {
+        this.childrenCount = childrenCount;
+    }
+
+    public int getCurrentLevel() {
+        return currentLevel;
+    }
+
+    public void setCurrentLevel(int currentLevel) {
+        this.currentLevel = currentLevel;
+    }
+
+    public Map<String, Object> getShowFields() {
+        return showFields;
+    }
+
+    public void setShowFields(Map<String, Object> showFields) {
+        this.showFields = showFields;
+    }
+
+    public void setChildrenCount(int childrenCount) {
+        this.childrenCount = childrenCount;
+    }
+
+    public String getPersonId() {
+        return personId;
+    }
+
+    public void setPersonId(String personId) {
+        this.personId = personId;
+    }
+}

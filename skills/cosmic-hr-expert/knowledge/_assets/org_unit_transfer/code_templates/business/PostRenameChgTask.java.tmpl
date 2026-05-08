@@ -1,0 +1,141 @@
+package ${ISV_FLAG}.hr.hdm.orgtransfer.business;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.exception.KDException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author: ws
+ * @date:2023/9/4 19:59
+ * @description: 成建制划转(岗位更名)作业
+ */
+public class PostRenameChgTask extends AbstractCommonTask {
+
+    private static final Log LOGGER = LogFactory.getLog(PostRenameChgTask.class);
+
+    /**
+     * 变动场景编码--岗位更名相关（属性变更-1020_S ，修订-1080_S）产品中没有岗位更名的变动场景，需加代码逻辑来过滤
+     */
+    private static final Set<String> CHANGE_SCENE_POS_NUMBER_SET = Sets.newHashSet("1020_S", "1080_S");
+
+    private static final String POS_RENAME_CHG_TYPE = "C";
+
+    @Override
+    public void execute(RequestContext requestContext, Map<String, Object> map) throws KDException {
+        LOGGER.info("${ISV_FLAG}.hr.hdm.orgtransfer.business.PostRenameChgTask：成建制划转(岗位更名)作业，开始执行...");
+        try {
+
+            // 1、根据定时任务参数设置时间取，岗位变动消费明细数据，变动场景过滤出岗位更名的数据(*注意：不适用变动原因而用变动场景的原因是变动场景是必填字段)
+            Map<String, Object> taskDays = getTaskDays(map);
+
+            //保存需要处理的变动数据
+            saveDealDataList(taskDays);
+
+            // 取成建制划转中间表数据
+            DynamicObject[] posTranArr = OrgTransferHelper.queryOrgTranArr(POS_RENAME_CHG_TYPE);
+            if (Objects.isNull(posTranArr) || posTranArr.length == 0) {
+                return;
+            }
+            // 4、成建制划转业务处理
+            handleOrgTransfer(Arrays.stream(posTranArr).collect(Collectors.toList()), POS_RENAME_CHG_TYPE);
+        } catch (Exception e) {
+            LOGGER.error("${ISV_FLAG}.hr.hdm.orgtransfer.business.PostRenameChgTask：成建制划转(岗位更名)作业，执行异常.", e);
+        }
+        LOGGER.info("${ISV_FLAG}.hr.hdm.orgtransfer.business.PostRenameChgTask：成建制划转(岗位更名)作业，执行结束.");
+    }
+
+    private void saveDealDataList(Map<String, Object> taskDays){
+
+        DynamicObject[] posChangeArr = OrgTransferHelper.queryPosChangeMsg(taskDays,CHANGE_SCENE_POS_NUMBER_SET);
+
+        if(ObjectUtils.isEmpty(posChangeArr)) return;
+
+        //过滤已经处理的数据
+        List<DynamicObject> posChangeList = OrgTransferHelper.excludHisDataDyList(Arrays.stream(posChangeArr).collect(Collectors.toList()), POS_RENAME_CHG_TYPE,
+                (data,keySet)-> {
+                    String dataKey = data.getString("id");
+                    return !keySet.contains(dataKey);
+                });
+        if(ObjectUtils.isEmpty(posChangeList))  return;
+
+
+        //获取其中包含变更名称的数据
+        Set<Long> changeIdSet = posChangeList.stream().map(data -> data.getLong("id")).collect(Collectors.toSet());
+        DynamicObject[] changeDetailArr = OrgTransferHelper.queryPosChangeNameDetailData(changeIdSet);
+        if(ObjectUtils.isEmpty(changeDetailArr))  return;
+
+        Set<Long> changNameIdSet = Arrays.stream(changeDetailArr).map(detail -> detail.getLong("parent")).collect(Collectors.toSet());
+        //获取最终需要处理的变动明细
+        List<DynamicObject> dealDataList = posChangeList.stream().filter(data -> changNameIdSet.contains(data.getLong("id")))
+                .sorted((e1, e2) -> {
+                    int compareResult = e1.getDate("changedate").compareTo(e2.getDate("changedate"));
+                    if(compareResult == 0){
+                        return e2.getDate("operatetime").compareTo(e1.getDate("operatetime"));
+                    }
+                    return compareResult;
+                }).collect(Collectors.toList());
+
+        List<DynamicObject> transferDyList = OrgTransferHelper.getPosTransferDyList(dealDataList,POS_RENAME_CHG_TYPE);
+
+        // 更新成建制划转中间表数据
+        if (!transferDyList.isEmpty()) {
+            SaveServiceHelper.save(transferDyList.toArray(new DynamicObject[]{}));
+        }
+
+    }
+
+    /**
+     * 成建制划转业务处理
+     *
+     * @param orgTranList orgTranList
+     * @param changeType  changeType
+     */
+    protected void handleOrgTransfer(List<DynamicObject> orgTranList, String changeType) {
+
+        //获取岗位的详情，并获取岗位上的组织
+        Set<Long> changePositionIdSet = orgTranList.stream().map(data-> Long.parseLong(data.getString("${ISV_FLAG}_orgid"))).collect(Collectors.toSet());
+        DynamicObject[] positionInfo = OrgTransferHelper.queryPosInfo(changePositionIdSet);
+        Map<Long,Long> positionOrgMap = Arrays.stream(positionInfo).collect(Collectors.toMap(data->data.getLong("id"),data->data.getLong("adminorg.id"),(v1,v2)->v2));
+
+        for (DynamicObject orgTran : orgTranList) {
+            String currentNumber = orgTran.getString("${ISV_FLAG}_orgnumber");
+            String currentName = orgTran.getString("${ISV_FLAG}_orgname");
+            Date effectDate = orgTran.getDate("${ISV_FLAG}_takeeffectdate");
+            // 获取岗位id关联的主任职的任职经历
+            Long positionId = Long.parseLong(orgTran.getString("${ISV_FLAG}_orgid"));
+
+            //如果是已经生成了的任职经历，则需要将它的历史版本刷新正确
+            changeEmpPosOrgRelHisDataByPos(ImmutableSet.of(positionId),effectDate);
+
+            DynamicObject[] empPosOrgRelArr = OrgTransferHelper.getEmpPosOrgRelArrByPosId(positionId,effectDate);
+
+            if (empPosOrgRelArr == null || empPosOrgRelArr.length == 0) {
+                String resultMsg = "成建制划转 当前岗位下没有对应人员,岗位编码 : " + currentNumber;
+                LOGGER.info(resultMsg);
+                // 更新成建制转换中间表状态
+                orgTran.set("${ISV_FLAG}_executestatus", "03");
+                String canInfo = resultMsg.length()<=255?resultMsg:resultMsg.substring(255);
+                orgTran.set("${ISV_FLAG}_resultmsg", canInfo);
+                orgTran.set("${ISV_FLAG}_resultmsg_tag", resultMsg);
+                continue;
+            }
+
+            Long orgId = positionOrgMap.get(positionId);
+            //通过任职经历，构建批量调整单
+            DynamicObject batchTranBill = buildBatchTranBill(empPosOrgRelArr,orgId,effectDate,changeType);
+            saveAndEffectBatchBill(orgTran,batchTranBill,currentName,"岗位更名");
+
+        }
+        SaveServiceHelper.save(orgTranList.toArray(new DynamicObject[]{}));
+    }
+
+}

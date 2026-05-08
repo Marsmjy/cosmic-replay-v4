@@ -1,0 +1,139 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.db.tx.TX;
+import kd.bos.db.tx.TXHandle;
+import kd.bos.entity.api.ApiResult;
+import kd.bos.entity.plugin.ImportLogger;
+import kd.bos.form.plugin.impt.BatchImportPlugin;
+import kd.bos.form.plugin.impt.ImportBillData;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * 描述：奖金发放导入操作
+ * 作者：wanghansheng
+ */
+public class BonusPaymentImportPlugin extends BatchImportPlugin {
+    @Override
+    public List<String> getDefaultLockUIs() {
+        List<String> lockKeys = new ArrayList();
+        lockKeys.add("radiofield");
+        lockKeys.add("radiofield2");
+        return lockKeys;
+    }
+
+    @Override
+    public String getDefaultImportType() {
+        return "override";
+    }
+
+    @Override
+    protected ApiResult save(List<ImportBillData> rowdatas, ImportLogger logger) {
+        super.beforeSave(rowdatas, logger);
+        // 更新到数据库
+        try (TXHandle tx = TX.required("BonusPaymentImportPlugin.import")) {
+            try {
+                // 收集内码id
+                List<Long> ids = rowdatas.stream().map(item -> item.getData().getLong("id")).collect(Collectors.toList());
+                // 锁住奖金数据
+                BounsPaymentUtils.bounsForUpdate(ids);
+                // 查询数据
+                DynamicObject[] bonusPayments = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment", "id,${ISV_FLAG}_grant_amount,${ISV_FLAG}_redeem_amount,${ISV_FLAG}_is_zero,${ISV_FLAG}_amount", new QFilter[]{new QFilter("id", QCP.in, ids)});
+                Map<Long, DynamicObject> bonusPaymentsMap = Arrays.stream(bonusPayments).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+
+                // 处理导入数据
+                // 只保留内码id,发放总额
+                List<String> keyFileds = new ArrayList<>();
+                keyFileds.add("id");
+                keyFileds.add("${ISV_FLAG}_grant_amount");
+                keyFileds.add("rowNum");
+
+                int i = 0;
+                List<Map<String, Object>> billResults = new ArrayList<>();
+                Iterator<ImportBillData> iterator = rowdatas.iterator();
+                while (iterator.hasNext()){
+                    JSONObject data = iterator.next().getData();
+                    Integer index = data.getInteger("rowNum");//列数
+                    // data中数据都移除,只保留内码id,发放总额
+                    Set<String> keys = new HashSet<>(data.keySet());
+                    for (String key : keys) {
+                        if (!keyFileds.contains(key)){
+                            data.remove(key);
+                        }
+                    }
+                    Long id = data.getLong("id");
+                    DynamicObject bonusPayment = bonusPaymentsMap.get(id);
+                    if (bonusPayment == null){
+                        logger.log(index, "内码对应的奖金数据不存在或内码不存在").fail();
+                        iterator.remove();
+                        continue;
+                    }
+
+                    // 获取导入的发放总额
+                    BigDecimal grantAmountImport = data.getBigDecimal("${ISV_FLAG}_grant_amount");
+                    if (grantAmountImport == null){
+                        logger.log(index, "请填写发放总额").fail();
+                        iterator.remove();
+                        continue;
+                    }
+
+                    // 获取原来的发放总额
+                    BigDecimal grantAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_grant_amount");
+                    // 差值 = 导入的发放总额 - 原来的发放总额
+                    BigDecimal subtractAmount = grantAmountImport.subtract(grantAmount);
+                    if (subtractAmount.compareTo(BigDecimal.ZERO) <= 0){
+                        logger.log(index, "导入发放总额需大于原发放总额").fail();
+                        iterator.remove();
+                        continue;
+                    }
+
+                    // 分配总额
+                    BigDecimal amount = bonusPayment.getBigDecimal("${ISV_FLAG}_amount");
+                    if (grantAmountImport.compareTo(amount) > 0){
+                        logger.log(index, "发放总额不能大于分配总额").fail();
+                        iterator.remove();
+                        continue;
+                    }
+
+                    // 更新可兑换总额与可兑换金额是否为0
+                    BigDecimal redeemAmount = bonusPayment.getBigDecimal("${ISV_FLAG}_redeem_amount");
+                    BigDecimal redeemAmountResult = redeemAmount.subtract(subtractAmount);
+                    if (redeemAmountResult.compareTo(BigDecimal.ZERO) < 0){
+                        logger.log(index, "可兑换金额不能小于0").fail();
+                        iterator.remove();
+                        continue;
+                    }
+                    bonusPayment.set("${ISV_FLAG}_grant_amount",grantAmountImport);
+                    bonusPayment.set("${ISV_FLAG}_redeem_amount",redeemAmountResult);
+                    bonusPayment.set("${ISV_FLAG}_is_zero",redeemAmountResult.compareTo(BigDecimal.ZERO) == 0 ? "1":"0");
+
+                    Map<String, Object> billResult = new HashMap<>();
+                    billResult.put("dindex", i);
+                    i++;
+                    billResult.put("success", true);
+                    billResults.add(billResult);
+                }
+                SaveServiceHelper.save(bonusPayments);
+                return ApiResult.success(billResults);
+            } catch (Throwable e) {
+                tx.markRollback();
+                throw e;
+            }
+        }
+    }
+}

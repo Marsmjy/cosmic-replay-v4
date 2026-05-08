@@ -1,0 +1,175 @@
+{
+  "_meta": {
+    "description": "苍穹平台级通用开发规范 · 跨场景共享 · 所有场景 curated_sdk.json 应引用本文件",
+    "source": "用户拍板 · 2026-04-24 P0-1 hjm_jobhr CS-05 审核时沉淀",
+    "usage": "Claude 生成任何苍穹 HR 定制代码前 · 必查本文件的 5 大类规范",
+    "version": "v1 · 2026-04-24"
+  },
+  "categories": {
+    "plugin-extension": {
+      "name": "插件扩展规范 · RowKey + 继承 vs 并列",
+      "rules": [
+        {
+          "id": "PR-001",
+          "title": "ISV 扩展走并列挂插件 · 不走继承覆盖",
+          "description": "ISV 扩展标品操作时 · 必须走'并列挂插件'模式 · 禁止继承标品场景专属类（如 JobHrSaveOp / AdminOrgFastSaveOp / JobHrDisableOp）",
+          "why": "继承会导致本地代码跟标品耦合 · 标品升级改了父类方法签名 → ISV 编译失败",
+          "correctApproach": "推荐父类只能是抽象基类：HRDataBaseOp / HRDataBaseEdit / HRDataBaseList / AbstractValidator · 新插件独立实现业务 · 跟标品插件互不影响",
+          "violationExample": "❌ extends JobHrDisableOp + super.beforeExecuteOperationTransaction(e)",
+          "correctExample": "✅ extends HRDataBaseOp · 不 super · 独立业务"
+        },
+        {
+          "id": "PR-002",
+          "title": "插件 RowKey 执行顺序规则",
+          "description": "同一 opKey 下多插件的执行顺序：父级模板插件先 → 子实体插件后；ISV 扩展元数据可以把自己插件排在标品插件之前",
+          "why": "苍穹元数据继承模型决定 · 子实体天然继承父模板的插件链 · ISV 扩展元数据作为'子' · 可以插在标品之前",
+          "appliedWhen": "做'先于 CodeRuleOp 执行'/'先于 HisUniqueValidateOp 校验' 类定制时"
+        }
+      ]
+    },
+
+    "data-api": {
+      "name": "数据读写 API · FormPlugin vs OP 分层",
+      "rules": [
+        {
+          "id": "PR-003",
+          "title": "FormPlugin 用 getModel().setValue() · OP 用 entity.set()",
+          "description": "表单插件（FormPlugin）用 getModel().setValue(key, value) 通过 IDataModel · OP 插件用 entity.set(key, value) 直接操作 DataEntity",
+          "why": "OP 插件在后端 · 没有 model · 实体数据被框架封装成 DataEntity 数组传递",
+          "formPluginExample": "getModel().setValue(\"joblevel\", levelId);",
+          "opPluginExample": "entity.set(\"${ISV_FLAG}_region\", region);  // entity 来自 args.getDataEntities()[i]",
+          "violation": "❌ 在 OP 里 getModel().setValue() · model=null 报空指针"
+        },
+        {
+          "id": "PR-004",
+          "title": "setValue 死循环防护 · FormPlugin 联动必用 beginInit/endInit",
+          "description": "FormPlugin propertyChanged 里 setValue 会再次触发 propertyChanged · 导致死循环",
+          "why": "model.setValue 本身是一个'字段变更'事件",
+          "correctPattern": "getModel().beginInit(); getModel().setValue(X, v); getModel().endInit(); getView().updateView(X);"
+        }
+      ]
+    },
+
+    "id-generation": {
+      "name": "ID 与编码生成规范",
+      "rules": [
+        {
+          "id": "PR-005",
+          "title": "序号/ID 生成用 kd.bos.id.ID 接口 · 不用 Redis 自己造",
+          "description": "苍穹平台提供 kd.bos.id.ID 接口做分布式序号 · 天然处理并发唯一性",
+          "why": "重造轮子需要 Redis/DB 唯一约束 · 苍穹已集成",
+          "usage": "long id = kd.bos.id.ID.genLongId();  // 或 String id = ID.genStringId();",
+          "applicableScenarios": "自定义编码前缀 · 自建子表行 ID · 分布式日志追踪号"
+        },
+        {
+          "id": "PR-006",
+          "title": "CodeRuleOp 是平台模板绑定插件 · 业务侧配置即可",
+          "description": "CodeRuleOp 是苍穹平台绑在标品模板上的编码规则插件 · 业务是否启用、编码格式都在'编码规则基础资料'里配",
+          "why": "业务可自助配 · 不需要 ISV 写代码",
+          "whenToConsiderCustomize": "只有业务侧配置能力不满足时（如必须按某字段值动态切换编码规则）· 才考虑代码定制 · 否则优先走标品配置",
+          "violation": "❌ Claude 不要轻易推荐'写自定义 OP 生成编码' · 先问是否标品编码规则基础资料能满足"
+        }
+      ]
+    },
+
+    "field-modifiability": {
+      "name": "字段可修改性规范",
+      "rules": [
+        {
+          "id": "PR-007",
+          "title": "预置数据编码不可改 · 其他数据可改",
+          "description": "系统预置的基础资料 number 字段不可修改 · 业务自建的数据默认可修改",
+          "why": "预置数据是平台/标品内置 · 被很多地方引用 · 改了会破坏一致性",
+          "applyGuidance": "写'字段不可修改'类校验前 · 先判断 issyspreset 字段 / 或 isPreset 标志 · 只拦预置行 · 不拦业务行",
+          "violation": "❌ 绝对化说 '某字段创建后永远不可改' · 这对业务数据不对"
+        }
+      ]
+    },
+
+    "op-lifecycle": {
+      "name": "OP 插件 13 个生命周期方法（实证 · kd.bos.entity.plugin.IOperationServicePlugIn）",
+      "rules": [
+        {
+          "id": "PR-010",
+          "title": "OP 插件 13 方法完整执行顺序",
+          "description": "AbstractOperationServicePlugIn 实现 IOperationServicePlugIn · 完整 13 方法按事务阶段排列",
+          "source": "bos-entity-metadata-8.0.jar · kd.bos.entity.plugin.IOperationServicePlugIn · 2026-04-24 javap 实证",
+          "lifecycle": [
+            "1. initialize(InitOperationArgs) · 初始化上下文",
+            "2. onPreparePropertys(PreparePropertysEventArgs) · 声明要读的非默认字段",
+            "3. initializeOperationResult(OperationResult) · 初始化返回结果",
+            "4. onAddValidators(AddValidatorsEventArgs) · 注册 Validator（校验在此前注册 · 校验执行在 5 之前）",
+            "5. beforeExecuteOperationTransaction(BeforeOperationArgs) · 进事务前业务逻辑（可阻断）",
+            "6. beginOperationTransaction(BeginOperationTransactionArgs) · 事务开始",
+            "7. rollbackOperation(RollbackOperationArgs) · 事务回滚时执行",
+            "8. endOperationTransaction(EndOperationTransactionArgs) · 事务提交前最后",
+            "9. afterExecuteOperationTransaction(AfterOperationArgs) · 事务提交后（✅ 发业务事件在此阶段）",
+            "10. onReturnOperation(ReturnOperationArgs) · 返回结果前",
+            "11. beforeSaveAuditLog(BeforeSaveAuditLogArg) · 审计日志前",
+            "12. validatePrefix(ValidatePrefixArgs) · 前缀校验"
+          ],
+          "commonUsage": {
+            "加业务校验": "onAddValidators · 挂 AbstractValidator",
+            "进事务前阻断": "beforeExecuteOperationTransaction · 抛 KDBizException 或 addErrorMessage",
+            "发业务事件/通知下游": "afterExecuteOperationTransaction · 调 BEC（PR-011）· 主事务已提交安全",
+            "回滚补偿": "rollbackOperation"
+          },
+          "violation": "❌ 在 afterExecuteOperationTransaction 做校验 · 事务已提交无法回滚 / ❌ 在 endOperationTransaction 发外部事件 · 事务可能还未最终提交产生脏事件"
+        }
+      ]
+    },
+
+    "business-event-center": {
+      "name": "业务事件中心（BEC · Business Event Center）· 苍穹官方事件分发",
+      "rules": [
+        {
+          "id": "PR-011",
+          "title": "跨模块事件通知走苍穹 BEC · 不自建 MQ",
+          "description": "苍穹平台提供业务事件中心 · 标品封装了事件发布/订阅/分发机制 · ISV 不要自接 Kafka/RabbitMQ",
+          "source": "bos-mservice-bec-api-8.0.jar · kd.bos.bec.api.IEventService / IEventServicePlugin · 2026-04-24 反编译实证",
+          "publishAPI": {
+            "interface": "kd.bos.bec.api.IEventService",
+            "method": "triggerEventSubscribeJobs(String sourceApp, String eventNumber, String message, Map<String,Object> variables)",
+            "getInstance": "IEventService svc = ServiceHelper.getService(IEventService.class);"
+          },
+          "subscribeAPI": {
+            "interface": "kd.bos.bec.api.IEventServicePlugin",
+            "method": "handleEvent(KDBizEvent event)",
+            "eventModel": "kd.bos.bec.model.KDBizEvent · 4 字段: eventId / eventNumber / source / variables"
+          },
+          "prerequisite": "eventNumber 必须先在【开发平台】→【业务事件管理】预配置 · 代码调用时未注册的事件号 BEC 不识",
+          "whenToCall": "发布方：afterExecuteOperationTransaction 阶段（PR-010 · 主事务已提交）",
+          "antiPattern": "❌ 自接 Kafka/RabbitMQ 等外部 MQ · ❌ 在消息 variables 里塞完整 DynamicObject"
+        }
+      ]
+    },
+
+    "timeseries": {
+      "name": "时序资料（HisModel）规范",
+      "rules": [
+        {
+          "id": "PR-008",
+          "title": "时序资料当前版本查询用 iscurrentversion=true · 不用 bsed",
+          "description": "HisModel 类实体（如 hbjm_jobhr / haos_adminorg / hrpi_empjobrel）查询当前版本必须带 iscurrentversion=true 过滤",
+          "why": "时序资料每个业务对象有多个历史版本共存 · 不过滤会查到所有版本",
+          "misuse": "bsed 是生效日期 · 不能作为当前版本过滤条件",
+          "example": "new QFilter(\"id\", \"=\", jobId).and(\"iscurrentversion\", \"=\", Boolean.TRUE)"
+        },
+        {
+          "id": "PR-009",
+          "title": "boid 是业务维度 · id 是版本维度",
+          "description": "时序资料的 id 是具体版本 id · boid 是业务对象 id（所有历史版本共用同一 boid）· 定律：boid = id 的那条数据就是 iscurrentversion=true 的当前版本",
+          "why": "下游引用职位/组织/员工时 · 存的是 boid（引用的是'业务对象' · 不是某版本）",
+          "downstreamQuery": "查下游引用必须用 boid · 不是 id · 否则全部漏查",
+          "example": "hrpi_empjobrel.job = jobBoid  (not jobId)"
+        }
+      ]
+    }
+  },
+  "_usage_note": [
+    "Claude 在生成代码前 · 必须过一遍本文件的 11 条规则",
+    "每个场景的 curated_sdk.json 通过 _shared/platform_rules.json 引用本文件",
+    "违反这些规则的代码直接驳回 · 不管业务逻辑多合理",
+    "PR-010 / PR-011 来自 2026-04-24 P0-1 hjm_jobhr CS-05 审核时反编译 bos-entity-metadata + bos-mservice-bec-api"
+  ]
+}

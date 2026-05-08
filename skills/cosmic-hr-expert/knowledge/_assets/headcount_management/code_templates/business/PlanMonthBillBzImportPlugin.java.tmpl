@@ -1,0 +1,36 @@
+package ${ISV_FLAG}.odc.homs.formplugin.Import;
+
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.entity.plugin.ImportLogger;
+import kd.bos.form.field.ComboItem;
+import kd.bos.form.plugin.impt.BatchImportPlugin;
+import kd.bos.form.plugin.impt.ImportBillData;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @Description:
+ * @Author: zhangjun
+ * @Since: 2024/3/26
+ **/
+public class PlanMonthBillBzImportPlugin extends BatchImportPlugin {
+    /**
+     * 自定义匹配字段下拉选项
+     * */
+    @Override
+    public List<ComboItem> getOverrideFieldsConfig() {
+        List<ComboItem> items = new ArrayList<>();
+        items.add(new ComboItem(new LocaleString("内码"),"id"));
+        return items;
+    }
+
+    /**
+     * 匹配字段下拉选项  缺省勾选项
+     * */
+    @Override
+    public String getDefaultKeyFields() {
+        return "id";
+    }
+
+}

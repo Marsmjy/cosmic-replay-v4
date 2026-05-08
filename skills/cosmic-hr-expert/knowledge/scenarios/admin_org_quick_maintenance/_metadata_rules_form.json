@@ -1,0 +1,1531 @@
+{
+  "formId": "haos_adminorgdetail",
+  "formName": "行政组织快速维护",
+  "isv": "kingdee",
+  "modelType": "BaseFormModel",
+  "parentTemplateId": "4S6B8I6U+EBN",
+  "bizappId": "W11R1282DJK",
+  "entities": [
+    {
+      "name": "haos_adminorgdetail",
+      "type": "BaseEntity",
+      "fieldCount": 69
+    },
+    {
+      "name": "cooprelentryentity",
+      "type": "EntryEntity",
+      "fieldCount": 5
+    },
+    {
+      "name": "struct_project_entry",
+      "type": "EntryEntity",
+      "fieldCount": 8
+    }
+  ],
+  "formRules": [
+    {
+      "PreDescription": "组织已停用",
+      "TrueActions": {
+        "ShowFieldAction": {
+          "RET": "251",
+          "ActionType": "ShowFieldAction",
+          "Description": "显示字段",
+          "Id": "2VUOR8CQ9K7Q",
+          "Fields": {
+            "FieldId": [
+              {
+                "Id": "zc6fWQT855"
+              },
+              {
+                "Id": "ac5Y5Dax1q"
+              }
+            ]
+          }
+        },
+        "HideFieldAction": {
+          "RET": "251",
+          "ActionType": "HideFieldAction",
+          "Description": "隐藏字段",
+          "Id": "2VUOR8CQ9JJG",
+          "Fields": {
+            "FieldId": [
+              {
+                "Id": "P42y0cisHG"
+              },
+              {
+                "Id": "5EaeBNEYAT"
+              },
+              {
+                "Id": "can8iphYPV"
+              }
+            ]
+          }
+        }
+      },
+      "Description": "组织已停用",
+      "RuleType": "FormRule",
+      "Id": "2VUO4HATJ+HV",
+      "PreCondition": "enable = '0'",
+      "Seq": "1"
+    },
+    {
+      "FalseActions": {
+        "LockFieldAction": {
+          "RET": "251",
+          "ActionType": "LockFieldAction",
+          "Description": "锁定字段",
+          "Id": "4SOZ2G10+ELY",
+          "Fields": {
+            "FieldId": {
+              "Id": "k5MWPVJO4m"
+            }
+          }
+        }
+      },
+      "PreDescription": "变动场景不为空",
+      "TrueActions": {
+        "UnlockFieldAction": {
+          "RET": "251",
+          "ActionType": "UnlockFieldAction",
+          "Description": "解锁字段",
+          "Id": "4SOZ2G1/ZO+N",
+          "Fields": {
+            "FieldId": {
+              "Id": "k5MWPVJO4m"
+            }
+          }
+        }
+      },
+      "Description": "变动场景",
+      "RuleType": "FormRule",
+      "Id": "4SOWUAQJNXPH",
+      "PreCondition": "changescene.id > 0",
+      "Seq": "2"
+    }
+  ],
+  "clientRules": [
+    {
+      "PreDescription": "enable = 0",
+      "TrueActions": {
+        "ClientShowControlAction": {
+          "RET": "127",
+          "ActionType": "ClientShowControlAction",
+          "Description": "显示控件",
+          "Id": "UG78NLDS921",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZT",
+      "PreCondition": "enable = \"0\""
+    },
+    {
+      "PreDescription": "enable = \"1\"",
+      "TrueActions": {
+        "ClientHideControlAction": {
+          "RET": "127",
+          "ActionType": "ClientHideControlAction",
+          "Description": "隐藏控件",
+          "Id": "UG78NLDS922",
+          "Fields": {
+            "FieldId": {
+              "Id": "forbid"
+            }
+          }
+        }
+      },
+      "Id": "UG78NLDQ4ZU",
+      "PreCondition": "enable = \"1\""
+    }
+  ],
+  "listDefaults": [
+    {
+      "listFormId": "cardviewdesigner",
+      "listFormName": null,
+      "modelType": "BillListCardViewModel",
+      "columns": [
+        {
+          "key": "seq",
+          "listFieldId": "fseq",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap",
+          "listFieldId": "number",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap4",
+          "listFieldId": "hisversion",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap1",
+          "listFieldId": "name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap24",
+          "listFieldId": "simplename",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap2",
+          "listFieldId": "adminorgtype.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap11",
+          "listFieldId": "parentorg.number",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap3",
+          "listFieldId": "parentorg.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap21",
+          "listFieldId": "belongcompany.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap12",
+          "listFieldId": "fullname",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap4",
+          "listFieldId": "corporateorg.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap23",
+          "listFieldId": "org.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap22",
+          "listFieldId": "adminorglayer.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap6",
+          "listFieldId": "adminorgfunction.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap7",
+          "listFieldId": "companyarea.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap8",
+          "listFieldId": "city.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap5",
+          "listFieldId": "workplace.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap9",
+          "listFieldId": "detailaddress",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap10",
+          "listFieldId": "description",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap14",
+          "listFieldId": "industrytype.name",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap20",
+          "listFieldId": "positioning",
+          "name": null,
+          "invisible": "false"
+        },
+        {
+          "key": "listcolumnap16",
+          "listFieldId": "mainduty",
+          "name": null,
+          "invisible": "false"
+        }
+      ],
+      "visibleColumns": [
+        "fseq",
+        "number",
+        "hisversion",
+        "name",
+        "simplename",
+        "adminorgtype.name",
+        "parentorg.number",
+        "parentorg.name",
+        "belongcompany.name",
+        "fullname",
+        "corporateorg.name",
+        "org.name",
+        "adminorglayer.name",
+        "adminorgfunction.name",
+        "companyarea.name",
+        "city.name",
+        "workplace.name",
+        "detailaddress",
+        "description",
+        "industrytype.name",
+        "positioning",
+        "mainduty"
+      ],
+      "defaultFilter": "<Filter>\n                <FilterCondition>\n                  <Filter>组织分类.id 等于 1010</Filter>\n                  <FilterRow>\n                    <SimpleFilterRow>\n                      <FieldName>otclassify.id</FieldName>\n                      <LeftBracket />\n                      <BaseDataIds>\n                        <FilterValue>\n                          <Id>4TKMZD8PI9IC</Id>\n                          <Value>1010</Value>\n                        </FilterValue>\n                      </BaseDataIds>\n                      <CompareType>67</CompareType>\n                      <RightBracket />\n                      <Id>4T++37B/F9DR</Id>\n                      <Logic>0</Logic>\n                      <Value>\n                        <FilterValue>\n                          <Id>4TKMZD8PIFY6</Id>\n       ",
+      "listPlugins": [
+        {
+          "className": "kd.bos.base.bdversion.BdVersionListPlugin",
+          "description": "基础资料版本化列表插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+          "description": "基础资料名称版本化列表插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+          "description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+          "description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "description": "历史模型模板通用列表插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelF7ListPlugin",
+          "description": "历史模型F7列表公共插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelListPlugin",
+          "description": "历史模型模板列表过滤面板插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelF7ListPlugin",
+          "description": "历史模型模板列表过滤面板F7插件",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.haos.formplugin.web.adminorg.OrgDetailList",
+          "description": "kd.hr.haos.formplugin.web.adminorg.OrgDetailList",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailBUListPlugin",
+          "description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailBUListPlugin",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+          "description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+          "enabled": true
+        },
+        {
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDisableAndIncludeFilterListPlugin",
+          "description": "行政组织左树，禁用和包含下级通用列表过滤插件",
+          "enabled": true
+        },
+        {
+          "className": "2+QE4JA9QV27_list_fyn0N8Wu",
+          "description": "",
+          "enabled": true
+        },
+        {
+          "className": "2/TYOWOSM0TE_list_cT08sQQV",
+          "description": "",
+          "enabled": true
+        },
+        {
+          "className": "4S6B8I6U+EBN_list_rp02arZv",
+          "description": "",
+          "enabled": true
+        },
+        {
+          "className": "21=MGSD53K0/_list_s6ok1Uot",
+          "description": "",
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "fieldProperties": {
+    "number": {
+      "fieldId": "h736cFwZ6e",
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "h736cFwZ6e",
+      "_pending_real_probe": false
+    },
+    "name": {
+      "fieldId": "8oq6R4m9CF",
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "8oq6R4m9CF",
+      "_pending_real_probe": false
+    },
+    "enable": {
+      "fieldId": "ac5Y5Dax1q",
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "ac5Y5Dax1q",
+      "_pending_real_probe": false
+    },
+    "effectdate": {
+      "fieldId": "BIUBdH58PBBtfCXKtn",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "struct_project_entry",
+      "_fieldApId": "BIUBdH58PBBtfCXKtn",
+      "_pending_real_probe": false
+    },
+    "tobedisableflag": {
+      "fieldId": "5EaeBNEYAT",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "5EaeBNEYAT",
+      "_pending_real_probe": false
+    },
+    "tobedisabledate": {
+      "fieldId": "P42y0cisHG",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "P42y0cisHG",
+      "_pending_real_probe": false
+    },
+    "disabledate": {
+      "fieldId": "zc6fWQT855",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "zc6fWQT855",
+      "_pending_real_probe": false
+    },
+    "boid": {
+      "fieldId": "2JW21XwmZR",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "_fieldApId": "2JW21XwmZR",
+      "_pending_real_probe": false
+    },
+    "iscurrentversion": {
+      "fieldId": "JxOJk2szdg",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "JxOJk2szdg",
+      "_pending_real_probe": false
+    },
+    "datastatus": {
+      "fieldId": "m38AdgR276",
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "m38AdgR276",
+      "_pending_real_probe": false
+    },
+    "sourcevid": {
+      "fieldId": "G3gVa321OK",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "G3gVa321OK",
+      "_pending_real_probe": false
+    },
+    "firstbsed": {
+      "fieldId": "LFrXNtyk6S",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "LFrXNtyk6S",
+      "_pending_real_probe": false
+    },
+    "bsled": {
+      "fieldId": "eCzJFq1hic",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "eCzJFq1hic",
+      "_pending_real_probe": false
+    },
+    "simplename": {
+      "fieldId": "gqZ5asQ06s",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "gqZ5asQ06s",
+      "_pending_real_probe": false
+    },
+    "adminorgtype": {
+      "fieldId": "lu8nDbJrzI",
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "lu8nDbJrzI",
+      "_pending_real_probe": false
+    },
+    "parentorg": {
+      "fieldId": "h6hE54JJ94",
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "h6hE54JJ94",
+      "_pending_real_probe": false
+    },
+    "parentorg_name": {
+      "fieldId": "wu2o41u0iX3jTSZ5X1",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "struct_project_entry",
+      "_fieldApId": "wu2o41u0iX3jTSZ5X1",
+      "_pending_real_probe": false
+    },
+    "establishmentdate": {
+      "fieldId": "8LGr7KiHXh",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "8LGr7KiHXh",
+      "_pending_real_probe": false
+    },
+    "corporateorg": {
+      "fieldId": "haABK96W4f",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_lawentity",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "haABK96W4f",
+      "_pending_real_probe": false
+    },
+    "belongcompany": {
+      "fieldId": "A80x9HtCUt",
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "A80x9HtCUt",
+      "_pending_real_probe": false
+    },
+    "orglongname": {
+      "fieldId": "Nuni69UDAO",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "_fieldApId": "Nuni69UDAO",
+      "_pending_real_probe": false
+    },
+    "deptlongname": {
+      "fieldId": "Fjco74f7Z7",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "Fjco74f7Z7",
+      "_pending_real_probe": false
+    },
+    "fullname": {
+      "fieldId": "ANlGEssOvr5koqfZ5a",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "ANlGEssOvr5koqfZ5a",
+      "_pending_real_probe": false
+    },
+    "adminorglayer": {
+      "fieldId": "h2vvLMIwU6",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorglayer",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "h2vvLMIwU6",
+      "_pending_real_probe": false
+    },
+    "adminorgfunction": {
+      "fieldId": "TRdfujdZKn",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgfunction",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "TRdfujdZKn",
+      "_pending_real_probe": false
+    },
+    "industrytype": {
+      "fieldId": "DGM5y4Cdhh",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_industrytype",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "DGM5y4Cdhh",
+      "_pending_real_probe": false
+    },
+    "companyarea": {
+      "fieldId": "NJPjbRaOl4",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "_fieldApId": "NJPjbRaOl4",
+      "_pending_real_probe": false
+    },
+    "city": {
+      "fieldId": "mG1E4qwph2",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_admindivision",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "mG1E4qwph2",
+      "_pending_real_probe": false
+    },
+    "workplace": {
+      "fieldId": "mC9grgBzKf",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "mC9grgBzKf",
+      "_pending_real_probe": false
+    },
+    "structnumber": {
+      "fieldId": "W0DO5wfPAe",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "W0DO5wfPAe",
+      "_pending_real_probe": false
+    },
+    "detailaddress": {
+      "fieldId": "7z3Gi9eGzs",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "7z3Gi9eGzs",
+      "_pending_real_probe": false
+    },
+    "belongdept": {
+      "fieldId": "N4a5ol3XFU",
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "N4a5ol3XFU",
+      "_pending_real_probe": false
+    },
+    "isvirtualorg": {
+      "fieldId": "5kJipMAy0E",
+      "invisible": true,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "5kJipMAy0E",
+      "_pending_real_probe": false
+    },
+    "sortcode": {
+      "fieldId": "tkfw85ODTh",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "tkfw85ODTh",
+      "_pending_real_probe": false
+    },
+    "structlongnumber": {
+      "fieldId": "gyNvYMS2TC",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "gyNvYMS2TC",
+      "_pending_real_probe": false
+    },
+    "index": {
+      "fieldId": "TJLOdUhRYt",
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "TJLOdUhRYt",
+      "_pending_real_probe": false
+    },
+    "isleaf": {
+      "fieldId": "qH9jAJHKus",
+      "invisible": true,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "qH9jAJHKus",
+      "_pending_real_probe": false
+    },
+    "description": {
+      "fieldId": "zaveTaE81T",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "zaveTaE81T",
+      "_pending_real_probe": false
+    },
+    "disbanddate": {
+      "fieldId": "ga7NXLS22d",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "ga7NXLS22d",
+      "_pending_real_probe": false
+    },
+    "project": {
+      "fieldId": "SBET5K7ppc",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_project",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "SBET5K7ppc",
+      "_pending_real_probe": false
+    },
+    "projectname": {
+      "fieldId": "7BNykFMidy",
+      "invisible": true,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "7BNykFMidy",
+      "_pending_real_probe": false
+    },
+    "startdate": {
+      "fieldId": "DiGp8ZwRKc",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "DiGp8ZwRKc",
+      "_pending_real_probe": false
+    },
+    "projectidentify": {
+      "fieldId": "IsGKVh05RC",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "IsGKVh05RC",
+      "_pending_real_probe": false
+    },
+    "belongadminorg": {
+      "fieldId": "fmtDR4dY5l",
+      "invisible": true,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "fmtDR4dY5l",
+      "_pending_real_probe": false
+    },
+    "fdiscardcourse": {
+      "fieldId": "WUzZGjsD04",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "WUzZGjsD04",
+      "_pending_real_probe": false
+    },
+    "projectnumber": {
+      "fieldId": "GMm70PBsrv",
+      "invisible": true,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "GMm70PBsrv",
+      "_pending_real_probe": false
+    },
+    "otclassify": {
+      "fieldId": "kDTxk8CTzw",
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_otclassify",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "kDTxk8CTzw",
+      "_pending_real_probe": false
+    },
+    "structfullname": {
+      "fieldId": "e5d1hq9nT08yMPnJpB",
+      "invisible": true,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "e5d1hq9nT08yMPnJpB",
+      "_pending_real_probe": false
+    },
+    "positioning": {
+      "fieldId": "asl1HzfVnT",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "asl1HzfVnT",
+      "_pending_real_probe": false
+    },
+    "mainduty": {
+      "fieldId": "mMqcDck7m7",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "mMqcDck7m7",
+      "_pending_real_probe": false
+    },
+    "org": {
+      "fieldId": "eXen3RReMX",
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "eXen3RReMX",
+      "_pending_real_probe": false
+    },
+    "modifier": {
+      "fieldId": "YTt25EstNq",
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "YTt25EstNq",
+      "_pending_real_probe": false
+    },
+    "level": {
+      "fieldId": "EZGNTqSY57",
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "EZGNTqSY57",
+      "_pending_real_probe": false
+    },
+    "masterid": {
+      "fieldId": "O75mQrM58q",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MasterIdField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "O75mQrM58q",
+      "_pending_real_probe": false
+    },
+    "creator": {
+      "fieldId": "jiRpZNc99A",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "jiRpZNc99A",
+      "_pending_real_probe": false
+    },
+    "issyspreset": {
+      "fieldId": "bwFJZ504Tx",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "bwFJZ504Tx",
+      "_pending_real_probe": false
+    },
+    "status": {
+      "fieldId": "AkId5S4yTs",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "AkId5S4yTs",
+      "_pending_real_probe": false
+    },
+    "modifytime": {
+      "fieldId": "vMAtxx40wA",
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "vMAtxx40wA",
+      "_pending_real_probe": false
+    },
+    "disabler": {
+      "fieldId": "Ts8h2qRoVF",
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "Ts8h2qRoVF",
+      "_pending_real_probe": false
+    },
+    "initdatasource": {
+      "fieldId": "RMkqRu1en6",
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "RMkqRu1en6",
+      "_pending_real_probe": false
+    },
+    "createtime": {
+      "fieldId": "CIs7Psqw3q",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "CIs7Psqw3q",
+      "_pending_real_probe": false
+    },
+    "companychangetype": {
+      "fieldId": "4PEF5u2Rb0",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "4PEF5u2Rb0",
+      "_pending_real_probe": false
+    },
+    "hisversion": {
+      "fieldId": "h8iout7wGk",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "h8iout7wGk",
+      "_pending_real_probe": false
+    },
+    "orinumber": {
+      "fieldId": "GWZgDaCR43",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "GWZgDaCR43",
+      "_pending_real_probe": false
+    },
+    "oriname": {
+      "fieldId": "P6qNEDrcgQ",
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "P6qNEDrcgQ",
+      "_pending_real_probe": false
+    },
+    "oristatus": {
+      "fieldId": "KseEVBIdjS",
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "KseEVBIdjS",
+      "_pending_real_probe": false
+    },
+    "billenable": {
+      "fieldId": "jfI3gIr4C5",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "_fieldApId": "jfI3gIr4C5",
+      "_pending_real_probe": false
+    },
+    "billid": {
+      "fieldId": "RPccHwM9liIGbiywga",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "_fieldApId": "RPccHwM9liIGbiywga",
+      "_pending_real_probe": false
+    },
+    "isroot": {
+      "fieldId": "suS57yWGre8u5YumG2",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "struct_project_entry",
+      "_fieldApId": "suS57yWGre8u5YumG2",
+      "_pending_real_probe": false
+    },
+    "isdeleted": {
+      "fieldId": "VT0UtgIaeG",
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "VT0UtgIaeG",
+      "_pending_real_probe": false
+    },
+    "sourcesyskey": {
+      "fieldId": "SaVavOC2RP0jz1xR3y",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "SaVavOC2RP0jz1xR3y",
+      "_pending_real_probe": false
+    },
+    "changescene": {
+      "fieldId": "gVH6I5BwbZ",
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "gVH6I5BwbZ",
+      "_pending_real_probe": false
+    },
+    "changereason": {
+      "fieldId": "k5MWPVJO4m",
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "k5MWPVJO4m",
+      "_pending_real_probe": false
+    },
+    "changedescription": {
+      "fieldId": "yKOOludSB7",
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "yKOOludSB7",
+      "_pending_real_probe": false
+    },
+    "bsed": {
+      "fieldId": "pphb9d5Rkb",
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "pphb9d5Rkb",
+      "_pending_real_probe": false
+    },
+    "changetype": {
+      "fieldId": "VoLF1PH4DX",
+      "invisible": true,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "haos_adminorgdetail",
+      "_fieldApId": "VoLF1PH4DX",
+      "_pending_real_probe": false
+    }
+  },
+  "requiredFields": {
+    "haos_adminorgdetail": [
+      "number",
+      "name",
+      "enable",
+      "adminorgtype",
+      "org",
+      "otclassify",
+      "changescene"
+    ],
+    "cooprelentryentity": [
+      "coopreltype",
+      "cooporgteam"
+    ],
+    "struct_project_entry": []
+  },
+  "invisibleFields": [
+    "orglongname",
+    "deptlongname",
+    "isvirtualorg",
+    "sortcode",
+    "structlongnumber",
+    "isleaf",
+    "projectname",
+    "projectidentify",
+    "belongadminorg",
+    "projectnumber",
+    "structfullname",
+    "changetype"
+  ],
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "metaIdTechnical": "21=MGSD53K0/",
+  "jsPlugins": [
+    {
+      "ClassName": "2+QE4JA9QV27_moblist_1jxWyepZ",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYOWOSM0TE_moblist_M6k7xXgE",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "4S6B8I6U+EBN_moblist_6j3e6loO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_moblist_HuwftAeS",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_jIBl0dK8",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYOWOSM0TE_Be00OLF9",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_b7jMuJqe",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_d2KRysZP",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_mob_tcERKdKL",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYOWOSM0TE_mob_EMFltfu4",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_mob_973QkBVC",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_mob_I5QVIV45",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+QE4JA9QV27_list_fyn0N8Wu",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2/TYOWOSM0TE_list_cT08sQQV",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "4S6B8I6U+EBN_list_rp02arZv",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "21=MGSD53K0/_list_s6ok1Uot",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "dev.tpl.base.kd.bos.form.plugin.templatebaseedit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": "0a1f79d7000024ac",
+      "FPK": "MBVNFE3+5ZZ"
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+      "Description": "历史模型模板通用插件类",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.AdminOrgPageRightDynamicPlugin",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgPageRightDynamicPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.rp.HRRelatePageRightDynamicPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.rp.HRRelatePageRightDynamicPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.mobile.HisModelMobileListPlugin",
+      "Description": "历史模型移动端列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.base.bdversion.BdVersionListPlugin",
+      "Description": "基础资料版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.nameversion.BaseDataNameVersionListPlugin",
+      "Description": "基础资料名称版本化列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBasedataLogList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+      "Description": "历史模型模板通用列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelF7ListPlugin",
+      "Description": "历史模型F7列表公共插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelListPlugin",
+      "Description": "历史模型模板列表过滤面板插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.history.list.HisModelFilterPanelF7ListPlugin",
+      "Description": "历史模型模板列表过滤面板F7插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.OrgDetailList",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.OrgDetailList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailBUListPlugin",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailBUListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+      "Description": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDisableAndIncludeFilterListPlugin",
+      "Description": "行政组织左树，禁用和包含下级通用列表过滤插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:20",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 76,
+        "fieldId_already": 0,
+        "formRules_count": 2,
+        "clientRules_count": 2,
+        "jsPlugins_count": 16,
+        "formPlugins_count": 25
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 76,
+        "fieldId_already": 0,
+        "formRules_count": 2,
+        "clientRules_count": 2,
+        "jsPlugins_count": 16,
+        "formPlugins_count": 25
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 76,
+        "fieldId_already": 0,
+        "formRules_count": 2,
+        "clientRules_count": 2,
+        "jsPlugins_count": 16,
+        "formPlugins_count": 25
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+package ${ISV_FLAG}.wtc.attendancecycle.plugin.form.wtam_busitripbil;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * 批量休假-已封存验证
+ */
+public class BatchBusiTripBillSubmitPlugin  extends AbstractValidator {
+    @Override
+    public void validate() {
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+        //1.收集数据
+        HashSet<Long> attfileIdSet = new HashSet<>();
+        HashMap<DynamicObject, ExtendedDataEntity> allvalidDataMap = new HashMap<>();
+        for (ExtendedDataEntity dataEntitie : dataEntities) {
+            DynamicObject bill = dataEntitie.getDataEntity();
+            DynamicObjectCollection singleBillCollection = bill.getDynamicObjectCollection("entryentity");
+            //过滤分录无数据的单
+            if (ObjectUtils.isEmpty(singleBillCollection)) {
+               continue;
+            }
+            for (DynamicObject row : singleBillCollection) {
+                Long attfileId = row.getLong("attfile.id");
+                if (attfileId != null && attfileId != 0){
+                    attfileIdSet.add(attfileId);
+                    allvalidDataMap.put(row,dataEntitie);
+                }
+            }
+        }
+        //2.判断
+        QFilter qFilter = new QFilter("fileboid", "in",attfileIdSet);
+        DynamicObject[] informations = BusinessDataServiceHelper.load("wtp_attstateinfo", "fileboid,storageto,personid.name", new QFilter[]{qFilter});
+        Map<Long, DynamicObject> informationMap = Arrays.stream(informations).collect(Collectors.toMap(a -> a.getLong("fileboid.id"), a -> a));
+        for (ExtendedDataEntity dataEntitie : dataEntities) {
+            DynamicObject bill = dataEntitie.getDataEntity();
+            DynamicObjectCollection singleBillCollection = bill.getDynamicObjectCollection("entryentity");
+            //过滤分录无数据的单
+            if (ObjectUtils.isEmpty(singleBillCollection)) {
+                continue;
+            }
+            for (DynamicObject row : singleBillCollection) {
+                Long attfileId = row.getLong("attfile.id");
+                DynamicObject information = informationMap.get(attfileId);
+                if (information == null){
+                    continue;
+                }
+                Date storageto = information.getDate("storageto");
+                Date objectDate = row.getDate("startdateshowstr");//开始日期
+                if (Objects.nonNull(storageto)&&Objects.nonNull(objectDate)&&objectDate.compareTo(storageto)<=0){
+                    LocalDate storagetoDate = storageto.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    String billno = dataEntitie.getDataEntity().getString("billno");
+                    DynamicObject employee = row.getDynamicObject("employee");
+                    String name = employee.getString("name");//姓名
+                    String empnumber = employee.getString("empnumber");//工号
+                    String info = "单据编号："+billno+" 中 工号为："+empnumber;
+                    this.addErrorMessage(dataEntitie,String.format(info+" 提单日期已封存，在"+storagetoDate +"前不可申请"));
+                }
+
+            }
+        }
+
+    }
+}

@@ -1,0 +1,457 @@
+{
+  "new": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "new",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "新增",
+    "operationType": "new",
+    "operationId": "b5994054000016ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "view": {
+    "parameter": null,
+    "permissionItemId": "47150e89000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "view",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看",
+    "operationType": "view",
+    "operationId": "b5994054000018ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "6096194600001fac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "禁用的数据不可保存",
+        "Message": "不能保存禁用的数据。",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "RuleType": "FormValidate",
+        "Id": "1VRALXJOVNKD"
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "编码唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "4S+SRKHNBQ2R",
+        "CustomPromp": "",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "b599405400001aac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 3,
+    "pluginCount": 3,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "数据集基本信息保存校验插件",
+        "RowKey": 2,
+        "ClassName": "kd.hrmp.hrobs.opplugin.workbench.carddatasetinfo.CardDataSetInfoSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "delete": {
+    "parameter": {
+      "_Type_": "DelParameter",
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    },
+    "permissionItemId": "4715e1f1000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只能删除暂存的数据。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "RuleType": "FormValidate",
+        "Id": "1cc0054f000016ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已经禁用，不能删除。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f789ca66000000ac",
+        "LevelId": 2
+      },
+      {
+        "EntityKey": "billhead",
+        "_Type_": "ConditionValidation",
+        "Description": "预置数据不可被删除",
+        "Message": "预置出厂数据集不可被删除。",
+        "Expression": "issyspreset = '1'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "4OM722S6NJHN"
+      },
+      {
+        "EntityKey": "billhead",
+        "_Type_": "ConditionValidation",
+        "Description": "自动创建不可被删除",
+        "Message": "自动创建的数据集不可被删除。",
+        "Expression": "autocreated = '1'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "5MC84RBCHMTI"
+      }
+    ],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "delete",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除",
+    "operationType": "delete",
+    "operationId": "b599405400001bac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 4,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.coderule.CodeRuleDeleteOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "删除op操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.hrmp.hrobs.opplugin.workbench.carddatasetinfo.CardDataSetInfoDeleteOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "DelParameter",
+      "_raw_keys": [
+        "_Type_",
+        "OperationKey",
+        "ListDelScope"
+      ],
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    }
+  },
+  "disable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "47160c2b000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "暂存数据不能禁用。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000baac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已为禁用状态。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000bbac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "disable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "禁用",
+    "operationType": "disable",
+    "operationId": "b599405400001eac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "enable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "4730fc5d000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已为可用状态。",
+        "Keyword": "enable",
+        "Expression": "enable = '1'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000bcac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "enable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "启用",
+    "operationType": "enable",
+    "operationId": "b599405400001fac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "close": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "close",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "关闭",
+    "operationType": "close",
+    "operationId": "b5994054000021ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "copy": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "copy",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "复制",
+    "operationType": "copy",
+    "operationId": "f381c03f000033ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hrobs_carddatasetinfo",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f381c03f000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "_backfill": [
+    {
+      "at": "2026-04-29 12:20",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "list_operations"
+      ],
+      "summary": {
+        "opKeys_filled": 9,
+        "opKeys_missing_in_listOps": []
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 9,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 10,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 5,
+        "parameterParsed_filled": 4,
+        "op_detail_errors": []
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 9,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 10,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 5,
+        "parameterParsed_filled": 4,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

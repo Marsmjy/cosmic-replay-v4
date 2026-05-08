@@ -1,0 +1,53 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package ${ISV_FLAG}.swc.hsas.plugin.form.salmap.util;
+
+import java.util.Map;
+import kd.bos.dataentity.serialization.SerializationUtils;
+import kd.bos.form.IFormView;
+import kd.bos.form.IPageCache;
+import kd.bos.mvc.cache.PageCache;
+import org.apache.commons.lang3.StringUtils;
+
+public class SWCPageCache {
+    private IPageCache pageCache;
+
+    /** @deprecated */
+    @Deprecated
+    public SWCPageCache(String pageId) {
+        this.pageCache = new PageCache(pageId);
+    }
+
+    public SWCPageCache(IPageCache cache) {
+        this.pageCache = cache;
+    }
+
+    public SWCPageCache(IFormView view) {
+        this.pageCache = (IPageCache)view.getService(IPageCache.class);
+    }
+
+    public void put(String keyName, Object value) {
+        this.pageCache.put(keyName, SerializationUtils.toJsonString(value));
+    }
+
+    public void put(String keyName, Object value, boolean inclusionNON_NULL) {
+        this.pageCache.put(keyName, SerializationUtils.toJsonString(value, inclusionNON_NULL));
+    }
+
+    public <T> T get(String keyName, Class<T> clazz) {
+        String json = this.pageCache.get(keyName);
+        return (T)(StringUtils.isEmpty(json) ? null : SerializationUtils.fromJsonString(json, clazz));
+    }
+
+    public void remove(String keyName) {
+        this.pageCache.remove(keyName);
+    }
+
+    public Map<String, String> getAll() {
+        return this.pageCache.getAll();
+    }
+
+}

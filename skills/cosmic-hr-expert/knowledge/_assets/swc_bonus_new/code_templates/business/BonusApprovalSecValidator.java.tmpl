@@ -1,0 +1,320 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.valid;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.BonusApprovalSheetBillSecondPlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.BonusWriteBackUtil;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+
+/**
+ * @Author: donner
+ * @Date: 2025/04/21 16:44
+ * @Description:
+ **/
+public class BonusApprovalSecValidator extends AbstractValidator {
+
+    @Override
+    public Set<String> preparePropertys() {
+        Set<String> strings = super.preparePropertys();
+        strings.add("${ISV_FLAG}_personalization");
+        strings.add("billstatus");
+        strings.add("${ISV_FLAG}_bpsm");
+        return strings;
+    }
+
+    @Override
+    public void validate() {
+        String operateKey = this.getOperateKey();
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+        if ("submit".equals(operateKey) || "submiteffect".equals(operateKey)){
+            for (ExtendedDataEntity bill : dataEntities) {
+                submitCheck(bill);
+            }
+        } else if("unaudit".equals(operateKey)){
+            // 收集计划汇总单id
+            Set<Long> planApprovelIds = Arrays.stream(dataEntities).filter(item -> !StringUtils.isEmpty(item.getDataEntity().getString("${ISV_FLAG}_check_summary")))
+                    .map(item -> Long.valueOf(item.getDataEntity().getString("${ISV_FLAG}_check_summary"))).collect(Collectors.toSet());
+            // 查询计划汇总单
+            DynamicObject[] bonusPlanApprovalList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_approval_flow", "id,billstatus", new QFilter[]{new QFilter("id", QCP.in,planApprovelIds)});
+            Map<String, String> resourseMap = Arrays.stream(bonusPlanApprovalList).collect(Collectors.toMap(key -> String.valueOf(key.getLong("id")), value -> value.getString("billstatus")));
+
+
+            for (ExtendedDataEntity bill : dataEntities) {
+                DynamicObject dataEntity = bill.getDataEntity();
+                String billstatus = dataEntity.getString("billstatus");
+                // 审批单id
+                String checkSummary = dataEntity.getString("${ISV_FLAG}_check_summary");
+                String planApprovelStatus = resourseMap.get(checkSummary);
+                if("C".equals(billstatus) && checkSummary != null && !StringUtils.isEmpty(planApprovelStatus) && !"F".equals(planApprovelStatus)){
+                    throw new KDBizException("仅“已审核”且未生成审批单的数据可进行反审核");
+                }
+            }
+        }else if ("donothing_push_check".equals(operateKey)) {
+            // 生成审批单校验
+            // 收集奖金业务类别
+            Set<String> personalRewards = Arrays.stream(dataEntities).map(item -> item.getDataEntity().getString("${ISV_FLAG}_personalization")).collect(Collectors.toSet());
+            List<String> errorMsg = new ArrayList<>();
+            if(personalRewards.contains("0") || personalRewards.contains("1")){
+                if (personalRewards.contains("2") || personalRewards.contains("3") || personalRewards.contains("4")){
+                    errorMsg.add("“个性化类”或“其他”数据请单独发起审批");
+                }
+            }
+
+            Set<String> billstatusSet = Arrays.stream(dataEntities).map(item -> item.getDataEntity().getString("billstatus")).collect(Collectors.toSet());
+            if (billstatusSet.contains("A")){
+                errorMsg.add("请勿勾选暂存单生成审批单");
+            }
+
+            // ${ISV_FLAG}_bpsm
+            // 已报批/已发文/执行制度 1
+            // 非已报批/发文/执行制度 4
+            Set<String> explainKeys = Arrays.stream(dataEntities).filter(item ->
+                    "1".equals(item.getDataEntity().getString("${ISV_FLAG}_bpsm")) ||
+                            "4".equals(item.getDataEntity().getString("${ISV_FLAG}_bpsm"))
+            ).map(item -> item.getDataEntity().getString("${ISV_FLAG}_bpsm")).collect(Collectors.toSet());
+            if(explainKeys != null && explainKeys.size() > 1){
+                errorMsg.add("“已报批/已发文/执行制度”和“非已报批/已发文/执行制度”不能汇总生成审批单");
+            }
+
+            // 检测到错误信息直接抛出错误信息
+            List<String> errorMessageList = IntStream.range(0, errorMsg.size()).mapToObj(i -> (i + 1) + "、" + errorMsg.get(i)).collect(Collectors.toList());
+            if (errorMessageList.size() > 0){
+                throw new KDBizException(String.join("",errorMessageList));
+            }
+        }
+
+        // 保存和提交并生效的校验
+        if ("save".equals(operateKey) || "submiteffect".equals(operateKey)){
+            for (ExtendedDataEntity bill : dataEntities) {
+                DynamicObject dataEntity = bill.getDataEntity();
+                String approvalExplain = dataEntity.getString("${ISV_FLAG}_bpsm");
+                StringBuilder errorList = new StringBuilder();
+
+                // 奖金业务分类为个性化类、其他时，报批说明不能为非已报批/发文/执行制度
+                String personalRewards = dataEntity.getString("${ISV_FLAG}_personalization");
+                if ("4".equals(approvalExplain) && Arrays.asList("0","1").contains(personalRewards)){
+//                    errorList.append("【奖金业务分类】为“个性化类”“其他”时需提前进行报批。");
+                }
+
+                // 奖金业务分类为个性化类、其他时只允许核定到部门经费和人，不允许核定组织
+                if (Arrays.asList("0","1").contains(personalRewards)) {
+                    DynamicObjectCollection awardSureOrg = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_award_sure_org");
+                    if (awardSureOrg.size() > 0){
+                        errorList.append("【奖金业务分类】为“个性化类”“其他”时需要全部核定到人、留存部门经费。");
+                    }
+                }
+
+                // 组织分录明细承担组织校验
+                if ("submiteffect".equals(operateKey)){
+                    DynamicObjectCollection awardSureOrg = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_award_sure_org");
+                    if(awardSureOrg.size() > 0){
+                        String costDuty = dataEntity.getString("${ISV_FLAG}_cost_duty");
+                        // 非受奖方组织分录承担组织必填校验
+                        if (Arrays.asList("A","C").contains(costDuty)){
+                            List<DynamicObject> undertake0rgSize = awardSureOrg.stream().filter(item -> item.getDynamicObject("${ISV_FLAG}_undertake_org") == null).collect(Collectors.toList());
+                            if (!CollectionUtils.isEmpty(undertake0rgSize)){
+                                errorList.append("非受奖方组织分录承担组织必填");
+                            }
+                        }
+
+                        // 受奖方承担只有行政组织类型为经营主体，则承担组织为空。其余情况下必填
+                        if (costDuty != null && "B".contains(costDuty)){
+                            for (DynamicObject awardSureOrgEntry : awardSureOrg) {
+                                String orgtypeNumber = awardSureOrgEntry.getString("${ISV_FLAG}_admin_org.orgtype.number");
+                                if ("1025_S".equals(orgtypeNumber)){
+                                    // 无需验证承担组织必填
+                                }else {
+                                    // 行政组织类型不为经营主体，需要验证承担组织必填
+                                    DynamicObject undertakeOrg = awardSureOrgEntry.getDynamicObject("${ISV_FLAG}_undertake_org");
+                                    if (undertakeOrg == null){
+                                        errorList.append("受奖方承担时行政组织类型不为经营主体，则承担组织必填");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if(errorList.length() > 0){
+                    this.addErrorMessage(bill,errorList.toString());
+                }
+            }
+        }
+    }
+
+    /**
+     * 提交校验
+     */
+    public void submitCheck(ExtendedDataEntity bill){
+        DynamicObject dataEntity = bill.getDataEntity();
+        String approvalExplain = dataEntity.getString("${ISV_FLAG}_bpsm");
+        List<String> approvalExplains =Arrays.asList("1","2","3");
+        if (approvalExplains.contains(approvalExplain)){
+            // 若报批说明选择已报批、已发文、执行制度，那么展示字段 “流程单号/发文文号/制度文件编号” 并且必填
+            String fileNumber = dataEntity.getString("${ISV_FLAG}_file_no");
+            if (StringUtils.isEmpty(fileNumber)){
+                throw new KDBizException("请填写 流程单号/发文文号/制度文件编号");
+            }
+            // 附件树
+            int fileSize = dataEntity.getInt("${ISV_FLAG}_file_size");
+            if (fileSize == 0){
+                throw new KDBizException("请为“报批说明”提供相关附件。");
+            }
+        }
+        // 校验核定总额是否核定完成
+        this.checkApprovalValid(dataEntity);
+        // 校验人员核定明细中的人是否属于组织核定中的任意组织
+        // this.checkApprovalStaffValid(dataEntity);
+        // 检查分录中组织或人员是否重复
+        this.checkOrgOrStaffRepeat(dataEntity);
+        // 同一分录内，组织不允许存在上下级关系
+        this.checkPsRelation(bill);
+        // 分录“承担组织”必填，只有核定到经营主体，承担组织允许为空
+    }
+
+    /**
+     * 检查分录中组织或人员是否重复
+     */
+    private void checkOrgOrStaffRepeat(DynamicObject dataEntity){
+        // 组织核定明细
+        List<BonusApprovalSheetBillSecondPlugin.EntriesAmountSumRelation> entriesAmountSumRelationList = BonusApprovalSheetBillSecondPlugin.getEntriesAmountSumRelations();
+        DynamicObjectCollection entryZero = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(0).getEntriesKey());
+        Set<Long> idZero = entryZero.stream().map(item -> item.getLong("${ISV_FLAG}_admin_org.id")).collect(Collectors.toSet());
+        if(entryZero.size() != idZero.size()){
+            throw new KDBizException("组织核定明细分录内不能有相同的组织");
+        }
+        // 人员
+        DynamicObjectCollection entryOne = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(1).getEntriesKey());
+        Set<Long> idOne = entryOne.stream().map(item -> item.getLong("${ISV_FLAG}_employee_name.id")).collect(Collectors.toSet());
+        if(entryOne.size() != idOne.size()){
+            throw new KDBizException("人员核定明细分录内不能有相同的人员");
+        }
+        // 部门
+        DynamicObjectCollection entryTwo = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(2).getEntriesKey());
+        Set<Long> idTwo = entryTwo.stream().map(item -> item.getLong("${ISV_FLAG}_admin_org_keep.id")).collect(Collectors.toSet());
+        if(entryTwo.size() != idTwo.size()){
+            throw new KDBizException("留存部门经费分录内不能有相同的组织");
+        }
+        // 奖金池
+        DynamicObjectCollection entryThree = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(3).getEntriesKey());
+        Set<Long> idThree = entryThree.stream().map(item -> item.getLong("${ISV_FLAG}_admin_org11.id")).collect(Collectors.toSet());
+        if(entryThree.size() != idThree.size()){
+            throw new KDBizException("留存奖金池分录内不能有相同的组织");
+        }
+    }
+
+    /**
+     * >>校验核定总额是否核定完成
+     */
+    private void checkApprovalValid(DynamicObject dataEntity){
+        // 核定基本信息-核定总额（元）
+        BigDecimal approvalTotal = dataEntity.getBigDecimal("${ISV_FLAG}_approval_total");
+        // 核定统计-本次核定总额
+        BigDecimal currTotal = dataEntity.getBigDecimal("${ISV_FLAG}_currtotal");
+        if(approvalTotal.compareTo(currTotal) != 0){
+            throw new KDBizException("“本次核定总额”需等于“核定总额”");
+        }
+    }
+
+    /**
+     *
+     * >>校验人员核定明细中的人是否属于组织核定中的任意组织
+     * 若组织核定中为空，则不需要校验，若组织核定和人员核定同时有值，则校验
+     * 校验不通过则提醒“XXX人员不属于已核对组织中的任意组织”。
+     */
+    private void checkApprovalStaffValid(DynamicObject dataEntity){
+        List<BonusApprovalSheetBillSecondPlugin.EntriesAmountSumRelation> entriesAmountSumRelationList = BonusApprovalSheetBillSecondPlugin.getEntriesAmountSumRelations();
+        DynamicObjectCollection perDetailEntrySureOrgs = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(0).getEntriesKey());
+        // 获取组织核定明细中的所有组织编码
+        Set<String> adminOrgNumbers = new HashSet<>();
+        // 组织上下级结构编码
+        Set<String> structnumbers = new HashSet<>();
+        for (int rowIndex = 0; rowIndex < perDetailEntrySureOrgs.size(); rowIndex++) {
+            // 分录行对象
+            DynamicObject rowObject = (DynamicObject) perDetailEntrySureOrgs.get(rowIndex);
+            // 行政组织
+            DynamicObject adminOrg = rowObject.getDynamicObject("${ISV_FLAG}_admin_org");
+            // 行政组织编码
+            String adminOrgNumber = adminOrg.getString("number");
+            // 组织上下级结构编码
+            String structnumber = adminOrg.getString("structnumber");
+            // 组织上下级结构长编码
+            String structlongnumber = adminOrg.getString("structlongnumber");
+            adminOrgNumbers.add(adminOrgNumber);
+            structnumbers.add(structnumber);
+        }
+        if(CollectionUtils.isEmpty(adminOrgNumbers)){
+            // 若组织核定中为空，则不需要校验
+            return;
+        }
+        // 获取人员核定明细中的所有人员及其组织
+        DynamicObjectCollection perDetailEntrySureStaffs = dataEntity.getDynamicObjectCollection(entriesAmountSumRelationList.get(1).getEntriesKey());
+        // 人员标识及所在部门信息容器
+        Map<String, Map<String,String>> sureStaffMap = new HashMap<>();
+        for (int rowIndex = 0; rowIndex < perDetailEntrySureStaffs.size(); rowIndex++) {
+            // 分录行对象
+            DynamicObject rowObject = (DynamicObject) perDetailEntrySureStaffs.get(rowIndex);
+            // 员工所在部门信息-编码
+            DynamicObject staffDeptObject = rowObject.getDynamicObject("${ISV_FLAG}_admin_dept");
+            String staffInDeptNumber = staffDeptObject.getString("number");
+            // 员工姓名
+            String staffName = rowObject.getDynamicObject("${ISV_FLAG}_employee_name").getString("name");
+            // 组织上下级结构长编码
+            String structlongnumberItem = staffDeptObject.getString("structlongnumber");
+            // 员工编码
+            String staffNumber = rowObject.getDynamicObject("${ISV_FLAG}_employee_name").getString("number");
+            int count = 0;
+            for(String structnumber:structnumbers){
+                if(structlongnumberItem.contains(structnumber)){
+                    count++;
+                }
+            }
+            if(count == 0){
+                throw new KDBizException(String.format("人员（%s）不属于已核对组织中的任意组织",staffName));
+            }
+        }
+    }
+
+    /**
+     * >> 校验 同一分录内，组织不允许存在上下级关系
+     * @param bill
+     */
+    private void checkPsRelation(ExtendedDataEntity bill){
+        DynamicObject dataEntity = bill.getDataEntity();
+        List<String> msgList = new ArrayList<>();
+        List<BonusApprovalSheetBillSecondPlugin.EntriesAmountSumRelation> entriesAmountSumRelationList = BonusApprovalSheetBillSecondPlugin.getEntriesAmountSumRelations();
+        // 组织核定明细
+        msgList.addAll(BonusWriteBackUtil.checkPsRelationCommon(
+                dataEntity,entriesAmountSumRelationList.get(0).getEntriesKey()
+                ,"${ISV_FLAG}_admin_org"
+                ,"structlongnumber","组织核定明细"));
+        // 留存部门经费
+        msgList.addAll(BonusWriteBackUtil.checkPsRelationCommon(
+                dataEntity,entriesAmountSumRelationList.get(2).getEntriesKey()
+                ,"${ISV_FLAG}_admin_org_keep"
+                ,"structlongnumber","留存部门经费"));
+        // 留存奖金池
+        msgList.addAll(BonusWriteBackUtil.checkPsRelationCommon(
+                dataEntity,entriesAmountSumRelationList.get(3).getEntriesKey()
+                ,"${ISV_FLAG}_admin_org11"
+                ,"structlongnumber","留存奖金池"));
+        if(msgList.size() != 0){
+            msgList.forEach(msg ->{
+                this.addFatalErrorMessage(bill, msg);
+            });
+        }
+    }
+}

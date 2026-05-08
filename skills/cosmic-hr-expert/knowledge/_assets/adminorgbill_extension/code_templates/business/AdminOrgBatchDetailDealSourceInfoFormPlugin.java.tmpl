@@ -1,0 +1,214 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.form.control.Label;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.odc.homs.utils.DynamicObjectUtils;
+import ${ISV_FLAG}.odc.homs.utils.OrgBatchBillInfoHelper;
+
+import java.util.EventObject;
+
+/**
+ * @author ningjie
+ * @version 1.0
+ * @description: 变更前信息展示插件
+ * @date 2025/8/8 19:36
+ */
+public class AdminOrgBatchDetailDealSourceInfoFormPlugin extends AbstractFormPlugin {
+
+    //变动前信息展示总flex -- 用来控制整个变动前信息显示隐藏
+    private final static String EXT_BEFORE_CHG = "${ISV_FLAG}_beforechg";
+
+    //变动前信息实体字段标识
+    private final static String BEFORE_CHG_COIN = "${ISV_FLAG}_chgsourcevid";
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.beforeBindData(e);
+
+        this.getView().setVisible(Boolean.TRUE, EXT_BEFORE_CHG);
+        DynamicObject info = this.getModel().getDataEntity();
+        Long chgSourceInfoId = info.getLong(BEFORE_CHG_COIN);
+        if (ObjectUtils.isEmpty(chgSourceInfoId)) return;
+
+        //获取历史版本信息
+        DynamicObject orgInfo = OrgBatchBillInfoHelper.getOrgInfoById(chgSourceInfoId);
+        if (orgInfo == null) return;
+
+        //组织名称
+        setValue("${ISV_FLAG}_chg_name",orgInfo.getString("name"),orgInfo.getString("name"));
+        //组织编码
+        setValue("${ISV_FLAG}_chg_number",orgInfo.getString("number"),orgInfo.getString("number"));
+        //上级组织
+        setValue("${ISV_FLAG}_chg_parentorg",orgInfo.getString("parentorg"),orgInfo.getString("parentorg.name"));
+        //简称
+        setValue("${ISV_FLAG}_chg_simplename",orgInfo.getString("simplename"),orgInfo.getString("simplename"));
+        //组织类型
+        setValue("${ISV_FLAG}_chg_adminorgtype",orgInfo.getString("adminorgtype"),orgInfo.getString("adminorgtype.name"));
+        //行业类别
+        setValue("${ISV_FLAG}_chg_industrytype",orgInfo.getString("industrytype"),orgInfo.getString("industrytype.name"));
+        //成立日期
+        setValue("${ISV_FLAG}_chg_esdate",orgInfo.getDate("establishmentdate"),HRDateTimeUtils.format(orgInfo.getDate("establishmentdate"), HRDateTimeUtils.YYYY_MM_DD));
+        //法律实体
+        setValue("${ISV_FLAG}_chg_corporateorg",orgInfo.getString("corporateorg"),orgInfo.getString("corporateorg.name"));
+        //组织层级
+        setValue("${ISV_FLAG}_chg_adminorglayer",orgInfo.getString("adminorglayer"),orgInfo.getString("adminorglayer.name"));
+        //组织职能
+        setValue("${ISV_FLAG}_chg_adminorgfunction",orgInfo.getString("adminorgfunction"),orgInfo.getString("adminorgfunction.name"));
+        //国家/地区
+        setValue("${ISV_FLAG}_chg_companyarea",orgInfo.getString("companyarea"),orgInfo.getString("companyarea.name"));
+        //城市
+        setValue("${ISV_FLAG}_chg_city",orgInfo.getString("city"),orgInfo.getString("city.name"));
+        //工作地
+        setValue("${ISV_FLAG}_chg_workplace",orgInfo.getString("workplace"),orgInfo.getString("workplace.name"));
+        //详细地址
+        setValue("${ISV_FLAG}_chg_detailaddress",orgInfo.getString("detailaddress"),orgInfo.getString("detailaddress"));
+        //描述
+        setValue("${ISV_FLAG}_chg_description",orgInfo.getString("description"),orgInfo.getString("description"));
+        //排序号
+        setValue("${ISV_FLAG}_chg_index",orgInfo.getString("index"),orgInfo.getString("index"));
+        //定位
+        setValue("${ISV_FLAG}_chg_positioning",orgInfo.getString("positioning"),orgInfo.getString("positioning"));
+        //主要职责
+        setValue("${ISV_FLAG}_chg_mainduty",orgInfo.getString("mainduty"),orgInfo.getString("mainduty"));
+
+        this.showOrHideFlex(info, orgInfo);
+
+    }
+
+    private void setValue(String textCoin,Object oriValue,String showValue){
+        String show = ObjectUtils.isEmpty(oriValue)?"-":showValue;
+        ((Label) this.getControl(textCoin)).setText(show);
+    }
+
+    private void showOrHideFlex(DynamicObject info, DynamicObject orgInfo) {
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("name"), orgInfo.getString("name"))) {
+            //组织名称
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_nameflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_nameflex");
+        }
+        if (!DynamicObjectUtils.compareStringField(info.getString("number"), orgInfo.getString("number"))) {
+            //组织编码
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_numberflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_numberflex");
+        }
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("parentorg"), orgInfo.getDynamicObject("parentorg"))) {
+            //上级组织
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_parentorgflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_parentorgflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("simplename"), orgInfo.getString("simplename"))) {
+            //简称
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_simplenameflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_simplenameflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("adminorgtype"), orgInfo.getDynamicObject("adminorgtype"))) {
+            //组织类型
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_adminorgtypeflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_adminorgtypeflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("industrytype"), orgInfo.getDynamicObject("industrytype"))) {
+            //行业类别
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_industrytypeflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_industrytypeflex");
+        }
+
+        if (!DynamicObjectUtils.compareDateField(info.getDate("establishmentdate"), orgInfo.getDate("establishmentdate"))) {
+            //成立日期
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_esdateflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_esdateflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("corporateorg"), orgInfo.getDynamicObject("corporateorg"))) {
+            //法律实体
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_corporateorgflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_corporateorgflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("adminorglayer"), orgInfo.getDynamicObject("adminorglayer"))) {
+            //组织层级
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_adminorglayflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_adminorglayflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("adminorgfunction"), orgInfo.getDynamicObject("adminorgfunction"))) {
+            //组织职能
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_adminorgfuncflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_adminorgfuncflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("companyarea"), orgInfo.getDynamicObject("companyarea"))) {
+            //国家/地区
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_companyareaflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_companyareaflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("city"), orgInfo.getDynamicObject("city"))) {
+            //城市
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_cityflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_cityflex");
+        }
+
+        if (!DynamicObjectUtils.compareBaseEditField(info.getDynamicObject("workplace"), orgInfo.getDynamicObject("workplace"))) {
+            //工作地
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_workplaceflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_workplaceflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("detailaddress"), orgInfo.getString("detailaddress"))) {
+            //详细地址
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_detailaddrflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_detailaddrflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("description"), orgInfo.getString("description"))) {
+            //描述
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_descriptionflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_descriptionflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("index"), orgInfo.getString("index"))) {
+            //排序号
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_indexflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_indexflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("positioning"), orgInfo.getString("positioning"))) {
+            //定位
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_positioningflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_positioningflex");
+        }
+
+        if (!DynamicObjectUtils.compareStringField(info.getString("mainduty"), orgInfo.getString("mainduty"))) {
+            //主要职责
+            this.getView().setVisible(Boolean.TRUE, "${ISV_FLAG}_chg_maindutyflex");
+        } else {
+            this.getView().setVisible(Boolean.FALSE, "${ISV_FLAG}_chg_maindutyflex");
+        }
+
+    }
+}

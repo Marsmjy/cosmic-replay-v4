@@ -1,0 +1,31 @@
+{
+  "scene": "haos_staffcase",
+  "title": "不占编员工明细",
+  "menuPath": "编制执行 → 不占编员工明细",
+  "formNumber": "haos_staffcase",
+  "physicalTable": "t_haos_staffcase",
+  "modelType": "BaseFormModel",
+  "hasTimeSeries": false,
+  "domain": "haos",
+  "cloud": "组织发展云",
+  "menuId": "1644848719784328192",
+  "pluginCount": 20,
+  "isvPluginCount": 0,
+  "bizRuleCount": 0,
+  "sceneSpecificPlugins": [
+    "kd.hr.haos.formplugin.web.staff.form.StaffCaseEdit",
+    "kd.hr.haos.formplugin.web.staff.list.StaffCaseListPlugin",
+    "kd.hr.haos.opplugin.web.staff.StaffCaseSaveOp",
+    "kd.hr.haos.opplugin.web.staff.StaffCaseEnableOp"
+  ],
+  "keyFields": [
+    { "key": "empposorgrel", "type": "EmployeeField", "required": true, "semantic": "员工岗位关系（不占编主体）" },
+    { "key": "bsed", "type": "DateField", "required": true, "semantic": "生效日期" },
+    { "key": "bsled", "type": "DateField", "required": false, "semantic": "失效日期" },
+    { "key": "adminorg", "type": "HRAdminOrgField", "required": false, "semantic": "所属公司" },
+    { "key": "employee", "type": "EmployeeField", "required": false, "semantic": "员工（备用引用）" }
+  ],
+  "hasBEC": false,
+  "becNote": "标品 haos_staffcase 不发任何 BEC · grep triggerEventSubscribeJobs 0 命中 · 基础资料类型场景无需异步事件分发",
+  "createdAt": "2026-04-28"
+}

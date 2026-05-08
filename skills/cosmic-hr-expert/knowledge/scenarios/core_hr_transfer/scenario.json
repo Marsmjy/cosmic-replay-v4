@@ -1,0 +1,34 @@
+{
+  "scene": "core_hr_transfer",
+  "name": "调配管理 - 调动（hdm · transferapply 等 10 单据）",
+  "domain": "核心人力/人事单据",
+  "cloud": "core_hr",
+  "scene_kind": "aggregate",
+  "form_numbers": [
+    "hdm_transferapply",
+    "hdm_transferbatch"
+  ],
+  "referenced_entities": [
+    "hdm_transferapply",
+    "hdm_transferbatch"
+  ],
+  "createdAt": "2026-04-29",
+  "generator": "_init_wave3.py",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (BasedataField → hpfs_chgaction)",
+    "chgEvent": "INFO_TRANSFER",
+    "createsHrpi": [
+      "hrpi_assignment (终结旧段 + 创建新段)",
+      "hrpi_empposorgrel (终结旧段 + 创建新段)",
+      "hrpi_empjobrel (新职级职等 · chgaction 字段直接落)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hdm.business.extpoint.transfer.IStaffTransferExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hdm.opplugin.transfer.TransferSaveOp",
+    "kd.hr.hdm.opplugin.transfer.TransferEffectOp",
+    "kd.hr.hdm.opplugin.transfer.TransferAfterEffectOp"
+  ]
+}

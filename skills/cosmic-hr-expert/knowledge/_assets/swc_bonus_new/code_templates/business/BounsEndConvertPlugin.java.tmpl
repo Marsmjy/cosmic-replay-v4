@@ -1,0 +1,64 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.convert;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.botp.plugin.AbstractConvertPlugIn;
+import kd.bos.entity.botp.plugin.args.AfterConvertEventArgs;
+import kd.bos.entity.botp.plugin.args.AfterGetSourceDataEventArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.sdk.plugin.Plugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * 奖金发放 下推 奖金终止审批单
+ * @author wanghansheng
+ */
+public class BounsEndConvertPlugin extends AbstractConvertPlugIn implements Plugin {
+    @Override
+    public void afterGetSourceData(AfterGetSourceDataEventArgs e) {
+        super.afterGetSourceData(e);
+        List<DynamicObject> sourceRows = e.getSourceRows();
+        List<Long> srcIdList = sourceRows.stream().map(o -> o.getLong("id")).collect(Collectors.toList());
+        List<String> errorMsg = BounsPaymentUtils.bounsPaymentvalidtor(srcIdList,BounsPaymentUtils.DonothingBonusTermination);
+        if (!CollectionUtils.isEmpty(errorMsg)){
+            throw new KDBizException(String.join("",errorMsg));
+        }
+    }
+
+    @Override
+    public void afterConvert(AfterConvertEventArgs e) {
+        super.afterConvert(e);
+        ExtendedDataEntity[] billDataEntitys = e.getTargetExtDataEntitySet().FindByEntityKey("${ISV_FLAG}_bouns_end_approval");
+
+        // 查询生效中的人事业务档案
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+        filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+        DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+        if (Objects.isNull(empPosRel)) {
+            throw new KDBizException("当前操作人无生效中的主任职，不能进行推送！");
+        }
+        for (ExtendedDataEntity billDataEntity : billDataEntitys) {
+            DynamicObject bill = billDataEntity.getDataEntity();
+            DynamicObjectCollection entryEntity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            bill.set("${ISV_FLAG}_end_per_count",entryEntity.size());
+            // 创建人信息
+            bill.set("${ISV_FLAG}_dept_person",empPosRel);
+            bill.set("${ISV_FLAG}_attribut_post",empPosRel.getDynamicObject("position"));
+            bill.set("${ISV_FLAG}_attribut_dept",empPosRel.getDynamicObject("adminorg"));
+            bill.set("${ISV_FLAG}_attribut_company",empPosRel.getDynamicObject("company"));
+        }
+    }
+}

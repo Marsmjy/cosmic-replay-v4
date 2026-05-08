@@ -1,0 +1,73 @@
+{
+  "scene": "haos_staffproject",
+  "title": "控编规则设置",
+  "menuPath": "编制执行 → 控编规则设置",
+  "formNumber": "haos_staffproject",
+  "physicalTable": "t_haos_staffproject",
+  "subEntityTable": "t_haos_sporgentry",
+  "modelType": "BaseFormModel",
+  "hasTimeSeries": false,
+  "domain": "haos",
+  "cloud": "组织发展云",
+  "menuId": "1464380890523238400",
+  "pluginCount": 27,
+  "isvPluginCount": 0,
+  "bizRuleCount": 2,
+  "bizRules": [
+    {
+      "ruleId": "2KW9WJWCRJD4",
+      "type": "formRule",
+      "enabled": true,
+      "preCondition": "elasticcontrol='2'",
+      "desc": "弹性方式为百分比时显示弹性额度字段"
+    },
+    {
+      "ruleId": "2LDQS7SKC0WQ",
+      "type": "formRule",
+      "enabled": true,
+      "preCondition": "enable = '1'",
+      "desc": "启用时显示变更按钮"
+    }
+  ],
+  "sceneSpecificPlugins": [
+    "kd.hr.haos.formplugin.web.staff.form.StaffProjectEdit",
+    "kd.hr.haos.formplugin.web.staff.list.StaffProjectListPlugin",
+    "kd.hr.haos.opplugin.web.staff.StaffProjectSaveOp",
+    "kd.hr.haos.opplugin.web.staff.StaffProjectEnableOp"
+  ],
+  "platformBdCtrlPlugins": [
+    "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicPlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataCreateOrgPlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataFormPlugin",
+    "kd.bos.form.plugin.bdctrl.BdCtrlStrtgyShowLogicListPlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataNewPlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataListPlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataSavePlugin",
+    "kd.bos.form.plugin.bdctrl.BaseDataUnSubmitPlugin"
+  ],
+  "keyFields": [
+    { "key": "number", "type": "TextField", "required": true, "semantic": "编码（必填）" },
+    { "key": "name", "type": "MuliLangTextField", "required": true, "semantic": "名称（必填）" },
+    { "key": "createorg", "type": "OrgField", "required": true, "semantic": "创建组织（必填 · 多组织隔离）" },
+    { "key": "ctrlstrategy", "type": "ComboField", "required": true, "semantic": "控制策略（必填 · 核心业务字段）" },
+    { "key": "controlstrategy", "type": "ComboField", "required": true, "semantic": "控编方式（必填）" },
+    { "key": "elasticcontrol", "type": "ComboField", "required": false, "semantic": "弹性方式" },
+    { "key": "elasticcount", "type": "IntegerField", "required": false, "semantic": "弹性额度（elasticcontrol=2 时显示）" },
+    { "key": "staffdimension", "type": "MulBasedataField", "required": false, "semantic": "编制维度（多选基础资料）" },
+    { "key": "orgentity.adminorg", "type": "HRAdminOrgField", "required": false, "semantic": "子表：组织名称" }
+  ],
+  "subEntities": [
+    {
+      "entityKey": "orgentity",
+      "displayName": "单据体",
+      "physicalTable": "t_haos_sporgentry",
+      "fields": ["adminorg", "orgnumber", "iscontainslower"]
+    }
+  ],
+  "hasBEC": false,
+  "becNote": "标品 haos_staffproject 不发任何 BEC · grep triggerEventSubscribeJobs 0 命中 · 基础资料类型场景无需异步事件分发",
+  "downstreamRef": [
+    { "form": "haos_staff", "field": "staffproject", "type": "BasedataField", "cnName": "控编规则" }
+  ],
+  "createdAt": "2026-04-28"
+}

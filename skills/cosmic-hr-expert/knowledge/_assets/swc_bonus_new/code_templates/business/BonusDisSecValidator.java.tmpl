@@ -1,0 +1,118 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribution.second.valid;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+import kd.bos.exception.KDBizException;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.BonusWriteBackUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * @Author: donner
+ * @Date: 2025/04/21 16:44
+ * @Description:
+ **/
+public class BonusDisSecValidator extends AbstractValidator {
+    @Override
+    public void validate() {
+        String operateKey = this.getOperateKey();
+        ExtendedDataEntity[] dataEntities = this.getDataEntities();
+        if("save".equals(operateKey) || "donothing_gen".equals(operateKey)){
+            for (ExtendedDataEntity bill : dataEntities) {
+                DynamicObject dataEntity = bill.getDataEntity();
+                if("F".equals(dataEntity.getString("billstatus"))){
+                    throw new KDBizException("当前数据状态是已废弃");
+                }
+                // 检查分录内是否存在重复数据
+                this.checkEntryRepeat(dataEntity);
+                // 检查本次分配金额是否等于可分配金额
+                this.checkMoneyConsumeEnd(dataEntity);
+                // 同一分录内，组织不允许存在上下级关系
+                this.checkPsRelation(bill);
+
+                // 分配单需要核定到人或部门经费
+                DynamicObjectCollection awardSureOrg = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry");
+                String jyztfp = dataEntity.getString("${ISV_FLAG}_jyztfp");
+                if (awardSureOrg.size() > 0 && jyztfp.equals("0")){
+                    throw new KDBizException("请分配到人/留存部门经费。");
+                }
+            }
+        }
+    }
+
+    /**
+     * 检查分录内是否存在重复数据
+     */
+    private void checkEntryRepeat(DynamicObject distributeDynamicObject){
+        // 人员分配
+        DynamicObjectCollection personList = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+        Set<String> personNumberSet = personList.stream().map(
+                item -> item.getString("${ISV_FLAG}_peson_number")
+        ).collect(Collectors.toSet());
+        if(personNumberSet.size() != personList.size()){
+            throw new KDBizException("人员分配明细分录存在重复人员");
+        }
+        // 组织分配
+//        DynamicObjectCollection deptList = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry");
+//        Set<String> deptNumberSet = deptList.stream().map(
+//                item -> item.getDynamicObject("${ISV_FLAG}_org").getString("number")
+//        ).collect(Collectors.toSet());
+//        if(deptNumberSet.size() != deptList.size()){
+//            throw new KDBizException("组织分配明细分录存在重复组织");
+//        }
+        // 留存部门
+        DynamicObjectCollection retentionList = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_retention_entry");
+        Set<String> retentionNumberSet = retentionList.stream().map(
+                item -> item.getDynamicObject("${ISV_FLAG}_admin_org_keep").getString("number")
+        ).collect(Collectors.toSet());
+        if(retentionNumberSet.size() != retentionList.size()){
+            throw new KDBizException("留存部门经费分录存在重复组织");
+        }
+    }
+
+    /**
+     * 检查本次分配金额是否等于可分配金额
+     */
+    private void checkMoneyConsumeEnd(DynamicObject dataEntity){
+        // 可分配总额
+        BigDecimal shouldDisTotal = dataEntity.getBigDecimal("${ISV_FLAG}_enable_distribute_tl");
+        // 本次分配总额
+        BigDecimal currTotal = dataEntity.getBigDecimal("${ISV_FLAG}_current_dis_total");
+        if(shouldDisTotal.compareTo(currTotal) != 0){
+            throw new KDBizException("本次分配总额需等于可分配总额时才能操作");
+        }
+    }
+
+    /**
+     * >> 校验 同一分录内，组织不允许存在上下级关系
+     * @param bill
+     */
+    private void checkPsRelation(ExtendedDataEntity bill){
+        DynamicObject dataEntity = bill.getDataEntity();
+        List<String> msgList = new ArrayList<>();
+        // 组织核定明细
+        msgList.addAll(BonusWriteBackUtil.checkPsRelationCommonExt(
+                dataEntity
+                ,"${ISV_FLAG}_dept_dis_entry"
+                ,"${ISV_FLAG}_org"
+                ,"structlongnumber","组织分配明细"));
+        // 留存部门经费
+        msgList.addAll(BonusWriteBackUtil.checkPsRelationCommon(
+                dataEntity
+                ,"${ISV_FLAG}_retention_entry"
+                ,"${ISV_FLAG}_admin_org_keep"
+                ,"structlongnumber","留存部门经费"));
+        if(msgList.size() != 0){
+            msgList.forEach(msg ->{
+                this.addFatalErrorMessage(bill, msg);
+            });
+        }
+    }
+
+}

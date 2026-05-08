@@ -1,0 +1,171 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan_approval;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.IFormView;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.EntryGrid;
+import kd.bos.form.control.events.CellClickEvent;
+import kd.bos.form.control.events.CellClickListener;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.list.ListShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.hr.hbp.common.constants.org.TreeTemplateConstants;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan.FilterItemByType;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Date: 2024/3/26 14:54
+ */
+public class BonusPlanApprovalBillPlugin extends AbstractBillPlugIn implements BeforeF7SelectListener, CellClickListener {
+
+    private static final Log log = LogFactory.getLog(FilterItemByType.class);
+
+    @Override
+    public void registerListener(EventObject e) {
+        // 创建人信息过滤
+        BasedataEdit deptPerson = this.getView().getControl("${ISV_FLAG}_dept_person");
+        deptPerson.addBeforeF7SelectListener(this);
+
+        EntryGrid entryGrid = this.getControl("${ISV_FLAG}_entry_plan_detail");
+        entryGrid.addCellClickListener(this);
+
+        // 事件注册-发起组织
+        BasedataEdit actionOrg = this.getView().getControl("${ISV_FLAG}_action_org");
+        actionOrg.addBeforeF7SelectListener(this);
+    }
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent beforeF7SelectEvent) {
+        String fieldKey = beforeF7SelectEvent.getProperty().getName();
+        ListShowParameter showParameter = (ListShowParameter) beforeF7SelectEvent.getFormShowParameter();
+        if ("${ISV_FLAG}_dept_person".equals(fieldKey)){
+            DynamicObject bill = this.getView().getModel().getDataEntity();
+            QFilter personFilter = new QFilter("id", QCP.equals, bill.getLong("creator.id"));
+            DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+            // 组织人过滤
+            QFilter personOrgFilter = new QFilter("employee.empnumber",QCP.equals, currentPerson.getString("number"));
+            showParameter.getListFilterParameter().getQFilters().add(personOrgFilter);
+        } else if("${ISV_FLAG}_action_org".equals(fieldKey)){
+            // 所属组织”、“发起组织”选择弹窗需要做过滤，仅保留行政“组织类型归属”为“公司”
+//            QFilter orgFilter30 = new QFilter("${ISV_FLAG}_administrative_org.number",QCP.in
+//                    , Arrays.asList("1020_S"));
+//            showParameter.getListFilterParameter().getQFilters().add(orgFilter30);
+            // F7基础资料-组织树过滤
+//            this.filterOrgTreeByF7Limit(showParameter,orgFilter30);
+        }
+    }
+
+    /**
+     * >>F7基础资料-组织树过滤
+     * @param showParameter
+     * @param orgFilter
+     */
+    private void filterOrgTreeByF7Limit(ListShowParameter showParameter,QFilter orgFilter){
+        // 过滤左树
+        DynamicObjectCollection adminorgCollection = QueryServiceHelper.query("haos_adminorg", "id,structlongnumber", orgFilter.toArray());
+        List<String> orgList = adminorgCollection.stream().map(item -> item.getString("structlongnumber")).collect(Collectors.toList());
+        List<String> structnumber = new ArrayList<>();
+        for (String structlongnumber : orgList) {
+            String[] split = structlongnumber.split("!");
+            structnumber.addAll(Arrays.stream(split).collect(Collectors.toList()));
+        }
+        QFilter filter = new QFilter("structnumber",QCP.in,structnumber);
+        DynamicObjectCollection orgTree = QueryServiceHelper.query("haos_adminorg", "id", filter.toArray());
+        showParameter.getCustomParams().put(TreeTemplateConstants.BIZ_QFILTER_KEY, new QFilter("adminorg.id", QCP.in, orgTree.stream().map(item -> item.getLong("id")).collect(Collectors.toSet())).toSerializedString());
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        DynamicObject deptPerson = this.getView().getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_dept_person");
+        if(deptPerson == null){
+            QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+            DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+            QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+            filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+            DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id", new QFilter[]{filter});
+            if (empPosRel != null){
+                this.getView().getModel().setValue("${ISV_FLAG}_dept_person",empPosRel);
+                this.getView().updateView("${ISV_FLAG}_dept_person");
+            }
+        }
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        DynamicObject bill = this.getView().getModel().getDataEntity();
+        IDataModel model = this.getModel();
+        // 获取值改变的标识
+        String name = e.getProperty().getName();
+        // 组织人发生变化
+        if ("${ISV_FLAG}_dept_person".equals(name)){
+            DynamicObject deptPerson = bill.getDynamicObject("${ISV_FLAG}_dept_person");
+            if (deptPerson != null){
+                Long adminOrgId = deptPerson.getLong("adminorg.id");
+                DynamicObject position = deptPerson.getDynamicObject("position");
+                model.setValue("${ISV_FLAG}_attribut_post",position);
+
+                model.setValue("${ISV_FLAG}_attribut_dept",deptPerson.getDynamicObject("adminorg"));
+                model.setValue("${ISV_FLAG}_attribut_company",deptPerson.getDynamicObject("company"));
+                model.setValue("${ISV_FLAG}_action_org",deptPerson.getDynamicObject("company"));
+            }else {
+                model.setValue("${ISV_FLAG}_attribut_post",null);
+                model.setValue("${ISV_FLAG}_attribut_dept",null);
+                model.setValue("${ISV_FLAG}_attribut_company",null);
+                model.setValue("${ISV_FLAG}_action_org",null);
+            }
+        }
+    }
+
+    @Override
+    public void cellClick(CellClickEvent cellClickEvent) {
+        IDataModel model = this.getModel();
+        IFormView view = this.getView();
+
+        int row =  cellClickEvent.getRow();
+        String fieldKey = cellClickEvent.getFieldKey();
+        if(fieldKey.equalsIgnoreCase("${ISV_FLAG}_bouns_plan_number")) {//判断点击的字段
+            DynamicObjectCollection entryentity = model.getEntryEntity("${ISV_FLAG}_entry_plan_detail");
+            DynamicObject dynamicObject = entryentity.get(row);
+            long pkid = dynamicObject.getLong("${ISV_FLAG}_srcbillid");
+            if (pkid == 0L) {
+                throw new KDBizException("关联数据异常");
+            }
+            OperationStatus operationStatus = OperationStatus.VIEW;
+            BillShowParameter formShowParameter = new BillShowParameter();
+            formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+            formShowParameter.setStatus(operationStatus);
+            formShowParameter.setHasRight(true);
+            formShowParameter.setFormId("${ISV_FLAG}_bonus_plan");
+            formShowParameter.setPkId(pkid);
+            view.showForm(formShowParameter);
+
+        }
+    }
+
+    @Override
+    public void cellDoubleClick(CellClickEvent cellClickEvent) {
+
+    }
+}

@@ -1,0 +1,39 @@
+{
+  "scene": "admin_org_basedata",
+  "formId": "admin_org_basedata",
+  "description": "行政组织/层级/类型/行政组织功能/结构项目等5个基础资料场景概念文档",
+  "generatedAt": "2026-04-28",
+  "opKeys": {
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存",
+        "frequency": "常用"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataTplEdit",
+          "description": "HR基础资料模板编辑插件（5件套共用）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataImportEditPlugin（HIES导入专用 · 实际类HRBaseDataImportEdit · ISV禁继承）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 CodeRuleOp（编码规则OP · ISV不应重写 · 走基础资料配置）",
+        "❌ 禁继承 HRBaseDataTplEdit（标品基础资料模板 · ISV 应并列挂 HRDataBaseEdit · PR-001）",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "validators": [],
+      "businessRules": []
+    }
+  },
+  "_meta": {
+    "note": "admin_org_basedata 是概念场景 · 无标准 opKey 数据 · 以 save 为象征性 opKey"
+  }
+}

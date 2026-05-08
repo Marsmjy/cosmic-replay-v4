@@ -1,0 +1,129 @@
+{
+  "scene": "hies_entity_import",
+  "formId": "hies_entity_import",
+  "description": "HIES-Pro 实体导入导出规范文档（共享概念场景）。本场景是 HIES 导入导出 6 个标准 opKey 的规范说明文档，不对应具体表单。",
+  "generatedAt": "2026-04-28",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "HIES 导入数据",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 导入数据入口（6 个标准 opKey 之一）",
+        "frequency": "数据迁移/批量更新时使用"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRBaseDataImportEdit",
+          "description": "HIES 导入编辑插件（@SdkInternal · 禁继承）"
+        }
+      ],
+      "mines": [
+        "❌ 禁继承 HRBaseDataImportEditPlugin（实际类HRBaseDataImportEdit · @SdkInternal · ISV 禁继承）",
+        "❌ 禁继承 HRHiesButtonSwitchPlugin（HIES按钮切换 · 标品共享 · 禁继承）",
+        "❌ 禁继承 HRBaseDataStatusOp（状态管理OP · 禁继承 · 用 HRDataBaseOp 替代）",
+        "❌ 禁继承 HRBaseDataTplEdit（标品基础资料模板 · ISV 应并列挂 HRDataBaseEdit · PR-001）",
+        "❌ 禁继承 HisModelOPCommonPlugin（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisUniqueValidateOp（@SdkInternal · 平台内部类）",
+        "❌ 禁继承 HisModelListCommonPlugin（@SdkInternal · 历史模型列表内部类）",
+        "❌ 禁继承 AbsOrgBaseOp（HR 通用推荐 HRDataBaseOp · 见 cosmic_hr_sdk_whitelist_audit.md）"
+      ],
+      "validators": [],
+      "businessRules": []
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 查看导入记录"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 按列表导出"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 按导入模板导出"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 按导出模板导出"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "hies-hr",
+      "overview": {
+        "scene": "HIES 查看导出记录"
+      },
+      "executionChain": [
+        {
+          "order": 1,
+          "className": "kd.hr.hbp.formplugin.web.HRHiesButtonSwitchPlugin",
+          "description": "HIES 按钮切换插件"
+        }
+      ],
+      "mines": [],
+      "validators": [],
+      "businessRules": []
+    }
+  },
+  "_meta": {
+    "note": "hies_entity_import 是 HIES-Pro 导入导出规范共享场景 · 6 个标准 opKey · ISV 不应继承 HIES 内部类（HRBaseDataImportEdit/@SdkInternal）· 通过 HIES 后台配置控制导入导出行为"
+  }
+}

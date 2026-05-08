@@ -1,0 +1,38 @@
+package ${ISV_FLAG}.swc.sit.common.util;
+
+import kd.bos.entity.operate.result.OperateErrorInfo;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.validate.ValidateResult;
+import kd.bos.entity.validate.ValidateResultCollection;
+import kd.bos.exception.ErrorCode;
+import kd.bos.exception.KDBizException;
+
+import java.util.List;
+
+public class OperateResultCheck {
+
+    public static void check(OperationResult operationResult, String bizName)
+    {
+        if(!operationResult.isSuccess())
+        {
+            StringBuffer message = new StringBuffer(bizName!=null?bizName+" 时发生错误：":"");
+            message.append(operationResult.getMessage());
+            ValidateResultCollection resultColl = operationResult.getValidateResult();
+            if(resultColl!=null && resultColl.errorSize()>0)
+            {
+                List<ValidateResult> validateErrors = resultColl.getValidateErrors();
+                for(int i=0; i<validateErrors.size(); i++)
+                {
+                    ValidateResult validateResult = validateErrors.get(i);
+                    List<OperateErrorInfo> allErrorInfo = validateResult.getAllErrorInfo();
+                    for(int j=0; j<allErrorInfo.size(); j++)
+                    {
+                        message.append("\n").append(allErrorInfo.get(j).getMessage());
+                    }
+                }
+            }
+            throw new KDBizException(new ErrorCode("RST-101", "%s"), message.toString());
+        }
+    }
+
+}

@@ -1,0 +1,2893 @@
+{
+  "scene": "haos_adminorghis",
+  "formId": "haos_adminorghis",
+  "description": "rules_chain_all.json · 场景 haos_adminorghis",
+  "opKeys": {
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "按列表导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "按导入模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "按导出模板导出（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看导出记录（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "view": {
+      "opKey": "view",
+      "name": "查看",
+      "opType": "view",
+      "overview": {
+        "scene": "查看历史版本详情 (高频 · 用户从列表点行触发)",
+        "frequency": "高频 · 90% 用例都从此入口看历史",
+        "stateTransition": "list view -> form VIEW 模式 · 不改数据",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgPageRightDynamicPlugin",
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgPageRightDynamicPlugin",
+          "role": "preOpenForm 设关联实体类型 ID 2030"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataTplEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataTplEdit",
+          "role": "平台模板 preOpenForm"
+        },
+        {
+          "order": 3,
+          "plugin": "AdminOrgDetailEditPlugin",
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "role": "preOpenForm 处理 caption / beforeBindData VIEW 模式所有按钮 setVisible(false)"
+        },
+        {
+          "order": 4,
+          "plugin": "HisModelFormCommonPlugin",
+          "className": "kd.hr.hbp.formplugin.web.history.form.HisModelFormCommonPlugin",
+          "role": "afterBindData 处理按钮可见 / 历史页状态 / 编码规则"
+        },
+        {
+          "order": 5,
+          "plugin": "NewAdminorgDetailEditPlugin",
+          "className": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+          "role": "afterBindData 拼 fullname"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_view_001",
+          "order": 1,
+          "name": "VIEW 模式所有写入按钮隐藏",
+          "type": "afterBindData",
+          "definition": "operation == null 时 setVisible(false) 全部 save 类按钮",
+          "phase": "afterBindData",
+          "impl": "AdminOrgDetailEditPlugin#beforeBindData",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "所有历史版本详情页",
+          "sourceLine": "L186-L191",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_view_002",
+          "order": 2,
+          "name": "拼接 fullname 走 OrgFullNameServiceWrapper",
+          "type": "afterBindData",
+          "definition": "按 boid + searchDate 取组织全名",
+          "phase": "afterBindData",
+          "impl": "NewAdminorgDetailEditPlugin#afterBindData",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.NewAdminorgDetailEditPlugin",
+          "writeFields": [
+            "fullname"
+          ],
+          "readFields": [
+            "boid"
+          ],
+          "serviceCalls": [
+            "OrgFullNameServiceWrapper.getOrgFullName"
+          ],
+          "edgeCase": "",
+          "sourceLine": "L118-L120",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final · 标品历史模型表单父类",
+        "禁继承 AdminOrgDetailEditPlugin · final · haos 域场景专属",
+        "禁继承 NewAdminorgDetailEditPlugin · final · 同上",
+        "VIEW 模式下所有保存按钮被隐藏 · ISV 自加按钮要在 afterBindData 后处理避免被覆盖"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "delete": {
+      "opKey": "delete",
+      "name": "删除",
+      "opType": "delete",
+      "overview": {
+        "scene": "删除 (历史版本不允许删 · 详见 09_cases.md 案例 5)",
+        "frequency": "极低 · 时序模型设计不允许",
+        "stateTransition": "标品兜底拒绝 · datastatus 不接受 delete",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelListCommonPlugin",
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "role": "packageData 默认不显示 delete 按钮"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_delete_001",
+          "order": 1,
+          "name": "历史版本删除被 packageData 拒绝显示",
+          "type": "packageData",
+          "definition": "行级按钮 modify/hiscopy/confirmchange/revise 唯一可见",
+          "phase": "packageData",
+          "impl": "HisModelListCommonPlugin#packageData",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "writeFields": [],
+          "readFields": [
+            "datastatus"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "时序设计：删历史版本会破坏 sourcevid 链表",
+          "sourceLine": "L142-L165",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 AdminOrgInitSaveOp · 标品场景专属",
+        "禁继承 AbsOrgBaseOp · 不在 SDK 白名单",
+        "不要尝试加 delete 按钮 · 违反时序模型 PR-008 · 用'标记废弃'代替(09_cases §5)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/4",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "audit": {
+      "opKey": "audit",
+      "name": "审核",
+      "opType": "audit",
+      "overview": {
+        "scene": "审核 (本场景实际不主用 · 标品基础资料模板兜底注册)",
+        "frequency": "极低",
+        "stateTransition": "datastatus 流转 · 标品 list 行级按钮不显示 audit",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "标品状态 OP"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "标品日志 OP · 写审核日志"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "历史模型 OP 父类 · 处理时序链关系"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_audit_001",
+          "order": 1,
+          "name": "datastatus 流转规则",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "审核成功后 datastatus 切换",
+          "phase": "beforeExecuteOperationTransaction",
+          "impl": "HRBaseDataStatusOp",
+          "implClass": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "writeFields": [
+            "datastatus"
+          ],
+          "readFields": [
+            "datastatus"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "本场景实际不会触发",
+          "sourceLine": "(标品平台模板兜底)",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台模板兜底 · 标品场景专属",
+        "禁继承 HisModelOPCommonPlugin · @SdkInternal",
+        "禁继承 HRBaseDataLogOp · 平台模板兜底",
+        "本场景实际不会跑 audit · 仅模板注册"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "1/3",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unaudit": {
+      "opKey": "unaudit",
+      "name": "反审核",
+      "opType": "unaudit",
+      "overview": {
+        "scene": "反审核 (本场景实际不主用 · 标品基础资料生命周期 · 历史版本不走标准审批流)",
+        "frequency": "低 · 历史版本走 revise/confirmchange · 不走 submit/audit",
+        "stateTransition": "status 字段流转 (A/B/C)",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 2,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台兜底",
+        "禁继承 HRBaseDataLogOp · 平台兜底",
+        "禁继承 HisModelOPCommonPlugin · @SdkInternal · 标品历史 OP 父类"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/2",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "disable": {
+      "opKey": "disable",
+      "name": "禁用",
+      "opType": "disable",
+      "overview": {
+        "scene": "禁用 (本场景实际不主用 · 标品基础资料模板兜底注册)",
+        "frequency": "低 · 历史模式下行级按钮一般不显示此操作",
+        "stateTransition": "enable 字段 0/1 切换 · datastatus 同步",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "状态 OP"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "日志 OP"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台模板兜底",
+        "禁继承 HRBaseDataEnableOp / HRBaseDataLogOp · 平台模板",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "enable": {
+      "opKey": "enable",
+      "name": "启用",
+      "opType": "enable",
+      "overview": {
+        "scene": "启用 (本场景实际不主用 · 标品基础资料模板兜底注册)",
+        "frequency": "低 · 历史模式下行级按钮一般不显示此操作",
+        "stateTransition": "enable 字段 0/1 切换 · datastatus 同步",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "状态 OP"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "启用 OP"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台模板兜底",
+        "禁继承 HRBaseDataEnableOp / HRBaseDataLogOp · 平台模板",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭 (列表/详情外壳辅助操作)",
+        "frequency": "低-中",
+        "stateTransition": "form/list 状态调整",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList / HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "returndata": {
+      "opKey": "returndata",
+      "name": "返回数据",
+      "opType": "returndata",
+      "overview": {
+        "scene": "返回数据 (列表/详情外壳辅助操作)",
+        "frequency": "低-中",
+        "stateTransition": "form/list 状态调整",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList / HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submit": {
+      "opKey": "submit",
+      "name": "提交",
+      "opType": "submit",
+      "overview": {
+        "scene": "提交 (本场景实际不主用 · 标品基础资料生命周期 · 历史版本不走标准审批流)",
+        "frequency": "低 · 历史版本走 revise/confirmchange · 不走 submit/audit",
+        "stateTransition": "status 字段流转 (A/B/C)",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "CodeRuleOp",
+          "className": "kd.bos.business.plugin.CodeRuleOp",
+          "role": "编码规则（未启用时跳过）· onAddValidators 注册 numberValidator"
+        },
+        {
+          "order": 2,
+          "plugin": "BdVersionSaveServicePlugin",
+          "className": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+          "role": "基础资料版本管理 · 主表 name + 版本子表 name 的写历史"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        },
+        {
+          "order": 4,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "HR 基础资料启用态管理 · 控制 enable 字段"
+        },
+        {
+          "order": 5,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "时态模型唯一性校验（同一 boid 同一时间段唯一）"
+        },
+        {
+          "order": 6,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "HR 基础资料原始值记录（对比变更前后）"
+        },
+        {
+          "order": 7,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "时态模型通用 · his_bsed/his_bsled/effectdate 的维护"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台兜底",
+        "禁继承 HRBaseDataLogOp · 平台兜底",
+        "禁继承 HisModelOPCommonPlugin · @SdkInternal · 标品历史 OP 父类"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/7",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "unsubmit": {
+      "opKey": "unsubmit",
+      "name": "撤销",
+      "opType": "unsubmit",
+      "overview": {
+        "scene": "撤销 (本场景实际不主用 · 标品基础资料生命周期 · 历史版本不走标准审批流)",
+        "frequency": "低 · 历史版本走 revise/confirmchange · 不走 submit/audit",
+        "stateTransition": "status 字段流转 (A/B/C)",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "HR 基础资料操作日志"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataStatusOp · 平台兜底",
+        "禁继承 HRBaseDataLogOp · 平台兜底",
+        "禁继承 HisModelOPCommonPlugin · @SdkInternal · 标品历史 OP 父类"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "刷新列表 / 详情页",
+        "frequency": "高频",
+        "stateTransition": "重查 · 清缓存",
+        "extValue": 5
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgDetailEditPlugin",
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "role": "beforeDoOperation refresh 时清 customParam.adminorg_operation"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_refresh_001",
+          "order": 1,
+          "name": "refresh 时清 adminorg_operation",
+          "type": "beforeDoOperation",
+          "definition": "重新进入 VIEW 模式",
+          "phase": "beforeDoOperation",
+          "impl": "AdminOrgDetailEditPlugin#beforeDoOperation",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L156-L163",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 AdminOrgDetailEditPlugin · final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "option": {
+      "opKey": "option",
+      "name": "选项设置",
+      "opType": "option",
+      "overview": {
+        "scene": "选项设置 (列表/详情外壳辅助操作)",
+        "frequency": "低-中",
+        "stateTransition": "form/list 状态调整",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList / HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "submitandnew": {
+      "opKey": "submitandnew",
+      "name": "提交并新增",
+      "opType": "submitandnew",
+      "overview": {
+        "scene": "提交并新增 (列表/详情外壳辅助操作)",
+        "frequency": "低-中",
+        "stateTransition": "form/list 状态调整",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList / HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "saveandnew": {
+      "opKey": "saveandnew",
+      "name": "保存并新增",
+      "opType": "saveandnew",
+      "overview": {
+        "scene": "保存并新增 (列表/详情外壳辅助操作)",
+        "frequency": "低-中",
+        "stateTransition": "form/list 状态调整",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList / HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "第一 (列表/详情翻页 · 标品 BdVersionListPlugin 处理)",
+        "frequency": "中频 · 详情页用户跳同 boid 不同版本",
+        "stateTransition": "form 切换到上/下一条数据",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BdVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal",
+        "禁继承 AdminOrgDetailEditPlugin · final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "前一 (列表/详情翻页 · 标品 BdVersionListPlugin 处理)",
+        "frequency": "中频 · 详情页用户跳同 boid 不同版本",
+        "stateTransition": "form 切换到上/下一条数据",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BdVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal",
+        "禁继承 AdminOrgDetailEditPlugin · final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "后一 (列表/详情翻页 · 标品 BdVersionListPlugin 处理)",
+        "frequency": "中频 · 详情页用户跳同 boid 不同版本",
+        "stateTransition": "form 切换到上/下一条数据",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BdVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal",
+        "禁继承 AdminOrgDetailEditPlugin · final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "最后 (列表/详情翻页 · 标品 BdVersionListPlugin 处理)",
+        "frequency": "中频 · 详情页用户跳同 boid 不同版本",
+        "stateTransition": "form 切换到上/下一条数据",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BdVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal",
+        "禁继承 AdminOrgDetailEditPlugin · final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist": {
+      "opKey": "exportlist",
+      "name": "导出数据（按导入模板）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据(按导入模板) (HIES 导出体系 · 走标品导出引擎)",
+        "frequency": "中频",
+        "stateTransition": "异步任务 · 生成文件 · 走 HIES",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataTplList · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 OrgDetailList · haos 域 final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据（按列表）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "导出数据(按列表) (HIES 导出体系 · 走标品导出引擎)",
+        "frequency": "中频",
+        "stateTransition": "异步任务 · 生成文件 · 走 HIES",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataTplList · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 OrgDetailList · haos 域 final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportlist_expt": {
+      "opKey": "exportlist_expt",
+      "name": "导出数据（按导出模板）",
+      "opType": "exportlist_expt",
+      "overview": {
+        "scene": "导出数据(按导出模板) (HIES 导出体系 · 走标品导出引擎)",
+        "frequency": "中频",
+        "stateTransition": "异步任务 · 生成文件 · 走 HIES",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataTplList · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 OrgDetailList · haos 域 final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出结果 (HIES 导出体系 · 走标品导出引擎)",
+        "frequency": "中频",
+        "stateTransition": "异步任务 · 生成文件 · 走 HIES",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataTplList · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 OrgDetailList · haos 域 final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "importexport_userset": {
+      "opKey": "importexport_userset",
+      "name": "导入导出个性化设置",
+      "opType": "importexport_userset",
+      "overview": {
+        "scene": "导入导出个性化设置 (HIES 导出体系 · 走标品导出引擎)",
+        "frequency": "中频",
+        "stateTransition": "异步任务 · 生成文件 · 走 HIES",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HRBaseDataTplList · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 OrgDetailList · haos 域 final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarselect": {
+      "opKey": "mobtoolbarselect",
+      "name": "选择",
+      "opType": "mobtoolbarselect",
+      "overview": {
+        "scene": "移动端选择 (移动端 H5 工具栏)",
+        "frequency": "低 · 仅移动端用户",
+        "stateTransition": "移动端筛选状态切换",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelMobileListPlugin · @SdkInternal",
+        "禁继承 AbstractMobListPlugin · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "mobtoolbarcancel": {
+      "opKey": "mobtoolbarcancel",
+      "name": "取消",
+      "opType": "mobtoolbarcancel",
+      "overview": {
+        "scene": "移动端取消 (移动端 H5 工具栏)",
+        "frequency": "低 · 仅移动端用户",
+        "stateTransition": "移动端筛选状态切换",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelMobileListPlugin · @SdkInternal",
+        "禁继承 AbstractMobListPlugin · 平台模板",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistory": {
+      "opKey": "namehistory",
+      "name": "改名",
+      "opType": "donothing",
+      "overview": {
+        "scene": "改名 (改名链查询 · BaseDataNameVersionListPlugin 接管)",
+        "frequency": "低",
+        "stateTransition": "弹出独立改名链对话框",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BaseDataNameVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList · 平台模板"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "namehistoryview": {
+      "opKey": "namehistoryview",
+      "name": "名称历史查询",
+      "opType": "donothing",
+      "overview": {
+        "scene": "名称历史查询 (改名链查询 · BaseDataNameVersionListPlugin 接管)",
+        "frequency": "低",
+        "stateTransition": "弹出独立改名链对话框",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 BaseDataNameVersionListPlugin · 平台版本服务",
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 HRBaseDataTplList · 平台模板"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "his_save": {
+      "opKey": "his_save",
+      "name": "历史补录",
+      "opType": "donothing",
+      "overview": {
+        "scene": "历史补录（1 个插件 · 1 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "重写 4 个方法：onAddValidators（注册校验器）, beforeExecuteOperationTransaction（事务前预处理）, beginOperationTransaction（事务中主业务）, endOperationTransaction（事务中收尾）"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_AdminOrgInitSaveOp_1",
+          "name": "OrgHisBelongCompanyValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisBelongCompanyValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_2",
+          "name": "OrgHisEffDateContinuityValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisEffDateContinuityValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_3",
+          "name": "OrgHisEffDateLegitimacyValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisEffDateLegitimacyValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_4",
+          "name": "OrgHisEndDateRangeValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisEndDateRangeValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_5",
+          "name": "OrgHisEndDateValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisEndDateValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_6",
+          "name": "OrgHisFirstEffDateConsistencyValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisFirstEffDateConsistencyValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_7",
+          "name": "OrgHisMigratedValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisMigratedValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_8",
+          "name": "OrgHisOrgCurrVerParentValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisOrgCurrVerParentValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_9",
+          "name": "OrgHisOrgErrValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisOrgErrValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        },
+        {
+          "id": "V_AdminOrgInitSaveOp_10",
+          "name": "OrgHisOrgParentValidator",
+          "type": "自定义 Validator",
+          "phase": "onAddValidators（注册校验器）",
+          "definition": "在 onAddValidators 中注册 OrgHisOrgParentValidator",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "extensible": false,
+          "confidence": "distilled"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_AdminOrgInitSaveOp_1",
+          "order": 1,
+          "name": "onAddValidators 方法的业务逻辑",
+          "type": "onAddValidators",
+          "definition": "业务重写",
+          "phase": "onAddValidators（注册校验器）",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#onAddValidators",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L57-L68",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_AdminOrgInitSaveOp_2",
+          "order": 2,
+          "name": "beforeExecuteOperationTransaction 方法的业务逻辑",
+          "type": "beforeExecuteOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beforeExecuteOperationTransaction（事务前预处理）",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#beforeExecuteOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L70-L71",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_AdminOrgInitSaveOp_3",
+          "order": 3,
+          "name": "beginOperationTransaction 方法的业务逻辑",
+          "type": "beginOperationTransaction",
+          "definition": "业务重写",
+          "phase": "beginOperationTransaction（事务中主业务）",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#beginOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L73-L74",
+          "confidence": "distilled"
+        },
+        {
+          "id": "B_AdminOrgInitSaveOp_4",
+          "order": 4,
+          "name": "endOperationTransaction 方法的业务逻辑",
+          "type": "endOperationTransaction",
+          "definition": "读 1 个字段",
+          "phase": "endOperationTransaction（事务中收尾）",
+          "impl": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp#endOperationTransaction",
+          "implClass": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "writeFields": [],
+          "readFields": [
+            "bsed"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L76-L84",
+          "confidence": "distilled"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "bsed"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "1/1",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "chargepersonimpo_hr": {
+      "opKey": "chargepersonimpo_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据（0 个插件 · 0 已反编译）",
+        "frequency": "见业务 · 待专家标注",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataStatusOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 2,
+          "plugin": "HRBaseDataLogOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+          "role": "plugins.json 实证 · 标品 · final"
+        },
+        {
+          "order": 3,
+          "plugin": "HisModelOPCommonPlugin",
+          "className": "kd.hr.hbp.opplugin.web.history.HisModelOPCommonPlugin",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 4,
+          "plugin": "AdminOrgFastAuditOp",
+          "className": "kd.hr.haos.opplugin.web.orgfast.AdminOrgFastAuditOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 5,
+          "plugin": "HRBaseDataEnableOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 6,
+          "plugin": "HisUniqueValidateOp",
+          "className": "kd.hr.hbp.opplugin.web.history.HisUniqueValidateOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 7,
+          "plugin": "HRBaseOriginalOp",
+          "className": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        },
+        {
+          "order": 8,
+          "plugin": "AdminOrgInitSaveOp",
+          "className": "kd.hr.haos.opplugin.web.adminorg.init.AdminOrgInitSaveOp",
+          "role": "plugins.json 实证 · 标品 · extendable"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "distilled",
+        "note": "数据来自机读 · 专家精修后可升级为 verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "cancel": {
+      "opKey": "cancel",
+      "name": "取消",
+      "opType": "donothing",
+      "overview": {
+        "scene": "取消 (返回 / 关闭页 · donothing)",
+        "frequency": "中频",
+        "stateTransition": "form 关闭 / list 取消选中",
+        "extValue": 2
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "AdminOrgDetailEditPlugin",
+          "className": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "role": "beforeClosed 处理 returnDataToParent"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_cancel_001",
+          "order": 1,
+          "name": "infochg 取消时返回 boid 给父页",
+          "type": "beforeClosed",
+          "definition": "无 operation 时跳过",
+          "phase": "beforeClosed",
+          "impl": "AdminOrgDetailEditPlugin#beforeClosed",
+          "implClass": "kd.hr.haos.formplugin.web.adminorg.AdminOrgDetailEditPlugin",
+          "writeFields": [],
+          "readFields": [
+            "boid",
+            "parentorg"
+          ],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L165-L179",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 AdminOrgDetailEditPlugin · final · 重写 beforeClosed 务必 super",
+        "禁继承 HisModelFormCommonPlugin · @SdkInternal",
+        "禁继承 HRBaseDataTplEdit · 平台模板兜底"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "addnew": {
+      "opKey": "addnew",
+      "name": "新增组织",
+      "opType": "new",
+      "overview": {
+        "scene": "新增组织 (本场景实际不会触发成功 · 见 01_capability_boundary §3.5)",
+        "frequency": "极低 · 历史查询页不该新增组织 · 标品 listProcessor.handleBtnVisible 默认隐藏此按钮",
+        "stateTransition": "list 弹出新增表单 · save 时底层校验 boid 当前版本不存在才能创建 · 历史模式下走不通",
+        "extValue": 1
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelListCommonPlugin",
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "role": "beforeShowBill 强制 customParam.hisPage = VERSION_PAGE · beforeBindData 隐藏 addnew"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_addnew_001",
+          "order": 1,
+          "name": "强制 hisPage = VERSION_PAGE",
+          "type": "beforeShowBill",
+          "definition": "弹出表单前注入历史模式参数",
+          "phase": "beforeShowBill",
+          "impl": "HisModelListCommonPlugin#beforeShowBill",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "本场景 list 走 VERSION_LIST_PAGE 模式 · 弹详情页跟着走 VERSION_PAGE",
+          "sourceLine": "L189-L191",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final",
+        "禁继承 AdminOrgFastSaveOp · 标品场景专属",
+        "禁继承 AbsOrgBaseOp · cosmic_hr_sdk_whitelist_audit.md 黑名单",
+        "addnew 在历史模式下底层会因 boid 当前版本已存在拒绝 · ISV 不要尝试走"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    },
+    "sort": {
+      "opKey": "sort",
+      "name": "排序",
+      "opType": "donothing",
+      "overview": {
+        "scene": "列表排序 (donothing · 实际排序由 beforeCreateListColumns 写死)",
+        "frequency": "中频",
+        "stateTransition": "list 重新查询 · 按列头点击切换 ASC/DESC",
+        "extValue": 4
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HisModelListCommonPlugin",
+          "className": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "role": "beforeCreateListColumns L118-L139 按 HisPageEnum 决定默认 setOrder"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_sort_001",
+          "order": 1,
+          "name": "VERSION_LIST_PAGE + NO_INTERRUPTION_NO_OVERLAP 按 bsed DESC + modifytime DESC",
+          "type": "beforeCreateListColumns",
+          "definition": "时序连续模式按生效日期+操作时间排序",
+          "phase": "beforeCreateListColumns",
+          "impl": "HisModelListCommonPlugin#beforeCreateListColumns",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "用户点列头排序优先级高于默认",
+          "sourceLine": "L120-L123",
+          "confidence": "verified"
+        },
+        {
+          "id": "B_sort_002",
+          "order": 2,
+          "name": "其他模式按 hisversion DESC",
+          "type": "beforeCreateListColumns",
+          "definition": "默认按版本号倒序",
+          "phase": "beforeCreateListColumns",
+          "impl": "HisModelListCommonPlugin#beforeCreateListColumns",
+          "implClass": "kd.hr.hbp.formplugin.web.history.list.HisModelListCommonPlugin",
+          "writeFields": [],
+          "readFields": [],
+          "serviceCalls": [],
+          "edgeCase": "",
+          "sourceLine": "L124-L127",
+          "confidence": "verified"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "禁继承 HisModelListCommonPlugin · @SdkInternal final · 自定义排序走 HRDataBaseList 并列挂(CS-02)",
+        "禁继承 HisModelF7ListPlugin · @SdkInternal · F7 模式排序独立",
+        "禁继承 AdminOrgDetailListPlugin · haos 域 · 标品场景专属",
+        "ISV 重写排序后 · 用户点列头切换排序仍会覆盖默认(用户操作优先)"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "enrich_opkey_chain.py · 机读 sidecar + 反编译启发式抽取",
+        "confidence": "verified",
+        "note": "Agent 精修后 · 反编译实证",
+        "decompiledCount": "0/0",
+        "generatedBy": "scripts/enrich_opkey_chain.py"
+      }
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "nonHiesOpKeysEnriched": {
+      "enrichedAt": "2026-04-23",
+      "source": "enrich_opkey_chain.py",
+      "opKeysEnriched": [
+        "view",
+        "delete",
+        "audit",
+        "unaudit",
+        "disable",
+        "enable",
+        "close",
+        "returndata",
+        "submit",
+        "unsubmit",
+        "refresh",
+        "option",
+        "submitandnew",
+        "saveandnew",
+        "first",
+        "previous",
+        "next",
+        "last",
+        "exportlist",
+        "exportlistbyselectfields",
+        "exportlist_expt",
+        "exportdetails",
+        "importexport_userset",
+        "mobtoolbarselect",
+        "mobtoolbarcancel",
+        "namehistory",
+        "namehistoryview",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr",
+        "his_save",
+        "chargepersonimpo_hr",
+        "cancel",
+        "addnew",
+        "sort"
+      ],
+      "injectionScript": "scripts/enrich_opkey_chain.py"
+    },
+    "agentEnriched": true,
+    "enrichedAt": "2026-04-27",
+    "enrichedBy": "Agent · 反编译实证 + 平台模板共性",
+    "coreOpkeyEnriched": [
+      "view",
+      "addnew",
+      "cancel",
+      "sort",
+      "delete",
+      "refresh",
+      "audit"
+    ],
+    "customOpkeyTotal": 32
+  }
+}

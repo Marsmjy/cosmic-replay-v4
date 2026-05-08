@@ -1,0 +1,40 @@
+package ${ISV_FLAG}.odc.homs.utils;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+
+import java.util.Set;
+
+/**
+ * @author ningjie
+ * @version 1.0
+ * @description: 变动信息处理工具类
+ * @date 2025/8/11 11:08
+ */
+public class OrgBatchBillInfoHelper {
+
+    final static String CHG_SOURCE_SHOW_FIELDS = "chgsource_showfields";
+
+    public static DynamicObject[] getHisDataById(Set<Long> orgSet) {
+        // 查询所有组织当前版本对应的历史版本id
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("haos_adminorgdetail");
+        QFilter qFilter = new QFilter("id", QCP.in, orgSet);
+        return helper.load("boid,sourcevid", new QFilter[]{qFilter});
+    }
+
+    public static DynamicObject[] getAllDataByIdSet(Set<Long> orgSet) {
+        // 查询所有组织当前版本对应的历史版本id
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("haos_adminorgdetail");
+        QFilter qFilter = new QFilter("id", QCP.in, orgSet);
+        return helper.loadDynamicObjectArray(new QFilter[]{qFilter});
+    }
+
+    public static DynamicObject getOrgInfoById(Long id) {
+        // 查询所有组织当前版本对应的历史版本id
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("haos_adminorgdetail");
+        QFilter qFilter = new QFilter("id", QCP.equals, id);
+        return helper.loadDynamicObject(new QFilter[]{qFilter});
+    }
+}

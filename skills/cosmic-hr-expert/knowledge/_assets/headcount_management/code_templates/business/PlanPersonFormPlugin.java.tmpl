@@ -1,0 +1,63 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import kd.bos.dataentity.entity.DataEntityBase;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * @Author: 姚帅
+ * @CreateTime: 2023/1/26 14:33
+ * @Description: 编制计划催办配置表单插件
+ */
+public class PlanPersonFormPlugin extends AbstractFormPlugin {
+
+    private static Log logger = LogFactory.getLog(PlanPersonFormPlugin.class);
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        //获取值改变属性
+        String changeName = e.getProperty().getName();
+        IDataModel model = this.getModel();
+        if ("${ISV_FLAG}_personplan".equals(changeName)) {
+            DynamicObject user = (DynamicObject) model.getValue("${ISV_FLAG}_personplan");
+            if (Objects.nonNull(user)) {
+                //部门分类
+                DynamicObjectCollection entity = user.getDynamicObjectCollection("entryentity");
+
+                Map<Object, DynamicObject> adminorghrMap = Arrays.stream(BusinessDataServiceHelper.load(entity.stream()
+                                .filter(en -> "false".equals(en.getString("ispartjob")) && en.getDynamicObject("dpt") != null)
+                                .map(en -> en.getDynamicObject("dpt").getPkValue()).toArray(), EntityMetadataCache.getDataEntityType("haos_adminorg")))
+                        .collect(Collectors.toMap(DataEntityBase::getPkValue, o -> o));
+
+
+                for (DynamicObject orgObj : entity) {
+                    //获取主职信息
+                    if ("false".equals(orgObj.getString("ispartjob"))) {
+                        //获取行政组织
+                        DynamicObject adminorg = orgObj.getDynamicObject("dpt");
+                        model.setValue("${ISV_FLAG}_adminorg", adminorg);
+                        //组织
+                        if (Objects.nonNull(adminorg)) {
+                            DynamicObject haosAdminorghr = adminorghrMap.get(adminorg.getPkValue());
+                            DynamicObject org = haosAdminorghr.getDynamicObject("org");
+                            model.setValue("${ISV_FLAG}_org", org);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

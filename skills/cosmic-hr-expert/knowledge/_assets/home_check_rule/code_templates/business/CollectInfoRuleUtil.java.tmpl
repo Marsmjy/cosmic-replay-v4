@@ -1,0 +1,528 @@
+package ${ISV_FLAG}.hr.hom.formplugin.utils;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.form.ClientProperties;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.hr.hbp.common.constants.HRBaseConstants;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.regex.Pattern;
+
+/**
+ * @author ningjie
+ * @version 1.0
+ * @description: 信息采集规则工具类
+ * @date 2025/8/21 10:21
+ */
+public class CollectInfoRuleUtil {
+
+    /**
+     * 基础资料表
+     **/
+    public final static String COLLECT_INFO_CHECK_RULE_BASEDATA = "${ISV_FLAG}_check_rule_basedata";
+
+    /**
+     * 字段标识-事件类型
+     **/
+    public final static String EVENT_TYPE = "${ISV_FLAG}_event_type";
+
+    /**
+     * 事件类型-界面规则设置
+     **/
+    public final static String EVENT_TYPE_VIEW_SET = "viewSet";
+
+    /**
+     * 事件类型-业务规则设置
+     **/
+    private final static String EVENT_TYPE_BUSINESS_SET = "businessSet";
+
+
+    /**
+     * 数据状态 - 已审核
+     **/
+    public final static String DATA_STATUS_CHECKED = "C";
+
+    /**
+     * 数据状态
+     **/
+    public final static String DATA_STATUS = "status";
+
+    /**
+     * 基础资料表-需要查询的字段
+     **/
+    private final static String SELECT_PROPERTIES = "id,number,name,${ISV_FLAG}_field_symbol,${ISV_FLAG}_field_rule_type," +
+            "${ISV_FLAG}_field_rule_type,${ISV_FLAG}_event_type,${ISV_FLAG}_field_lock,${ISV_FLAG}_field_must_input,${ISV_FLAG}_default_val_type,${ISV_FLAG}_default_value," +
+            "${ISV_FLAG}_decimal_precision," +
+            "${ISV_FLAG}_decimal_scale,${ISV_FLAG}_min_value,${ISV_FLAG}_max_value,${ISV_FLAG}_text_min_length,${ISV_FLAG}_text_max_length,${ISV_FLAG}_txt_check_no_chinese,${ISV_FLAG}_txt_check_no_digit,${ISV_FLAG}_txt_check_no_english,${ISV_FLAG}_txt_check_no_symbol," +
+            "${ISV_FLAG}_calculate_type,${ISV_FLAG}_start_value_symbol,${ISV_FLAG}_end_value_symbol,${ISV_FLAG}_cal_target_field," +
+            "${ISV_FLAG}_checkbox_effect,${ISV_FLAG}_checkbox_operate," +
+            "${ISV_FLAG}_date_compare_type,${ISV_FLAG}_date_compare_field,${ISV_FLAG}_date_compare_tips," +
+            "${ISV_FLAG}_field_effect_field,${ISV_FLAG}_field_effect_object,${ISV_FLAG}_fd_eft_object_symbol,${ISV_FLAG}_fd_eft_fd_set_val,${ISV_FLAG}_fd_eft_fd_type," +
+            "${ISV_FLAG}_copy_target_field," +
+            "${ISV_FLAG}_match_val_type,${ISV_FLAG}_match_condition,${ISV_FLAG}_match_condi_value,${ISV_FLAG}_match_target_field,${ISV_FLAG}_match_tar_hide,${ISV_FLAG}_match_tar_lock,${ISV_FLAG}_match_tar_must_input";
+
+
+    /**
+     * @description:
+     * @param: [entityName]  查询已审核的界面规则类配置数据
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/8/21 10:37
+     */
+    public static DynamicObject[] getViewCheckedData(String entityName, String fieldKey) {
+        QFilter q1 = new QFilter(EVENT_TYPE, QCP.equals, EVENT_TYPE_VIEW_SET);
+        q1.and(HRBaseConstants.ENABLE, QCP.equals, "1");
+        QFilter qEntityName = new QFilter(Field.ENTITY_NAME, QCP.equals, entityName);
+        QFilter qStatus = new QFilter(DATA_STATUS, QCP.equals, DATA_STATUS_CHECKED);
+
+        if (!ObjectUtils.isEmpty(fieldKey)) {
+            q1.and(Field.FILD_SYMBOL, QCP.equals, fieldKey);
+        }
+
+        //获取所有配置集合
+        DynamicObject[] ruleDynamicObjectCollection = BusinessDataServiceHelper.load(COLLECT_INFO_CHECK_RULE_BASEDATA, SELECT_PROPERTIES, new QFilter[]{q1, qEntityName, qStatus});
+
+        return ruleDynamicObjectCollection;
+
+    }
+
+    /**
+     * @description: 查询已审核的业务规则类配置数据
+     * @param: [entityName, fieldKey]
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date: 2025/8/21 10:38
+     */
+    public static DynamicObject[] getBusinessCheckedData(String entityName, String fieldKey) {
+        QFilter q1 = new QFilter(EVENT_TYPE, QCP.equals, EVENT_TYPE_BUSINESS_SET);
+        q1.and(HRBaseConstants.ENABLE, QCP.equals, "1");
+        QFilter qEntityName = new QFilter(Field.ENTITY_NAME, QCP.equals, entityName);
+        QFilter qStatus = new QFilter(DATA_STATUS, QCP.equals, DATA_STATUS_CHECKED);
+        if (!ObjectUtils.isEmpty(fieldKey)) {
+            q1.and(Field.FILD_SYMBOL, QCP.equals, fieldKey);
+        }
+        //获取所有配置集合
+        DynamicObject[] ruleDynamicObjectCollection = BusinessDataServiceHelper.load(COLLECT_INFO_CHECK_RULE_BASEDATA, SELECT_PROPERTIES, new QFilter[]{q1, qEntityName, qStatus});
+
+        return ruleDynamicObjectCollection;
+    }
+
+    /**
+     * 设置数值界面规则参数
+     **/
+    public static HashMap<String, Object> getDecimalRuleItemMap(Integer decimalPrecision, Integer decimalScale, Integer minValue, Integer maxValue) {
+
+        //修改文本字段元数据
+        HashMap<String, Object> param = new HashMap<>();
+
+        if (decimalPrecision != null) {
+            //数值总长度
+            param.put(ClientProperties.Precision, decimalPrecision);
+        }
+        if (decimalScale != null) {
+            //小数点位数
+            param.put(ClientProperties.Scale, decimalScale);
+        }
+        if (minValue != null) {
+            //最小值
+            param.put(ClientProperties.MinValue, minValue);
+        }
+        if (maxValue != null) {
+            //最大值
+            param.put(ClientProperties.MaxValue, maxValue);
+        }
+
+        //设置即时触发值更新
+        param.put(ClientProperties.FireUpdEvt, true);
+        //设置控件的编辑类型
+        HashMap<String, Object> itemMap = new HashMap<>();
+        itemMap.put(ClientProperties.Item, param);
+
+        return itemMap;
+
+    }
+
+    /**
+     * 设置文本界面规则参数
+     **/
+    public static HashMap<String, Object> getTextRuleItemMap(Integer textMinLength, Integer textMaxLength) {
+
+        //修改文本字段元数据
+        HashMap<String, Object> param = new HashMap<>();
+
+        if (textMinLength != null) {
+            param.put(ClientProperties.MinLength, textMinLength);
+        }
+
+        if (textMinLength != null) {
+            param.put(ClientProperties.MaxLength, textMaxLength);
+        }
+
+        //设置即时触发值更新
+        param.put(ClientProperties.FireUpdEvt, true);
+
+        //设置文本控件的编辑类型
+        HashMap<String, Object> itemMap = new HashMap<>();
+        itemMap.put(ClientProperties.Item, param);
+
+        return itemMap;
+
+    }
+
+    /**
+     * 设置即时触发值更新
+     **/
+    public static HashMap<String, Object> getFireUpdEvtMap() {
+
+        //修改文本字段元数据
+        HashMap<String, Object> param = new HashMap<>();
+
+        //设置即时触发值更新
+        param.put(ClientProperties.FireUpdEvt, true);
+        //设置控件的编辑类型
+        HashMap<String, Object> itemMap = new HashMap<>();
+        itemMap.put(ClientProperties.Item, param);
+
+        return itemMap;
+
+    }
+
+
+    /**
+     * @return double
+     * @Author zb
+     * @Description 计算两个日期相差的年数
+     * @Date 17:10 2024/7/21
+     * @Param [startDate, endDate]
+     **/
+    public static double calculateDateByYear(Date startDate, Date endDate) {
+
+        double yearsBetween = 0;
+
+        if (null != startDate && null != endDate) {
+
+            // 转换为LocalDate（这里假设所有Date对象都是UTC时间）
+            LocalDate localDateStrart = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate localDateEnd = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+            // 计算两个LocalDate之间的天数差
+            long daysBetween = ChronoUnit.DAYS.between(localDateStrart, localDateEnd);
+
+            // 假设一年有365.25天来计算近似的小数年份差
+            double averageDaysPerYear = 365.25;
+            yearsBetween = (double) daysBetween / averageDaysPerYear;
+
+        }
+
+        //保留两位小数
+        BigDecimal bd = new BigDecimal(yearsBetween);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);
+
+        return bd.doubleValue();
+    }
+
+    /**
+     * @return int
+     * @Author zb
+     * @Description TODO 计算年龄
+     * @Date 10:22 2024/11/22
+     * @Param [birthDate]
+     **/
+    public static int calculateAge(Date birthDate, Date currentDate) {
+        LocalDate birthLocalDate = convertToLocalDate(birthDate);
+        LocalDate currentLocalDate = convertToLocalDate(currentDate);
+
+        Period period = Period.between(birthLocalDate, currentLocalDate);
+        return period.getYears();
+    }
+
+    /**
+     * @Author zb
+     * @Description TODO 将Date转换为LocalDate
+     * @Date 15:03 2024/11/22
+     * @Param
+     **/
+    public static LocalDate convertToLocalDate(Date date) {
+        Instant instant = date.toInstant();
+        return instant.atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+
+    /**
+     * @return boolean
+     * @Author zb
+     * @Description 字符串是否包含中文
+     * @Date 10:34 2024/7/23
+     * @Param [str]
+     **/
+    public static boolean containsChinese(String str) {
+        Pattern pattern = Pattern.compile("[\u4e00-\u9fa5]");
+        return pattern.matcher(str).find();
+    }
+
+    /**
+     * @return boolean
+     * @Author zb
+     * @Description 字符串是否包含数字
+     * @Date 10:34 2024/7/23
+     * @Param [str]
+     **/
+    public static boolean containsDigit(String str) {
+        Pattern pattern = Pattern.compile("[0-9]");
+        return pattern.matcher(str).find();
+    }
+
+    /**
+     * @return boolean
+     * @Author zb
+     * @Description 字符串是否包含英文字母
+     * @Date 10:34 2024/7/23
+     * @Param [str]
+     **/
+    public static boolean containsEnglish(String str) {
+        Pattern pattern = Pattern.compile("[a-zA-Z]");
+        return pattern.matcher(str).find();
+    }
+
+    /**
+     * @return boolean
+     * @Author zb
+     * @Description 字符串是否包含符号
+     * @Date 10:34 2024/7/23
+     * @Param [str]
+     **/
+    public static boolean containsSymbol(String str) {
+        Pattern pattern = Pattern.compile("[^a-zA-Z0-9\u4e00-\u9fa5]");
+        return pattern.matcher(str).find();
+    }
+
+
+    /**
+     * @Description 判断字符串不为空且为纯数字
+     **/
+    public static boolean isNotEmptyNumeric(String str) {
+        return str != null && str.matches("\\d+");
+    }
+
+    public static class Field {
+        /**
+         * 字段标识-插件使用实体标识
+         **/
+        public final static String ENTITY_NAME = "${ISV_FLAG}_entity_name";
+
+        /**
+         * 字段标识-表单字段标识
+         **/
+        public final static String FILD_SYMBOL = "${ISV_FLAG}_field_symbol";
+
+        /**
+         * 字段标识-规则类型
+         **/
+        public final static String FILD_RULE_TYPE = "${ISV_FLAG}_field_rule_type";
+
+
+        /**
+         * 字段标识-事件类型
+         **/
+        public final static String EVENT_TYPE = "${ISV_FLAG}_event_type";
+
+        /**
+         * 字段标识-字段锁定
+         **/
+        public final static String FIELD_LOCK = "${ISV_FLAG}_field_lock";
+
+        /**
+         * 字段标识-字段必填
+         **/
+        public final static String FIELD_MUST_INPUT = "${ISV_FLAG}_field_must_input";
+
+        /**
+         * 字段标识-设置默认值类型
+         **/
+        public final static String FIELD_DEFAULT_VAL_TYPE = "${ISV_FLAG}_default_val_type";
+
+        /**
+         * 字段标识-默认值
+         **/
+        public final static String FIELD_DEFAULT_VALUE = "${ISV_FLAG}_default_value";
+
+
+        /**
+         * 字段标识-数值长度
+         **/
+        public final static String DECIMAL_PRECISION = "${ISV_FLAG}_decimal_precision";
+
+
+        /**
+         * 字段标识-小数位数
+         **/
+        public final static String DECIMAL_SCALE = "${ISV_FLAG}_decimal_scale";
+
+
+        /**
+         * 字段标识-数值最小值
+         **/
+        public final static String MIN_VALUE = "${ISV_FLAG}_min_value";
+
+
+        /**
+         * 字段标识-数值最大值
+         **/
+        public final static String MAX_VALUE = "${ISV_FLAG}_max_value";
+
+
+        /**
+         * 字段标识-文本最小长度
+         **/
+        public final static String TEXT_MIN_LENGTH = "${ISV_FLAG}_text_min_length";
+
+        /**
+         * 字段标识-文本最大长度
+         **/
+        public final static String TEXT_MAX_LENGTH = "${ISV_FLAG}_text_max_length";
+
+        /**
+         * 字段标识-文本不包含中文checkbox
+         **/
+        public final static String TXT_CHECK_NOT_CHINESE = "${ISV_FLAG}_txt_check_no_chinese";
+
+        /**
+         * 字段标识-文本不包含数字checkbox
+         **/
+        public final static String TXT_CHECK_NO_DIGIT = "${ISV_FLAG}_txt_check_no_digit";
+
+        /**
+         * 字段标识-文本不包含英文checkbox
+         **/
+        public final static String TXT_CHECK_NO_ENGLISH = "${ISV_FLAG}_txt_check_no_english";
+
+        /**
+         * 字段标识-文本不包含英文checkbox
+         **/
+        public final static String TXT_CHECK_NO_SYMBOL = "${ISV_FLAG}_txt_check_no_symbol";
+
+
+        /**
+         * 字段标识-计算类型
+         **/
+        public final static String CALCULATE_TYPE = "${ISV_FLAG}_calculate_type";
+
+        /**
+         * 字段标识-开始数值标识（日期）-被减数
+         **/
+        public final static String CHECK_RULE_CALCULATE_START_VALUE_SYMBOL = "${ISV_FLAG}_start_value_symbol";
+
+
+        /**
+         * 字段标识-结束数值标识（日期）-减数
+         **/
+        public final static String CHECK_RULE_CALCULATE_END_VALUE_SYMBOL = "${ISV_FLAG}_end_value_symbol";
+
+        /**
+         * 字段标识-计算结果写入目标字段标识
+         **/
+        public final static String CHECK_RULE_CALCULATE_TARGET_FIELD = "${ISV_FLAG}_cal_target_field";
+
+        /**
+         * 字段标识-checkbox选中影响的字段filedid
+         **/
+        public final static String CHECK_RULE_CHECKBOX_EFFECT = "${ISV_FLAG}_checkbox_effect";
+
+        /**
+         * 字段标识-checkbox影响的字段操作
+         **/
+        public final static String CHECK_RULE_CHECKBOX_OPERATE = "${ISV_FLAG}_checkbox_operate";
+
+        /**
+         * 字段标识-日期比较方式
+         **/
+        public final static String CHECK_RULE_DATE_COMPARE_TYPE = "${ISV_FLAG}_date_compare_type";
+
+        /**
+         * 字段标识-日期比较的字段filedid（当前时间填now）
+         **/
+        public final static String CHECK_RULE_DATE_COMPARE_FIELD = "${ISV_FLAG}_date_compare_field";
+
+        /**
+         * 字段标识-日期比较不通过提示语
+         **/
+        public final static String CHECK_RULE_DATE_COMPARE_TIPS = "${ISV_FLAG}_date_compare_tips";
+
+        /**
+         * 字段标识-触发的目标赋值字段
+         **/
+        public final static String CHECK_RULE_FIELD_EFFECT_FIELD = "${ISV_FLAG}_field_effect_field";
+
+        /**
+         * 字段标识-关联查询的对象
+         **/
+        public final static String CHECK_RULE_FIELD_EFFECT_OBJECT = "${ISV_FLAG}_field_effect_object";
+
+        /**
+         * 字段标识-关联查询的对象条件字段名
+         **/
+        public final static String CHECK_RULE_FD_EFT_OBJECT_SYMBOL = "${ISV_FLAG}_fd_eft_object_symbol";
+
+        /**
+         * 字段标识-设置到该字段的值（对象需一致）
+         **/
+        public final static String CHECK_RULE_FD_EFT_FD_SET_VAL = "${ISV_FLAG}_fd_eft_fd_set_val";
+
+        /**
+         * 字段标识-赋值对象类型
+         **/
+        public final static String CHECK_RULE_FD_EFT_FD_TYPE = "${ISV_FLAG}_fd_eft_fd_type";
+
+        /**
+         * 字段标识-复制到的目标字段标识（类型需一致）
+         **/
+        public final static String CHECK_RULE_COPY_TARGET_FIELD = "${ISV_FLAG}_copy_target_field";
+
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-匹配值类型
+         **/
+        public final static String CHECK_RULE_MATCH_VAL_TYPE = "${ISV_FLAG}_match_val_type";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-匹配条件
+         **/
+        public final static String CHECK_RULE_MATCH_CONDITION = "${ISV_FLAG}_match_condition";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-匹配的条件值
+         **/
+        public final static String CHECK_RULE_MATCH_CONDI_VALUE = "${ISV_FLAG}_match_condi_value";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-目标字段标识
+         **/
+        public final static String CHECK_RULE_MATCH_TARGET_FIELD = "${ISV_FLAG}_match_target_field";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-目标字段隐藏
+         **/
+        public final static String CHECK_RULE_MATCH_TAR_HIDE = "${ISV_FLAG}_match_tar_hide";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-目标字段锁定
+         **/
+        public final static String CHECK_RULE_MATCH_TAR_LOCK = "${ISV_FLAG}_match_tar_lock";
+
+        /**
+         * 字段标识-根据字段的值设置目标字段属性-目标字段必填
+         **/
+        public final static String CHECK_RULE_MATCH_MUST_INPUT = "${ISV_FLAG}_match_tar_must_input";
+    }
+}

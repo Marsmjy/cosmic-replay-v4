@@ -1,0 +1,156 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dlock.DLock;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.cd.common.operate.chain.OperateChain;
+import kd.cd.common.util.BotpUtils;
+import kd.cd.common.util.PushResult;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment.BounsPaymentUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Author: wanghansheng
+ * Description: 奖金代发校验
+ */
+public class BounsPaymentAgentOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        fieldKeys.add("org");
+        fieldKeys.add("${ISV_FLAG}_shoulder_org");
+        fieldKeys.add("${ISV_FLAG}_payment_company");
+        fieldKeys.add("${ISV_FLAG}_is_agent");
+        fieldKeys.add("${ISV_FLAG}_person");
+        fieldKeys.add("entryentity");
+        fieldKeys.add("${ISV_FLAG}_redeem_amount");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        BounsPaymentValidator bounsPaymentValidator = new BounsPaymentValidator();
+        e.addValidator(bounsPaymentValidator);
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        try (DLock lock = DLock.create(BounsPaymentUtils.key, "奖金发放操作锁")) {
+            if (lock.tryLock()) {
+                try {
+                    // 奖金代发
+                    if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operationKey)) {
+                        createAgentApprove(entities);
+                    }
+                    // 奖金终止
+                    if (BounsPaymentUtils.DonothingBonusTermination.equals(operationKey)) {
+                        createEndApprove(entities);
+                    }
+                    // 奖金发放
+                    if (BounsPaymentUtils.DonothingBonusPayment.equals(operationKey)) {
+                        createBoundsRecord(entities);
+                    }
+                } catch (Exception ex) {
+                    throw new KDBizException(ex.getMessage());
+                }
+            } else {
+                throw new KDBizException("正在执行奖金相关操作，请稍后重试。");
+            }
+        }
+    }
+
+
+    /**
+     * 生成代发审批单
+     */
+    public void createAgentApprove(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_agent_approve", rows, "2374131471679206400");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("代发审批单生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+            SaveServiceHelper.save(entities);
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成代发审批单失败。\n" + errMsg);
+        }
+    }
+
+    /**
+     * 生成终止审批单
+     */
+    public void createEndApprove(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_end_approval", rows, "2374134742162460672");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("终止审批单生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成终止审批单失败。\n" + errMsg);
+        }
+    }
+
+    /**
+     * 生成奖金发放记录
+     */
+    public void createBoundsRecord(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_record", rows, "2374113761146556416");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("奖金发放记录生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成奖金发放记录失败。\n" + errMsg);
+        }
+    }
+}

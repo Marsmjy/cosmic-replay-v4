@@ -1,0 +1,36 @@
+{
+  "scene": "core_hr_promotion",
+  "title": "试用和转正（hdm · 自助/批量/补录 6 单据）",
+  "cloud": "core_hr",
+  "description": "试用和转正 6 单据聚合 · chgaction 大类 = INFO_MODIFY (用工关系转正)。实证：RegEffectOp 改 hrpi_trialperiod.status + hrpi_employee.regstatus + hrpi_empentrel。关键 OP：RegSaveOp / RegEffectOp / RegHrSupplySubmitOp / RegSelfSaveOp / RegAfterEffectOp。标品定时任务：hdm_regeffect_plan_SKDP_S 处理 datastatus=2 未来生效。ISV 扩展点：IProbationMessageExtPlugin (转正问询消息 url 重定向)。",
+  "entities": [
+    "hdm_regselfhelpbill",
+    "hdm_regbasebill",
+    "hdm_batchregbill"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · 单据驱动 hrpi 底表变更 + 触发跨云事件 hpfs_chgrecord.aftereffect",
+  "pluginPattern": "继承 hpfs 通用单据模板 + 实现 chgaction → hrpi 字段映射 (filemapmanager)",
+  "_chgaction_validation": {
+    "billHeaderField": "affaction (转正变动操作)",
+    "chgEvent": "INFO_MODIFY (用工关系转正)",
+    "createsHrpi": [
+      "hrpi_trialperiod (status 变更)",
+      "hrpi_employee.regstatus",
+      "hrpi_empentrel (用工关系)"
+    ],
+    "isvExtPoints": [
+      "kd.sdk.hr.hdm.business.extpoint.reg.IProbationMessageExtPlugin"
+    ]
+  },
+  "_decompile_anchors": [
+    "kd.hr.hdm.opplugin.web.reg.RegSaveOp",
+    "kd.hr.hdm.opplugin.web.reg.RegEffectOp",
+    "kd.hr.hdm.opplugin.reg.RegAfterEffectOp"
+  ],
+  "_meta": {
+    "note": "第三波 · 业务办理单据 · 3 form · 详见 docs/CHGACTION_DEEP_TRACE.md + PPT05",
+    "createdAt": "2026-04-29"
+  }
+}

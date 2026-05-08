@@ -1,0 +1,907 @@
+package ${ISV_FLAG}.wtc.common.util;
+
+import com.google.common.collect.Sets;
+import kd.bos.dataentity.utils.StringUtils;
+import org.joda.time.*;
+import org.joda.time.format.DateTimeFormat;
+import ${ISV_FLAG}.wtc.common.model.DateScope;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Stream;
+
+public final class DateUtilNew {
+
+    public static final String CRON_EXPRESSION_DATE_FORMAT = "ss mm HH dd MM ?";
+
+    public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
+
+    public static final String YY_MM_DD_HH_MM_SS = "yy-MM-dd HH:mm:ss";
+
+    public static final String YYYY_MM_DD = "yyyy-MM-dd";
+
+    public static final String YYYY_MM = "yyyy-MM";
+    public static final String YYYYMM = "yyyyMM";
+
+    public static final String YYYY_MM_DD_HH = "yyyy-MM-dd HH";
+
+    public static final String YYYY_MM_DD_HH_MM = "yyyy-MM-dd HH:mm";
+
+    public static final String HH_MM_SS = "HH:mm:ss";
+
+    public static final String HH_MM = "HH:mm";
+
+    public static final String YYYY = "yyyy";
+
+    public static final String YYYYMMDD = "yyyyMMdd";
+
+    public static List<DateScope> getDateScope(Date startTime, Date endTime, int minute) {
+        List<DateScope> dateScopeList = new ArrayList<>();
+        if (startTime.after(endTime))
+            return dateScopeList;
+        while (startTime.before(endTime)) {
+            Date date = increaseMinutes(startTime, minute);
+            if (date.after(endTime)) {
+                dateScopeList.add(new DateScope(startTime, endTime));
+                startTime = endTime;
+            }else{
+                dateScopeList.add(new DateScope(startTime, date));
+                startTime = date;
+            }
+        }
+        return dateScopeList;
+    }
+
+    /**
+     * date 转 RFC1123 格式
+     * @param date
+     * @return
+     */
+    public static String dataToRFC1123(Date date){
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return sdf.format(date);
+    }
+
+    /**
+     * 判断某各日期是否再某个日期范围内
+     * @param date  "yyyy-MM-dd"
+     * @param start  "yyyy-MM-dd"
+     * @param end  "yyyy-MM-dd"
+     * @return
+     */
+    public static boolean judeContainDate(String date,String start,String end){
+        if(StringUtils.isEmpty(date) || StringUtils.isEmpty(start) || StringUtils.isEmpty(end) ){
+            return false;
+        }
+        long dateTime = parseDate(date,YYYY_MM_DD).getTime();
+        long startTime = parseDate(start,YYYY_MM_DD).getTime();
+        long endTime = parseDate(end,YYYY_MM_DD).getTime();
+        if(dateTime>=startTime && dateTime<=endTime){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 判断date2 是否大于 date1
+     * @param date1  必传 "yyyy-MM-dd"
+     * @param date2 必传 "yyyy-MM-dd"
+     * @return
+     */
+    public static boolean judgeLT(String date1,String date2){
+        Date d1 = parseDate(date1,YYYY_MM_DD);
+        Date d2 = parseDate(date2,YYYY_MM_DD);
+        return d2.getTime()>d1.getTime();
+    }
+
+    public static String date2Str(Date date, String pattern) {
+        if (date == null) {
+            return "";
+        } else {
+            if (org.apache.commons.lang.StringUtils.isEmpty(pattern)) {
+                pattern = "yyyy-MM-dd HH:mm:ss";
+            }
+
+            SimpleDateFormat format = new SimpleDateFormat(pattern);
+            return format.format(date);
+        }
+    }
+    public static Date str2Date(String str, String format) {
+        if (StringUtils.isEmpty(str)) {
+            return null;
+        } else {
+            if (StringUtils.isEmpty(format)) {
+                format = "yyyy-MM-dd HH:mm:ss";
+            }
+
+            SimpleDateFormat sdf = new SimpleDateFormat(format);
+            Date date = null;
+
+            try {
+                date = sdf.parse(str);
+                return date;
+            } catch (ParseException var5) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * 获取系统当前最新时间
+     *
+     * @return Date
+     */
+    public static Date now() {
+        return new Date();
+    }
+
+    /**
+     * 获取系统当前最新时间
+     * @return
+     */
+    public static String nowStr(){
+        return  format(now(),YYYY_MM_DD_HH_MM_SS);
+    }
+    /**
+     * 获取昨天当前时间
+     *
+     * @return Date
+     */
+    public static Date getYesterDay() {
+        return new DateTime(new Date()).minusDays(1).toDate();
+    }
+
+    /**
+     * 获取明天当前时间
+     *
+     * @return Date
+     */
+    public static Date getTomorrowDay() {
+        return new DateTime(new Date()).plusDays(1).toDate();
+    }
+
+    /**
+     * data to Calendar
+     *
+     * @param date 时间
+     * @return Calendar
+     */
+    public static Calendar calendar(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        return calendar;
+    }
+
+    /**
+     * 获取指定时间当前分钟开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getMinuteStart(Date date) {
+        return new DateTime(date).secondOfMinute().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当前分钟结束时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getMinuteEnd(Date date) {
+        return new DateTime(date).secondOfMinute().withMaximumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当前小时开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getHourStart(Date date) {
+        return new DateTime(date).minuteOfHour().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当前小时结束时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getHourEnd(Date date) {
+        return new DateTime(date).minuteOfHour().withMaximumValue().secondOfMinute().withMaximumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当天开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getDayStart(Date date) {
+        return new DateTime(date).millisOfDay().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当天最大时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getDayEnd(Date date) {
+        return new DateTime(date).millisOfDay().withMaximumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当周结束时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getWeekStart(Date date) {
+        return new DateTime(date).withDayOfWeek(DateTimeConstants.MONDAY).millisOfDay().withMaximumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间当周开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getWeekEnd(Date date) {
+        return new DateTime(date).withDayOfWeek(DateTimeConstants.MONDAY).millisOfDay().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间月份开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getMonthStart(Date date) {
+        return new DateTime(date).dayOfMonth().withMinimumValue().millisOfDay().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间月份结束时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getMonthEnd(Date date) {
+        return new DateTime(date).dayOfMonth().withMaximumValue().millisOfDay().withMaximumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间年份开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getYearStart(Date date) {
+        return new DateTime(date).dayOfYear().withMinimumValue().millisOfDay().withMinimumValue().toDate();
+    }
+
+    /**
+     * 获取指定时间年份开始时间
+     *
+     * @param date 时间
+     * @return Date
+     */
+    public static Date getYearEnd(Date date) {
+        return new DateTime(date).dayOfYear().withMaximumValue().millisOfDay().withMaximumValue().toDate();
+    }
+
+    /**
+     * 判断时间是否在当前时间之前
+     *
+     * @param target 时间
+     * @return Date
+     */
+    public static boolean beforeNow(Date target) {
+        return new DateTime(target).isBeforeNow();
+    }
+
+    /**
+     * 判断开始时间是否在结束时间之前
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return Date
+     */
+    public static boolean beforeWithEndDate(Date start, Date end) {
+        return new DateTime(start).isBefore(new DateTime(end));
+    }
+
+    /**
+     * 判断时间是否在当前时间之后
+     *
+     * @param target 时间
+     * @return Date
+     */
+    public static boolean afterNow(Date target) {
+        return new DateTime(target).isAfterNow();
+    }
+
+    /**
+     * 判断结束时间是否在开始时间之后
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return Date
+     */
+    public static boolean afterWithStartDate(Date start, Date end) {
+        return new DateTime(end).isAfter(new DateTime(start));
+    }
+
+    /**
+     * check day with day shift
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return int
+     */
+    public static int dayShiftDiff(Date start, Date end) {
+        return Days.daysBetween(new DateTime(start).millisOfDay().withMinimumValue(), new DateTime(end)).getDays();
+    }
+
+    /**
+     * check day with 24 hours
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return int
+     */
+    public static int dayLongDiff(Date start, Date end) {
+        return Days.daysBetween(new DateTime(start), new DateTime(end)).getDays();
+    }
+
+    /**
+     * 获取两个时间之前的小时数
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return int
+     */
+    public static int hourDiff(Date start, Date end) {
+        return Hours.hoursBetween(new DateTime(start), new DateTime(end)).getHours();
+    }
+
+    /**
+     * 获取两个时间之前的分钟数
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return int
+     */
+    public static int minuteDiff(Date start, Date end) {
+        return Minutes.minutesBetween(new DateTime(start), new DateTime(end)).getMinutes();
+    }
+
+    /**
+     * 获取两个时间之前的秒数
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return int
+     */
+    public static int secondDiff(Date start, Date end) {
+        return Seconds.secondsBetween(new DateTime(start), new DateTime(end)).getSeconds();
+    }
+
+    /**
+     * 获取指定时间增加几年后的时间
+     *
+     * @param target 时间
+     * @param years  年数
+     * @return Date
+     */
+    public static Date increaseYear(Date target, int years) {
+        return new DateTime(target).plusYears(years).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几年后的时间
+     *
+     * @param target 时间
+     * @param years  年数
+     * @return Date
+     */
+    public static Date decreaseYear(Date target, int years) {
+        return new DateTime(target).minusYears(years).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几月后的时间
+     *
+     * @param target 时间
+     * @param months 月数
+     * @return Date
+     */
+    public static Date increaseMonth(Date target, int months) {
+        return new DateTime(target).plusMonths(months).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几月后的时间
+     *
+     * @param target 时间
+     * @param months 月数
+     * @return Date
+     */
+    public static Date decreaseMonth(Date target, int months) {
+        return new DateTime(target).minusMonths(months).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几天后的时间
+     *
+     * @param target 时间
+     * @param days   天数
+     * @return Date
+     */
+    public static Date increaseDay(Date target, int days) {
+        return new DateTime(target).plusDays(days).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几天后的时间
+     *
+     * @param target 时间
+     * @param days   天数
+     * @return Date
+     */
+    public static Date decreaseDay(Date target, int days) {
+        return new DateTime(target).minusDays(days).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几小时后的时间
+     *
+     * @param target 时间
+     * @param hours  小时数
+     * @return Date
+     */
+    public static Date increaseHour(Date target, int hours) {
+        return new DateTime(target).plusHours(hours).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几小时后的时间
+     *
+     * @param target 时间
+     * @param hours  小时数
+     * @return Date
+     */
+    public static Date decreaseHour(Date target, int hours) {
+        return new DateTime(target).minusHours(hours).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几分钟后的时间
+     *
+     * @param target  时间
+     * @param minutes 分钟数
+     * @return Date
+     */
+    public static Date increaseMinutes(Date target, int minutes) {
+        return new DateTime(target).plusMinutes(minutes).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几分钟后的时间
+     *
+     * @param target  时间
+     * @param minutes 分钟数
+     * @return Date
+     */
+    public static Date decreaseMinutes(Date target, int minutes) {
+        return new DateTime(target).minusMinutes(minutes).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几秒后的时间
+     *
+     * @param target  时间
+     * @param seconds 秒数
+     * @return Date
+     */
+    public static Date increaseSeconds(Date target, int seconds) {
+        return new DateTime(target).plusSeconds(seconds).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几秒后的时间
+     *
+     * @param target  时间
+     * @param seconds 秒数
+     * @return Date
+     */
+    public static Date decreaseSeconds(Date target, int seconds) {
+        return new DateTime(target).minusSeconds(seconds).toDate();
+    }
+
+    /**
+     * 获取指定时间增加几毫秒后的时间
+     *
+     * @param target       时间
+     * @param milliseconds 毫秒数
+     * @return Date
+     */
+    public static Date increaseMilliseconds(Date target, int milliseconds) {
+        return new DateTime(target).plusMillis(milliseconds).toDate();
+    }
+
+    /**
+     * 获取指定时间减去几毫秒后的时间
+     *
+     * @param target       时间
+     * @param milliseconds 毫秒数
+     * @return Date
+     */
+    public static Date decreaseMilliseconds(Date target, int milliseconds) {
+        return new DateTime(target).minusMillis(milliseconds).toDate();
+    }
+
+    /**
+     * 格式化时间，格式：yyyy-MM-dd HH:mm:ss
+     *
+     * @param target 时间
+     * @return String
+     */
+    public static String format(Date target) {
+        return new DateTime(target).toString(YYYY_MM_DD_HH_MM_SS);
+    }
+
+    /**
+     * 指定格式进行格式化时间
+     *
+     * @param target 时间
+     * @param format 时间格式
+     * @return String
+     */
+    public static String format(Date target, String format) {
+        return new DateTime(target).toString(format);
+    }
+
+    /**
+     * 补全date  ,用0补成这种格式 yyyy-MM-dd HH:mm:ss
+     * @param date
+     * @return
+     * wxl 20200508 新增
+     */
+    public static String fullStringDate(String date){
+        String reDate=null;
+        if(date.length()==4){//yyyy
+            reDate = date+"-00-00 00:00:00";
+        }else if(date.length()==7){//yyyy-MM
+            reDate = date+"-00 00:00:00";
+        }else if(date.length()==10){//yyyy-MM-dd
+            reDate = date+" 00:00:00";
+        }else if(date.length()==13){//yyyy-MM-dd HH
+            reDate = date+":00:00";
+        }else if(date.length()==16){//yyyy-MM-dd HH:mm
+            reDate = date+":00";
+        }else{
+            reDate=date;
+        }
+//        System.out.println("补全date:"+date+"---"+reDate);
+        return reDate;
+    }
+
+    /**
+     * 时间解析
+     *
+     * @param date 时间字符串
+     * @return String
+     * wxl 20200508 修改 补全date 【改之前：如果date不全，转换失败】
+     */
+    public static Date parseDate(String date) {
+        date = fullStringDate(date);
+        return DateTime.parse(date, DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")).toDate();
+    }
+
+    /**
+     * 时间解析
+     *
+     * @param date   时间字符串
+     * @param format 时间格式
+     * @return String
+     * wxl 20200508 修改 【改之前：如果date不全，转换失败】
+     */
+    public static Date parseDate(String date, String format) {
+        date = DateUtilNew.format(parseDate(date),format);
+        return DateTime.parse(date, DateTimeFormat.forPattern(format)).toDate();
+    }
+
+    /**
+     * 获取指定时间的 cron表达式
+     *
+     * @param date 时间
+     * @return String
+     */
+    public static String getCronExpression(Date date) {
+        return new DateTime(date).toString(CRON_EXPRESSION_DATE_FORMAT);
+    }
+
+    /**
+     * 判断时间是不是今天
+     *
+     * @param date
+     * @return
+     */
+    public static boolean isToday(Date date) {
+        Date now = new Date();
+        String nowDay = format(now, YYYYMMDD);
+        String day = format(date, YYYYMMDD);
+        return day.equals(nowDay);
+    }
+
+    /**
+     * 判断时间是不是今年
+     *
+     * @param date
+     * @return
+     */
+    public static boolean isThisYeay(Date date) {
+        Date now = new Date();
+        int nowYear = new DateTime(now).getYear();
+        int dateYear = new DateTime(date).getYear();
+        return nowYear == dateYear;
+    }
+
+    /**
+     * 根据生日计算年龄
+     *
+     * @param birthday
+     * @return
+     */
+    public static int getAgeByBirth(Date birthday) {
+        int age = 0;
+        if (birthday == null) {
+            return age;
+        }
+
+        /*如果生日大于当前日期，则抛出异常：出生日期不能大于当前日期*/
+        if (afterNow(birthday)) {
+            throw new IllegalArgumentException("The birthday is before Now,It's unbelievable");
+        }
+
+        LocalDateTime nowDateTime = LocalDateTime.now();
+        LocalDateTime birthdayDateTime = new LocalDateTime(birthday);
+        age = nowDateTime.getYear() - birthdayDateTime.getYear();
+
+        int currMonth = nowDateTime.getMonthOfYear();
+        int currDay = nowDateTime.getDayOfYear();
+
+        int bornMonth = birthdayDateTime.getMonthOfYear();
+        int bornDay = birthdayDateTime.getDayOfYear();
+
+        if ((currMonth < bornMonth) || (currMonth == bornMonth && currDay <= bornDay)) {
+            age--;
+        }
+        return age;
+    }
+
+    /**
+     * 指定日期的毫秒数
+     *
+     * @param date 指定日期
+     * @return 指定日期的毫秒数
+     */
+    public static long getMillis(Date date) {
+        return date.getTime();
+    }
+
+
+    /**
+     * 指定毫秒数_转化为指定日期格式
+     * @param dateFormat
+     * @param millSecond
+     * @return
+     */
+    public static String transferLongToDate(String dateFormat, Long millSecond) {
+        Date time = new Date(millSecond);
+        SimpleDateFormat formats = new SimpleDateFormat(dateFormat);
+        return formats.format(time);
+    }
+
+
+    /**
+     * 获取某一周的开始时间
+     * @return
+     */
+    public static Date getWeekStart(int year,int week,int minimalDaysInFirstWeek){
+        //获取一个Calendar对象
+        Calendar calendar = Calendar.getInstance();
+        //设置星期一为一周开始的第一天
+        calendar.setFirstDayOfWeek(Calendar.MONDAY);
+        //设置在一年中第一个星期所需最少天数
+        calendar.setMinimalDaysInFirstWeek(minimalDaysInFirstWeek);
+        //获得指定年的第几周的开始日期（dayOfWeek是从周日开始排序的）
+        calendar.setWeekDate(year, week, 2);
+        //获得Calendar的时间
+        Date startDate = calendar.getTime();
+        return getDayStart(startDate);
+    }
+
+    /**
+     * 获取某一周的结束时间
+     * @return
+     */
+    public static Date getWeekEnd(int year,int week,int minimalDaysInFirstWeek){
+        //获取一个Calendar对象
+        Calendar calendar = Calendar.getInstance();
+        //设置星期一为一周开始的第一天
+        calendar.setFirstDayOfWeek(Calendar.MONDAY);
+        //设置在一年中第一个星期所需最少天数
+        calendar.setMinimalDaysInFirstWeek(minimalDaysInFirstWeek);
+        //获得指定年的第几周的开始日期（dayOfWeek是从周日开始排序的）
+        calendar.setWeekDate(year, week, 1);
+        //获得Calendar的时间
+        Date endDate = calendar.getTime();
+        return getDayEnd(endDate);
+    }
+
+    /**
+     * 获取某一年的周数【总共有多少周】
+     * @param year
+     * @param minimalDaysInFirstWeek 一年中第一个星期所需最少天数
+     * @return
+     */
+    public static int getWeeksOfYear(int year,int minimalDaysInFirstWeek){
+        int weekNumberOfYearStartDay = weekNumberOfYearStartDay(year); //获取某一年的第一天是周几
+        int days = daysOfYear(year); //获取某一年的天数
+        int num = 7-weekNumberOfYearStartDay+1;//第一周year的天数占多少天
+        if(minimalDaysInFirstWeek<=num){
+//            return (int)Math.ceil(Double.valueOf(days)/7);
+            //jl-修改
+            return (int) Math.ceil(days / 7.0);
+        }else{
+//            return (int)Math.ceil(Double.valueOf(days-num)/7);
+            //jl-修改
+            return (int) Math.ceil((days - num) / 7.0);
+        }
+    }
+
+
+    /**
+     * 获取某一年的天数
+     * @param year
+     * @return
+     */
+    public static int daysOfYear(int year){
+        if(year==0){
+            return LocalDate.now().getDayOfYear();
+        }else{
+            return new LocalDate(year,12,31).getDayOfYear();
+        }
+    }
+
+    /**
+     * 获取某一年的第一天是周几
+     * @param year
+     * @return
+     */
+    public static int weekNumberOfYearStartDay(int year){
+        Calendar c = Calendar.getInstance();
+        c.set(year,0,0);
+        return c.get(Calendar.DAY_OF_WEEK);
+    }
+
+    /**
+     * 获取传入日期所在月的最后一天
+     *
+     * @param date date
+     * @return date
+     */
+    public static Date getLastDayOfMonth(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        int last = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+        cal.set(Calendar.DAY_OF_MONTH, last);
+        return cal.getTime();
+    }
+
+    /**
+     * 获取日期区间的日期（包括本身）
+     *
+     * @param start 开始日期
+     * @param end   结束日期
+     * @return 日期集合
+     */
+    public static Set<String> getBetweenDate(String start, String end) {
+        Set<String> set = Sets.newHashSet();
+        if(StringUtils.isBlank(start) || StringUtils.isBlank(end)){
+            return set;
+        }
+        set.add(start);
+        set.add(end);
+        java.time.LocalDate startDate = java.time.LocalDate.parse(start);
+        java.time.LocalDate endDate = java.time.LocalDate.parse(end);
+        long distance = ChronoUnit.DAYS.between(startDate, endDate);
+        if (distance < 1) {
+            return set;
+        }
+        Stream.iterate(startDate, d -> d.plusDays(1)).limit(distance + 1).forEach(f -> set.add(f.toString()));
+        return set;
+    }
+
+    public static void main(String[] args) {
+
+        String d1="2024-06-05";
+        String d2="2024-06-05";
+//        System.out.println(judgeLT(d1,d2));   //jl-修改
+
+
+//        System.out.println(DateUtilNew.format(DateUtilNew.decreaseMonth(DateUtilNew.now(),1),DateUtilNew.YYYY_MM));   //jl-修改
+
+//        System.out.println("毫秒转日期str："+transferLongToDate(DateUtilNew.YYYY_MM_DD_HH_MM_SS, 1583049600000l));    //jl-修改
+
+        Date date0 = DateUtilNew.parseDate("2020-03-17 10:12:58");
+        Date date1 = DateUtilNew.parseDate("2020-03-17 10:56:06");
+//        System.out.println(date0.getTime());   //jl-修改
+//        System.out.println(date1.getTime());    //jl-修改
+
+
+        String yearStartDate = DateUtilNew.format(DateUtilNew.getYearStart(new Date()), "yyyy-MM-dd HH:mm:ss");
+        String yearEndtDate = DateUtilNew.format(DateUtilNew.getYearEnd(new Date()), "yyyy-MM-dd HH:mm:ss");
+//        System.out.println(yearStartDate);   //jl-修改
+//        System.out.println(yearEndtDate);    //jl-修改
+
+        String monthStartDate = DateUtilNew.format(DateUtilNew.getMonthStart(new Date()), "yyyy-MM-dd HH:mm:ss");
+        String monthEndDate = DateUtilNew.format(DateUtilNew.getMonthEnd(new Date()), "yyyy-MM-dd HH:mm:ss");
+//        System.out.println(monthStartDate);            //jl-修改
+//        System.out.println(monthEndDate);             //jl-修改
+
+        String yesterday = DateUtilNew.format(DateUtilNew.getYesterDay(), "yyyy-MM-dd HH:mm:ss");
+//        System.out.println(yesterday);              //jl-修改
+
+        String tomorrowDay = DateUtilNew.format(DateUtilNew.getTomorrowDay(), "yyyy-MM-dd HH:mm:ss");
+//        System.out.println(tomorrowDay);            //jl-修改
+
+//        System.out.println("=====================");  //jl-修改
+        Date currentDate = new Date();
+        Date startDate = null;
+        Date endDate = null;
+        endDate = DateUtilNew.increaseDay(currentDate, 7);
+        startDate = DateUtilNew.decreaseDay(currentDate, 3);
+//        System.out.println(format(startDate));    //jl-修改
+//        System.out.println(format(endDate));      //jl-修改
+
+        Date date = DateUtilNew.parseDate("2019-10-19 00:10:00");
+//        System.out.println(afterNow(DateUtilNew.parseDate("2019-10-19 00:00:00")));  //jl-修改
+//        System.out.println(format(getMinuteStart(date)));   //jl-修改
+//        System.out.println(format(getMinuteEnd(date)));    //jl-修改
+//        System.out.println(format(getHourStart(date)));    //jl-修改
+//        System.out.println(format(getHourEnd(date)));       //jl-修改
+
+        startDate = DateUtilNew.parseDate("2019-10-21 00:10:00");
+        endDate = DateUtilNew.parseDate("2019-10-20 00:10:00");
+
+//        System.out.println("日期相隔天数"+DateUtilNew.dayLongDiff(startDate,endDate));  //jl-修改
+
+        String day = DateUtilNew.format(DateUtilNew.decreaseDay(DateUtilNew.now(),7),DateUtilNew.YYYY);
+//        System.out.println("day================"+day);  //jl-修改
+        date = DateUtilNew.parseDate(day,DateUtilNew.YYYY_MM_DD);
+//        System.out.println(date);  //jl-修改
+
+
+
+        int minimalDaysInFirstWeek = 4; //一年中第一个星期所需最少天数
+        int year = 2021;
+        int week = 1;
+        Date start = getWeekStart(year,week,minimalDaysInFirstWeek);
+//        System.out.println("周开始："+format(start));   //jl-修改
+        Date end = getWeekEnd(year,week,minimalDaysInFirstWeek);
+//        System.out.println("周结束："+format(end));       //jl-修改
+//        System.out.println("年度周数："+getWeeksOfYear(year,minimalDaysInFirstWeek));    //jl-修改
+
+
+    }
+
+}

@@ -1,0 +1,2043 @@
+{
+  "formId": "homs_orgbatchchgbill",
+  "formName": null,
+  "sceneId": "homs_orgbatchchgbill_maintenance",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0H+/G119RC+2",
+  "bizappId": "217WYC/L9U7E",
+  "metaIdTechnical": "2=4500XUBSRK",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "homs_orgbatchchgbill_maintenance",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/homs_orgbatchchgbill_maintenance.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "homs_orgbatchchgbill",
+      "type": "BillEntity",
+      "title": "组织调整申请",
+      "physicalTable": null,
+      "fieldCount": 15
+    },
+    {
+      "name": "entryentity_add",
+      "type": "EntryEntity",
+      "title": "单据体-新增组织",
+      "physicalTable": null,
+      "fieldCount": 25
+    },
+    {
+      "name": "entryentity_parent",
+      "type": "EntryEntity",
+      "title": "单据体-调整上级",
+      "physicalTable": null,
+      "fieldCount": 28
+    },
+    {
+      "name": "entryentity_info",
+      "type": "EntryEntity",
+      "title": "单据体-变更信息",
+      "physicalTable": null,
+      "fieldCount": 26
+    },
+    {
+      "name": "entryentity_disable",
+      "type": "EntryEntity",
+      "title": "单据体-停用组织",
+      "physicalTable": null,
+      "fieldCount": 16
+    },
+    {
+      "name": "entryentity_all",
+      "type": "EntryEntity",
+      "title": "单据体-所有分录数据",
+      "physicalTable": null,
+      "fieldCount": 27
+    },
+    {
+      "name": "entryentity_merge",
+      "type": "EntryEntity",
+      "title": "单据体-合并组织",
+      "physicalTable": null,
+      "fieldCount": 7
+    },
+    {
+      "name": "entryentity_split",
+      "type": "EntryEntity",
+      "title": "单据体-拆分组织",
+      "physicalTable": null,
+      "fieldCount": 8
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "单据编号",
+      "physicalColumn": "t_homs_orgchgbill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "单据状态",
+      "physicalColumn": "t_homs_orgchgbill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "homs_orgbatchchgbill",
+      "title": "创建人",
+      "physicalColumn": "t_homs_orgchgbill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "homs_orgbatchchgbill",
+      "title": "修改人",
+      "physicalColumn": "t_homs_orgchgbill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "homs_orgbatchchgbill",
+      "title": "审核人",
+      "physicalColumn": "t_homs_orgchgbill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "审核日期",
+      "physicalColumn": "t_homs_orgchgbill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "修改时间",
+      "physicalColumn": "t_homs_orgchgbill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "创建时间",
+      "physicalColumn": "t_homs_orgchgbill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "org": {
+      "fieldId": "MwLyMGIJQa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "homs_orgbatchchgbill",
+      "title": "组织体系管理组织",
+      "physicalColumn": "t_homs_orgchgbill.forgid",
+      "_fieldApId": "MwLyMGIJQa"
+    },
+    "barcode": {
+      "fieldId": "8fnH4w28dD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "条形码",
+      "physicalColumn": "—",
+      "_fieldApId": "8fnH4w28dD"
+    },
+    "inputdevicetype": {
+      "fieldId": "vcRvWS1cQt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "输入设备",
+      "physicalColumn": "—",
+      "_fieldApId": "vcRvWS1cQt"
+    },
+    "isexistsworkflow": {
+      "fieldId": "ds9gX9jj7Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "是否存在工作流",
+      "physicalColumn": "t_homs_orgchgbill.fisexistsworkflow",
+      "_fieldApId": "ds9gX9jj7Y"
+    },
+    "auditstatus": {
+      "fieldId": "snD7v1lrWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "审批状态",
+      "physicalColumn": "t_homs_orgchgbill.fauditstatus",
+      "_fieldApId": "snD7v1lrWb"
+    },
+    "eventeffectdate": {
+      "fieldId": "P37ig11JcQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "t_homs_orgchgbill.feventeffectdate",
+      "_fieldApId": "P37ig11JcQ"
+    },
+    "issubmit": {
+      "fieldId": "rxHyYP8qU1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "homs_orgbatchchgbill",
+      "title": "是否进行过提交(废弃)",
+      "physicalColumn": "t_homs_orgchgbill.fissubmit",
+      "_fieldApId": "rxHyYP8qU1"
+    },
+    "add_adminorgtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "entryentity_add",
+      "title": "行政组织类型",
+      "physicalColumn": "—"
+    },
+    "add_corporateorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_lawentity",
+      "entity": "entryentity_add",
+      "title": "法律实体",
+      "physicalColumn": "—"
+    },
+    "add_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_add",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "add_number": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "行政组织编码",
+      "physicalColumn": "—"
+    },
+    "add_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "行政组织名称",
+      "physicalColumn": "—"
+    },
+    "add_simplename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "简称",
+      "physicalColumn": "—"
+    },
+    "add_parentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_add",
+      "title": "上级行政组织",
+      "physicalColumn": "—"
+    },
+    "add_establishmentdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "成立日期",
+      "physicalColumn": "—"
+    },
+    "add_adminorglayer": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorglayer",
+      "entity": "entryentity_add",
+      "title": "管理层级",
+      "physicalColumn": "—"
+    },
+    "add_adminorgfunction": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgfunction",
+      "entity": "entryentity_add",
+      "title": "行政组织职能",
+      "physicalColumn": "—"
+    },
+    "add_companyarea": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "entryentity_add",
+      "title": "国家/地区",
+      "physicalColumn": "—"
+    },
+    "add_city": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_admindivision",
+      "entity": "entryentity_add",
+      "title": "所在城市",
+      "physicalColumn": "—"
+    },
+    "add_workplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "entryentity_add",
+      "title": "工作地",
+      "physicalColumn": "—"
+    },
+    "add_parentorg_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "上级组织全称",
+      "physicalColumn": "—"
+    },
+    "add_adminorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "add_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_add",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "add_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_add",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "add_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity_add",
+      "title": "组织体系管理组织",
+      "physicalColumn": "—"
+    },
+    "add_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "add_industrytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_industrytype",
+      "entity": "entryentity_add",
+      "title": "行业类别",
+      "physicalColumn": "—"
+    },
+    "add_detailaddress": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "详细地址",
+      "physicalColumn": "—"
+    },
+    "add_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "描述",
+      "physicalColumn": "—"
+    },
+    "add_index": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "排序号",
+      "physicalColumn": "—"
+    },
+    "add_positioning": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "定位",
+      "physicalColumn": "—"
+    },
+    "add_mainduty": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_add",
+      "title": "主要职责",
+      "physicalColumn": "—"
+    },
+    "parent_simplename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "简称",
+      "physicalColumn": "—"
+    },
+    "parent_parentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgbatch",
+      "entity": "entryentity_parent",
+      "title": "调整后上级行政组织",
+      "physicalColumn": "—"
+    },
+    "parent_establishmentdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "成立日期",
+      "physicalColumn": "—"
+    },
+    "parent_tobedisableflag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "待停用",
+      "physicalColumn": "—"
+    },
+    "parent_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_parent",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "parent_adminorglayer": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorglayer",
+      "entity": "entryentity_parent",
+      "title": "管理层级",
+      "physicalColumn": "—"
+    },
+    "parent_adminorgfunction": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgfunction",
+      "entity": "entryentity_parent",
+      "title": "行政组织职能",
+      "physicalColumn": "—"
+    },
+    "parent_companyarea": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "entryentity_parent",
+      "title": "国家/地区",
+      "physicalColumn": "—"
+    },
+    "parent_city": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_admindivision",
+      "entity": "entryentity_parent",
+      "title": "所在城市",
+      "physicalColumn": "—"
+    },
+    "parent_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "调整后行政组织名称",
+      "physicalColumn": "—"
+    },
+    "parent_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_parent",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "parent_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_parent",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "parent_workplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "entryentity_parent",
+      "title": "工作地",
+      "physicalColumn": "—"
+    },
+    "parent_parentorg_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "调整后上级行政组织全称",
+      "physicalColumn": "—"
+    },
+    "parent_oriparentorg_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextAreaField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "原上级行政组织全称",
+      "physicalColumn": "—"
+    },
+    "parent_number": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "调整后行政组织编码",
+      "physicalColumn": "—"
+    },
+    "parent_oriparentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_parent",
+      "title": "原上级行政组织",
+      "physicalColumn": "—"
+    },
+    "parent_adminorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_parent",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "parent_adminorgtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "entryentity_parent",
+      "title": "行政组织类型",
+      "physicalColumn": "—"
+    },
+    "parent_corporateorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_lawentity",
+      "entity": "entryentity_parent",
+      "title": "法律实体",
+      "physicalColumn": "—"
+    },
+    "parent_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity_parent",
+      "title": "组织体系管理组织",
+      "physicalColumn": "—"
+    },
+    "parent_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "parent_industrytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_industrytype",
+      "entity": "entryentity_parent",
+      "title": "行业类别",
+      "physicalColumn": "—"
+    },
+    "parent_detailaddress": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "详细地址",
+      "physicalColumn": "—"
+    },
+    "parent_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "描述",
+      "physicalColumn": "—"
+    },
+    "parent_index": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "排序号",
+      "physicalColumn": "—"
+    },
+    "parent_positioning": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "定位",
+      "physicalColumn": "—"
+    },
+    "parent_mainduty": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_parent",
+      "title": "主要职责",
+      "physicalColumn": "—"
+    },
+    "info_adminorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_info",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "info_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "调整后行政组织名称",
+      "physicalColumn": "—"
+    },
+    "info_simplename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "简称",
+      "physicalColumn": "—"
+    },
+    "info_number": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "调整后行政组织编码",
+      "physicalColumn": "—"
+    },
+    "info_establishmentdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "成立日期",
+      "physicalColumn": "—"
+    },
+    "info_tobedisableflag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "待停用",
+      "physicalColumn": "—"
+    },
+    "info_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_info",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "info_adminorglayer": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorglayer",
+      "entity": "entryentity_info",
+      "title": "管理层级",
+      "physicalColumn": "—"
+    },
+    "info_adminorgfunction": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgfunction",
+      "entity": "entryentity_info",
+      "title": "行政组织职能",
+      "physicalColumn": "—"
+    },
+    "info_companyarea": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "entryentity_info",
+      "title": "国家/地区",
+      "physicalColumn": "—"
+    },
+    "info_city": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_admindivision",
+      "entity": "entryentity_info",
+      "title": "所在城市",
+      "physicalColumn": "—"
+    },
+    "info_workplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "entryentity_info",
+      "title": "工作地",
+      "physicalColumn": "—"
+    },
+    "info_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_info",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "info_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_info",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "info_oriparentorg_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextAreaField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "上级行政组织全称",
+      "physicalColumn": "—"
+    },
+    "info_parentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgbatch",
+      "entity": "entryentity_info",
+      "title": "上级行政组织",
+      "physicalColumn": "—"
+    },
+    "info_corporateorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_lawentity",
+      "entity": "entryentity_info",
+      "title": "法律实体",
+      "physicalColumn": "—"
+    },
+    "info_adminorgtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "entryentity_info",
+      "title": "行政组织类型",
+      "physicalColumn": "—"
+    },
+    "info_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity_info",
+      "title": "组织体系管理组织",
+      "physicalColumn": "—"
+    },
+    "info_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "info_industrytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_industrytype",
+      "entity": "entryentity_info",
+      "title": "行业类别",
+      "physicalColumn": "—"
+    },
+    "info_detailaddress": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "详细地址",
+      "physicalColumn": "—"
+    },
+    "info_description": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "描述",
+      "physicalColumn": "—"
+    },
+    "info_index": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "排序号",
+      "physicalColumn": "—"
+    },
+    "info_positioning": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "定位",
+      "physicalColumn": "—"
+    },
+    "info_mainduty": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_info",
+      "title": "主要职责",
+      "physicalColumn": "—"
+    },
+    "disable_adminorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_disable",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "disable_adminorgtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "entryentity_disable",
+      "title": "行政组织类型",
+      "physicalColumn": "—"
+    },
+    "disable_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_disable",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "disable_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_disable",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "disable_tobedisableflag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "待停用",
+      "physicalColumn": "—"
+    },
+    "disable_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_disable",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "disable_oriparentorg_name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextAreaField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "上级行政组织全称",
+      "physicalColumn": "—"
+    },
+    "disable_parentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgbatch",
+      "entity": "entryentity_disable",
+      "title": "上级行政组织",
+      "physicalColumn": "—"
+    },
+    "disable_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity_disable",
+      "title": "组织体系管理组织",
+      "physicalColumn": "—"
+    },
+    "disable_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "istodiagram": {
+      "fieldId": "YeUMWLST45",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "是否查看组织架构图",
+      "physicalColumn": "t_homs_orgchgbill.fistodiagram",
+      "_fieldApId": "YeUMWLST45"
+    },
+    "dispatchnumber": {
+      "fieldId": "bnwzhVNR9C",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "发文编号",
+      "physicalColumn": "t_homs_orgchgbill.fdispatchnumber",
+      "_fieldApId": "bnwzhVNR9C"
+    },
+    "effdt": {
+      "fieldId": "tKBjietSB7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "组织调整生效日期",
+      "physicalColumn": "t_homs_orgchgbill.feffdt",
+      "_fieldApId": "tKBjietSB7"
+    },
+    "description": {
+      "fieldId": "aVi3PateHO",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "描述",
+      "physicalColumn": "t_homs_orgchgbill_l.fdescription",
+      "_fieldApId": "aVi3PateHO"
+    },
+    "disorg": {
+      "fieldId": "3J2B0WuaLc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "签发组织",
+      "physicalColumn": "—",
+      "_fieldApId": "3J2B0WuaLc"
+    },
+    "dispatchname": {
+      "fieldId": "mcwmupIRFV",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_disable",
+      "title": "发文名称",
+      "physicalColumn": "t_homs_orgchgbill_l.fdispatchname",
+      "_fieldApId": "mcwmupIRFV"
+    },
+    "adminorgtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgtype",
+      "entity": "entryentity_all",
+      "title": "行政组织类型",
+      "physicalColumn": "t_homs_orgchgbillentry.fadminorgtypeid"
+    },
+    "changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_all",
+      "title": "变动类型",
+      "physicalColumn": "t_homs_orgchgbillentry.fchangetypeid"
+    },
+    "number": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "行政组织编码",
+      "physicalColumn": "t_homs_orgchgbillentry.fnumber"
+    },
+    "name": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "行政组织名称",
+      "physicalColumn": "t_homs_orgchgbillentry_l.fname"
+    },
+    "simplename": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "简称",
+      "physicalColumn": "t_homs_orgchgbillentry_l.fsimplename"
+    },
+    "corporateorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_lawentity",
+      "entity": "entryentity_all",
+      "title": "法律实体",
+      "physicalColumn": "t_homs_orgchgbillentry.fcorporateorgid"
+    },
+    "changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_all",
+      "title": "变动场景",
+      "physicalColumn": "t_homs_orgchgbillentry.fchangesceneid"
+    },
+    "parentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_all",
+      "title": "上级行政组织",
+      "physicalColumn": "—"
+    },
+    "establishmentdate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "成立日期",
+      "physicalColumn": "t_homs_orgchgbillentry.festablishmentdate"
+    },
+    "adminorglayer": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorglayer",
+      "entity": "entryentity_all",
+      "title": "管理层级",
+      "physicalColumn": "t_homs_orgchgbillentry.fadminorglayerid"
+    },
+    "adminorgfunction": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgfunction",
+      "entity": "entryentity_all",
+      "title": "行政组织职能",
+      "physicalColumn": "t_homs_orgchgbillentry.fadminorgfunctionid"
+    },
+    "companyarea": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "entryentity_all",
+      "title": "国家/地区",
+      "physicalColumn": "t_homs_orgchgbillentry.fcompanyareaid"
+    },
+    "city": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_admindivision",
+      "entity": "entryentity_all",
+      "title": "所在城市",
+      "physicalColumn": "t_homs_orgchgbillentry.fcityid"
+    },
+    "workplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "entryentity_all",
+      "title": "工作地",
+      "physicalColumn": "t_homs_orgchgbillentry.fworkplaceid"
+    },
+    "changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_all",
+      "title": "变动原因",
+      "physicalColumn": "t_homs_orgchgbillentry.fchangereasonid"
+    },
+    "oriparentorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_all",
+      "title": "原上级行政组织",
+      "physicalColumn": "t_homs_orgchgbillentry.foriparentorgid"
+    },
+    "adminorgid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_all",
+      "title": "行政组织",
+      "physicalColumn": "t_homs_orgchgbillentry.fadminorgid"
+    },
+    "changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "变动说明",
+      "physicalColumn": "t_homs_orgchgbillentry.fchangedescription"
+    },
+    "tobedisableflag": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "待停用",
+      "physicalColumn": "t_homs_orgchgbillentry.ftobedisableflag"
+    },
+    "billtype": {
+      "fieldId": "42N6DtVBfh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "单据类型",
+      "physicalColumn": "t_homs_orgchgbill.fbilltype",
+      "_fieldApId": "42N6DtVBfh"
+    },
+    "addcount": {
+      "fieldId": "RpkKZg1ARn",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "新增组织",
+      "physicalColumn": "—",
+      "_fieldApId": "RpkKZg1ARn"
+    },
+    "parentcount": {
+      "fieldId": "yyVyxpxL8V",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "调整上级",
+      "physicalColumn": "—",
+      "_fieldApId": "yyVyxpxL8V"
+    },
+    "infocount": {
+      "fieldId": "xqSi5dc8FW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "变更信息",
+      "physicalColumn": "—",
+      "_fieldApId": "xqSi5dc8FW"
+    },
+    "disablecount": {
+      "fieldId": "8wJQPR42OE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "停用组织",
+      "physicalColumn": "—",
+      "_fieldApId": "8wJQPR42OE"
+    },
+    "display_chgorg": {
+      "fieldId": "VoGFExnewm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "仅显示调整组织",
+      "physicalColumn": "—",
+      "_fieldApId": "VoGFExnewm"
+    },
+    "mergecount": {
+      "fieldId": "9lzNPFBqAo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "合并组织",
+      "physicalColumn": "—",
+      "_fieldApId": "9lzNPFBqAo"
+    },
+    "splitcount": {
+      "fieldId": "qoAF2gmpZt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_all",
+      "title": "拆分组织",
+      "physicalColumn": "—",
+      "_fieldApId": "qoAF2gmpZt"
+    },
+    "to_merge_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "entryentity_merge",
+      "title": "合并前组织",
+      "physicalColumn": "—"
+    },
+    "merge_target_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_adminorgbatch",
+      "entity": "entryentity_merge",
+      "title": "合并后组织",
+      "physicalColumn": "—"
+    },
+    "merge_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_merge",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "merge_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_merge",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "merge_origin_id": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity_merge",
+      "title": "合并组织ID",
+      "physicalColumn": "—"
+    },
+    "merge_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_merge",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "merge_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_merge",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "to_split_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "entryentity_split",
+      "title": "拆分前组织",
+      "physicalColumn": "—"
+    },
+    "split_target_org": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "entryentity_split",
+      "title": "拆分后组织",
+      "physicalColumn": "—"
+    },
+    "split_changescene": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_changescene",
+      "entity": "entryentity_split",
+      "title": "变动场景",
+      "physicalColumn": "—"
+    },
+    "split_changereason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangereason",
+      "entity": "entryentity_split",
+      "title": "变动原因",
+      "physicalColumn": "—"
+    },
+    "split_origin_id": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "entryentity_split",
+      "title": "拆分组织ID",
+      "physicalColumn": "—"
+    },
+    "split_changetype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "haos_orgchangetype",
+      "entity": "entryentity_split",
+      "title": "变动类型",
+      "physicalColumn": "—"
+    },
+    "split_changedescription": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity_split",
+      "title": "变动说明",
+      "physicalColumn": "—"
+    },
+    "terminationdetail": {
+      "fieldId": "c8RsX3bpzK1Zm1Oa3r",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "entryentity_split",
+      "title": "终止说明",
+      "physicalColumn": "t_homs_orgchgbill_l.fterminationdetail",
+      "_fieldApId": "c8RsX3bpzK1Zm1Oa3r"
+    }
+  },
+  "requiredFields": {
+    "homs_orgbatchchgbill": [
+      "billno",
+      "billstatus",
+      "org",
+      "auditstatus"
+    ],
+    "entryentity_add": [
+      "add_adminorgtype",
+      "add_changescene",
+      "add_name",
+      "add_parentorg",
+      "add_org"
+    ],
+    "entryentity_parent": [
+      "parent_parentorg",
+      "parent_changescene",
+      "parent_name",
+      "parent_number",
+      "parent_adminorg",
+      "parent_adminorgtype",
+      "parent_org"
+    ],
+    "entryentity_info": [
+      "info_adminorg",
+      "info_name",
+      "info_number",
+      "info_changescene",
+      "info_changetype",
+      "info_adminorgtype",
+      "info_org"
+    ],
+    "entryentity_disable": [
+      "disable_adminorg",
+      "disable_changescene",
+      "disable_changetype",
+      "disable_org",
+      "effdt"
+    ],
+    "entryentity_all": [],
+    "entryentity_merge": [
+      "to_merge_org",
+      "merge_target_org",
+      "merge_changescene",
+      "merge_changetype"
+    ],
+    "entryentity_split": [
+      "to_split_org",
+      "split_target_org",
+      "split_changescene",
+      "split_changetype"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0H+/G119RC+2_moblist_vMq72P4B",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2=4500XUBSRK_moblist_u127b9h3",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_fnPEMP2c",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2=4500XUBSRK_GYEZjTph",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_mob_7coBMts2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2=4500XUBSRK_mob_yNbyuFLn",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_list_7R6f0bsM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2=4500XUBSRK_list_wY6OiB6T",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgbatch.AdminOrgBatchBillPlugin",
+      "Description": "kd.hr.homs.formplugin.web.orgbatch.AdminOrgBatchBillPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgbatch.AdminorgCubeViewPlugin",
+      "Description": "kd.hr.homs.formplugin.web.orgbatch.AdminorgCubeViewPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.homs.formplugin.web.orgbatch.AdminOrgBatchBillListPlugin",
+      "Description": "kd.hr.homs.formplugin.web.orgbatch.AdminOrgBatchBillListPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 30,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 14
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 30,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 8,
+        "formPlugins_count": 14
+      }
+    }
+  ]
+}

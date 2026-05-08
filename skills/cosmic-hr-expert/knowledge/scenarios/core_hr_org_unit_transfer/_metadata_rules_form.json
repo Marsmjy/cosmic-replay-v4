@@ -1,0 +1,61 @@
+{
+  "scene": "core_hr_org_unit_transfer",
+  "isvOwnership": {
+    "isv_self_built": [
+      {
+        "form": "${ISV_FLAG}_orguntitransfer",
+        "isvOwner": "${ISV_FLAG}",
+        "biz_app": "${BIZ_APP}",
+        "operations_allowed": ["modifyMeta_add", "modifyMeta_remove", "modifyMeta_update", "addRule"],
+        "note": "ISV 自建·完全自主"
+      }
+    ],
+    "platform_standard_consumed": [
+      {"form": "homs_orgchgrecord", "owner": "haos", "operations_forbidden": "modifyMeta", "extension": "ISV 扩展元数据 (hsv_extension)"},
+      {"form": "hbpm_chgrecordevt", "owner": "hbpm", "operations_forbidden": "modifyMeta", "extension": "同上"},
+      {"form": "hbpm_chgrecorddetail", "owner": "hbpm", "operations_forbidden": "modifyMeta", "extension": "同上"},
+      {"form": "haos_adminorgdetail", "owner": "haos", "operations_forbidden": "modifyMeta", "extension": "同上"},
+      {"form": "hbpm_positionhr", "owner": "hbpm", "operations_forbidden": "modifyMeta", "extension": "同上"},
+      {"form": "haos_changescene", "owner": "haos", "operations_forbidden": "modifyMeta", "extension": "同上·配置编码改业务侧"},
+      {"form": "hrpi_empposorgrel", "owner": "hrpi", "operations_forbidden": ["modifyMeta", "private_write"], "rationale": "核心人力底表·完全交标品 op 协同·ISV 不写"},
+      {"form": "hrpi_assignment", "owner": "hrpi", "operations_forbidden": ["modifyMeta", "private_write"], "rationale": "同上"},
+      {"form": "hrpi_empentrel", "owner": "hrpi", "operations_forbidden": ["modifyMeta", "private_write"], "rationale": "同上"},
+      {"form": "hdm_transferbatch", "owner": "hdm", "operations_allowed": ["executeOperate(SAVE)", "executeOperate(SUBMITEFFECT)"], "operations_forbidden": "modifyMeta", "extension": "ISV 加字段走 hsv_extension"},
+      {"form": "hdm_transferbatchentry", "owner": "hdm", "operations_allowed": "set fields via parent main entity", "operations_forbidden": "modifyMeta"}
+    ]
+  },
+  "fieldNamingRules": {
+    "isv_field_prefix": "${ISV_FLAG}_",
+    "examples": [
+      "${ISV_FLAG}_changetype",
+      "${ISV_FLAG}_executestatus",
+      "${ISV_FLAG}_takeeffectdate",
+      "${ISV_FLAG}_orgid",
+      "${ISV_FLAG}_orgnumber",
+      "${ISV_FLAG}_orgname",
+      "${ISV_FLAG}_resultmsg",
+      "${ISV_FLAG}_resultmsg_tag",
+      "${ISV_FLAG}_modifydate",
+      "${ISV_FLAG}_mapping_id"
+    ],
+    "rationale": "PR-001 ISV 字段必带前缀防止跟标品字段冲突·标品升级不会被覆盖"
+  },
+  "intermediateTable": {
+    "form": "${ISV_FLAG}_orguntitransfer",
+    "purpose": "成建制划转待处理表 + 执行状态机",
+    "key_fields": {
+      "${ISV_FLAG}_changetype": {"type": "string", "values": ["A", "B", "C"], "desc": "变动类型"},
+      "${ISV_FLAG}_executestatus": {"type": "string", "values": ["01", "02", "03"], "desc": "执行状态机"},
+      "${ISV_FLAG}_takeeffectdate": {"type": "date", "desc": "生效日期"},
+      "${ISV_FLAG}_orgid": {"type": "string", "desc": "组织/岗位 ID（C 流程实际是岗位 ID）"},
+      "${ISV_FLAG}_orgnumber": {"type": "string", "desc": "组织/岗位编码"},
+      "${ISV_FLAG}_orgname": {"type": "string", "desc": "组织/岗位名称"},
+      "${ISV_FLAG}_resultmsg": {"type": "string", "length": 255, "desc": "执行结果摘要"},
+      "${ISV_FLAG}_resultmsg_tag": {"type": "tag", "desc": "执行结果详情（异常完整堆栈）"}
+    }
+  },
+  "metadata": {
+    "evidence_source": "deep_scan_audit.md C 段 + 03_model_design.md",
+    "built_at": "2026-05-06"
+  }
+}

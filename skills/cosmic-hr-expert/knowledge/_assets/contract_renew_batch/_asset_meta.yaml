@@ -1,0 +1,230 @@
+# 资产元数据 · 批量劳动合同续签 (Contract Renew Batch)
+# 用于 cosmic-mcp + assemble_asset.py 工具识别 + 装配
+# 已完成 W1 真扫精修 (2026-05-06)·锚点全 file:line·对齐 case_001 标杆质量
+
+asset:
+  id: contract_renew_batch
+  name: 批量劳动合同续签
+  english_name: Contract Renew Batch
+  version: v1.0
+  source_dcs_project: hlcm-renew
+  source_git: http://code.kingdee.com/gitlab/hr_dev/assetpoolnewmodel/orghrgroup/hlcm-renew.git
+  source_branch: feature-standard-new
+  source_commit: c8864f4
+  source_doc: 文档/批量劳动合同续签资产复用说明书-V1.0.docx
+  source_doc_version: v1.0
+  source_doc_date:
+  source_doc_authors: []
+  asset_built_date: 2026-05-06
+  asset_built_by: dcs-asset-replicate v1.3 / case_002 W1 精修反哺
+  improver_placeholder: tdkw    # ⚠ 改造者占位符·dcs_clean 阶段使用·真发给客户必须全局替换为 ISV_FLAG
+
+# ───────────────────────────────────────────
+# 业务定位
+# ───────────────────────────────────────────
+business:
+  cloud: core_hr
+  app: hlcm
+  scenario: |
+    HR 批量办理合同续签：一条 ISV 主表（${ISV_FLAG}_hlcm_renewbatch）
+    管 N 个员工的 hlcm_contractapplyrenew（标品续签申请单）·
+    通过 ${ISV_FLAG}_renewbatch 反向引用建立批次↔员工记录关联·
+    一次提交即可批量审核、跟踪、解绑·替代标品的"一对一"逐个办流程。
+  trigger: |
+    HR 进入 ${ISV_FLAG}_hlcm_renewbatch 主表新增页 → 选所属组织 → 选员工 → 保存
+    → audit/wfauditing → 批次审核完成
+    或反向：wfunaudit / invalid / delete → 自动解绑
+
+  scope:
+    in_scope:
+      - 按所属组织（含子组织）批量选员工
+      - 反向引用绑定·批次 ↔ N 员工
+      - 7 op 状态机（save/submit/audit/wfauditing/wfunaudit/invalid/delete）
+      - 列表 3 按钮拦截（按法大大签署状态过滤·tblsubmiteffect/tblsubmit/baritemapex1）
+      - delete 时强解绑·dealUnbindBatch 保幂等
+    out_of_scope:
+      - 不修改标品 hlcm 状态机字段（billstatus/auditstatus 等）
+      - 不发 BEC 事件（标品 hlcm 自带）
+      - 不联动跨云（薪酬/考勤/福利通过标品 hlcm 自动派发）
+      - 不替代标品 hlcm 单员工流程·两者并存
+
+# ───────────────────────────────────────────
+# 触发意图（cosmic-mcp recommend_solutions 命中关键字）
+# ───────────────────────────────────────────
+intents:
+  primary:
+    - 合同批量续签
+    - 批量劳动合同续签
+    - 批量办理续签
+    - 续签批次
+    - 合同续签批次管理
+  secondary:
+    - 一次办多个合同续签
+    - 季度末批量续合同
+    - 按组织批量续签
+    - 批量续签审批
+    - 批次反审批解绑
+
+# ───────────────────────────────────────────
+# 模板变量（assemble_asset.py 替换占位符）
+# ───────────────────────────────────────────
+template_variables:
+  required:
+    - name: ISV_FLAG
+      desc: 客户开发商标识·替代 tdkw 占位符·用于 dym 文件名 / java 包前缀 / 字段 key 前缀
+      example: bjss
+      validation: '^[a-z][a-z0-9]{1,15}$'
+
+    - name: BIZ_APP
+      desc: ISV 应用包编码·客户提供
+      example: 'bjss_hlcm_ext'
+      validation: '^[a-z][a-z0-9_]{3,30}$'
+
+  optional: []
+
+# ───────────────────────────────────────────
+# 资产产物清单（assemble 后的目标文件）
+# ───────────────────────────────────────────
+artifacts:
+  java_files:
+    - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hlcmext/plugin/AdminOrgHrUtils.java
+    - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hlcmext/plugin/ContractOtherExListPlugin.java
+    - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hlcmext/plugin/RenewBatchBillPlugin.java
+    - code/${BIZ_APP}/src/main/java/${ISV_FLAG}/hr/hlcmext/plugin/RenewBatchOpPlugin.java
+  datamodel_files:
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hlcm_renewbatch.dym
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hlcm_renewbatch.zh_CN.dymx
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hlcm_contractap_ext2.dym
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${ISV_FLAG}_hlcm_contractap_ext2.zh_CN.dymx
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.app
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.zh_CN.appx
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/${BIZ_APP}.xml
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/metadata/hr.cld
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/metadata/hr.zh_CN.cldx
+    - datamodel/hr/1.5.0/main/${BIZ_APP}/metadata/datamodel.xml
+  preinsdata_sql:
+    - 15 条 SQL（hlcm 系列预置数据·部署前要确认现场环境是否已存在·避免重复 insert）
+  build_files:
+    - build.gradle
+    - settings.gradle
+    - gradle.properties
+    - cosmic.properties
+    - config.gradle
+  doc_files:
+    - deploy_sop.md
+    - customization_points.md
+
+# ───────────────────────────────────────────
+# 部署 SOP（按 docx §4.1.2 + 实际经验固化）
+# ───────────────────────────────────────────
+deploy:
+  prerequisite:
+    - 苍穹环境已部署 v1.5+
+    - 客户已选定开发商标识 (ISV_FLAG)
+    - 客户已实施法大大集成（本资产引用 ${ISV_FLAG}_fddsignstatuss / _signwaynew 字段）
+    - 客户 hlcm_contractapplyrenew 上不存在冲突的 ext2 元数据
+  detail_doc: deploy_sop.md
+
+# ───────────────────────────────────────────
+# 业务规则锚点（cosmic-mcp 推荐时引用）
+# ───────────────────────────────────────────
+business_rules:
+  source: dcs_regression/passed/case_002_contract_renew/deep_scan_audit.md
+  anchor_examples:
+    - rule: R-01 7 op 状态机
+      anchor: RenewBatchOpPlugin.java:46-130 (before) + :138-210 (after)
+    - rule: R-02 ISV 中间表 ↔ 标品反向引用
+      anchor: RenewBatchOpPlugin.java:284 (写) + :296 (清)
+    - rule: R-03 选员工·按所属组织+子组织
+      anchor: RenewBatchBillPlugin.java:122-165 + AdminOrgHrUtils.java:24-46
+    - rule: R-04 closedCallBack 回填
+      anchor: RenewBatchBillPlugin.java:178-190
+    - rule: R-05 工具栏按钮拦截 3 路径
+      anchor: ContractOtherExListPlugin.java:50,110,151,210
+    - rule: R-06 校验已审核合同 billstatus='C'
+      anchor: RenewBatchOpPlugin.java:107-128
+    - rule: R-07 PR-001 字段命名 ${ISV_FLAG}_ 前缀
+      anchor: 走 ext2 扩展元数据·_metadata_rules_form.json
+    - rule: R-08 dealUnbindBatch 幂等
+      anchor: RenewBatchOpPlugin.java:343-365
+
+# ───────────────────────────────────────────
+# 关联 v3 知识库场景
+# ───────────────────────────────────────────
+related_v3_scenes:
+  primary:
+    - core_hr_contract_renew  # 本资产对应的主场景
+  consumed_forms:
+    - hlcm_contractapplyrenew  # 标品续签申请单·主消费
+    - haos_adminorg            # 行政组织·只读
+    - bos_org                  # 所属组织 BasedataField
+    - hlcm_contract            # 合同主表·间接
+    - hlcm_contractfileemp     # 合同员工档案·间接
+  cross_cloud_dependencies:
+    - cloud: core_hr
+      forms: [hlcm_contractapplyrenew, hlcm_contract]
+    - cloud: org_dev
+      forms: [haos_adminorg, bos_org]
+
+# ───────────────────────────────────────────
+# 扩展点（customization_points.md 详）
+# ───────────────────────────────────────────
+extension_points:
+  - id: EP-01
+    name: 改"选员工"过滤维度
+    location: RenewBatchBillPlugin.itemClick:122-165
+    difficulty: ⭐⭐
+    cs_ref: CS-02
+    desc: 默认按 affiliationord·客户可改职级/雇佣类型/合同到期日
+
+  - id: EP-02
+    name: 加 ISV 主表自定义字段
+    location: dym + BillPlugin + OpPlugin.onPreparePropertys 三处联动
+    difficulty: ⭐
+    cs_ref: CS-03
+    desc: 加批次说明 / 备注 / 标签等字段
+
+  - id: EP-03
+    name: 改"按子组织递归"逻辑
+    location: AdminOrgHrUtils.getLowerOrgIds:24-46
+    difficulty: ⭐⭐⭐
+    cs_ref: 未列 CS·见 07_ext_points.md
+    desc: 限定层数 / 跳过虚拟组织 / 加 enable 复合过滤
+
+  - id: EP-04
+    name: 接入其他签署系统（替代法大大）
+    location: ContractOtherExListPlugin:51-220 + ext2 dym
+    difficulty: ⭐⭐⭐⭐
+    cs_ref: CS-04
+    desc: 并列挂多个 ListPlugin·不继承·主从配置驱动
+
+  - id: EP-05
+    name: 改 7 op 行为
+    location: RenewBatchOpPlugin.beforeExecute:107-128
+    difficulty: ⭐⭐
+    cs_ref: CS-06
+    desc: 放宽 billstatus 校验 / 加自定义状态校验
+
+  - id: EP-06
+    name: 加批次审批工作流
+    location: RenewBatchOpPlugin.afterExecute + 苍穹 wf 配置
+    difficulty: ⭐⭐⭐
+    cs_ref: CS-05
+    desc: 多级审批 HR → 部门长 → CFO·按 currentStep 写不同状态字段
+
+quality_gates:
+  - GATE-01: assemble 后所有文件 grep <isv_flag_placeholder>_ = 0 / grep <isv_flag_placeholder>\\. = 0
+  - GATE-02: java 包路径与 datamodel 应用路径一致
+  - GATE-03: dym BizappId 与 cosmic 环境真值一致
+  - GATE-04: deploy_sop.md 必须引用 docx §4.1.2（如有 docx）
+  - GATE-05: 11md 全部精修完成·锚点 file:line 100% 真扫
+  - GATE-06: 6 EP 在 customization_points.md 全部展开·有改造范式 + 风险
+
+layout:
+  java_root_subpath: hr/hlcmext/plugin
+  datamodel_app_dir: hr/1.5.0/main
+  datamodel_dyms:
+    - src_name: hlcm_contractap_ext2.dym.tmpl
+      target_form_name: hlcm_contractap_ext2
+    - src_name: hlcm_renewbatch.dym.tmpl
+      target_form_name: hlcm_renewbatch

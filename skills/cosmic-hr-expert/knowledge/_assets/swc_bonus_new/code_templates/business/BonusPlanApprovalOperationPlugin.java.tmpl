@@ -1,0 +1,78 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan_approval;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.metadata.IDataEntityProperty;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.TdkwSendMessageUtil;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Author: wnaghansheng
+ * Description:奖金计划汇总审批抄送人发消息
+ */
+public class BonusPlanApprovalOperationPlugin extends AbstractOperationServicePlugIn {
+    private static final Log logger = LogFactory.getLog(BonusPlanApprovalOperationPlugin.class);
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        List<String> fieldKeys = e.getFieldKeys();
+        String name = this.billEntityType.getName();
+        Map<String, IDataEntityProperty> fieldMap = EntityMetadataCache.getDataEntityType(name).getAllFields();
+        for (String key : fieldMap.keySet()) {
+            fieldKeys.add(key);
+        }
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        // 给抄送人发消息
+        if(operationKey.equals("donothing_send_message")){
+            Map<String, Object> messageParams = new HashMap<>();
+            messageParams.put("tagInfo","奖金计划汇总审批");
+            messageParams.put("titleInfo","奖金计划抄送");
+            messageParams.put("msgType",MessageInfo.TYPE_ACTIVITY);
+            messageParams.put("scence","");
+            messageParams.put("template","");
+            messageParams.put("entityNumber","${ISV_FLAG}_bonus_plan_approval");
+            messageParams.put("appId","${ISV_FLAG}_hsbm");
+            messageParams.put("isLinked",Boolean.TRUE);
+
+            List<Map<String,Object>> messageData = new ArrayList<>();
+            for (DynamicObject entity : entities) {
+                DynamicObjectCollection bosUsers = entity.getDynamicObjectCollection("${ISV_FLAG}_bos_usesr");
+                for (DynamicObject bosUser : bosUsers) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id",entity.getLong("id")); // 单据id
+
+                    String billNo = entity.getString("billno");
+                    String billName = entity.getString("${ISV_FLAG}_name");
+                    map.put("messageInfo",String.format("请查看（%S），单据编号（%S)。",billName,billNo)); // 消息内容
+
+                    map.put("handlerId",bosUser.getLong("fbasedataid_id")); // 消息处理人id
+                    map.put("senderId",entity.getLong("creator.id")); //消息发送人id
+                    messageData.add(map);
+                }
+            }
+            if (!CollectionUtils.isEmpty(messageData)){
+                boolean isSuccess = TdkwSendMessageUtil.sendMsg(messageParams, messageData);
+                if (!isSuccess){
+                    logger.info("消息发送失败");
+                }
+            }
+        }
+    }
+}

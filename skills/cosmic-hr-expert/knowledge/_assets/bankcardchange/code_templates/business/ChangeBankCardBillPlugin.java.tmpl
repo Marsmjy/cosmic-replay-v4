@@ -1,0 +1,138 @@
+package ${ISV_FLAG}.z8njs.swc.hsasext.plugin.form;
+
+import kd.bos.bill.AbstractMobBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.MulBasedataDynamicObjectCollection;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+
+import java.util.EventObject;
+
+/**
+ * Author: 王汉升
+ * Date: 2024/6/18 8:47
+ * Description: ${ISV_FLAG}_hsas_acctmodifyb_ext，银行卡变更单-发放明细变更
+ */
+public class ChangeBankCardBillPlugin extends AbstractMobBillPlugIn {
+    protected static final Log logger = LogFactory.getLog(ChangeBankCardBillPlugin.class);
+    @Override
+    public void beforeBindData(EventObject e) {
+        DynamicObject bill = this.getModel().getDataEntity(true);
+        //变更分录
+        DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("entryentity");
+        for (int i = 0; i < entryentity.size(); i++) {
+            DynamicObject billEntry = entryentity.get(i);
+            //是否为移动端
+            billEntry.set("${ISV_FLAG}_is_mobile","true");
+            //1.变更详情赋值log
+            //档案历史,姓名、工号
+            DynamicObject salaryfilehis = billEntry.getDynamicObject("salaryfilehis");
+            // HR员工
+            DynamicObject employee = salaryfilehis.getDynamicObject("employee");
+            salaryfilehis = BusinessDataServiceHelper.loadSingle(salaryfilehis.getPkValue(),"hsas_salaryfile");
+            billEntry.set("salaryfilehis",salaryfilehis);
+            billEntry.set("${ISV_FLAG}_person_name","变更人员："+employee.getString("name"));
+
+            //变更前银行卡
+            DynamicObject beforebankcard = billEntry.getDynamicObject("perbankcard");
+            //更正后的银行卡
+            DynamicObject modifyperbankcard = billEntry.getDynamicObject("modifyperbankcard");
+
+            if (beforebankcard == null && modifyperbankcard ==null){
+                setBankInfoDefaultValue(billEntry);
+                return;
+            }
+
+            if (beforebankcard != null){
+                beforebankcard = BusinessDataServiceHelper.loadSingle(beforebankcard.getPkValue(),"hrpi_perbankcard");
+                billEntry.set("perbankcard",beforebankcard);
+            }
+
+            if(modifyperbankcard != null){
+                setBankInfo(billEntry, modifyperbankcard);
+            }else {
+                setBankInfoDefaultValue(billEntry);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param billEntry
+     * @param beforebankcard
+     */
+    private static void setBankInfo(DynamicObject billEntry, DynamicObject beforebankcard) {
+        billEntry.set("${ISV_FLAG}_bank_card", beforebankcard.getString("bankcardnum"));
+        billEntry.set("${ISV_FLAG}_bank_name", beforebankcard.getDynamicObject("bankdeposit"));
+        billEntry.set("${ISV_FLAG}_account_name", beforebankcard.getString("username"));
+        billEntry.set("${ISV_FLAG}_accountrelation", beforebankcard.getDynamicObject("accountrelation"));
+
+        //银行卡用途
+        MulBasedataDynamicObjectCollection collection = (MulBasedataDynamicObjectCollection) beforebankcard.get("cardpurpose");
+        billEntry.set("${ISV_FLAG}_cardpurpose",collection);
+    }
+
+    private static void setBankInfoDefaultValue(DynamicObject billEntry) {
+        //账户名，默认员工姓名
+        DynamicObject salaryfilehis = billEntry.getDynamicObject("salaryfilehis");
+        DynamicObject employee = salaryfilehis.getDynamicObject("employee");
+        String personName = employee.getString("name");
+        billEntry.set("${ISV_FLAG}_account_name", personName);
+        //账户关系默认为本人
+        QFilter filter = new QFilter("number", QCP.equals, "1010_S");
+        DynamicObject payrollacrelation = BusinessDataServiceHelper.loadSingle("hbss_payrollacrelation", filter.toArray());
+        billEntry.set("${ISV_FLAG}_accountrelation", payrollacrelation);
+
+        //银行卡用途,默认为工资卡
+        QFilter filterBankPurPose = new QFilter("number", QCP.equals, "HY001");
+        DynamicObject hbssBankpurpose = BusinessDataServiceHelper.loadSingle("hbss_bankpurpose", filterBankPurPose.toArray());
+
+        MulBasedataDynamicObjectCollection mulDistributionOrg =(MulBasedataDynamicObjectCollection) billEntry.get("${ISV_FLAG}_cardpurpose");
+        DynamicObjectCollection middleTable = new DynamicObjectCollection();
+        DynamicObject middleDisOrg = new DynamicObject(mulDistributionOrg.getDynamicObjectType());
+        middleDisOrg.set("fbasedataid",hbssBankpurpose);
+        middleTable.add(middleDisOrg);
+        billEntry.set("${ISV_FLAG}_cardpurpose",middleTable);
+        // 收款银行
+        billEntry.set("${ISV_FLAG}_bank_name",billEntry.getDynamicObject("perbankcard.bankdeposit"));
+
+    }
+
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        FormOperate operate = (FormOperate) args.getSource();
+        if ("save".equals(operate.getOperateKey()) || "sumbit".equals(operate.getOperateKey())){
+            DynamicObject dataEntity = this.getView().getModel().getDataEntity(true);
+            String billstatus = dataEntity.getString("billstatus");
+            DynamicObjectCollection entryentity = dataEntity.getDynamicObjectCollection("entryentity");
+            if (!"G".equals(billstatus)){
+                for (DynamicObject entry : entryentity) {
+                    //获取变更前银行卡
+                    DynamicObject perbankcard = entry.getDynamicObject("perbankcard");
+                    if (perbankcard != null){
+                        //变更前 “账户名” “银行卡号” “开户行”
+                        String perUsername = perbankcard.getString("username") == null ? "" : perbankcard.getString("username");
+                        String perBankcardnum = perbankcard.getString("bankcardnum")== null ? "" : perbankcard.getString("bankcardnum");
+                        String perBankcardString = perbankcard.getString("bankdeposit.name")== null ? "" : perbankcard.getString("bankdeposit.name");
+
+                        //变更后银行卡
+                        String afterUsername = entry.getString("${ISV_FLAG}_account_name").trim();
+                        String afterBankcardnum = entry.getString("${ISV_FLAG}_bank_card").trim();
+                        String afterBankcardString = entry.getString("${ISV_FLAG}_bank_name.name").trim();
+                        if (perUsername.equals(afterUsername) && perBankcardnum.equals(afterBankcardnum) && perBankcardString.equals(afterBankcardString)){
+                            throw new KDBizException( "请修改信息后再进行提交");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

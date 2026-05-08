@@ -1,0 +1,88 @@
+package ${ISV_FLAG}.wtc.wtabm.formplugin;
+
+import kd.bos.bill.AbstractMobBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.form.control.Button;
+import kd.bos.form.control.Label;
+import kd.bos.form.control.events.BeforeClickEvent;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.wtc.wtabm.utils.MarriageDateDealUtil;
+
+import java.util.Date;
+import java.util.EventObject;
+
+/**
+ * 休假申请移动端 婚嫁日期范围展示
+ */
+public class MobilleMarriageVerifyPlugin extends AbstractMobBillPlugIn {
+    private static final Log logger = LogFactory.getLog(MobilleMarriageVerifyPlugin.class);
+
+    /**
+     * 1-提示语：由于结婚登记日期YYYY-MM-NN，因此从结婚登记日期至YYYY+1-MM-NN，可申请婚假。
+     * * 注：结婚登记日期取值来源：【核心人力云-人员档案-基本信息-结婚登记日】
+     */
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        if ("entryvacationtype".equals(e.getProperty().getName())) {
+
+            DynamicObjectCollection entryentity = this.getModel().getDataEntity(true).getDynamicObjectCollection("entryentity");
+            DynamicObject dynamicObject11 = entryentity.get(0);
+            DynamicObject vacationType = dynamicObject11.getDynamicObject("entryvacationtype");
+            if (vacationType != null && HRStringUtils.equalsIgnoreCase("1050_S", vacationType.getString("number"))) {
+                DynamicObject attPersonId = this.getModel().getDataEntity(true).getDynamicObject("employee"); //体假人员
+                long personId = attPersonId.getLong("id");
+                Date marriageRegistDate = MarriageDateDealUtil.dealMarriageDate(personId, this.getView());
+                this.setMarriageLableInfo(marriageRegistDate);
+            }
+        }
+    }
+
+    private void setMarriageLableInfo(Date marriageRegistDate){
+        String dateStr = HRDateTimeUtils.formatDate(marriageRegistDate);
+        this.setLblText("${ISV_FLAG}_fetuses", dateStr); //结婚登记日
+        //结婚登记日加一年，作为婚假截至日期
+        Date marriageEndDate = MarriageDateDealUtil.getMarriageEndDate(marriageRegistDate);
+        String endDateStr = HRDateTimeUtils.formatDate(marriageEndDate);
+        setLblText("${ISV_FLAG}_labelap15", endDateStr);
+    }
+
+    //设置标签值
+    private void setLblText(String key, String text) {
+        Label label = (Label) this.getControl(key);
+        if (label != null) {
+            label.setText(text);
+        }
+    }
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        Button toolbar = this.getControl("save");
+        Button submittoolbar = this.getControl("submit");
+        if (toolbar != null) {
+            toolbar.addClickListener(this);
+            submittoolbar.addClickListener(this);
+        }
+    }
+
+    @Override
+    public void beforeClick(BeforeClickEvent evt) {
+        super.beforeClick(evt);
+
+//        DynamicObjectCollection entryentity = this.getModel().getDataEntity(true).getDynamicObjectCollection("entryentity");
+//        DynamicObject dynamicObject11 = entryentity.get(0);
+//        Date startdate = dynamicObject11.getDate("entrystartdate");//开始日期
+//        Date enddate = dynamicObject11.getDate("entryenddate");//结束日期
+//
+//        //校验
+//        boolean valid = MarriageDateDealUtil.valideClick(startdate,enddate,this.getView());
+//        evt.setCancel(!valid);
+
+    }
+
+}

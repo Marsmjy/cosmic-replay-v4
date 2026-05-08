@@ -1,0 +1,802 @@
+{
+  "formId": "hsas_approvebill",
+  "formName": null,
+  "sceneId": "hsas_approvebill",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0AXRWIGCJ+ID",
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "0TSJZB3+D6HX",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_approvebill",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_approvebill.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_approvebill",
+      "type": "BillEntity",
+      "title": "薪资审批单",
+      "physicalTable": null,
+      "fieldCount": 23
+    },
+    {
+      "name": "calentryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 16
+    },
+    {
+      "name": "overviewentryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 3
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "单据编号",
+      "physicalColumn": "t_hsas_approvebill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "单据状态",
+      "physicalColumn": "t_hsas_approvebill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hsas_approvebill",
+      "title": "创建人",
+      "physicalColumn": "t_hsas_approvebill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hsas_approvebill",
+      "title": "修改人",
+      "physicalColumn": "t_hsas_approvebill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hsas_approvebill",
+      "title": "审核人",
+      "physicalColumn": "t_hsas_approvebill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "审核日期",
+      "physicalColumn": "t_hsas_approvebill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "修改时间",
+      "physicalColumn": "t_hsas_approvebill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "创建时间",
+      "physicalColumn": "t_hsas_approvebill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "org": {
+      "fieldId": "MwLyMGIJQa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_approvebill",
+      "title": "算发薪管理组织",
+      "physicalColumn": "t_hsas_approvebill.forgid",
+      "_fieldApId": "MwLyMGIJQa"
+    },
+    "barcode": {
+      "fieldId": "8fnH4w28dD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "条形码",
+      "physicalColumn": "t_hsas_approvebill.fbarcode",
+      "_fieldApId": "8fnH4w28dD"
+    },
+    "inputdevicetype": {
+      "fieldId": "vcRvWS1cQt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "输入设备",
+      "physicalColumn": "t_hsas_approvebill.finputdevicetype",
+      "_fieldApId": "vcRvWS1cQt"
+    },
+    "isexistsworkflow": {
+      "fieldId": "ds9gX9jj7Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "是否存在工作流",
+      "physicalColumn": "t_hsas_approvebill.fisexistsworkflow",
+      "_fieldApId": "ds9gX9jj7Y"
+    },
+    "auditstatus": {
+      "fieldId": "snD7v1lrWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "审批状态",
+      "physicalColumn": "t_hsas_approvebillent.fauditstatus",
+      "_fieldApId": "snD7v1lrWb"
+    },
+    "eventeffectdate": {
+      "fieldId": "P37ig11JcQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "t_hsas_approvebill.feventeffectdate",
+      "_fieldApId": "P37ig11JcQ"
+    },
+    "issubmit": {
+      "fieldId": "rxHyYP8qU1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "是否进行过提交(废弃)",
+      "physicalColumn": "t_hsas_approvebill.fissubmit",
+      "_fieldApId": "rxHyYP8qU1"
+    },
+    "summaryname": {
+      "fieldId": "OKmEEO9xC9",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "单据名称",
+      "physicalColumn": "—",
+      "_fieldApId": "OKmEEO9xC9"
+    },
+    "summarybillno": {
+      "fieldId": "OEIlLLrQEU",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "单据编号",
+      "physicalColumn": "—",
+      "_fieldApId": "OEIlLLrQEU"
+    },
+    "summaryorg": {
+      "fieldId": "cvDhI2s7AG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "算发薪管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "cvDhI2s7AG"
+    },
+    "summarycreator": {
+      "fieldId": "bKedpdJ4Bm",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "创建人",
+      "physicalColumn": "—",
+      "_fieldApId": "bKedpdJ4Bm"
+    },
+    "caltask": {
+      "fieldId": "KySva5rJEx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsas_calpayrolltask",
+      "entity": "hsas_approvebill",
+      "title": "核算任务",
+      "physicalColumn": "t_hsas_approvebill.fcaltaskid",
+      "_fieldApId": "KySva5rJEx"
+    },
+    "recentapprovedate": {
+      "fieldId": "xwejsbvRO1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "最近审批日期",
+      "physicalColumn": "t_hsas_approvebill.frecentapprovedate",
+      "_fieldApId": "xwejsbvRO1"
+    },
+    "totalpersonnum": {
+      "fieldId": "TXal5f7xVY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "总人数",
+      "physicalColumn": "t_hsas_approvebill.ftotalpersonnum",
+      "_fieldApId": "TXal5f7xVY"
+    },
+    "totalsalaryfilenum": {
+      "fieldId": "V13pWdiGbp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hsas_approvebill",
+      "title": "总人次",
+      "physicalColumn": "t_hsas_approvebill.ftotalsalaryfilenum",
+      "_fieldApId": "V13pWdiGbp"
+    },
+    "unauditstatus": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "反审核标识",
+      "physicalColumn": "—"
+    },
+    "caltableid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "核算列表",
+      "physicalColumn": "t_hsas_approvebillent.fcaltableid"
+    },
+    "calpersonid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "核算名单",
+      "physicalColumn": "t_hsas_approvebillent.fcalpersonid"
+    },
+    "paydetailid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "发放明细ID",
+      "physicalColumn": "t_hsas_approvebillent.fpaydetailid"
+    },
+    "processtime": {
+      "fieldId": "I7Mru1Je2T",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TimeField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "处理时长",
+      "physicalColumn": "—",
+      "_fieldApId": "I7Mru1Je2T"
+    },
+    "nextauditor": {
+      "fieldId": "8QAtE05Y5b",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "下一步审核人",
+      "physicalColumn": "t_hsas_approvebill.fnextauditor",
+      "_fieldApId": "8QAtE05Y5b"
+    },
+    "adminorg": {
+      "fieldId": "1L1lCd6AOS",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "calentryentity",
+      "title": "所属行政组织",
+      "physicalColumn": "t_hsas_approvebill.fadminorgid",
+      "_fieldApId": "1L1lCd6AOS"
+    },
+    "description": {
+      "fieldId": "yMYLsdWSCx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "备注",
+      "physicalColumn": "t_hsas_approvebill_l.fdescription",
+      "_fieldApId": "yMYLsdWSCx"
+    },
+    "billname": {
+      "fieldId": "PlJiRRx6Xc",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "单据名称",
+      "physicalColumn": "t_hsas_approvebill_l.fbillname",
+      "_fieldApId": "PlJiRRx6Xc"
+    },
+    "payrollgroup": {
+      "fieldId": "RlebMvuljH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsas_payrollgrp",
+      "entity": "calentryentity",
+      "title": "薪资核算组(废弃)",
+      "physicalColumn": "—",
+      "_fieldApId": "RlebMvuljH"
+    },
+    "approvebilltpl": {
+      "fieldId": "4JuOGXZRNf",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsas_approvebilltpl",
+      "entity": "calentryentity",
+      "title": "薪资审批单模板",
+      "physicalColumn": "—",
+      "_fieldApId": "4JuOGXZRNf"
+    },
+    "approvebilltplv": {
+      "fieldId": "jGN58M6uR8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsas_approvebilltpl",
+      "entity": "calentryentity",
+      "title": "薪资审批单模板",
+      "physicalColumn": "—",
+      "_fieldApId": "jGN58M6uR8"
+    },
+    "caltasks": {
+      "fieldId": "AvMBAu1ldx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "核算任务集合",
+      "physicalColumn": "—",
+      "_fieldApId": "AvMBAu1ldx"
+    },
+    "payrollgroups": {
+      "fieldId": "0rD6YbpgCg4u6VboGZ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "薪资核算组",
+      "physicalColumn": "—",
+      "_fieldApId": "0rD6YbpgCg4u6VboGZ"
+    },
+    "summarycreatetime": {
+      "fieldId": "Lyr94qv0rdylhgIK73",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "创建时间",
+      "physicalColumn": "—",
+      "_fieldApId": "Lyr94qv0rdylhgIK73"
+    },
+    "lockstatus": {
+      "fieldId": "Qj3VvlUPCvI9mUFFA7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "calentryentity",
+      "title": "锁定状态",
+      "physicalColumn": "t_hsas_approvebill.flockstatus",
+      "_fieldApId": "Qj3VvlUPCvI9mUFFA7"
+    },
+    "tploverviewid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "overviewentryentity",
+      "title": "模板概览分录id",
+      "physicalColumn": "t_hsas_aproverviewent.ftploverviewid"
+    },
+    "overviewvalue": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "overviewentryentity",
+      "title": "概览值",
+      "physicalColumn": "t_hsas_aproverviewent.foverviewvalue"
+    },
+    "currency": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CurrencyField",
+      "ref": "bd_currency",
+      "entity": "overviewentryentity",
+      "title": "币别",
+      "physicalColumn": "—"
+    }
+  },
+  "requiredFields": {
+    "hsas_approvebill": [
+      "billno",
+      "billstatus"
+    ],
+    "calentryentity": [
+      "billname"
+    ],
+    "overviewentryentity": []
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0H+/G119RC+2_moblist_vMq72P4B",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_moblist_Imop3uXO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0TSJZB3+D6HX_moblist_SSY27aKz",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_fnPEMP2c",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_ZxNOBBON",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0TSJZB3+D6HX_kfWnea1N",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_mob_7coBMts2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_mob_CfJ016P4",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0TSJZB3+D6HX_mob_zoD6IvAT",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_list_7R6f0bsM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_list_YRO8VVng",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0TSJZB3+D6HX_list_lnVfvXQM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.CalApproveBillPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.SideWorkflowPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.CalApproveViewBillPlugin",
+      "Description": "kd.swc.hsas.formplugin.web.approve.CalApproveViewBillPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.CalApproveBillMobPlugin",
+      "Description": "kd.swc.hsas.formplugin.web.approve.CalApproveBillMobPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.CalApproveBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsbp.formplugin.web.SWCDataBaseHyperLinkList",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.ApproveBillWorkFlowListPlugin",
+      "Description": "审批单列表工作流插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.approve.CalApproveBillHyperLinkList",
+      "Description": "超链接验证权限",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 35,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 12,
+        "formPlugins_count": 20
+      }
+    }
+  ]
+}

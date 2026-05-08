@@ -1,0 +1,34 @@
+{
+  "scene": "attendance_wtc_roster",
+  "name": "考勤周期封存提交校验",
+  "name_en": "Roster Period Lock Validate",
+  "domain": "?/?",
+  "cloud": "attendance",
+  "app": "wtbd",
+  "scene_type": "business_flow_aggregate",
+  "tier": 2,
+  "modelType": "ScheduleTaskAsset",
+  "asset_ref": "_assets/wtc_roster",
+  "consumed_forms": [
+    "wtbd_rosterview",
+    "wtbd_periodlock"
+  ],
+  "isv_self_built_forms": [
+    "${ISV_FLAG}_wtbd_roster_lock"
+  ],
+  "intents": [
+    "排班周期封存校验",
+    "考勤周期封存",
+    "封存后禁提交",
+    "做一套封存校验"
+  ],
+  "metadata": {
+    "source": [
+      "dcs-asset-replicate wtc_roster (来自 dcs-case-run case)",
+      "",
+      ""
+    ],
+    "evidence_anchors": "deep_scan_audit.md (case Phase D 真扫)",
+    "built_at": "2026-05-06"
+  }
+}

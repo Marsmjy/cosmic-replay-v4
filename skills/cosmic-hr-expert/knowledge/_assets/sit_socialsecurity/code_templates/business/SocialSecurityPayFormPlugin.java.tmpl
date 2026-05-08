@@ -1,0 +1,931 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.ValueMapItem;
+import kd.bos.entity.datamodel.events.ChangeData;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.property.MulComboProp;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.IFormView;
+import kd.bos.form.control.Image;
+import kd.bos.form.control.Label;
+import kd.bos.form.field.ComboEdit;
+import kd.bos.form.field.ComboItem;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.hr.hbp.common.util.HRImageUrlUtil;
+import kd.sdk.plugin.Plugin;
+import org.apache.commons.lang3.StringUtils;
+import ${ISV_FLAG}.swc.sit.other.hsbs_triggercolla.SinsurfileHelper;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * 社保公积金代缴申请单
+ */
+public class SocialSecurityPayFormPlugin extends AbstractBillPlugIn implements Plugin {
+    private static Log log = LogFactory.getLog(SocialSecurityPayFormPlugin.class.getName());
+    private static final String DATE_TIME_DEFAULT_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
+    @Override
+    public void afterBindData(EventObject e) {
+        DynamicObject dataEntity = this.getModel().getDataEntity();
+        String billno = dataEntity.getString("billno");
+        //社保
+        HashMap<String, String[]> socialConfigs = getSocialConfigs();
+        //公积金
+        HashMap<String, String[]> fundConfigs = getFundConfigs();
+        //配置
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = getInsuranceConfigs(socialConfigs, fundConfigs);
+
+
+        //1.单据申请单上展示编码，创建人，创建日期
+        DynamicObject creator = dataEntity.getDynamicObject("creator");
+        Date createtime = dataEntity.getDate("createtime");
+        ((Label) (this.getView().getControl("${ISV_FLAG}_lblbillnoedit"))).setText(billno);
+        ((Label) (this.getView().getControl("${ISV_FLAG}_lblcreatoredit"))).setText(creator.getString("name"));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        ((Label) (this.getView().getControl("${ISV_FLAG}_lblcreatetimeedit"))).setText(simpleDateFormat.format(createtime));
+
+        //人员社保档案
+        DynamicObject kdcdPerson = dataEntity.getDynamicObject("${ISV_FLAG}_person");
+        if (kdcdPerson != null) {
+            Long personId = kdcdPerson.getLong("employee.id");
+            QFilter filter = new QFilter("employee", QCP.equals, personId);
+//        filter.and(new QFilter("enddate",QCP.large_equals,new Date()));
+            filter.and(new QFilter("iscurrentdata", QCP.equals, "1"));
+            filter.and(new QFilter("isprimary", QCP.equals, "1"));
+            DynamicObject hrpiEmpposorgrel = QueryServiceHelper.queryOne("hrpi_empposorgrel", "company,company.name,adminorg,adminorg.name,position,position.name", filter.toArray());
+            if (hrpiEmpposorgrel != null) {
+                showPersonInfo(kdcdPerson, hrpiEmpposorgrel);
+            }
+        }
+
+        //如果是从按钮进入的新增页面，则赋上默认值
+        FormShowParameter formShowParameter = this.getView().getFormShowParameter();
+        JSONObject newPageByButton = formShowParameter.getCustomParam("newPageByButton");
+        if (newPageByButton != null) {
+            this.getModel().setValue("org", newPageByButton.get("org"));
+            this.getModel().setValue("${ISV_FLAG}_payment_service_type", newPageByButton.get("${ISV_FLAG}_payment_service_type"));
+            this.getModel().setValue("${ISV_FLAG}_person", newPageByButton.get("${ISV_FLAG}_pay_file"));
+            this.getView().updateView("org");
+        }
+
+        //查询代缴公司对应参保标准的险种，放入缓存
+        DynamicObject payingCompany = this.getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_paying_company");
+        if (payingCompany != null) {
+            this.setPayingCompany(payingCompany);
+
+            //代缴明细分录中字段隐藏
+            String insurTypeList = this.getPageCache().get(payingCompany.getLong("id") + "");
+            if (insurTypeList != null) {
+                DynamicObject paymentServiceType = dataEntity.getDynamicObject("${ISV_FLAG}_payment_service_type");
+                String paymentServiceTypeNumber = paymentServiceType.getString("number");
+                this.hideFields(insurTypeList, paymentServiceTypeNumber);
+            }
+        }
+
+//        String orgNumber = dataEntity.getString("org.number");
+//        this.getView().setVisible(BosOrgEnum.TYN.getBosOrgNumber().equals(orgNumber), "${ISV_FLAG}_labelap");
+    }
+
+    public static HashMap<String, HashMap<String, String[]>> getInsuranceConfigs(HashMap<String, String[]> socialConfigs, HashMap<String, String[]> fundConfigs) {
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = new HashMap<>();
+        insuranceConfigs.put("A", socialConfigs);
+        insuranceConfigs.put("B", fundConfigs);
+        return insuranceConfigs;
+    }
+
+    public static HashMap<String, String[]> getFundConfigs() {
+        HashMap<String, String[]> fundConfigs = new HashMap<>();
+        fundConfigs.put("1060_S", new String[]{"${ISV_FLAG}_housing_e", "${ISV_FLAG}_stop_housing_e", "${ISV_FLAG}_base_housing_e", "${ISV_FLAG}_base_housing_e1"}); //住房公积金
+        return fundConfigs;
+    }
+
+    public static HashMap<String, String[]> getSocialConfigs() {
+        HashMap<String, String[]> socialConfigs = new HashMap<>();
+        socialConfigs.put("1010_S", new String[]{"${ISV_FLAG}_endowment_e", "${ISV_FLAG}_stop_endowment_e", "${ISV_FLAG}_base_endowment_e", "${ISV_FLAG}_base_endowment_e1"}); //养老保险
+        socialConfigs.put("1020_S", new String[]{"${ISV_FLAG}_medical_e", "${ISV_FLAG}_stop_medical_e", "${ISV_FLAG}_base_medical_e", "${ISV_FLAG}_base_medical_e1"}); //医疗保险
+        socialConfigs.put("1030_S", new String[]{"${ISV_FLAG}_unemployment_e", "${ISV_FLAG}_stop_unemployment_e", "${ISV_FLAG}_base_unemployment_e", "${ISV_FLAG}_unemployment_e1"}); //失业保险
+        socialConfigs.put("1040_S", new String[]{"${ISV_FLAG}_industrial_injury_e", "${ISV_FLAG}_stop_injury_e", "${ISV_FLAG}_base_injury_e", "${ISV_FLAG}_base_injury_e1"}); //工伤保险
+        socialConfigs.put("1050_S", new String[]{"${ISV_FLAG}_maternity_e", "${ISV_FLAG}_stop_maternity_e", "${ISV_FLAG}_base_maternity_e", "${ISV_FLAG}_base_maternity_e1"}); //生育保险
+        socialConfigs.put("1070_S", new String[]{"${ISV_FLAG}_supply_medica_e", "${ISV_FLAG}_stop_medica_e", "${ISV_FLAG}_base_medica_e", "${ISV_FLAG}_base_medica_e1"}); //补充医疗保险
+        return socialConfigs;
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        String name = e.getProperty().getName();
+        ChangeData[] changeSet = e.getChangeSet();
+        //代缴公司
+        DynamicObject payingCompany = this.getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_paying_company");
+
+        //1.判断人员发生变化
+        this.personChange(name);
+
+        //2.判断代缴业务类型发生变化，代缴明细展示不同的类型
+        //2.1代缴业务类型新增代缴 并且 确定了代缴险种，在代缴明细分录中添加代缴险种明细
+        //2.2代缴业务类型为停止代缴 并且 确定了代缴险种，在代缴明细分录中添加代缴险种明细
+        //2.3代缴业务类型为基数调整 并且 确定了代缴险种，在代缴明细分录中添加代缴险种明细
+        this.pagePaymentDetails(name, e);
+
+        //3.代缴业务类型发生变化后，将代缴员工设置为空
+        if ("${ISV_FLAG}_payment_service_type".equals(name)) {
+            this.getModel().setValue("${ISV_FLAG}_person", null);
+        }
+
+        //新增代缴中基数变化时
+        if ("${ISV_FLAG}_radix".equals(name)) {
+            int rowIndex = changeSet[0].getRowIndex();
+            Object newValue = changeSet[0].getNewValue();
+            if (newValue != null) {
+                String insurTypeList = this.getPageCache().get(payingCompany.getLong("id") + "");
+                if (insurTypeList != null) {
+                    DynamicObject dataEntity = changeSet[0].getDataEntity();
+                    String paymentInsurance = dataEntity.getString("${ISV_FLAG}_payment_insurance_e");
+                    this.setEntryValue(insurTypeList, paymentInsurance, rowIndex, newValue, "0", name);
+                } else {
+                    this.getView().showErrorNotification("请先确认代缴公司");
+                }
+            }
+        }
+
+        //基数调整时基数数据变化
+        if ("${ISV_FLAG}_radix_base".equals(name)) {
+            int rowIndex = changeSet[0].getRowIndex();
+            Object newValue = changeSet[0].getNewValue();
+            if (newValue != null) {
+                String insurTypeList = this.getPageCache().get(payingCompany.getLong("id") + "");
+                if (insurTypeList != null) {
+                    DynamicObject dataEntity = changeSet[0].getDataEntity();
+                    String paymentInsurance = dataEntity.getString("${ISV_FLAG}_base_insurance_e");
+                    this.setEntryValue(insurTypeList, paymentInsurance, rowIndex, newValue, "3", name);
+                } else {
+                    this.getView().showErrorNotification("请先确认代缴公司");
+                }
+            }
+        }
+
+        //查询代缴公司对应的险种有哪些
+        if ("${ISV_FLAG}_paying_company".equals(name)) {
+            this.setPayingCompany((DynamicObject) changeSet[0].getNewValue());
+
+            if (changeSet[0].getNewValue() != null) {
+                //设置分录险种显示
+                DynamicObject dataEntity = this.getModel().getDataEntity();
+                DynamicObject paymentServiceType = dataEntity.getDynamicObject("${ISV_FLAG}_payment_service_type");
+                String paymentServiceTypeNumber = paymentServiceType.getString("number");
+                String insurTypeList = this.getPageCache().get(payingCompany.getLong("id") + "");
+                //1.4设置单据体险种某些显示，某些隐藏
+                this.hideFields(insurTypeList, paymentServiceTypeNumber);
+            }
+
+            //清除信息
+            clearBillInfo();
+        }
+    }
+
+    private void pagePaymentDetails(String name, PropertyChangedArgs e) {
+        DynamicObject dataEntity = this.getModel().getDataEntity();
+        DynamicObject paymentServiceType = dataEntity.getDynamicObject("${ISV_FLAG}_payment_service_type"); //代缴业务类型
+
+        //1.代缴险种发生变化
+        if ("${ISV_FLAG}_payment_insurance".equals(name) && paymentServiceType != null) {
+
+            String paymentServiceTypeNumber = paymentServiceType.getString("number");
+            String newValue = (String) e.getChangeSet()[0].getNewValue();
+            if (newValue != null) {
+                DynamicObject bill = this.getModel().getDataEntity();
+                DynamicObject payingCompany = bill.getDynamicObject("${ISV_FLAG}_paying_company");
+                if (payingCompany == null) {
+                    this.getModel().setValue("${ISV_FLAG}_payment_insurance", "");
+                    this.getView().showErrorNotification("请先确认代缴公司");
+                } else {
+                    String insurTypeList = this.getPageCache().get(payingCompany.getLong("id") + "");
+                    String[] split = newValue.split(",");
+                    List<String> newValueList = Arrays.stream(split).filter(item -> !StringUtils.isEmpty(item)).collect(Collectors.toList());
+                    //1.1代缴险种发生变化,并且其代缴业务类型为新增代缴
+                    if ("001".equals(paymentServiceTypeNumber)) {
+                        this.deleteAndAddEntryentity(newValue, insurTypeList);
+                        //设置单据体某些字段不可编辑
+                        for (int i = 0; i < newValueList.size(); i++) {
+                            this.setEntryFiledEnable(this.getView(), newValueList.get(i), i, "0");
+                        }
+                    }
+
+                    //1.2代缴险种发生变化,并且其代缴业务类型为停止代缴
+                    if ("002".equals(paymentServiceTypeNumber)) {
+                        this.stopAndSetEntry(dataEntity, newValue);
+                        //设置单据体某些字段不可编辑
+                        for (int i = 0; i < newValueList.size(); i++) {
+                            this.setEntryFiledEnable(this.getView(), newValueList.get(i), i, "1");
+                        }
+                    }
+
+                    //1.3代缴险种发生变化,并且其代缴业务类型为基数调整
+                    if ("003".equals(paymentServiceTypeNumber)) {
+                        this.baseAndSetEntry(dataEntity, newValue, insurTypeList);
+                        //设置单据体某些字段不可编辑
+                        for (int i = 0; i < newValueList.size(); i++) {
+                            this.setEntryFiledEnable(this.getView(), newValueList.get(i), i, "2,3");
+                        }
+                    }
+
+                    //1.4设置单据体险种某些显示，某些隐藏
+                    this.hideFields(insurTypeList, paymentServiceTypeNumber);
+                }
+            } else {
+                //清空单据体
+                this.getModel().deleteEntryData("entryentity");
+                this.getModel().deleteEntryData("${ISV_FLAG}_stop_entryentity");
+                this.getModel().deleteEntryData("${ISV_FLAG}_base_entryentity");
+            }
+        }
+    }
+
+    /**
+     * 基数调整时，根据代缴险种，自动设置单据体的值
+     */
+    private void baseAndSetEntry(DynamicObject dataEntity, String newValue, String insurTypeList) {
+        //删除掉单据体原来数据
+        this.getModel().deleteEntryData("${ISV_FLAG}_base_entryentity");
+        if (newValue == null) {
+            return;
+        }
+        //查看代缴险种中选择的说社保，公积金
+        String[] split = newValue.split(",");
+        if (split.length == 0) {
+            return;
+        }
+        List<String> collect = Arrays.stream(split).filter(item -> !item.isEmpty()).collect(Collectors.toList());
+
+        //获取缓存中根据社保档案id中参保的险种，以及对应的缴费基数，这里基数调整与停止代缴一致，都要根据代缴人员查询代缴的社保档案上的险种
+        DynamicObject kdcdPerson = dataEntity.getDynamicObject("${ISV_FLAG}_person");
+        long socialPersonId = kdcdPerson.getLong("id");
+        String insurance = this.getView().getPageCache().get("stop-" + socialPersonId);
+        JSONObject insuranceJsonObject = JSONObject.parseObject(insurance);
+        Set<String> insuranceKeySet = insuranceJsonObject.keySet();
+
+        int[] newEntryRow = this.getModel().batchCreateNewEntryRow("${ISV_FLAG}_base_entryentity", collect.size());
+        for (int index : newEntryRow) {
+            //代缴险种
+            this.getModel().setValue("${ISV_FLAG}_base_insurance_e", collect.get(index), index);
+            //社保
+            HashMap<String, String[]> socialConfigs = getSocialConfigs();
+            if (collect.get(index).equals("A")) {
+                Set<String> socialKeySet = socialConfigs.keySet();
+                for (String key : socialKeySet) {
+                    if (insuranceKeySet.contains(key)) {
+                        String[] formId = socialConfigs.get(key);
+                        this.getModel().setValue(formId[2], insuranceJsonObject.get(key), index);//基数调整中原档案的值
+                    }
+                }
+                this.getModel().setValue("${ISV_FLAG}_base_effective_date", insuranceJsonObject.get("stop_social_bsed"), index);//生效日期
+            }
+            //公积金
+            if (collect.get(index).equals("B")) {
+                //生效日期
+                this.getModel().setValue("${ISV_FLAG}_base_effective_date", insuranceJsonObject.get("stop_house_bsed"), index);
+                this.getModel().setValue("${ISV_FLAG}_base_housing_e", insuranceJsonObject.get("1060_S"), index);
+            }
+        }
+    }
+
+    /**
+     * 停止代缴时，根据代缴险种，自动设置对于的值
+     */
+    private void stopAndSetEntry(DynamicObject dataEntity, String newValue) {
+        //删除掉单据体原来数据
+        this.getModel().deleteEntryData("${ISV_FLAG}_stop_entryentity");
+        if (newValue == null) {
+            return;
+        }
+        String[] split = newValue.split(",");
+        if (split.length == 0) {
+            return;
+        }
+        List<String> collect = Arrays.stream(split).filter(item -> !item.isEmpty()).collect(Collectors.toList());
+        //获取缓存中根据社保档案id中参保的险种，以及对应的缴费基数
+        DynamicObject kdcdPerson = dataEntity.getDynamicObject("${ISV_FLAG}_person");//人员社保档案
+        long socialPersonId = kdcdPerson.getLong("id");
+        String insurance = this.getView().getPageCache().get("stop-" + socialPersonId);
+        JSONObject insuranceJsonObject = JSONObject.parseObject(insurance);
+
+        Set<String> insuranceKeySet = insuranceJsonObject.keySet();
+
+        int[] newEntryRow = this.getModel().batchCreateNewEntryRow("${ISV_FLAG}_stop_entryentity", collect.size());
+        for (int index : newEntryRow) {
+            //代缴险种
+            this.getModel().setValue("${ISV_FLAG}_stop_insurance_e", collect.get(index), index);
+            //社保
+            if (collect.get(index).equals("A")) {
+                HashMap<String, String[]> socialConfigs = getSocialConfigs();
+                Set<String> socialKeySet = socialConfigs.keySet();
+                for (String key : socialKeySet) {
+                    if (insuranceKeySet.contains(key)) {
+                        String[] formId = socialConfigs.get(key);
+                        this.getModel().setValue(formId[1], insuranceJsonObject.get(key), index);//停止代缴中的险种值
+                    }
+                }
+                this.getModel().setValue("${ISV_FLAG}_stop_effective_date", insuranceJsonObject.get("stop_social_bsed"), index);//生效日期
+            }
+            //公积金
+            if (collect.get(index).equals("B")) {
+                //生效日期
+                this.getModel().setValue("${ISV_FLAG}_stop_effective_date", insuranceJsonObject.get("stop_house_bsed"), index);
+                this.getModel().setValue("${ISV_FLAG}_stop_housing_e", insuranceJsonObject.get("1060_S"), index);
+            }
+        }
+    }
+
+    /**
+     * 新增代缴时，往新增代缴明细中添加基数设置
+     */
+    private void deleteAndAddEntryentity(String paymentInsuranceArg, String insurTypeList) {
+        //删除掉单据体原来数据
+        this.getModel().deleteEntryData("entryentity");
+
+        //如果new代缴险种有值，则往单据体添加数据
+        if (paymentInsuranceArg != null) {
+            String[] split = paymentInsuranceArg.split(",");
+            if (split.length == 0) {
+                return;
+            }
+            List<String> collect = Arrays.stream(split).filter(item -> !item.isEmpty()).collect(Collectors.toList());
+            //往单据体添加数据
+            int[] newEntryRow = this.getModel().batchCreateNewEntryRow("entryentity", collect.size());
+            for (int index : newEntryRow) {
+                this.getModel().setValue("${ISV_FLAG}_payment_insurance_e", collect.get(index), index);
+            }
+        }
+    }
+
+    /**
+     * 人员发生变化
+     */
+    private void personChange(String name) {
+        if ("${ISV_FLAG}_person".equals(name)) {
+            DynamicObject dataEntity = this.getModel().getDataEntity();
+            //人员社保档案
+            DynamicObject kdcdPerson = dataEntity.getDynamicObject("${ISV_FLAG}_person");
+            if (kdcdPerson == null) {
+                return;
+            }
+            //代缴业务类型
+            DynamicObject paymentServiceType = dataEntity.getDynamicObject("${ISV_FLAG}_payment_service_type");
+            String paymentServiceTypeNumber = paymentServiceType.getString("number");
+
+            //清空单据体，基数表，险种
+            clearBillInfo();
+
+            //1.人员填写信息,当代缴业务类型为新增时，对基数表进行处理。以及当代缴类型，基数调整时，对基数表的调整
+            this.setPersonInfo(kdcdPerson);
+
+            //2.新增代缴单时，查询代缴人员是否存在“暂存”、“已提交”、“审批中”、“待重新提交”的在途单据
+            if ("001".equals(paymentServiceTypeNumber)) {
+                this.setPaymentInsurance(kdcdPerson);
+                this.getModel().setValue("${ISV_FLAG}_paying_company", null);//代缴公司
+            }
+
+            //3.停止代缴单时
+            //4.基数调整代缴单时，查询原社保信息与停止代缴单逻辑一致
+            if ("002".equals(paymentServiceTypeNumber) || "003".equals(paymentServiceTypeNumber)) {
+                //若“单据信息”的“代缴人员”过滤出的档案内，最新生效的社保险种的“参保状态”为“是”，那么“代缴险种”可选择“社保”；公积金同理
+                this.setSuspensionPaymentInsurance(kdcdPerson);
+
+                //查询人员社保档案中，获取社保基数和公积金基数
+                this.getSocialSecurityBase(kdcdPerson);
+            }
+
+            //5.分录展示所有的险种
+            if ("001".equals(paymentServiceTypeNumber)) {
+                this.setEntryShow("0");
+            }
+            if ("002".equals(paymentServiceTypeNumber)) {
+                this.setEntryShow("1");
+            }
+            if ("003".equals(paymentServiceTypeNumber)) {
+                this.setEntryShow("2,3");
+            }
+        }
+    }
+
+    //停止代缴时，获取人员社保档案基数设置放入页面缓存中
+    private void getSocialSecurityBase(DynamicObject kdcdPerson) {
+        long socialPersonId = kdcdPerson.getLong("id");
+        //根据档案关联参保标准查询社保基数设置 --hcsi_sinsurbase
+        QFilter sinsurBase = new QFilter("sinsurfile", QCP.equals, socialPersonId);
+        sinsurBase.and(new QFilter("insured", QCP.equals, "1"));//是否参保
+        DynamicObjectCollection hcSiSinSurBase = QueryServiceHelper.query("hcsi_sibase", "welfaretype.number,welfaretype.name,paybaseofemployee,paybaseofcompany,startdate", sinsurBase.toArray());
+
+        HashMap<String, String> result = new HashMap<>();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_TIME_DEFAULT_PATTERN);
+        //根据社保基数
+        for (DynamicObject item : hcSiSinSurBase) {
+            String welfareTypeNumber = item.getString("welfaretype.number");//险种编码
+            String value = item.getString("paybaseofcompany");//险种值
+            Date dateBsed = item.getDate("startdate");//险种生效日期
+            String socialBsedDateString = simpleDateFormat.format(dateBsed);
+            if (welfareTypeNumber.equals("1010_S")) {
+                result.put(welfareTypeNumber, value);
+            } else if (welfareTypeNumber.equals("1060_S")) {
+                result.put(welfareTypeNumber, value);
+                result.put("stop_house_bsed", socialBsedDateString);
+            } else {
+                result.put(welfareTypeNumber, value);
+            }
+
+            //生效日期——取对应现险种的
+            if (StringUtils.isNotEmpty(socialBsedDateString)) {
+                result.put("stop_social_bsed", socialBsedDateString);
+            }
+        }
+        this.getPageCache().put("stop-" + socialPersonId, JSONObject.toJSONString(result));
+    }
+
+    /**
+     * 基数调整与停止代缴时，代缴险种状态
+     *
+     * @param personDynmi
+     */
+    private void setSuspensionPaymentInsurance(DynamicObject personDynmi) {
+        //1查询代缴人员是否存在“参保状态”为“正常缴纳”并且“代管员工”为“是”的档案---人员社保档案hcsi_sinsurfile
+        QFilter personFilter = new QFilter("id", QCP.equals, personDynmi.getPkValue());
+        personFilter.and(new QFilter("sinsurstatus", QCP.equals, "normal"));//参保状态正常缴纳
+        DynamicObject hcsiSinsurfileImp = QueryServiceHelper.queryOne("hcsi_sinsurfile", "*", personFilter.toArray());
+        //收集代缴险种值
+        ArrayList<String> paymentInsuranceList = new ArrayList<>();
+
+            if (hcsiSinsurfileImp != null) {
+                //根据档案关联参保标准查询社保基数设置 --收集对应险种
+                QFilter sinsurBase = new QFilter("sinsurfile", QCP.equals, hcsiSinsurfileImp.getLong("id"));
+                sinsurBase.and(new QFilter("insured", QCP.equals, "1"));//是否参保
+                DynamicObjectCollection hcsiSinsurbase = QueryServiceHelper.query("hcsi_sibase", "welfaretype.number", sinsurBase.toArray());
+
+                ArrayList<String> insuranceItemIdList = new ArrayList<>();
+                for (DynamicObject item : hcsiSinsurbase) {
+                    insuranceItemIdList.add(item.getString("welfaretype.number"));
+                }
+
+                //社保险种包含养老保险、医疗保险，失业保险，工伤保险，补充医疗保险，生育险
+                //公积金险种包含住房公积金;
+                Set<String> socialSecurityInsurance = getSocialConfigs().keySet();
+                Set<String> providentFundInsurance = getFundConfigs().keySet();
+                boolean socialSecurityFlag = true;
+                boolean providentFundFlag = true;
+
+                //判断逻辑：
+                //遍历险种项目，如果该险种属于社保险种或公积金险种，则将其下拉值设置为不可选
+                for (String item : insuranceItemIdList) {
+                    if (socialSecurityInsurance.contains(item)) {
+                        socialSecurityFlag = false;
+                    }
+                    if (providentFundInsurance.contains(item)) {
+                        providentFundFlag = false;
+                    }
+                }
+
+                //收集代缴申请单能申请的险种
+                if (!socialSecurityFlag) {
+                    paymentInsuranceList.add("A");//社保
+                }
+                if (!providentFundFlag) {
+                    paymentInsuranceList.add("B");//公积金
+                }
+                //设置“代缴险种”的下拉框选择状态
+                setDropDownBox(paymentInsuranceList, false);
+            }
+    }
+
+    /**
+     * 在新增代缴时，代缴险种下拉框的状态选择
+     */
+    private void setPaymentInsurance(DynamicObject personDynmi) {
+        //1.根据工号，查询代缴人员是否存在“暂存”、“已提交”、“审批中”、“待重新提交”的在途单据
+        DynamicObject bill = this.getView().getModel().getDataEntity();
+        long billId = bill.get("id") == null ? 0l : bill.getLong("id");
+        ArrayList<String> billstatus = new ArrayList<>(Arrays.asList("A", "B", "D", "G"));//A暂存，B已提交
+        String empnumber = personDynmi.getString("employee.empnumber");
+        QFilter filter = new QFilter("billstatus", QCP.in, billstatus);
+        filter.and(new QFilter("${ISV_FLAG}_person.employee.empnumber", QCP.equals, empnumber));
+        filter.and(new QFilter("id", QCP.not_equals, billId));//排除当前单据
+        //1.1收集在途单据中的代缴险种值
+        ArrayList<String> paymentInsuranceList = new ArrayList<>();
+
+        DynamicObjectCollection kdcdSocialSecurityPay = QueryServiceHelper.query("${ISV_FLAG}_social_security", "*,entryentity.*", filter.toArray());
+        for (DynamicObject dynamicObject : kdcdSocialSecurityPay) {
+            //获取在途单据的单据体，查看已选择的险种
+            String paymentInsurance = dynamicObject.getString("entryentity.${ISV_FLAG}_payment_insurance_e");
+            if (paymentInsurance != null && !paymentInsurance.isEmpty()) {
+                paymentInsuranceList.add(paymentInsurance);//A为社保，B为公积金
+            }
+        }
+
+        //1.2查询代缴人员是否存在“参保状态”为“正常缴纳”并且“代管员工”为“是”的档案---人员社保档案hcsi_sinsurfile
+        QFilter personFilter = new QFilter("sinsurstatus", QCP.equals, "normal");//参保状态正常缴纳
+        personFilter.and(new QFilter("employee.empnumber", QCP.equals, empnumber)); //工号
+        personFilter.and(new QFilter("isescrowstaff", QCP.equals, "1"));//代管员工
+        personFilter.and(new QFilter("iscurrentversion", QCP.equals, "1"));
+        personFilter.and(new QFilter("datastatus", QCP.equals, "1"));
+        personFilter.and(new QFilter("status", QCP.not_equals, "E"));//数据状态为非已废弃
+        DynamicObjectCollection hcsiSinsurfileImp = QueryServiceHelper.query("hcsi_sinsurfile", "*", personFilter.toArray());
+        if (hcsiSinsurfileImp.size() > 0) {
+            //收集社保档案中选择过的险种
+            List<Long> hcsiSinsurFilesIds = new ArrayList<>(hcsiSinsurfileImp.size());
+            for (DynamicObject hcsiSinsurfile : hcsiSinsurfileImp) {
+                hcsiSinsurFilesIds.add(hcsiSinsurfile.getLong("id"));
+            }
+
+            Map<Long, List<String>> baseMap = new HashMap<>();
+            QFilter sinSurBase = new QFilter("sinsurfile", QCP.in, hcsiSinsurFilesIds);
+            sinSurBase.and(new QFilter("insured", QCP.equals, "1"));//是否参保
+            DynamicObjectCollection hcSiSinSurFile = QueryServiceHelper.query("hcsi_sibase", "id,sinsurfile,welfaretype.number,paybaseofemployee,paybaseofcompany,startdate", sinSurBase.toArray());
+            for (DynamicObject sinSurFile : hcSiSinSurFile) {
+                baseMap.computeIfAbsent(sinSurFile.getLong("sinsurfile"), k -> new ArrayList<>()).add(sinSurFile.getString("welfaretype.number"));
+            }
+
+            for (DynamicObject hcsiSinsurfile : hcsiSinsurfileImp) {
+                long id = hcsiSinsurfile.getLong("id");
+                //社保险种包含养老保险、医疗保险，失业保险，工伤保险，补充医疗保险，生育险
+                //公积金险种包含住房公积金;
+                Set<String> socialSecurityInsurance = getSocialConfigs().keySet();
+                Set<String> providentFundInsurance = getFundConfigs().keySet();
+                boolean socialSecurityFlag = true;
+                boolean providentFundFlag = true;
+                if (!baseMap.isEmpty() && baseMap.containsKey(id)) {
+                    List<String> insuranceItemIdList = baseMap.get(id);
+                    //判断逻辑：
+                    //遍历险种项目，如果该险种属于社保险种或公积金险种，则将其下拉值设置为不可选
+                    for (String item : insuranceItemIdList) {
+                        if (socialSecurityInsurance.contains(item)) {
+                            socialSecurityFlag = false;
+                        }
+                        if (providentFundInsurance.contains(item)) {
+                            providentFundFlag = false;
+                        }
+                    }
+                }
+                //收集代缴申请单能申请的险种
+                if (!socialSecurityFlag) {
+                    paymentInsuranceList.add("A");//社保
+                }
+                if (!providentFundFlag) {
+                    paymentInsuranceList.add("B");//公积金
+                }
+            }
+        }
+        //设置“代缴险种”的下拉框选择状态
+        setDropDownBox(paymentInsuranceList, true);
+    }
+
+    /**
+     * 设置下拉框是否可选
+     * 代缴险种险种集合 'A'社保，B‘公积金’
+     */
+    private void setDropDownBox(ArrayList<String> paymentInsuranceList, boolean flag) {
+        ComboEdit control = this.getView().getControl("${ISV_FLAG}_payment_insurance");
+        List<ValueMapItem> comboItems = ((MulComboProp) control.getProperty()).getComboItems();
+
+        ArrayList<ComboItem> comboItemsList = new ArrayList<>();
+        for (ValueMapItem comboItem : comboItems) {
+            String value = comboItem.getValue();
+
+            ComboItem combo = new ComboItem();
+            combo.setId(value);
+            combo.setCaption(comboItem.getName());
+            combo.setValue(value);
+
+            if (flag) {
+                if (paymentInsuranceList.contains(value)) {
+                    //设置下拉不可选，无效
+                    combo.setDisable(true);
+                    combo.setItemVisible(true);
+                }
+            } else {
+                if (!paymentInsuranceList.contains(value)) {
+                    //设置下拉不可选，无效
+                    combo.setDisable(true);
+                    combo.setItemVisible(true);
+                }
+            }
+            comboItemsList.add(combo);
+        }
+        control.setComboItems(comboItemsList);
+    }
+
+    //设置人员信息
+    private void setPersonInfo(DynamicObject personDynmic) {
+        Long personId = personDynmic.getLong("employee.id");
+
+        //从任职经历基础页面中获取值，设置到任职公司，任职部门，任职岗位中
+        QFilter filter = new QFilter("employee", QCP.equals, personId);
+//        filter.and(new QFilter("enddate",QCP.large_equals,new Date()));
+        filter.and(new QFilter("isprimary", QCP.equals, "1"));
+        DynamicObject hrpiEmpposorgrel = QueryServiceHelper.queryOne("hrpi_empposorgrel", "company,company.name,adminorg,adminorg.name,position,position.name", filter.toArray());
+        if (hrpiEmpposorgrel != null) {
+            this.getModel().setValue("${ISV_FLAG}_company", hrpiEmpposorgrel.get("company"));
+            this.getModel().setValue("${ISV_FLAG}_department", hrpiEmpposorgrel.get("adminorg"));
+            this.getModel().setValue("${ISV_FLAG}_position", hrpiEmpposorgrel.get("position"));
+        }
+        //设置人员头像信息
+        showPersonInfo(personDynmic, hrpiEmpposorgrel);
+
+        //理论参保单位---人员档案中的理论参保单位
+        this.getModel().setValue("${ISV_FLAG}_insured_company", personDynmic.get("welfarepayertheory"));
+
+
+        //将证件类型、证件号码，从证件信息基础页面获取，hrpi_percre
+        QFilter IdCardFilter = new QFilter("employee", QCP.equals, personId);
+        DynamicObject hrpiPercre = QueryServiceHelper.queryOne("hrpi_percre", "number,credentialstype", IdCardFilter.toArray());
+        if (hrpiPercre != null) {
+            this.getModel().setValue("${ISV_FLAG}_card_num", hrpiPercre.get("number"));
+            this.getModel().setValue("${ISV_FLAG}_hbss_credentialstype", hrpiPercre.get("credentialstype"));
+        }
+
+        //户籍类型、户口性质，人员社保档案中获取，hcsi_sinsurperson
+        QFilter sinSurPersonFilter = new QFilter("employee", QCP.equals, personId);
+        sinSurPersonFilter.and(new QFilter("iscurrentversion", QCP.equals, "1"));
+        sinSurPersonFilter.and(new QFilter("datastatus", QCP.equals, "1"));
+        DynamicObject hcsiSinsurperson = QueryServiceHelper.queryOne("hcsi_sinsurfile", "registertype,category", sinSurPersonFilter.toArray());
+        if (hcsiSinsurperson != null) {
+            this.getModel().setValue("${ISV_FLAG}_registertype", hcsiSinsurperson.get("registertype"));
+            this.getModel().setValue("${ISV_FLAG}_category", hcsiSinsurperson.get("category"));
+        }
+    }
+
+    //设置人员面板信息
+    private void showPersonInfo(DynamicObject personDynmic, DynamicObject hrpiEmpposorgrel) {
+        if (hrpiEmpposorgrel != null) {
+            //将任职公司，任职部门，任职岗位中设置到人员信息页签中,以及其他信息
+            Label companyControl = this.getView().getControl("${ISV_FLAG}_label_company");
+            companyControl.setText(hrpiEmpposorgrel.getString("company.name"));
+
+            Label adminorgControl = this.getView().getControl("${ISV_FLAG}_label_adminorg");
+            adminorgControl.setText(hrpiEmpposorgrel.getString("adminorg.name"));
+
+            Label positionControl = this.getView().getControl("${ISV_FLAG}_label_position");
+            positionControl.setText(hrpiEmpposorgrel.getString("position.name"));
+
+
+            //姓名,工号
+            DynamicObject personDynmicObject = personDynmic.getDynamicObject("employee");
+            Label nameController = this.getView().getControl("${ISV_FLAG}_label_name");
+            nameController.setText(personDynmicObject.getString("name"));
+            Label numberControl = this.getView().getControl("${ISV_FLAG}_label_number");
+            numberControl.setText(personDynmicObject.getString("number"));
+
+            //职级、职等，查询职级职等基础页面
+            QFilter empjobrelFilter = new QFilter("employee", QCP.equals, personDynmicObject.getLong("id"));
+            empjobrelFilter.and(new QFilter("iscurrentdata", QCP.equals, "1"));
+            DynamicObject empjobrel = BusinessDataServiceHelper.loadSingle("hrpi_empjobrel", "id,joblevel,jobgrade", empjobrelFilter.toArray());
+            if(Objects.nonNull(empjobrel)) {
+                //职级
+                Label joblevelControl = this.getView().getControl("${ISV_FLAG}_label_joblevel");
+                joblevelControl.setText(empjobrel.getString("joblevel.name"));
+                //职级编码
+                Label jobgradeControl = this.getView().getControl("${ISV_FLAG}_label_joblevelnumber");
+                jobgradeControl.setText(empjobrel.getString("joblevel.number"));
+            }
+
+            //头像、性别
+            //查找人员非时序属性
+            QFilter personFilter = new QFilter("id", QCP.equals, personDynmicObject.getLong("id"));
+            personFilter.and(new QFilter("iscurrentversion", QCP.equals, "1"));
+            personFilter.and(new QFilter("datastatus", QCP.equals, "1"));
+            DynamicObject pernontsprop = QueryServiceHelper.queryOne("hrpi_employee", "headsculpture,gender,gender.name", personFilter.toArray());
+            if (pernontsprop != null) {
+                Label genderControl = this.getControl("${ISV_FLAG}_label_gender");
+                genderControl.setText(pernontsprop.getString("gender.name"));
+                //性别
+                HashMap<String, Object> imageMap = new HashMap<>();
+                imageMap.put("imageKey", pernontsprop.getString("headsculpture"));
+
+                //头像
+                Image imageHeadControl = this.getControl("${ISV_FLAG}_headsculpturecard");
+                imageHeadControl.setUrl(HRImageUrlUtil.getImageFullUrl(pernontsprop.getString("headsculpture")));
+                imageHeadControl.setTips("人员头像");
+            }
+
+            //用工关系状态，用企业人进行查询
+            DynamicObject empPosOrgrel = personDynmic.getDynamicObject("empposorgrel");
+            if (Objects.nonNull(empPosOrgrel)){
+                DynamicObject empStage = empPosOrgrel.getDynamicObject("empstage");
+                DynamicObject employeeObj = empPosOrgrel.getDynamicObject("employee");
+                QFilter empEntrelFilter = new QFilter("employee", QCP.equals, employeeObj.getLong("id"));
+                empEntrelFilter.and(new QFilter("empstagelatestrecord", QCP.equals, "1"));
+                empEntrelFilter.and(new QFilter("empstage", QCP.equals, empStage.getLong("id")));
+                DynamicObject empEntrelObj = QueryServiceHelper.queryOne("hsbs_empentrel", "laborreltype.name,laborrelstatus.name", empEntrelFilter.toArray());
+                if (empEntrelObj != null) {
+                    //用工关系类型
+                    Label laborreltypeController = this.getView().getControl("${ISV_FLAG}_label_laborreltype");
+                    laborreltypeController.setText(empEntrelObj.getString("laborreltype.name"));
+                    //用工关系状态
+                    Label labelNumberControl = this.getView().getControl("${ISV_FLAG}_label_laborrelstatus");
+                    labelNumberControl.setText(empEntrelObj.getString("laborrelstatus.name"));
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 单据体某些字段的隐藏
+     */
+    public void hideFields(String insurTypeList, String paymentServiceTypeNumber) {
+        if ("001".equals(paymentServiceTypeNumber)) {
+            setEntryHide(insurTypeList, "0");
+        }
+
+        if ("002".equals(paymentServiceTypeNumber)) {
+            setEntryHide(insurTypeList, "1");
+        }
+
+        if ("003".equals(paymentServiceTypeNumber)) {
+            setEntryHide(insurTypeList, "2,3");
+        }
+    }
+
+    public void setEntryHide(String insurTypeList, String index) {
+        String[] split = index.split(",");
+        //社保
+        Set<String> socailSet = getSocialConfigs().keySet();
+        for (String key : socailSet) {
+            String[] formId = getSocialConfigs().get(key);
+            //包含对应险种则显示，不包含则隐藏
+            if (insurTypeList.contains(key)) {
+                for (String i : split) {
+                    this.getView().setVisible(true, formId[Integer.parseInt(i)]);
+                }
+            } else {
+                for (String i : split) {
+                    this.getView().setVisible(false, formId[Integer.parseInt(i)]);
+                }
+            }
+        }
+        //公积金
+        Set<String> fundKeySet = getFundConfigs().keySet();
+        for (String key : fundKeySet) {
+            String[] formId = getFundConfigs().get(key);
+            //包含对应险种则显示，不包含则隐藏
+            if (insurTypeList.contains(key)) {
+                for (String i : split) {
+                    this.getView().setVisible(true, formId[Integer.parseInt(i)]);
+                }
+            } else {
+                for (String i : split) {
+                    this.getView().setVisible(false, formId[Integer.parseInt(i)]);
+                }
+            }
+        }
+    }
+
+    /**
+     * 设置分录的值
+     */
+    public void setEntryValue(String insurTypeList, String paymentInsurance, int rowIndex, Object newValue, String index, String name) {
+        String[] split = index.split(",");
+        //险种
+        //社保
+        HashMap<String, String[]> socialConfigs = getSocialConfigs();
+        //公积金
+        HashMap<String, String[]> fundConfigs = getFundConfigs();
+        //配置
+        HashMap<String, String[]> insuranceMap = getInsuranceConfigs(socialConfigs, fundConfigs).get(paymentInsurance);
+        //设置险种值
+        Set<String> insuranceSet = insuranceMap.keySet();
+        for (String key : insuranceSet) {
+            String[] formId = insuranceMap.get(key);
+            if (insurTypeList.contains(key)) {
+                for (String i : split) {
+                    if ("${ISV_FLAG}_radix".equals(name)) {
+                        this.getModel().setValue(formId[Integer.parseInt(i)], newValue, rowIndex);//新增代缴明细中养老保险基数
+                    }
+
+                    if ("${ISV_FLAG}_radix_base".equals(name)) {
+                        BigDecimal value = (BigDecimal) this.getModel().getValue(formId[2], rowIndex);
+                        if (value != null && value.compareTo(BigDecimal.ZERO) > 0) {
+                            this.getModel().setValue(formId[Integer.parseInt(i)], newValue, rowIndex);//基数调整
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 根据代缴公司设置险种缓存
+     **/
+    public void setPayingCompany(DynamicObject payingCompany) {
+        if (payingCompany != null) {
+            ArrayList<String> insurTypeList = new ArrayList<>();
+            SinsurfileHelper sinsurfileHelper = new SinsurfileHelper();
+            Long sinSurstdandarId = 0L;
+            DynamicObjectCollection mulSinSurStd = payingCompany.getDynamicObjectCollection("mulsinsurstd");
+            if (CollectionUtils.isNotEmpty(mulSinSurStd)) {
+                sinSurstdandarId = mulSinSurStd.get(0).getLong("fbasedataid.id");
+            }
+            DynamicObject sitbsSinsurstd = BusinessDataServiceHelper.loadSingle(sinSurstdandarId, "sitbs_sinsurstd");
+            if (Objects.nonNull(sitbsSinsurstd)) {
+                DynamicObjectCollection entryentity = sitbsSinsurstd.getDynamicObjectCollection("stdentryentity");
+                for (DynamicObject entry : entryentity) {
+                    String insurTypeNumber = entry.getString("insurtype.number");
+                    insurTypeList.add(insurTypeNumber);
+                }
+                this.getPageCache().put(String.valueOf(payingCompany.getLong("id")), StringUtils.join(insurTypeList, ","));
+            }
+        }
+    }
+
+    private void clearBillInfo() {
+        //人员切换，删除掉单据体原来数据
+        this.getModel().deleteEntryData("entryentity");
+        this.getModel().deleteEntryData("${ISV_FLAG}_stop_entryentity");
+        this.getModel().deleteEntryData("${ISV_FLAG}_base_entryentity");
+
+        //清空掉代缴险种，基数表
+        this.getModel().setValue("${ISV_FLAG}_payment_insurance", null);
+        this.getModel().setValue("${ISV_FLAG}_radix_table", null);
+    }
+
+    //显示分录的所有险种
+    public void setEntryShow(String index) {
+        //社保
+        HashMap<String, String[]> socialConfigs = getSocialConfigs();
+        //公积金
+        HashMap<String, String[]> fundConfigs = getFundConfigs();
+        //配置
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = getInsuranceConfigs(socialConfigs, fundConfigs);
+        HashMap<String, String[]> house = insuranceConfigs.get("B");//公积金
+        HashMap<String, String[]> socal = insuranceConfigs.get("A");//社保
+        String[] split = index.split(",");
+
+        Set<String> houseKeySet = house.keySet();
+        for (String key : houseKeySet) {
+            String[] FormId = house.get(key);
+            for (String i : split) {
+                this.getView().setVisible(true, FormId[Integer.valueOf(i)]);
+            }
+        }
+
+        Set<String> socailKeySet = socal.keySet();
+        for (String key : socailKeySet) {
+            String[] FormId = socal.get(key);
+            for (String i : split) {
+                this.getView().setVisible(true, FormId[Integer.valueOf(i)]);
+            }
+        }
+    }
+
+    //如果paymentInsurance为A，即社保，那么将住房公积金设置为不可编辑
+    //如果paymentInsurance为B，即住房公积金，那么将社保设置为不可编辑
+    public void setEntryFiledEnable(IFormView view, String paymentInsurance, int rowIndex, String index) {
+        String[] split = index.split(",");
+        //社保
+        HashMap<String, String[]> socialConfigs = getSocialConfigs();
+        //公积金
+        HashMap<String, String[]> fundConfigs = getFundConfigs();
+        //配置
+        HashMap<String, HashMap<String, String[]>> insuranceConfigs = getInsuranceConfigs(socialConfigs, fundConfigs);
+        if ("A".equals(paymentInsurance)) {
+            HashMap<String, String[]> map = insuranceConfigs.get("B");
+            Set<String> keySet = map.keySet();
+            for (String key : keySet) {
+                String[] formId = map.get(key);
+                for (String i : split) {
+                    view.setEnable(false, rowIndex, formId[Integer.parseInt(i)]);
+                }
+            }
+        }
+
+        if ("B".equals(paymentInsurance)) {
+            HashMap<String, String[]> map = insuranceConfigs.get("A");
+            Set<String> keySet = map.keySet();
+            for (String key : keySet) {
+                String[] formId = map.get(key);
+                for (String i : split) {
+                    view.setEnable(false, rowIndex, formId[Integer.parseInt(i)]);
+                }
+            }
+        }
+    }
+}

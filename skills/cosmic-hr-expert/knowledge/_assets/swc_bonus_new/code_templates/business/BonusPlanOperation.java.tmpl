@@ -1,0 +1,92 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_plan.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.AfterOperationArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.cd.common.operate.chain.OperateChain;
+import kd.cd.common.util.BotpUtils;
+import kd.cd.common.util.PushResult;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: whs
+ * Date: 2024/8/6 15:24
+ * Description: 绑定奖金计划校验
+ */
+public class BonusPlanOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        fieldKeys.add("${ISV_FLAG}_approval_explain");
+        fieldKeys.add("${ISV_FLAG}_file_number");
+        fieldKeys.add("${ISV_FLAG}_plan_summary");
+        fieldKeys.add("${ISV_FLAG}_plan_status");
+        fieldKeys.add("billstatus");
+        fieldKeys.add("${ISV_FLAG}_expiring_date");
+        fieldKeys.add("${ISV_FLAG}_file_size");
+        fieldKeys.add("${ISV_FLAG}_personal_rewards");
+        fieldKeys.add("org");
+    }
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+        e.addValidator(new BonusPlanValidator());
+    }
+
+    public void afterExecuteOperationTransaction(AfterOperationArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        if ("submiteffect".equals(operationKey)){
+            List<String> approvalExplains = Arrays.asList("1","2","3");
+            for (DynamicObject bill : entities) {
+                String approvalExplain = bill.getString("${ISV_FLAG}_approval_explain");
+                String buOrgNum = bill.getString("org.number");
+                if (approvalExplains.contains(approvalExplain)){
+                    List<ListSelectedRow> rows = new ArrayList<>();
+                    ListSelectedRow row = new ListSelectedRow();
+                    row.setPrimaryKeyValue(bill.getLong("id"));
+                    rows.add(row);
+
+                    // 已报批、已发文、执行制度，提交审批后直接生成汇总审批单
+                    try {
+                        PushResult pushResult = BotpUtils.push(false,"${ISV_FLAG}_bonus_plan", "${ISV_FLAG}_bonus_plan_approval", rows, "2169773597483127808");
+                        // 下推是否成功
+                        if (pushResult.isSuccess()) {
+                            // 收集计划汇总审批单id
+                            HashMap<Long, Long> resourseMap = new HashMap<>();
+                            DynamicObject[] dataPacks = pushResult.getDatapacks();
+                            for (DynamicObject dataPack : dataPacks) {
+                                Long bonusPlanApprovalId = dataPack.getLong("id");
+                                DynamicObjectCollection tdkwEntryPlanDetail = dataPack.getDynamicObjectCollection("${ISV_FLAG}_entry_plan_detail");
+                                Set<Long> srcbillIds = tdkwEntryPlanDetail.stream().map(item -> Long.valueOf(item.getString("${ISV_FLAG}_srcbillid"))).collect(Collectors.toSet());
+                                srcbillIds.forEach(srcbillId -> resourseMap.put(srcbillId,bonusPlanApprovalId));
+                                // 保存提交数据
+                                OperateChain.of(dataPack).save().submit().failThenDeleteAndThrow();
+                            }
+                            bill.set("${ISV_FLAG}_plan_summary",resourseMap.get(bill.getLong("id")));
+                        }else {
+                            String errMsg = pushResult.getErrMsg();
+                            throw new KDBizException("生成汇总审批失败。"+errMsg);
+                        }
+
+                    } catch (Exception ex) {
+                        throw new KDBizException(ex.getMessage());
+                    }
+                }
+            }
+            SaveServiceHelper.update(entities);
+        }
+    }
+}

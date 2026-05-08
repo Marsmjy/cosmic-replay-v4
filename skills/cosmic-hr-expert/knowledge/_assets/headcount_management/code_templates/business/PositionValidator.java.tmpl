@@ -1,0 +1,29 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.ExtendedDataEntity;
+import kd.bos.entity.validate.AbstractValidator;
+
+public class PositionValidator  extends AbstractValidator {
+    /**
+     * 所属组织
+     */
+    private  static final String ADMINORG="adminorg";
+    @Override
+    public void validate() {
+        for (ExtendedDataEntity rowDataEntity : this.getDataEntities()) {
+            DynamicObject dataEntity = rowDataEntity.getDataEntity();
+            DynamicObject adminorg = dataEntity.getDynamicObject(ADMINORG);
+            if (adminorg!=null){
+
+                if (adminorg.getBoolean("isvirtualorg")){
+
+                    String message="虚拟组织"+adminorg.getString("number")+"下不能创建岗位";
+                    this.addErrorMessage(rowDataEntity,message);
+                }
+
+            }
+
+        }
+    }
+}

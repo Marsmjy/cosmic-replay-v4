@@ -1,0 +1,123 @@
+package ${ISV_FLAG}.hr.hdm.orgtransfer.business;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.hr.hbp.business.servicehelper.HRMServiceHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author: ws
+ * @date:2023/9/4 19:59
+ * @description: 成建制划转(组织上级调整)作业
+ */
+public class OrgParentChgTask extends AbstractCommonTask {
+
+    private static final Log LOGGER = LogFactory.getLog(OrgParentChgTask.class);
+
+    /**
+     * 变动场景编码--组织上级调整（上级调整-1020_S ，汇报关系调整-ZZCJ03）
+     */
+    private static final Set<String> CHANGE_SCENE_ORG_PARENT_NUMBER = Sets.newHashSet("1020_S");
+
+    private static final String ORG_PARENT_CHG_TYPE = "A";
+
+    @Override
+    public void execute(RequestContext requestContext, Map<String, Object> map) {
+        LOGGER.info("${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgParentChgTask：成建制划转(组织上级调整)作业，开始执行...");
+        try {
+
+            // 1、根据定时任务参数设置时间取，组织变动消费明细数据，变动场景过滤出上级调整的数据
+            Map<String, Object> taskDays = getTaskDays(map);
+
+            //保存需要处理的变动数据
+            saveDealDataList(taskDays);
+
+            // 3、取成建制划转中间表数据
+            DynamicObject[] orgTranArr = OrgTransferHelper.queryOrgTranArr(ORG_PARENT_CHG_TYPE);
+            if (Objects.isNull(orgTranArr) || orgTranArr.length == 0) {
+                return;
+            }
+            // 4、成建制划转业务处理
+            handleOrgTransfer(Arrays.stream(orgTranArr).collect(Collectors.toList()), ORG_PARENT_CHG_TYPE);
+        } catch (Exception e) {
+            LOGGER.error("${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgParentChgTask：成建制划转(组织上级调整)作业，执行异常.", e);
+        }
+        LOGGER.info("${ISV_FLAG}.hr.hdm.orgtransfer.business.OrgParentChgTask：成建制划转(组织上级调整)作业，执行结束.");
+    }
+
+    private void saveDealDataList(Map<String, Object> taskDays) {
+
+        //获取组织变动信息
+        DynamicObject[] changeMsgArr = OrgTransferHelper.queryHAOSChangeMsg(taskDays, CHANGE_SCENE_ORG_PARENT_NUMBER);
+        if (ObjectUtils.isEmpty(changeMsgArr)) return;
+
+        List<DynamicObject> transferDyList = OrgTransferHelper.getOrgTransferDyList(Arrays.stream(changeMsgArr).collect(Collectors.toList()), ORG_PARENT_CHG_TYPE, CHANGE_SCENE_ORG_PARENT_NUMBER);
+
+        // 更新数据
+        if (!transferDyList.isEmpty()) {
+            SaveServiceHelper.save(transferDyList.toArray(new DynamicObject[]{}));
+        }
+    }
+
+    /**
+     * 成建制划转业务处理
+     *
+     * @param orgTranList orgTranList
+     * @param changeType  changeType
+     */
+    protected void handleOrgTransfer(List<DynamicObject> orgTranList, String changeType) {
+        for (DynamicObject orgTran : orgTranList) {
+            String currentNumber = orgTran.getString("${ISV_FLAG}_orgnumber");
+            String orgStrId = orgTran.getString("${ISV_FLAG}_orgid");
+            String orgName = orgTran.getString("${ISV_FLAG}_orgname");
+            Date effectDate = orgTran.getDate("${ISV_FLAG}_takeeffectdate");
+
+            Set<Long> orgSet = new HashSet<>();
+            long orgId = Long.parseLong(orgStrId);
+            orgSet.add(orgId);
+
+            Date currentDate = new Date();
+            List<Map<String, Object>> allSubOrg =
+                    HRMServiceHelper.invokeHRMPService("haos", "IHAOSBatchAdminOrgInfoQueryService", "querySubOrgToList", new Object[]{ImmutableList.of(orgId), currentDate,null});
+            if (!allSubOrg.isEmpty()) {
+                allSubOrg.stream().forEach(data -> {
+                    orgSet.add((Long) data.get("orgId"));
+                });
+            }
+
+            //如果是已经生成了的任职经历，则需要将它的历史版本刷新正确
+            changeEmpPosOrgRelHisDataByOrg(orgSet,effectDate);
+
+            //获取任职经历
+            DynamicObject[] empPosOrgRelArr = OrgTransferHelper.getInEffectDateEmpPosOrgRelArrByOrgIdSet(orgSet, effectDate);
+
+            if (ObjectUtils.isEmpty(empPosOrgRelArr)) {
+                String resultMsg = "成建制划转 当前组织下没有对应人员,组织编码 : " + currentNumber;
+                LOGGER.info(resultMsg);
+                // 更新成建制转换中间表状态
+                orgTran.set("${ISV_FLAG}_executestatus", "03");
+                String canInfo = resultMsg.length()<=255?resultMsg:resultMsg.substring(255);
+                orgTran.set("${ISV_FLAG}_resultmsg", canInfo);
+                orgTran.set("${ISV_FLAG}_resultmsg_tag", resultMsg);
+                continue;
+            }
+
+            //通过任职经历，构建批量调整单 -- 任职经历生效日期包含此数据生效日期的 即未生成任职经历的数据
+            DynamicObject batchTranBill = buildBatchTranBill(empPosOrgRelArr, orgId, orgTran.getDate("${ISV_FLAG}_takeeffectdate"), changeType);
+
+            saveAndEffectBatchBill(orgTran, batchTranBill, orgName, "组织变更上级");
+
+        }
+        SaveServiceHelper.save(orgTranList.toArray(new DynamicObject[]{}));
+    }
+
+
+}

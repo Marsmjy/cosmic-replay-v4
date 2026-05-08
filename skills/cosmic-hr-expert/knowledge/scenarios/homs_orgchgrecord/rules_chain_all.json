@@ -1,0 +1,1157 @@
+{
+  "scene": "homs_orgchgrecord",
+  "formId": "homs_orgchgrecord",
+  "description": "rules_chain_all.json · 场景 homs_orgchgrecord · 15 opKey 全填充 · 6 HIES + 9 custom · 反编译 AdminOrgChgRecordListPlugin 实证",
+  "opKeys": {
+    "importdata_hr": {
+      "opKey": "importdata_hr",
+      "name": "导入数据",
+      "opType": "importdata_hr",
+      "overview": {
+        "scene": "导入数据 · HIES 标品入口（系统初始化用 · 罕见）",
+        "frequency": "极低 · 仅系统初始化 / 数据迁移",
+        "stateTransition": "无（写入 t_homs_orgchgrecord 等 3 表 · 跳过部分校验）",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [
+        "t_homs_orgchgrecord 全部 · t_homs_orgchgentry · t_homs_orgchgdetail"
+      ],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ HIES 导入会跳过部分业务校验（如组织是否存在）· 不建议日常补录用",
+        "⚠ 导入数据来源是 Excel · 字段名必须严格匹配 entityNumber + chgpageelement",
+        "⚠ 一次导入上限 5000 条（HIES 标品限制）· 超过分批",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（public final class · 反编译 L117 实证）· 用 HRDataBaseList 替代",
+        "❌ 禁继承 AdminOrgChgRecordBUListPlugin（public final class · 反编译 L15 实证）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修 · enrich_opkey_chain.py 基础上加业务语义",
+        "confidence": "verified",
+        "decompiledCount": "0/0（HIES 标品入口）",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品 ImportPlugin 链路 · 不走 OP 直接写"
+      ]
+    },
+    "show_import_record_hr": {
+      "opKey": "show_import_record_hr",
+      "name": "查看导入记录",
+      "opType": "show_import_record_hr",
+      "overview": {
+        "scene": "查看 HIES 导入历史 · 只读",
+        "frequency": "极低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "导入记录元数据"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 仅查看导入历史 · 无业务影响 · ISV 一般不需要扩展",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段（PR-010）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品入口 · 跳到导入记录列表"
+      ]
+    },
+    "export_from_list_hr": {
+      "opKey": "export_from_list_hr",
+      "name": "按列表导出",
+      "opType": "export_from_list_hr",
+      "overview": {
+        "scene": "HIES 按列表导出 · 默认导出所有可见列（含字段级溯源计算列）",
+        "frequency": "高 · 审计 / 合规月度报表常用",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "列表所有可见字段 + changefield/beforevalue/aftervalue 等计算列"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 大数据量场景导出会卡 · 标品 packageData 单行计算 · 建议先在筛选面板收窄数据范围",
+        "⚠ ISV 加的自定义计算列要在 packageData 阶段塞值 · 否则导出 Excel 列空"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品 ExportPlugin · 跑 list FormPlugin 的 packageData 拿计算列值"
+      ]
+    },
+    "export_from_impttpl_hr": {
+      "opKey": "export_from_impttpl_hr",
+      "name": "按导入模板导出",
+      "opType": "export_from_impttpl_hr",
+      "overview": {
+        "scene": "HIES 按导入模板导出（用于二次导入）",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 导出格式必须跟导入模板一致 · 否则二次导入失败"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品 ExportPlugin · 按导入模板字段集导出"
+      ]
+    },
+    "export_from_expttpl_hr": {
+      "opKey": "export_from_expttpl_hr",
+      "name": "按导出模板导出",
+      "opType": "export_from_expttpl_hr",
+      "overview": {
+        "scene": "HIES 按导出模板导出（用户配置好的导出格式）",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 导出模板需要用户先在【个性化设置】里保存"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品 ExportPlugin · 按用户保存的导出模板"
+      ]
+    },
+    "show_export_record_hr": {
+      "opKey": "show_export_record_hr",
+      "name": "查看导出记录",
+      "opType": "show_export_record_hr",
+      "overview": {
+        "scene": "查看 HIES 导出历史 · 只读",
+        "frequency": "低",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 仅查看 · 无业务影响"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "HIES 标品入口"
+      ]
+    },
+    "first": {
+      "opKey": "first",
+      "name": "第一",
+      "opType": "first",
+      "overview": {
+        "scene": "翻页到第一页 · 视图层操作 · 不写库",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "第一页所有可见字段"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 翻页操作不写库 · ISV 一般不需要在此挂插件"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "视图层翻页 · 标品兜底 · 无业务 OP"
+      ]
+    },
+    "previous": {
+      "opKey": "previous",
+      "name": "前一",
+      "opType": "previous",
+      "overview": {
+        "scene": "翻页到前一页 · 视图层",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 翻页 · ISV 不挂"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "视图层翻页"
+      ]
+    },
+    "next": {
+      "opKey": "next",
+      "name": "后一",
+      "opType": "next",
+      "overview": {
+        "scene": "翻页到后一页",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 翻页 · ISV 不挂"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "视图层翻页"
+      ]
+    },
+    "last": {
+      "opKey": "last",
+      "name": "最后",
+      "opType": "last",
+      "overview": {
+        "scene": "翻页到最后一页",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 翻页 · ISV 不挂"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "视图层翻页"
+      ]
+    },
+    "save": {
+      "opKey": "save",
+      "name": "保存",
+      "opType": "save",
+      "overview": {
+        "scene": "保存 · BaseFormModel 模板兜底注册 · 本场景**实际不会被触发**（用户没有新建 / 编辑入口）",
+        "frequency": "极低（理论上不会触发）",
+        "stateTransition": "无",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "(no-op · readonly query scene)",
+          "className": "_readonly_query_marker_",
+          "role": "若被触发：BaseFormModel 模板的 SaveOp 链路（标品兜底） · 本场景没有可见的 save 按钮 · 用户操作不到"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_save_no_op_in_this_scene",
+          "name": "本场景无写入语义校验",
+          "logic": "本场景是只读查询 · save 触发是异常情况 · 标品没绑业务 Validator",
+          "source": "本场景 ListPlugin 反编译实证 · 没有 propertyChanged / beforeDoOperation save 拦截"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_save_R1",
+          "name": "本场景的数据来源是配对场景 homs_orgbatchchgbill 生效驱动写入（参考 02_business_rul…",
+          "description": "本场景的数据来源是配对场景 homs_orgbatchchgbill 生效驱动写入（参考 02_business_rules.md §3.1）"
+        },
+        {
+          "id": "B_save_R2",
+          "name": "ISV 想监听变动事件 → 不在本场景挂 OP · 去配对场景挂",
+          "description": "ISV 想监听变动事件 → 不在本场景挂 OP · 去配对场景挂"
+        },
+        {
+          "id": "B_save_R3",
+          "name": "想表达'修正变动记录'语义 → 走配对场景'反向调整单' · 不在本场景 save",
+          "description": "想表达'修正变动记录'语义 → 走配对场景'反向调整单' · 不在本场景 save"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 不要在 save opKey 上挂 OP（用户操作不到 · 浪费）",
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段 · 在 beforeExecute 注册晚了（PR-010）",
+        "⚠ beforeExecuteOperationTransaction 抛异常 → 事务回滚 · 使用 addErrorMessage 更好",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（public final class · 反编译 L117 实证）· 用 HRDataBaseList 替代",
+        "❌ 禁继承 OrgBatchChgBillEffectOp（配对场景专属 OP · 标品升级风险 · 违反 PR-001）· 用 HRDataBaseOp 替代",
+        "❌ 禁继承 AbsOrgBaseOp（haos 域 · 不在 SDK 白名单）· 用 HRDataBaseOp 替代"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修 · save 在本场景实质不触发 · 仅模板兜底",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "若被触发：BaseFormModel 模板的 SaveOp 链路（标品兜底）",
+        "本场景没有可见的 save 按钮 · 用户操作不到"
+      ]
+    },
+    "refresh": {
+      "opKey": "refresh",
+      "name": "刷新",
+      "opType": "refresh",
+      "overview": {
+        "scene": "列表刷新 · 触发 setFilter + beforePackageData 重新跑 · 不写库",
+        "frequency": "高 · 用户改筛选 / ISV CS-05 高级筛选用",
+        "stateTransition": "无（视图刷新）",
+        "extValue": 3
+      },
+      "formPluginBefore": [
+        {
+          "name": "AdminOrgChgRecordListPlugin.afterDoOperation",
+          "logic": "拦截 refresh · 标品空操作（占位）",
+          "source": "反编译 L182-L184"
+        }
+      ],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_refresh_pageCache_consistency",
+          "name": "refresh 后 pageCache 一致性校验",
+          "logic": "ISV 加 toolbar 按钮（如 CS-05 高级筛选）的话 · refresh 后 pageCache 数据应跟 list 显示一致",
+          "source": "ISV 扩展规范 · 不在标品代码"
+        },
+        {
+          "id": "V_refresh_filter_chain_order",
+          "name": "ISV setFilter 在标品后跑",
+          "logic": "PR-002 RowKey 顺序 · ISV setFilter 在 super 之后 add · 不要清掉标品权限过滤",
+          "source": "PR-002 + setFilter 反编译实证"
+        },
+        {
+          "id": "V_refresh_orgPerm_must_apply",
+          "name": "OrgPermHelper 权限过滤必须保留",
+          "logic": "标品 setFilter L159 注入的 hrPermFilter 必须保留 · 不能 removeIf",
+          "source": "反编译实证 + 平台数据安全设计"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_refresh_R1",
+          "name": "刷新后默认排序：组织编码 + 变动生效日期 DESC + 操作时间 DESC + 子分录序号（反编译 L170）",
+          "description": "刷新后默认排序：组织编码 + 变动生效日期 DESC + 操作时间 DESC + 子分录序号（反编译 L170）"
+        },
+        {
+          "id": "B_refresh_R2",
+          "name": "刷新会重新跑 SEARCH_MAP 字段映射 · ISV 自加的代理字段必须在 setFilter 阶段做映射",
+          "description": "刷新会重新跑 SEARCH_MAP 字段映射 · ISV 自加的代理字段必须在 setFilter 阶段做映射"
+        },
+        {
+          "id": "B_refresh_R3",
+          "name": "刷新不影响 customParam.needshowdetail / needshowsingle 跨场景跳转模式（反编…",
+          "description": "刷新不影响 customParam.needshowdetail / needshowsingle 跨场景跳转模式（反编译 L160-L168）"
+        },
+        {
+          "id": "B_refresh_R4",
+          "name": "刷新触发 beforePackageData 的 4 张表批量查询 · 大数据量场景注意性能",
+          "description": "刷新触发 beforePackageData 的 4 张表批量查询 · 大数据量场景注意性能"
+        },
+        {
+          "id": "B_refresh_R5",
+          "name": "刷新会重新计算 changeMap / mergeAndSplitViewMap / parentMap · ISV 自…",
+          "description": "刷新会重新计算 changeMap / mergeAndSplitViewMap / parentMap · ISV 自维护的 tdkwChangeMap 也要清空重建"
+        }
+      ],
+      "formPluginAfter": [
+        {
+          "name": "ISV TdkwOrgChgRecordFilterListPlugin（CS-01）",
+          "logic": "在标品 afterDoOperation 之后跑 · 可重置 ISV 自定义筛选状态",
+          "source": "CS-01 代码框架"
+        }
+      ],
+      "writeFields": [],
+      "readFields": [
+        "t_homs_orgchgrecord 主表 · t_homs_orgchgentry 分录 · t_homs_orgchgdetail 子分录",
+        "t_haos_adminorgdetail · t_homs_subentryentity · t_haos_teamcoopreltype · t_haos_structproject（buildData 阶段联查）"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 直接修改 DynamicObject.set(fieldKey, ...) 必须用字段 key · 不能用显示名",
+        "⚠ refresh 后 pageCache 不清理 · 用户取消 ISV 高级筛选后 cache 还在 · 影响后续",
+        "⚠ refresh 触发批量查 4-5 张表 · 大数据量（>10000 行）场景需要 DBA 配合加索引",
+        "⚠ ISV 重写 packageData 时第一行就要 if (event.getRowData() == null) return · 防 NPE",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（public final class · L117 · 标品场景专属）· 用 HRDataBaseList 替代",
+        "❌ 禁继承 AdminOrgChgRecordBUListPlugin（public final class · L15）· 用 HRDataBaseList 自实现 BU 联动",
+        "❌ 禁继承 AbstractBUListPlugin（haos 域 · 无 SDK 注解 · 不在白名单）· 用 HRDataBaseList 替代"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修 · 反编译 L181-L185 + setFilter L155-L171 + beforePackageData L232-L252 全链路",
+        "confidence": "verified",
+        "decompiledCount": "1/2（AdminOrgChgRecordListPlugin 主插件）",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "1. 用户点 refresh · 触发 list FormPlugin afterDoOperation",
+        "2. AdminOrgChgRecordListPlugin.afterDoOperation L181 检测 'refresh'.equals(operateKey) · 标品空操作",
+        "3. 重新触发 setFilter（标品 SEARCH_MAP 字段映射 + OrgPermHelper 数据权限 + otclassify=1010 + 默认排序）",
+        "4. 重新触发 beforePackageData（OrgFullNameServiceWrapper 批量拿父组织全名 + buildSplitMerge + buildData 字段级溯源）",
+        "5. packageData 单行渲染计算列",
+        "6. ISV 并列挂的插件可在 afterDoOperation 后置追加逻辑（如重置 pageCache）"
+      ]
+    },
+    "exportlistbyselectfields": {
+      "opKey": "exportlistbyselectfields",
+      "name": "导出数据（按列表）",
+      "opType": "exportlist",
+      "overview": {
+        "scene": "平台体系导出 · 受 permissionItemId=4730fc9f000004ae 控制",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [
+        {
+          "id": "V_exportlist_permission_check",
+          "name": "导出权限校验",
+          "logic": "permissionItemId=4730fc9f000004ae 必须分配给当前用户 · 否则按钮置灰",
+          "source": "_auto_operations.md L98"
+        },
+        {
+          "id": "V_exportlist_data_size",
+          "name": "导出数据量限制",
+          "logic": "默认平台限制单次导出 ≤ 100,000 行 · 大数据量需要分批",
+          "source": "苍穹平台规范"
+        },
+        {
+          "id": "V_exportlist_calculated_columns",
+          "name": "计算列值完整性校验",
+          "logic": "标品 packageData 必须为每行的 changefield / before / after 等计算列设值 · 否则 Excel 列空",
+          "source": "反编译 packageData L304-L324 + formatTextValue L326-L362"
+        }
+      ],
+      "businessRules": [
+        {
+          "id": "B_exportlistbyselectfields_R1",
+          "name": "ByList=true 表示按列表当前筛选状态导出（不是全部数据）",
+          "description": "ByList=true 表示按列表当前筛选状态导出（不是全部数据）"
+        },
+        {
+          "id": "B_exportlistbyselectfields_R2",
+          "name": "导出包括 BU 左树筛选效果（getCtrlBUFieldSet 11 字段集 · 反编译 AdminOrgChgRec…",
+          "description": "导出包括 BU 左树筛选效果（getCtrlBUFieldSet 11 字段集 · 反编译 AdminOrgChgRecordBUListPlugin L17）"
+        },
+        {
+          "id": "B_exportlistbyselectfields_R3",
+          "name": "导出含计算列（changefield / before/after / mergesplitview / parentl…",
+          "description": "导出含计算列（changefield / before/after / mergesplitview / parentlongname）"
+        },
+        {
+          "id": "B_exportlistbyselectfields_R4",
+          "name": "导出不含 ISV 自加的 search 代理字段（除非 ISV 也注册到 ListColumn）",
+          "description": "导出不含 ISV 自加的 search 代理字段（除非 ISV 也注册到 ListColumn）"
+        },
+        {
+          "id": "B_exportlistbyselectfields_R5",
+          "name": "导出受 OrgPermHelper 数据权限过滤（标品 setFilter L159）",
+          "description": "导出受 OrgPermHelper 数据权限过滤（标品 setFilter L159）"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "列表所有可见字段"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 大数据量场景导出会卡 · 标品 packageData 单行计算 · 标品 beforePackageData 跨表查询 · 大数据量超时",
+        "⚠ ISV 加自定义计算列要在 packageData 阶段 setFormatValue · 否则导出 Excel 列空",
+        "⚠ 注册自定义 Validator 必须在 onAddValidators 阶段（PR-010）",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（final）"
+      ],
+      "metadataConfig": {
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "_synthesized": {
+        "from": "Agent 精修 · 平台 ExportPlugin + 反编译 packageData",
+        "confidence": "verified",
+        "decompiledCount": "1/2",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "1. 平台 ExportPlugin 跑 ListView 当前显示列",
+        "2. 走 packageData 拿计算列值（changefield / beforevalue / aftervalue / mergesplitview / parentlongname）",
+        "3. 生成 Excel 下载"
+      ]
+    },
+    "exportdetails": {
+      "opKey": "exportdetails",
+      "name": "查看导出结果",
+      "opType": "exportdetails",
+      "overview": {
+        "scene": "查看导出任务的状态 / 下载链接",
+        "frequency": "中",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [
+        "导出任务元数据"
+      ],
+      "events": [],
+      "mines": [
+        "⚠ 仅查看 · 无业务影响 · 通常 ISV 不需要扩展",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（final）"
+      ],
+      "metadataConfig": {
+        "permissionItemId": "4730fc9f000004ae"
+      },
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "平台导出任务列表 · 跳转到任务详情查看下载"
+      ]
+    },
+    "close": {
+      "opKey": "close",
+      "name": "关闭",
+      "opType": "close",
+      "overview": {
+        "scene": "关闭列表页 · 视图层操作",
+        "frequency": "高",
+        "stateTransition": "",
+        "extValue": 3
+      },
+      "formPluginBefore": [],
+      "executionChain": [
+        {
+          "order": 1,
+          "plugin": "HRBaseDataImportEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 2,
+          "plugin": "HRCertCheckEdit",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 3,
+          "plugin": "HRBaseUeEdit",
+          "className": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 4,
+          "plugin": "HRHiesButtonSwitchPlugin",
+          "className": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        },
+        {
+          "order": 5,
+          "plugin": "HRCertCheckList",
+          "className": "kd.hr.hbp.formplugin.web.cert.HRCertCheckList",
+          "role": "plugins.json 实证 · editable · 只读查询场景 FormPlugin 兜底"
+        }
+      ],
+      "validators": [],
+      "businessRules": [
+        {
+          "id": "B_close_R1",
+          "name": "关闭前如果有未保存的高级筛选状态 · ISV 可在 beforeClosed 提示用户",
+          "description": "关闭前如果有未保存的高级筛选状态 · ISV 可在 beforeClosed 提示用户"
+        },
+        {
+          "id": "B_close_R2",
+          "name": "关闭后 pageCache 自动释放 · ISV 不需要手动清理",
+          "description": "关闭后 pageCache 自动释放 · ISV 不需要手动清理"
+        }
+      ],
+      "formPluginAfter": [],
+      "writeFields": [],
+      "readFields": [],
+      "events": [],
+      "mines": [
+        "⚠ 关闭时不要在 form 上做 save 操作（标品本场景没有 save 按钮 · 用户操作不到）",
+        "⚠ 关闭后调用方（如配对场景跳转方）会收到 ClosedCallBackEvent · ISV 在调用方挂插件接收返回值",
+        "❌ 禁继承 AdminOrgChgRecordListPlugin（public final class · L117）· 用 HRDataBaseList 替代",
+        "❌ 禁继承 AbstractBUListPlugin（haos 域 · 不在 SDK 白名单）"
+      ],
+      "metadataConfig": {},
+      "_synthesized": {
+        "from": "Agent 精修",
+        "confidence": "verified",
+        "decompiledCount": "0/0",
+        "generatedBy": "Agent 2026-04-27"
+      },
+      "_chain_notes": [
+        "视图层关闭 · 触发 closedCallBack 回调（如有）"
+      ]
+    }
+  },
+  "_meta": {
+    "hiesOpKeysInjected": {
+      "injectedAt": "2026-04-23",
+      "source": "probe_opkey_registry.py + curated_rules",
+      "opKeysAdded": [
+        "importdata_hr",
+        "show_import_record_hr",
+        "export_from_list_hr",
+        "export_from_impttpl_hr",
+        "export_from_expttpl_hr",
+        "show_export_record_hr"
+      ],
+      "bosNativeSkipped": [
+        "exportlistbyselectfields",
+        "exportdetails"
+      ],
+      "injectionScript": "scripts/gen_rules_chain_from_opkeys.py"
+    },
+    "agentPolishCustomOpKeys": {
+      "polishedAt": "2026-04-27",
+      "source": "Agent 反编译 AdminOrgChgRecordListPlugin（654 行）+ AdminOrgChgRecordBUListPlugin（22 行）+ 配对场景 homs_orgbatchchgbill 工作流",
+      "opKeysPolished": [
+        "first",
+        "previous",
+        "next",
+        "last",
+        "save",
+        "refresh",
+        "exportlistbyselectfields",
+        "exportdetails",
+        "close"
+      ],
+      "coreOpKeysWithFullChain": [
+        "refresh",
+        "save",
+        "exportlistbyselectfields",
+        "importdata_hr"
+      ],
+      "polishScript": "Agent 手工精修"
+    }
+  }
+}

@@ -1,0 +1,1208 @@
+{
+  "export_from_list_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "export_from_list_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按列表导出",
+    "operationType": "export_from_list_hr",
+    "operationId": "5I/P8=GYL9EU",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": ""
+      }
+    }
+  },
+  "export_from_expttpl_hr": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"plugins\":\"\"}"
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "export_from_expttpl_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "按导出模板导出",
+    "operationType": "export_from_expttpl_hr",
+    "operationId": "5I/PCN=FEIIS",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "plugins": ""
+      }
+    }
+  },
+  "show_export_record_hr": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "show_export_record_hr",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出记录",
+    "operationType": "show_export_record_hr",
+    "operationId": "5I/PEPU8A5IB",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "new": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "new",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "新增",
+    "operationType": "new",
+    "operationId": "b599405400000cac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "delete": {
+    "parameter": {
+      "_Type_": "DelParameter",
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    },
+    "permissionItemId": "4715e1f1000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只能删除暂存的数据。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1d11920c000004ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "下游单据存在性校验",
+        "Message": "存在下游单据，不能删除。",
+        "Expression": "IsPush()",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1+9OXACHMV3M"
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "delete",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除",
+    "operationType": "delete",
+    "operationId": "b599405400000eac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.coderule.CodeRuleDeleteOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "候选人定薪申请单删除插件",
+        "RowKey": 1,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillDeleteOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "DelParameter",
+      "_raw_keys": [
+        "_Type_",
+        "OperationKey",
+        "ListDelScope"
+      ],
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    }
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "PreCondition": {
+          "RuleDescription": "草稿状态的数据不校验",
+          "_Type_": "PreCondition",
+          "RuleCondition": "isdraft = false",
+          "Id": "4YBAXQAIZ8RG"
+        },
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "RS=8GBXGZY4",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "billno"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2K8==1OPU4VT",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "c91d5125000033ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 3,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "RowKey": 1,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "候选人定薪申请单下推预检验插件",
+        "RowKey": 2,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateAdjFileSynValidateCommonOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "submit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "804f6478000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存或待重新提交的单据才允许提交。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'A' OR billstatus = 'G'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "194cc69300000aac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "billno"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "3c48f4980000efac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "PreCondition": {
+          "RuleDescription": "草稿状态的数据不校验",
+          "_Type_": "PreCondition",
+          "RuleCondition": "isdraft = false",
+          "Id": "4YBBE+Q6A1TM"
+        },
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "RS=AANUYST7",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "submit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交",
+    "operationType": "submit",
+    "operationId": "c91d5125000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 1,
+    "validationCount": 3,
+    "pluginCount": 3,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ],
+    "opBizRules": [
+      {
+        "_Type_": "OpBizRuleElement",
+        "Precondition": "",
+        "PreconditionDesc": "",
+        "RuleType": "hrsumitext",
+        "Id": "2K8=C7B/7R34",
+        "Key": "hrsumitext",
+        "Name": "HR领域提交扩展"
+      }
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "RowKey": 1,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "候选人定薪申请单下推预校验插件",
+        "RowKey": 2,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateAdjFileSynValidateCommonOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f8f9e162000000ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "unsubmit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "80513207000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "单据状态必须是已提交才能撤销。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus=\"B\"",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "3bdba447000113ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "无法撤销已废弃的数据",
+        "Message": "无法撤销已废弃的数据。",
+        "Expression": "billstatus = 'F'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2K8=VD3PI0RK",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "无法撤销审批不通过的数据",
+        "Message": "无法撤销审批不通过的数据。",
+        "Expression": "billstatus = 'E'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2M0E9H1+XMXI",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "unsubmit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "撤销",
+    "operationType": "unsubmit",
+    "operationId": "f8f9e162000002ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 1,
+    "validationCount": 3,
+    "pluginCount": 0,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ],
+    "opBizRules": [
+      {
+        "_Type_": "OpBizRuleElement",
+        "Precondition": "",
+        "PreconditionDesc": "",
+        "RuleType": "hrunsumitext",
+        "Id": "2K8=QYU52LZC",
+        "Key": "hrunsumitext",
+        "Name": "HR领域撤销扩展"
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "exportlistbyselectfields": {
+    "parameter": {
+      "_Type_": "ExportParameter",
+      "ByList": true
+    },
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "exportlistbyselectfields",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出数据（按列表）",
+    "operationType": "exportlist",
+    "operationId": "13NVF6Y2P98N",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "ExportParameter",
+      "_raw_keys": [
+        "_Type_",
+        "ByList"
+      ],
+      "ByList": true
+    }
+  },
+  "mobtoolbarselect": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "mobtoolbarselect",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选择",
+    "operationType": "mobtoolbarselect",
+    "operationId": "2MMZ77AATXJL",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarcancel": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "mobtoolbarcancel",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "取消",
+    "operationType": "mobtoolbarcancel",
+    "operationId": "2MMZ7XUBUQ3K",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "viewtrash": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "viewtrash",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "回收站",
+    "operationType": "viewtrash",
+    "operationId": "590+IKMFL6A+",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "trash": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "trash",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "回收数据",
+    "operationType": "trash",
+    "operationId": "590BUXN/6U/Z",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "restoredata": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "restoredata",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "恢复数据",
+    "operationType": "restoredata",
+    "operationId": "590BVRZZ8GVI",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "submiteffect": {
+    "parameter": {
+      "_Type_": "CustOperationParameter",
+      "Parameter": "{\"checkversion\":false}"
+    },
+    "permissionItemId": "0A3CBG6XWQC5",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "只有暂存的数据才允许提交并生效",
+        "Message": "只有暂存的数据才允许提交并生效。",
+        "Expression": "billstatus = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2K8AR=A2R0GH",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "PreCondition": {
+          "RuleDescription": "草稿状态的数据不校验",
+          "_Type_": "PreCondition",
+          "RuleCondition": "isdraft = false",
+          "Id": "50ZJBSHE=97U"
+        },
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "2K8ASJVDJ1PP",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "单据编号唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "billno"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2K8AUDZM2GPQ",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "submiteffect",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并生效",
+    "operationType": "submiteffect",
+    "operationId": "2K8AV6V3AC+K",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 3,
+    "pluginCount": 4,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+        "ClassName": "kd.hr.hbp.opplugin.web.HRCodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "RowKey": 1,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillSaveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillApproveOp",
+        "RowKey": 2,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillApproveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "候选人定薪申请单下推预检验插件",
+        "RowKey": 3,
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateAdjFileSynValidateCommonOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "CustOperationParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Parameter"
+      ],
+      "parameterParsed": {
+        "checkversion": false
+      }
+    }
+  },
+  "wfauditing": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "wfauditing",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "审批中",
+    "operationType": "wfauditing",
+    "operationId": "2K8AXF8H+/5T",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ]
+  },
+  "wfauditpass": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "wfauditpass",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "审批通过(废弃)",
+    "operationType": "wfauditpass",
+    "operationId": "2K8AYUXA80TI",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillApproveOp",
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillApproveOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "wfauditnotpass": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "wfauditnotpass",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "审批不通过",
+    "operationType": "wfauditnotpass",
+    "operationId": "2K8AZNKH0XA2",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ]
+  },
+  "wfrejecttosubmit": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "wfrejecttosubmit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "驳回至提交人",
+    "operationType": "wfrejecttosubmit",
+    "operationId": "2K8B+Y5JQU70",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "refreshFieldIds": [
+      "6q69iznvHX",
+      "CzgBL9dCew"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillWfRejectToSubmitOp",
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillWfRejectToSubmitOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "viewflowchart": {
+    "parameter": {
+      "_Type_": "FlowchartParameter",
+      "BillIdField": "",
+      "EntityName": ""
+    },
+    "permissionItemId": "0K6+MBJ9Z+KL",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "viewflowchart",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看流程图",
+    "operationType": "viewflowchart",
+    "operationId": "2K8B0J47FZFD",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "FlowchartParameter",
+      "_raw_keys": [
+        "_Type_",
+        "BillIdField",
+        "EntityName"
+      ],
+      "BillIdField": "",
+      "EntityName": ""
+    }
+  },
+  "refreshonbrd": {
+    "parameter": null,
+    "permissionItemId": "5E/WT++GNP5R",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "refreshonbrd",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "更新入职信息",
+    "operationType": "donothing",
+    "operationId": "3OPKDNPS3B7N",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "更新入职信息成功。",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillRefreshOp",
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillRefreshOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "newentry": {
+    "parameter": {
+      "_Type_": "NewEntryParameter",
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    },
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "newentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "新增分录",
+    "operationType": "newentry",
+    "operationId": "4UXW21NNR6L3",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "NewEntryParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    }
+  },
+  "deleteentry": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    },
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "deleteentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除分录",
+    "operationType": "deleteentry",
+    "operationId": "4UXW38AW8M59",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    }
+  },
+  "moveentrydown": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    },
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "moveentrydown",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "下移一行",
+    "operationType": "moveentrydown",
+    "operationId": "4UXW4OYD2HWM",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    }
+  },
+  "moveentryup": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    },
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "moveentryup",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "上移一行",
+    "operationType": "moveentryup",
+    "operationId": "4UXW5DPC2TRH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "ch45YZw21ulN7dyS3E"
+    }
+  },
+  "match": {
+    "parameter": null,
+    "permissionItemId": "4WI5M5A7H86U",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "match",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "匹配",
+    "operationType": "donothing",
+    "operationId": "4X9N0BYFWW+V",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "calculate": {
+    "parameter": null,
+    "permissionItemId": "4WI5I7IVD06B",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "calculate",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "计算",
+    "operationType": "donothing",
+    "operationId": "4X9N8E4DGV2K",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportlist_expt": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "exportlist_expt",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出数据（按导出模板）",
+    "operationType": "exportlist_expt",
+    "operationId": "5/EQYS=57+QW",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportdetails": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000004ae",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "exportdetails",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看导出结果",
+    "operationType": "exportdetails",
+    "operationId": "5/ER0JQ/TZMH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_wfvalidate": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hcdm_canddecapprbill",
+      "opKey": "donothing_wfvalidate",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "工作流校验",
+    "operationType": "donothing",
+    "operationId": "5/G0+EJV93TL",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillWFOp",
+        "ClassName": "kd.swc.hcdm.opplugin.canddecapprbill.CandidateDecApprovalBillWFOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ]
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:04",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 31,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 13,
+        "opBizRules_filled": 2,
+        "plugins_op_filled": 16,
+        "parameterParsed_filled": 13,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

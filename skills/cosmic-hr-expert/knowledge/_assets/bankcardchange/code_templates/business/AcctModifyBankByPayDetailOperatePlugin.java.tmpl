@@ -1,0 +1,77 @@
+package ${ISV_FLAG}.z8njs.swc.hsasext.plugin.operate;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.args.AfterOperationArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Author: 王博纶
+ * Date: 2024/9/13 16:23
+ * FileName: AcctModifyBankByPayDetailOperatePlugin
+ * Description: 银行卡变更单---发放明细的操作插件
+ */
+public class AcctModifyBankByPayDetailOperatePlugin extends AbstractOperationServicePlugIn {
+    @Override
+    public void afterExecuteOperationTransaction(AfterOperationArgs e) {
+        String operationKey = e.getOperationKey();
+        DynamicObject[] dataEntities = e.getDataEntities();
+        if(HRStringUtils.equals("donothing_syn_history",operationKey)){
+            // 1.获取到银行卡变更单的id集合
+            Set<Long> changeBankIds = Arrays.stream(dataEntities).map(id -> id.getLong("id")).collect(Collectors.toSet());
+            // 2.获取到当前的银行卡变更单的对象
+            String changBankSelectField = "id,entryentity.paydetail,entryentity.modifypaydetail";
+            QFilter changeBankQFilter = new QFilter("id",QCP.in,changeBankIds);
+            DynamicObject[] originalChangBanks = BusinessDataServiceHelper.load("hsas_acctmodifybill", changBankSelectField, changeBankQFilter.toArray());
+            // 2.1获取之前的发放明细
+            Set<Long> originalPayDetailIds = Arrays.stream(originalChangBanks).map(payDetail -> payDetail.getDynamicObjectCollection("entryentity").get(0).getLong("paydetail.id")).collect(Collectors.toSet());
+            // 2.2获取变更后的发放明细
+            Set<Long> afterChangePayDetailIds = Arrays.stream(originalChangBanks).map(afterChangePayDetail -> afterChangePayDetail.getDynamicObjectCollection("entryentity").get(0).getLong("modifypaydetail.id")).collect(Collectors.toSet());
+
+            // 3.将原始的和新生成的发放明细的id集合汇总到一起
+            Collection<Long> mergePayDetailIds = Stream.concat(
+                    originalPayDetailIds.stream(),
+                    afterChangePayDetailIds.stream()
+            ).distinct().collect(Collectors.toList());
+            // 4.根据汇总后的发放明细查询数据
+            String payDetailSelectField = "id,acctmodifybill,kdcd_acctmodifybill";
+            QFilter payDetailQFilter = new QFilter("id", QCP.in,mergePayDetailIds);
+            DynamicObject[] payDetails = BusinessDataServiceHelper.load("hsas_paydetail", payDetailSelectField, payDetailQFilter.toArray());
+
+            // 5.将就的发放明细上的【银行卡变更单】的id赋值给新的发放明细上的【银行卡变更大那（历史）】
+            Set<DynamicObject> newPayDetail = Arrays.stream(payDetails).filter(id -> afterChangePayDetailIds.contains(id.getLong("id"))).collect(Collectors.toSet());
+            Set<DynamicObject> oldPayDetail = Arrays.stream(payDetails).filter(id -> originalPayDetailIds.contains(id.getLong("id"))).collect(Collectors.toSet());
+
+            ArrayList<DynamicObject> update = new ArrayList<>();
+
+            // 6.遍历新生成的银行卡变更单
+            Set<DynamicObject> collect = Arrays.stream(originalChangBanks).peek(value -> {
+                DynamicObject entry = value.getDynamicObjectCollection("entryentity").get(0);
+                long payDetailId = entry.getLong("paydetail.id"); // 旧发放明细
+                long modifyPayDetailId = entry.getLong("modifypaydetail.id"); // 新发放明细
+                // 从新生成的发放明细中匹配银行卡变更中的发放明细对应的那条id
+                DynamicObject dynamicObject = newPayDetail.stream().filter(id -> id.getLong("id") == modifyPayDetailId).findFirst().orElse(null);
+                if (dynamicObject != null) {
+                    // 找到对应的旧的发放明细中的银行卡变更单的id
+                    DynamicObject old = oldPayDetail.stream().filter(id -> id.getLong("id") == payDetailId).findFirst().orElse(null);
+                    // 赋值
+                    dynamicObject.set("kdcd_acctmodifybill",old !=null ? 0L : old.getDynamicObject("acctmodifybill"));
+                    update.add(dynamicObject);
+                }
+            }).collect(Collectors.toSet());
+            // 7.将重新赋值以后的字段更新到数据库中
+            SaveServiceHelper.update(update.toArray(new DynamicObject[update.size()]));
+        }
+    }
+}

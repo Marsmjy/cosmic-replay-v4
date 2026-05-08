@@ -1,0 +1,765 @@
+package ${ISV_FLAG}.hr.hspm;
+
+import com.alibaba.fastjson.JSONObject;
+import kd.bos.bill.OperationStatus;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.OrmLocaleValue;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.entity.tree.TreeNode;
+import kd.bos.ext.form.control.CustomControl;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.Control;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.events.CustomEventArgs;
+import kd.bos.id.ID;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.devportal.BizAppServiceHelp;
+import kd.bos.servicehelper.permission.PermissionServiceHelper;
+import kd.bos.url.UrlService;
+import kd.hr.hbp.business.servicehelper.HRBaseServiceHelper;
+import kd.hr.hbp.common.util.HRStringUtils;
+import kd.hr.hbp.formplugin.web.HRDynamicFormBasePlugin;
+import kd.sdk.hr.haos.business.helper.HAOSServiceHelper;
+import kd.sdk.hr.hrpi.business.helper.HRPIEmployeeServiceHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @Description 汇报关系图表单插件
+ * @Version 1.0.0
+ * @Date 2024/7/2 14:40
+ * @Created by sxf
+ */
+public class EmpSuprelChartPlugin extends HRDynamicFormBasePlugin {
+
+    private static final Log LOGGER = LogFactory.getLog(EmpSuprelChartPlugin.class);
+
+    /**
+     * 查看权限
+     */
+    private static final String VIEWPERM = "47150e89000000ac";
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        // 查看档案
+        this.addClickListeners("${ISV_FLAG}_buttonap");
+    }
+
+    @Override
+    public void click(EventObject evt) {
+        super.click(evt);
+        Control source = (Control) evt.getSource();
+        String key = source.getKey();
+        if (key.equals("${ISV_FLAG}_buttonap")) {
+
+        }
+    }
+
+
+    @Override
+    public void afterCreateNewData(EventObject e) {
+        super.afterCreateNewData(e);
+        Long personId = queryPersonId();
+        JSONObject paramsJsonObj = new JSONObject();
+        // 设置默认值
+        getModel().setValue("${ISV_FLAG}_hrperson",personId);
+        // 汇报关系类型--默认行政
+        paramsJsonObj.put("personId", personId);
+
+        paramsJsonObj.put("reportReltypeNumber", "1010_S");
+        // 层级--默认三层,展示两层
+        paramsJsonObj.put("level", "3");
+
+        paramsJsonObj.put("currentLevel", "1");
+        // 默认向下展示
+        paramsJsonObj.put("showDirection","down");
+        // 根节点父Id
+        paramsJsonObj.put("parentId", "");
+        // 当前节点Id
+        paramsJsonObj.put("nodeId", "");
+        // 初始化数据
+        queryEmpSuprelChartTreeNode(paramsJsonObj, "initData", "init");
+
+    }
+
+    private EmpSuprelChartTreeNode getEmpSuprelChartTreeNode(Long personId, JSONObject paramsJsonObj, EmpSuprelChartTreeNode rootTreeNode) {
+        DynamicObject rootDyn = getRootNodeDynamic(personId);
+        if (rootDyn != null) {
+            // 构造根树对象
+            rootTreeNode = buildRootTreeNode(rootDyn, paramsJsonObj);
+
+        }
+        return rootTreeNode;
+    }
+
+
+    @Override
+    public void customEvent(CustomEventArgs args) {
+        String eventName = args.getEventName();
+        JSONObject paramsJsonObj = JSONObject.parseObject(args.getEventArgs());
+        LOGGER.info("[EmpSuprelChartPlugin.customEvent] paramsJsonObj:{}", paramsJsonObj);
+        switch (eventName) {
+            case "queryEmpSuprelChartTreeNode":
+                queryEmpSuprelChartTreeNode(paramsJsonObj, eventName, "update");
+                break;
+            case "jumpToErmanFileInfo":
+                // 点击头像跳转到人员档案
+                jumpToErmanFileInfo(paramsJsonObj);
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        super.propertyChanged(e);
+        String name = e.getProperty().getName();
+        JSONObject paramsJsonObj = new JSONObject();
+        // 默认向下查
+        paramsJsonObj.put("showDirection","down");
+        // 层级--默认三层,展示两层
+        paramsJsonObj.put("level", "3");
+        paramsJsonObj.put("currentLevel", "1");
+        // 根节点父Id
+        paramsJsonObj.put("parentId", "");
+        // 当前节点Id
+        paramsJsonObj.put("nodeId", "");
+        DynamicObject dataEntity = getModel().getDataEntity();
+        String personId = dataEntity.getString("${ISV_FLAG}_hrperson.id");
+        String reportReltypeNumber = dataEntity.getString("${ISV_FLAG}_reportreltype.number");
+        if (HRStringUtils.isEmpty(personId)){
+            this.getView().showErrorNotification("查询人员不能为空");
+            return;
+        }
+        if (HRStringUtils.isEmpty(reportReltypeNumber)){
+            this.getView().showErrorNotification("汇报关系类型不能为空");
+            return;
+        }
+        switch (name){
+            case "${ISV_FLAG}_reportreltype":
+                // 查询汇报关系类型
+                paramsJsonObj.put("personId", personId);
+                paramsJsonObj.put("reportReltypeNumber", reportReltypeNumber);
+                queryEmpSuprelChartTreeNode(paramsJsonObj, "openReportReltypeF7", "update");
+                break;
+            case "${ISV_FLAG}_hrperson":
+                // 查询人员
+                paramsJsonObj.put("reportReltypeNumber", reportReltypeNumber);
+                paramsJsonObj.put("personId", personId);
+                queryEmpSuprelChartTreeNode(paramsJsonObj, "openHrPersonF7", "update");
+                break;
+            case "${ISV_FLAG}_adminorg":
+                // 查询部门
+                long orgBoId = dataEntity.getLong("${ISV_FLAG}_adminorg.id");
+                Long chargePersonId = getChargePersonByOrgId(orgBoId);
+                // 部门负责人 赋值给查询人员
+                if (chargePersonId != null && chargePersonId != 0L){
+                    getModel().setValue("${ISV_FLAG}_hrperson",chargePersonId);
+                }else {
+                    paramsJsonObj.put("personId", personId);
+                    paramsJsonObj.put("reportReltypeNumber", reportReltypeNumber);
+                    queryEmpSuprelChartTreeNode(paramsJsonObj, "openHrPersonF7", "update");
+                }
+
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 根据部门boid 查询部门负责人
+     *
+     * @param orgBoId orgBoId
+     * @return Long
+     */
+    private Long getChargePersonByOrgId(long orgBoId) {
+        List<Long> orgList = new ArrayList<Long>();
+        orgList.add(orgBoId);
+        Map<Long, List<Map<String, Object>>> getPersonMap = HAOSServiceHelper.queryChargePersonByOrgId(orgList,new Date());
+        if(getPersonMap.size() > 0) {
+            List<Map<String, Object>> list = getPersonMap.get(orgBoId);
+            if(list.size() > 0 ){
+                // 部门负责人 财信这只有一个，标品多个
+                long personId = Long.parseLong(String.valueOf(list.get(0).get("employee.id")));
+                LOGGER.info("部门:{},部门负责人personId:{}",orgBoId,personId);
+                return personId;
+            }
+        }
+        return null;
+    }
+
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent closedCallBackEvent) {
+        super.closedCallBack(closedCallBackEvent);
+        String actionId = closedCallBackEvent.getActionId();
+        if ("openHrPersonF7".equals(actionId)) {
+            this.afterHrPersonF7Select(closedCallBackEvent);
+        } else if ("openReportReltypeF7".equals(actionId)) {
+            this.afterReportReltypeF7Select(closedCallBackEvent);
+        }
+
+    }
+
+    private void queryEmpSuprelChartTreeNode(JSONObject paramsJsonObj, String eventName, String status) {
+        Long personId = Long.parseLong(paramsJsonObj.getString("personId"));
+        Map<String, Object> result = new HashMap<>();
+        EmpSuprelChartTreeNode rootTreeNode = null;
+        rootTreeNode = getEmpSuprelChartTreeNode(personId, paramsJsonObj, rootTreeNode);
+        // 设置返回树对象数据
+        result.put("treeNodeData", rootTreeNode);
+        // 层级
+        result.put("level", paramsJsonObj.getString("level"));
+        // 汇报关系类型
+        result.put("reportReltypeInfo", getReportReltypeInfo(paramsJsonObj.getString("reportReltypeNumber")));
+        // 查询人员
+        result.put("personInfo", getPersonInfo(paramsJsonObj.getString("personId")));
+        // 更新数据
+        setDataToCustomControl(eventName, result, "200", status);
+    }
+
+    public JSONObject getPersonInfo(String personId) {
+        if (HRStringUtils.isNotEmpty(personId)) {
+            HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_employeenewf7query");
+            QFilter dataStatusQf = new QFilter("datastatus", QCP.equals, "1");
+            QFilter currentVersionQf = new QFilter("iscurrentversion", QCP.equals, true);
+            QFilter idQf = new QFilter("id", QCP.equals, Long.valueOf(personId));
+            DynamicObject dy = helper.queryOne("id,name,number", new QFilter[]{dataStatusQf, currentVersionQf, idQf});
+            if (dy != null) {
+                JSONObject info = new JSONObject();
+                info.put("id", dy.getString("id"));
+                info.put("name", dy.getString("name"));
+                info.put("number", dy.getString("number"));
+                return info;
+            }
+        }
+
+        return new JSONObject();
+    }
+
+    public JSONObject getReportReltypeInfo(String number) {
+        if (HRStringUtils.isNotEmpty(number)) {
+            HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_reportcoreltype");
+            QFilter statusQf = new QFilter("status", QCP.equals, "C");
+            QFilter enableQf = new QFilter("enable", QCP.equals, "1");
+            QFilter numberQf = new QFilter("number", QCP.equals, number);
+
+            DynamicObject dy = helper.queryOne("id,number,name", new QFilter[]{statusQf, enableQf, numberQf});
+            if (dy != null) {
+                JSONObject info = new JSONObject();
+                info.put("id", dy.getString("id"));
+                info.put("name", dy.getString("name"));
+                info.put("number", dy.getString("number"));
+                return info;
+            }
+        }
+
+        return new JSONObject();
+    }
+
+
+    private void afterReportReltypeF7Select(ClosedCallBackEvent closedCallBackEvent) {
+        ListSelectedRowCollection selectedRows = (ListSelectedRowCollection) closedCallBackEvent.getReturnData();
+        Map<String, Object> result = new HashMap();
+        if (!CollectionUtils.isEmpty(selectedRows) && selectedRows.size() > 0) {
+            JSONObject info = new JSONObject();
+            HRBaseServiceHelper helper = new HRBaseServiceHelper("hbpm_reportreltype");
+            DynamicObject dyn = helper.queryOne("id,name,number", selectedRows.get(0).getPrimaryKeyValue());
+            info.put("id", dyn.getString("id"));
+            info.put("number", selectedRows.get(0).getNumber());
+            info.put("name", selectedRows.get(0).getName());
+            result.put("reportReltypeInfo", info);
+        }
+
+        this.setDataToCustomControl("openReportReltypeF7", result, "200", "update");
+    }
+
+    private void afterHrPersonF7Select(ClosedCallBackEvent closedCallBackEvent) {
+        ListSelectedRowCollection selectedRows = (ListSelectedRowCollection) closedCallBackEvent.getReturnData();
+        Map<String, Object> result = new HashMap();
+        if (!CollectionUtils.isEmpty(selectedRows) && selectedRows.size() > 0) {
+            JSONObject info = new JSONObject();
+            HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_person");
+            DynamicObject dyn = helper.queryOne("id,name,number", selectedRows.get(0).getPrimaryKeyValue());
+            info.put("id", dyn.getString("id"));
+            info.put("number", selectedRows.get(0).getNumber());
+            info.put("name", selectedRows.get(0).getName());
+            result.put("personInfo", info);
+        }
+
+        this.setDataToCustomControl("openHrPersonF7", result, "200", "update");
+    }
+
+    private void jumpToErmanFileInfo(JSONObject paramsJsonObj) {
+
+        long userId = RequestContext.get().getCurrUserId();
+        // HR自助服务应用的权限
+        String appId = "hssc";
+        String formId = "${ISV_FLAG}_hspm_ermanfile";
+        String bizAppId = BizAppServiceHelp.getAppIdByAppNumber(appId);
+        boolean checkPermission = PermissionServiceHelper.checkPermission(userId, bizAppId, formId, VIEWPERM);
+        LOGGER.info("[jumpToErmanFileInfo] checkPermission userId:{},formId:{} result:{}", new Object[]{userId, formId, checkPermission});
+        if (!checkPermission){
+            this.getView().showErrorNotification("无\"HR自助服务中心-查看档案\"的权限,请联系管理员分配");
+            return;
+        }
+
+        String personId = paramsJsonObj.getString("personId");
+        // 查看指定人员档案
+        FormShowParameter formShowParameter = new FormShowParameter();
+        formShowParameter.setCustomParam("employee", Long.valueOf(personId));
+        formShowParameter.setAppId(appId);
+        // 查看档案   继承 hspm_myermanfile
+        formShowParameter.setFormId(formId);
+        formShowParameter.getOpenStyle().setShowType(ShowType.NewWindow);
+        formShowParameter.setStatus(OperationStatus.VIEW);
+        getView().getParentView().showForm(formShowParameter);
+        getView().sendFormAction(this.getView().getParentView());
+    }
+
+    private void setDataToCustomControl(String eventName, Map<String, Object> data, String code, String status) {
+        Map<String, Object> result = new HashMap();
+        result.put("code", code);
+        result.put("success", true);
+        result.put("data", data);
+        result.put("eventName", eventName);
+        result.put("eventStatus", status);
+        result.put("timestamp", String.valueOf(System.currentTimeMillis()));
+
+        // 汇报关系数据自定义控件
+        CustomControl customControl = (CustomControl) this.getView().getControl("${ISV_FLAG}_orgrelationchartap");
+        customControl.setData(result);
+    }
+
+    private Long queryPersonId() {
+        Long personId = null;
+        ArrayList<Long> userIds = new ArrayList<>();
+        userIds.add(RequestContext.get().getCurrUserId());
+        Map<String, Object> userInfo = HRPIEmployeeServiceHelper.queryEmployeeByUserIds(userIds, "", "1");
+
+        LOGGER.info("getPersonModelId getUserId success:{} message:{}", userInfo.get("success"), userInfo.get("message"));
+        if ((Boolean) userInfo.get("success") && userInfo.get("data") != null) {
+            Map<String, Object> userData = (Map) userInfo.get("data");
+            personId = (Long) userData.get("employee");
+        }
+
+        if (personId == null) {
+            // 无四层人，当前账号为系统用户，未入职
+            return 0L;
+        }
+        return personId;
+    }
+
+    private DynamicObject getRootNodeDynamic(Long personId) {
+        DynamicObject[] hrpiPerson = getHrpiPerson(Arrays.asList(personId));
+        if (hrpiPerson != null && hrpiPerson.length > 0) {
+            // 取任意一条 设置父节点信息
+            return hrpiPerson[0];
+        }
+
+        return null;
+    }
+
+    public EmpSuprelChartTreeNode buildRootTreeNode(DynamicObject rootDy, JSONObject paramsJsonObj) {
+        String showDirection = paramsJsonObj.getString("showDirection");
+        // 根节点的父节点Id
+        String parentId = paramsJsonObj.getString("parentId");
+        // 父对象
+        EmpSuprelChartTreeNode treeNode = new EmpSuprelChartTreeNode(parentId, rootDy.getString("id"), rootDy.getString("name"), true);
+        // 当前节点
+        String nodeId = paramsJsonObj.getString("nodeId");
+        if (HRStringUtils.isEmpty(nodeId)){
+            nodeId = String.valueOf(ID.genLongId());
+        }else {
+            String currentLevel = paramsJsonObj.getString("currentLevel");
+            if (HRStringUtils.isNotEmpty(currentLevel)){
+                treeNode.setCurrentLevel(Integer.parseInt(currentLevel));
+            }
+        }
+        // 查看方向
+        treeNode.setShowDirection(showDirection);
+
+        treeNode.setId(nodeId);
+        // 当前人员id
+        treeNode.setPersonId(rootDy.getString("id"));
+        // 当前节点名称
+        treeNode.setText(rootDy.getString("name"));
+        // 过滤条件
+        String reportReltypeNumber = paramsJsonObj.getString("reportReltypeNumber");
+        QFilter searchQf = new QFilter("reporttype.number", QCP.in, reportReltypeNumber);
+        String level = paramsJsonObj.getString("level");
+        // 组装数结构
+        List<EmpSuprelChartTreeNode> treeNodes;
+        if ("up".equals(showDirection)) {
+            // 向上展示
+            treeNodes = getAllEmpSuprelTreeNodesToUp(treeNode, level, searchQf);
+        }else {
+            // 向下展示
+            treeNodes = getAllEmpSuprelTreeNodesToDown(treeNode, level, searchQf);
+        }
+        // 增加父节点
+        treeNodes.add(treeNode);
+        Map<String, List<EmpSuprelChartTreeNode>> parentIdChildMap = (Map) treeNodes.stream().filter((node) -> {
+            return HRStringUtils.isNotEmpty(node.getParentid());
+        }).collect(Collectors.groupingBy(TreeNode::getParentid));
+        // 增加子节点
+        addChildNodes(treeNode, parentIdChildMap);
+        // 设置展示字段信息
+        setShowFieldInfos(treeNodes);
+
+        return treeNode;
+
+    }
+
+    private void setShowFieldInfos(List<EmpSuprelChartTreeNode> treeNodes) {
+        List<Long> personIds = treeNodes.stream().map((node) -> (Long.parseLong(node.getPersonId()))).collect(Collectors.toList());
+        // 查人员任职经历
+        DynamicObject[] hrpiEmpposorgrel = getHrpiEmpposorgrelByPerson(personIds);
+        Map<String, DynamicObject> empposorgrelMap = new HashMap<>();
+        if (hrpiEmpposorgrel != null && hrpiEmpposorgrel.length > 0) {
+            for (DynamicObject empposorgrel : hrpiEmpposorgrel) {
+                empposorgrelMap.put(empposorgrel.getString("employee.id"), empposorgrel);
+            }
+        }
+        // 查询自然人信息
+        DynamicObject[] hrpiPerson = getHrpiPerson(personIds);
+        Map<String, DynamicObject> hrpiPersonMap = new HashMap<>();
+        if (hrpiPerson != null && hrpiPerson.length > 0) {
+            for (DynamicObject person : hrpiPerson) {
+                hrpiPersonMap.put(person.getString("id"), person);
+            }
+        }
+        DynamicObject[] hrpiPercontact = getHrpiPercontact(personIds);
+        Map<String, DynamicObject> hrpiPercontactMap = new HashMap<>();
+        if (hrpiPercontact != null && hrpiPercontact.length > 0) {
+            for (DynamicObject percontact : hrpiPercontact) {
+                hrpiPercontactMap.put(percontact.getString("employee.id"), percontact);
+            }
+        }
+
+        // 设置每个树节点的数据
+        for (EmpSuprelChartTreeNode node : treeNodes) {
+            setShowFieldInfosDetail(node, empposorgrelMap, hrpiPersonMap,hrpiPercontactMap);
+        }
+    }
+
+    private void setShowFieldInfosDetail(EmpSuprelChartTreeNode node, Map<String, DynamicObject> empposorgrelMap, Map<String, DynamicObject> hrpiPersonMap,Map<String, DynamicObject> hrpiPercontactMap) {
+
+        String personId = node.getPersonId();
+        DynamicObject empposorgrel = empposorgrelMap.get(personId);
+        String adminorg = "";
+        String position = "";
+        String company = "";
+        if (empposorgrel != null) {
+            adminorg = ((OrmLocaleValue) empposorgrel.get("adminorg.name")).getLocaleValue();
+            position = ((OrmLocaleValue) empposorgrel.get("position.name")).getLocaleValue();
+            company = ((OrmLocaleValue) empposorgrel.get("company.name")).getLocaleValue();
+        }
+
+        DynamicObject person = hrpiPersonMap.get(personId);
+        String empNumber = person.getString("number");
+        String headsculpture = setUserPictureUrl(person.getString("headsculpture"));
+
+        DynamicObject percontact = hrpiPercontactMap.get(personId);
+        String phone = "";
+        String peremail ="";
+        if (percontact != null){
+            phone = percontact.getString("phone");
+            peremail = percontact.getString("peremail");
+        }
+
+
+        // 展示字段信息
+        Map<String, Object> showFieldInfos = new HashMap<>();
+        // 人员id
+        showFieldInfos.put("personId",personId);
+        // 公司
+        showFieldInfos.put("company", company);
+        // 部门
+        showFieldInfos.put("adminorg", adminorg);
+        // 岗位
+        showFieldInfos.put("position", position);
+        // 工号
+        showFieldInfos.put("empnumber", empNumber);
+        // 头像
+        showFieldInfos.put("headsculpture", headsculpture);
+        // 手机号
+        showFieldInfos.put("phone", phone);
+        // 邮箱
+        showFieldInfos.put("peremail", peremail);
+
+        node.setShowFields(showFieldInfos);
+
+    }
+
+    /**
+     * 树对象增加子节点
+     *
+     * @param rootNode         rootNode
+     * @param parentIdChildMap parentIdChildMap
+     */
+    private void addChildNodes(EmpSuprelChartTreeNode rootNode, Map<String, List<EmpSuprelChartTreeNode>> parentIdChildMap) {
+        List<EmpSuprelChartTreeNode> childrenEmpSuprelTreeNodes = (List) parentIdChildMap.get(rootNode.getId());
+        if (childrenEmpSuprelTreeNodes != null && !CollectionUtils.isEmpty(childrenEmpSuprelTreeNodes)) {
+            parentIdChildMap.remove(rootNode.getId());
+            List<TreeNode> childrenTreeNodes = new ArrayList(childrenEmpSuprelTreeNodes);
+            rootNode.setChildren(childrenTreeNodes);
+            childrenEmpSuprelTreeNodes.forEach((treeNode) -> {
+                addChildNodes(treeNode, parentIdChildMap);
+            });
+            rootNode.setChildrenCount(childrenTreeNodes.size());
+            rootNode.setLeaf(false);
+        }
+
+    }
+
+    /**
+     * 包装树节点对象
+     *
+     * @param dyn      dyn
+     * @param currentLevel    level
+     * @param parentId parentId
+     * @return EmpSuprelChartTreeNode
+     */
+    private EmpSuprelChartTreeNode wrapTreeNodeToDown(DynamicObject dyn, int currentLevel, String parentId) {
+        EmpSuprelChartTreeNode node = new EmpSuprelChartTreeNode();
+        node.setId(String.valueOf(ID.genLongId()));
+        node.setParentid(parentId);
+        node.setText(dyn.getString("employee.name"));
+        node.setPersonId(dyn.getString("employee"));
+        // 当前所在层级
+        node.setCurrentLevel(currentLevel + 1 );
+        return node;
+
+    }
+
+    /**
+     * 包装树节点对象
+     *
+     * @param dyn      dyn
+     * @param currentLevel    level
+     * @param parentId parentId
+     * @return EmpSuprelChartTreeNode
+     */
+    private EmpSuprelChartTreeNode wrapTreeNodeToUp(DynamicObject dyn, int currentLevel, String parentId) {
+        EmpSuprelChartTreeNode node = new EmpSuprelChartTreeNode();
+        node.setId(String.valueOf(ID.genLongId()));
+        node.setParentid(parentId);
+        node.setText(dyn.getString("superiorempposorgrel.employee.name"));
+        node.setPersonId(dyn.getString("superiorempposorgrel.employee.id"));
+        // 当前所在层级
+        node.setCurrentLevel(currentLevel + 1 );
+        return node;
+
+    }
+
+    private List<EmpSuprelChartTreeNode> getAllEmpSuprelTreeNodesToDown(EmpSuprelChartTreeNode treeNode, String showlevel, QFilter searchQf) {
+        // 总层级
+        int level = Integer.parseInt(showlevel);
+        String nodeId = treeNode.getId();
+        String personId = treeNode.getPersonId();
+        // 当前所在层级
+        int currentLevel = treeNode.getCurrentLevel();
+        Map<Integer, List<EmpSuprelChartTreeNode>> levelToTreeNodeListMap = new HashMap<>();
+        List<EmpSuprelChartTreeNode> firstTreeNodeList = new ArrayList<>();
+        // 查询第一层业务数据
+        DynamicObjectCollection firstLevelCollection = queryBusinessDataToDown(personId, searchQf);
+        for (DynamicObject dyn : firstLevelCollection) {
+            EmpSuprelChartTreeNode node = wrapTreeNodeToDown(dyn, currentLevel, nodeId);
+            firstTreeNodeList.add(node);
+        }
+
+        // 第二层映射对象
+        levelToTreeNodeListMap.put(1, firstTreeNodeList);
+        // 树对象结果集
+        List<EmpSuprelChartTreeNode> allEmpSuprelChartTreeNodeList = new ArrayList<>(firstTreeNodeList);
+
+        // 从第二层开始
+        for (int index = 2; index <= level - 1; ++index) {
+            List<EmpSuprelChartTreeNode> collectList = levelToTreeNodeListMap.get(index - 1);
+            if (collectList != null) {
+                for (EmpSuprelChartTreeNode empSuprelChartTreeNode : collectList) {
+                    String parentId = empSuprelChartTreeNode.getId();
+                    List<EmpSuprelChartTreeNode> tempTreeNodeList = new ArrayList<>();
+                    DynamicObjectCollection curentLevelBusinessData = queryBusinessDataToDown(empSuprelChartTreeNode.getPersonId(), searchQf);
+                    // 最后一层时，不设置节点
+                    if (index == level -1 && curentLevelBusinessData.size() > 0){
+                        empSuprelChartTreeNode.setChildrenCount(curentLevelBusinessData.size());
+                        continue;
+                    }
+
+                    for (DynamicObject dyn : curentLevelBusinessData) {
+                        // 包装树对象
+                        EmpSuprelChartTreeNode node = wrapTreeNodeToDown(dyn, index, parentId);
+                        tempTreeNodeList.add(node);
+                    }
+
+                    if (tempTreeNodeList.size() > 0) {
+                        levelToTreeNodeListMap.put(index, tempTreeNodeList);
+                        allEmpSuprelChartTreeNodeList.addAll(tempTreeNodeList);
+                    }
+                }
+
+            }
+        }
+        return allEmpSuprelChartTreeNodeList;
+    }
+
+    private List<EmpSuprelChartTreeNode> getAllEmpSuprelTreeNodesToUp(EmpSuprelChartTreeNode treeNode, String showlevel, QFilter searchQf) {
+        // 总层级
+        int level = Integer.parseInt(showlevel);
+        String nodeId = treeNode.getId();
+        String personId = treeNode.getPersonId();
+        // 当前所在层级
+        int currentLevel = treeNode.getCurrentLevel();
+        Map<Integer, List<EmpSuprelChartTreeNode>> levelToTreeNodeListMap = new HashMap<>();
+        List<EmpSuprelChartTreeNode> firstTreeNodeList = new ArrayList<>();
+        // 查询第一层业务数据
+        DynamicObjectCollection firstLevelCollection = queryBusinessDataToUp(personId, searchQf);
+        for (DynamicObject dyn : firstLevelCollection) {
+            EmpSuprelChartTreeNode node = wrapTreeNodeToUp(dyn, currentLevel, nodeId);
+            firstTreeNodeList.add(node);
+        }
+
+        // 第二层映射对象
+        levelToTreeNodeListMap.put(1, firstTreeNodeList);
+        // 树对象结果集
+        List<EmpSuprelChartTreeNode> allEmpSuprelChartTreeNodeList = new ArrayList<>(firstTreeNodeList);
+
+        // 从第二层开始
+        for (int index = 2; index <= level - 1; ++index) {
+            List<EmpSuprelChartTreeNode> collectList = levelToTreeNodeListMap.get(index - 1);
+            if (collectList != null) {
+                for (EmpSuprelChartTreeNode empSuprelChartTreeNode : collectList) {
+                    String parentId = empSuprelChartTreeNode.getId();
+                    List<EmpSuprelChartTreeNode> tempTreeNodeList = new ArrayList<>();
+                    DynamicObjectCollection curentLevelBusinessData = queryBusinessDataToUp(empSuprelChartTreeNode.getPersonId(), searchQf);
+                    // 最后一层时，不设置节点
+                    if (index == level -1 && curentLevelBusinessData.size() > 0){
+                        empSuprelChartTreeNode.setChildrenCount(curentLevelBusinessData.size());
+                        continue;
+                    }
+
+                    for (DynamicObject dyn : curentLevelBusinessData) {
+                        // 包装树对象
+                        EmpSuprelChartTreeNode node = wrapTreeNodeToUp(dyn, index, parentId);
+                        tempTreeNodeList.add(node);
+                    }
+
+                    if (tempTreeNodeList.size() > 0) {
+                        levelToTreeNodeListMap.put(index, tempTreeNodeList);
+                        allEmpSuprelChartTreeNodeList.addAll(tempTreeNodeList);
+                    }
+                }
+
+            }
+        }
+        return allEmpSuprelChartTreeNodeList;
+    }
+
+    private DynamicObjectCollection queryBusinessDataToDown(String personId, QFilter searchQf) {
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empsuprel");
+        // 生效中
+        QFilter businessstatusQf = new QFilter("businessstatus", QCP.equals, "1");
+        // 当前版本
+//        QFilter currentQf = new QFilter("iscurrentversion", QCP.equals, true);
+        // 汇报上级
+        QFilter superiorQf = new QFilter("superiorempposorgrel.employee.id", QCP.equals, Long.valueOf(personId));
+        return helper.queryOriginalCollection("id,employee,employee.name,superiorempposorgrel.employee.id,superiorempposorgrel.employee.name", new QFilter[]{businessstatusQf, superiorQf, searchQf});
+    }
+
+    private DynamicObjectCollection queryBusinessDataToUp(String personId, QFilter searchQf) {
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empsuprel");
+        // 生效中
+        QFilter businessstatusQf = new QFilter("businessstatus", QCP.equals, "1");
+        // 当前版本
+//        QFilter currentQf = new QFilter("iscurrentversion", QCP.equals, true);
+        // 人员
+        QFilter superiorQf = new QFilter("employee.id", QCP.equals, Long.valueOf(personId));
+        return helper.queryOriginalCollection("id,employee,employee.name,superiorempposorgrel.employee.id,superiorempposorgrel.employee.name", new QFilter[]{businessstatusQf, superiorQf, searchQf});
+    }
+
+    private DynamicObject[] getHrpiEmpposorgrelByPerson(List<Long> personIds) {
+        if (personIds.size() == 0) {
+            return null;
+        }
+        if (personIds.size() == 1) {
+            if (personIds.get(0) == 0L) {
+                return null;
+            }
+        }
+
+        //hr人员
+        QFilter hrUserQFilter = new QFilter("employee", QCP.in, personIds);
+        QFilter primaryQFilter = new QFilter("isprimary", QCP.equals, "1");
+//        QFilter personCurrentQFilter = new QFilter("iscurrentversion", QCP.equals, true);
+//        QFilter businessStatusQFilter = new QFilter("businessstatus", QCP.equals, "1");
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_empposorgrel");
+        return helper.query( "employee,adminorg,position,company", new QFilter[]{hrUserQFilter, primaryQFilter});
+    }
+
+    private DynamicObject[] getHrpiPerson(List<Long> personIds) {
+        if (personIds.size() == 0) {
+            return null;
+        }
+        if (personIds.size() == 1) {
+            if (personIds.get(0) == 0L) {
+                return null;
+            }
+        }
+
+        QFilter idQf = new QFilter("id", QCP.in, personIds);
+        QFilter personCurrentQf = new QFilter("iscurrentversion", QCP.equals, true);
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_employeenewf7query");
+        return helper.query("id,number,name,headsculpture", new QFilter[]{idQf, personCurrentQf});
+    }
+
+    private DynamicObject[] getHrpiPercontact(List<Long> personIds) {
+        if (personIds.size() == 0) {
+            return null;
+        }
+        if (personIds.size() == 1) {
+            if (personIds.get(0) == 0L) {
+                return null;
+            }
+        }
+
+        //根据hr人员获取人事业务档案
+        QFilter personQf = new QFilter("employee", QCP.in, personIds);
+//        QFilter personCurrentQf = new QFilter("iscurrentversion", QCP.equals, true);
+//        QFilter datastatusQf = new QFilter("datastatus", QCP.equals, "1");
+        HRBaseServiceHelper helper = new HRBaseServiceHelper("hrpi_percontact");
+        return helper.query("id,employee,phone,peremail", new QFilter[]{personQf});
+    }
+
+
+
+    private String setUserPictureUrl(String userPictureUrl) {
+        // TODO 轻量级环境文件服务器异常，临时屏蔽
+//        if (null != userPictureUrl && !"".equals(userPictureUrl.trim())) {
+//            String imageFullUrl = UrlService.getImageFullUrl(userPictureUrl);
+//            String replaceUrl = imageFullUrl.replace(RequestContext.get().getClientFullContextPath() + "attachment/downloadImage/", "");
+//            boolean exists = FileServiceFactory.getImageFileService().exists(replaceUrl);
+//            if (exists) {
+//                return imageFullUrl;
+//            }
+//        }
+        // 默认返回头像
+        return UrlService.getDomainContextUrl()+ "/images/pc/emotion/default_person_82_82.png";
+
+    }
+
+}

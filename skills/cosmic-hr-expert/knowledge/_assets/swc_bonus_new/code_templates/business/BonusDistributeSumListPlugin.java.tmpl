@@ -1,0 +1,297 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribute_sum;
+
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.serialization.SerializationUtils;
+import kd.bos.dataentity.utils.ObjectUtils;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.entity.datamodel.events.BeforePackageDataEvent;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.MessageBoxResult;
+import kd.bos.form.ShowType;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.events.HyperLinkClickArgs;
+import kd.bos.form.events.MessageBoxClosedEvent;
+import kd.bos.form.events.SetFilterEvent;
+import kd.bos.form.operate.AbstractOperate;
+import kd.bos.list.BillList;
+import kd.bos.list.IListView;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.bos.workflow.engine.msg.info.MessageInfo;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.BonusDistributeSumOperatePlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.validate.BonusDistributeSumValidatePlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/7 16:42
+ * FileName: BonusDistributeSumListPlugin
+ * Description: 奖金分配汇总列表插件
+ */
+public class BonusDistributeSumListPlugin extends AbstractListPlugin {
+
+    private static final String SHOW_CONFIRM_URGE = "yes"; // 展示催办弹窗
+    private static final String NOT_SHOW_CONFIRM_URGE = "no"; // 不展示催办弹窗
+    private static final String CONFIRM_CALL_BACK_KEY = "confirm_ok"; // 确认弹窗的回调key
+
+    @Override
+    public void setFilter(SetFilterEvent e) {
+        // 奖金核定汇总单审批状态的过滤
+        super.setFilter(e);
+        List<QFilter> qFilters = e.getQFilters();
+        List<String> billStatus = new ArrayList<>();
+        for (int i = 0; i < qFilters.size(); i++) {
+            if (Objects.isNull(qFilters.get(i))) {
+                continue;
+            }
+            String property = qFilters.get(i).getProperty();
+            if ("${ISV_FLAG}_approval_status".equals(property)) {
+                ArrayList<String> value = (ArrayList<String>) qFilters.get(i).getValue();
+                billStatus.addAll(value);
+            }
+        }
+        Map<String, DynamicObject> bonusMap = new HashMap<>();
+        QFilter filter2 = new QFilter("billstatus", QCP.in, billStatus);
+        DynamicObjectCollection bonusPlanApprovalObjects = QueryServiceHelper.query("${ISV_FLAG}_bonus_sum_approval", "id,billno,billstatus", filter2.toArray());
+        for (DynamicObject bonus : bonusPlanApprovalObjects) {
+            bonusMap.put(bonus.getString("billstatus"),bonus);
+        }
+
+
+        for (int i = 0; i < qFilters.size(); i++) {
+            if (Objects.isNull(qFilters.get(i))) {
+                continue;
+            }
+            String property = qFilters.get(i).getProperty();
+            if ("${ISV_FLAG}_approval_status".equals(property)) {
+                ArrayList<String> value = (ArrayList<String>) qFilters.get(i).getValue();
+                if (value.size() > 0) {
+                    List<DynamicObject> bonusPlanApproval = new ArrayList<>();
+                    for (String key : value) {
+                        bonusPlanApproval.add(bonusMap.get(key));
+                    }
+                    Set<Long> bonusPlanApprovalIds = bonusPlanApproval.stream().map(item -> item.getLong("id")).collect(Collectors.toSet());
+                    QFilter temp = new QFilter("${ISV_FLAG}_sum_approval_id", QCP.in, bonusPlanApprovalIds);
+                    if(value.contains("K")){
+                        temp.or(new QFilter("${ISV_FLAG}_approval_status", QCP.equals, "K") );
+                    }
+                    qFilters.set(i,temp);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void billListHyperLinkClick(HyperLinkClickArgs args) {
+        String fieldName = args.getFieldName();
+        if(HRStringUtils.equals(fieldName,"${ISV_FLAG}_approval_status")){
+            hyperLinkOpenBill(args,"id,${ISV_FLAG}_sum_approval_id","${ISV_FLAG}_sum_approval_id", BonusUtil.APPROVAL_SUM_BILL);
+        }else if(HRStringUtils.equals(fieldName,"${ISV_FLAG}_approval_bill_billno")){
+            hyperLinkOpenBill(args,"id,${ISV_FLAG}_approval_bill_id","${ISV_FLAG}_approval_bill_id",BonusUtil.APPROVAL_BILL_FORM_ID);
+        }
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        String currentUserId = String.valueOf(RequestContext.get().getCurrUserId());
+        AbstractOperate source = (AbstractOperate) args.getSource();
+        String operateKey = source.getOperateKey();
+        ListSelectedRowCollection listSelectedData = args.getListSelectedData();
+        // 【催办】
+        if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_URGEING.equals(operateKey)){
+            // 催办
+            Date currentDate = Calendar.getInstance().getTime();
+            Object[] primaryKeyValues = listSelectedData.getPrimaryKeyValues();
+            String afterRemoveAllFields = BonusUtil.afterExpectQueryAllField(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID,"${ISV_FLAG}_approval_bill");
+            DynamicObject[] sumDistributeArrays = BusinessDataServiceHelper.load(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, afterRemoveAllFields, new QFilter("id", QCP.in, primaryKeyValues).toArray());
+            // 先进行数据状态的校验
+            checkEnableUrge(sumDistributeArrays);            // 弹窗
+            FormShowParameter ShowParameter = new FormShowParameter();
+            ShowParameter.setFormId("${ISV_FLAG}_urgeing");
+            ShowParameter.setCloseCallBack(new CloseCallBack(this, CONFIRM_CALL_BACK_KEY));
+            ShowParameter.setCustomParam("data",SerializationUtils.serializeToBase64(Arrays.stream(sumDistributeArrays).collect(Collectors.toList())));
+
+            ShowParameter.getOpenStyle().setShowType(ShowType.Modal);
+            this.getView().showForm(ShowParameter);
+        }
+    }
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent closedCallBackEvent) {
+        super.closedCallBack(closedCallBackEvent);
+        if(CONFIRM_CALL_BACK_KEY.equals(closedCallBackEvent.getActionId())) {
+            //子页面数据回调
+            String returnData = (String)closedCallBackEvent.getReturnData();
+            if (returnData != null){
+                List<DynamicObject> showConfirmUrgeList = SerializationUtils.deSerializeFromBase64(returnData);
+                urgingOperate(new Date(),showConfirmUrgeList);
+            }
+        }
+    }
+
+
+    @Override
+    public void confirmCallBack(MessageBoxClosedEvent messageBoxClosedEvent) {
+        String callBackId = messageBoxClosedEvent.getCallBackId();
+        if (CONFIRM_CALL_BACK_KEY.equals(callBackId)){
+            // 获取点击后的结果
+            MessageBoxResult result = messageBoxClosedEvent.getResult();
+            if (result != null)
+            // 取消
+            if (result.getValue() == MessageBoxResult.No.getValue()){
+                // 不可以发送催办，就直接结束
+                return;
+            }else if(result.getValue() == MessageBoxResult.Yes.getValue()){
+                String currentUserIdStr = String.valueOf(RequestContext.get().getCurrUserId());
+                String basePrefix = this.getPageCache().get("basePrefix");
+                if(currentUserIdStr.equals(basePrefix)){
+                    String urgeDate = this.getPageCache().get(basePrefix + "&urgeDate");
+                    String urgeDataList = this.getPageCache().get(basePrefix + "&urgeDataList");
+                    List<DynamicObject> showConfirmUrgeList = SerializationUtils.deSerializeFromBase64(urgeDataList);
+                    Date date = new Date(Long.parseLong(urgeDate));
+                    urgingOperate(date,showConfirmUrgeList);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs afterDoOperationEventArgs) {
+        String operateKey = afterDoOperationEventArgs.getOperateKey();
+        OperationResult operationResult = afterDoOperationEventArgs.getOperationResult();
+        // 【复核】
+        if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_COMPOSITE.equals(operateKey)){
+            // 刷新页面
+            BillList billList = this.getControl(AbstractListPlugin.BILLLISTID);
+            billList.refresh();
+        }
+        // 【撤销】
+        else if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_REVOKE.equals(operateKey)){
+            // 刷新页面
+            BillList billList = this.getControl(AbstractListPlugin.BILLLISTID);
+            billList.refresh();
+        }
+        // 【生成审批单】
+        else if(BonusDistributeSumOperatePlugin.BTN_DO_NOTHING_GEN_APPROVAL.equals(operateKey)){
+            if(operationResult.isSuccess()){
+                Long sumApprovalId = null;
+                List<Object> successPkIds = afterDoOperationEventArgs.getOperationResult().getSuccessPkIds();
+                if(CollectionUtils.isNotEmpty(successPkIds)){
+                    Object successPkId = successPkIds.get(0);
+                    DynamicObject oneOfSuccessDate = QueryServiceHelper.queryOne(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, "${ISV_FLAG}_sum_approval_id", new QFilter("id", QCP.equals, successPkId).toArray());
+                    sumApprovalId = Optional.ofNullable(oneOfSuccessDate).map(a -> a.getLong("${ISV_FLAG}_sum_approval_id")).orElse(null);
+                }
+                // 刷新页面
+                BillList billList = this.getControl(AbstractListPlugin.BILLLISTID);
+                billList.refresh();
+                if(sumApprovalId != null){
+                    // 打开汇总审批单的页面
+                    BonusUtil.openBill(this.getView(),sumApprovalId,BonusUtil.APPROVAL_SUM_BILL,null);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void beforePackageData(BeforePackageDataEvent e) {
+        DynamicObjectCollection pageData = e.getPageData();
+
+        Set<Long> planSummaryIds = pageData.stream().filter(item ->
+                        item.getLong("${ISV_FLAG}_sum_approval_id") > 0 )
+                .map(item -> item.getLong("${ISV_FLAG}_sum_approval_id")).collect(Collectors.toSet());
+        DynamicObject[] bonusPlanApprovalList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_sum_approval", "id,billstatus",
+                new QFilter[]{
+                        new QFilter("id",QCP.in,planSummaryIds)
+                });
+
+        HashMap<Long, String> resourseMap = new HashMap<>();
+        for (DynamicObject bonusPlanApproval : bonusPlanApprovalList) {
+            Long bonusPlanApprovalId = bonusPlanApproval.getLong("id");
+            resourseMap.put(bonusPlanApprovalId,bonusPlanApproval.getString("billstatus"));
+        }
+
+        for (DynamicObject bill: pageData) {
+            Long planSummaryId = bill.getLong("${ISV_FLAG}_sum_approval_id");
+            String oldApprovalStatus = bill.getString("${ISV_FLAG}_approval_status");
+            // 无需处理
+            if(!"K".equals(oldApprovalStatus)){
+                bill.set("${ISV_FLAG}_approval_status",resourseMap.get(planSummaryId));
+            }
+        }
+    }
+
+    private void urgingOperate(Date currentDate, List<DynamicObject> urgeList) {
+        if(CollectionUtils.isNotEmpty(urgeList)){
+            // 查询分配单列表，通过分配汇总单编码查询单据状态为“审批中”分配单列表
+            // 找到分配单的“单据处理人”发送消息“请尽快处理单据编号XXXXX‘分配组织’的‘奖金项目’分配”
+            Set<String> disBillNos = urgeList.stream().map(approval -> approval.getString("billno")).collect(Collectors.toSet());
+            // 查询对应的奖金分配单的数据
+            String selectField = "id,${ISV_FLAG}_approval_id,billno,${ISV_FLAG}_name,${ISV_FLAG}_bonus_item.id,${ISV_FLAG}_bonus_item.number,${ISV_FLAG}_bonus_item.name,${ISV_FLAG}_distribute_org.id,${ISV_FLAG}_distribute_org.number,${ISV_FLAG}_distribute_org.name,${ISV_FLAG}_handler.id";
+            QFilter qFilter = new QFilter("${ISV_FLAG}_dis_billno",QCP.in,disBillNos)
+                    .and(new QFilter("billstatus",QCP.equals,"D"));
+            DynamicObjectCollection bonusDistributeCollection = QueryServiceHelper.query(BonusUtil.DISTRIBUTE_BILL_FORM_ID, selectField, qFilter.toArray());
+            Map<Long, String> groupSendMsgMap = bonusDistributeCollection.stream().collect(Collectors.toMap(key -> key.getLong("id"), value -> {
+                String billNo = value.getString("billno");
+                String handlerId = value.getString("${ISV_FLAG}_handler.id");
+                String distributeOrgName = value.getString("${ISV_FLAG}_distribute_org.name");
+                String bonusItemName = value.getString("${ISV_FLAG}_bonus_item.name");
+                return handlerId + "&&" + String.format("请尽快处理单据编号: %S 【%S】的‘【%S】分配", billNo, distributeOrgName, bonusItemName)
+                        + "&&" + value.getLong("id");
+            }));
+            boolean sendMsgResult = BonusUtil.batchSendMsg(groupSendMsgMap, currentDate, "${ISV_FLAG}_bonus_dis_detail", MessageInfo.TYPE_ACTIVITY);
+            // 进行单据反写进行【最新催办时间】的记录
+            if(sendMsgResult){
+                urgeList.forEach(data -> data.set("${ISV_FLAG}_last_urge_date",currentDate));
+                SaveServiceHelper.update(urgeList.toArray(new DynamicObject[0]));
+                this.getView().showSuccessNotification("催办成功");
+            }else {
+                this.getView().showErrorNotification("请勿频繁催办，请一分钟后尝试。");
+            }
+        }
+    }
+    private void checkEnableUrge(DynamicObject[] sumDistributeArrays) {
+        StringBuilder errorMsg = new StringBuilder();
+        Arrays.stream(sumDistributeArrays).filter(status -> ! BonusDistributeSumValidatePlugin.DAI_FEN_PEI.equals(status.getString("billstatus"))).forEach(msg -> errorMsg.append(msg.getString("billno")).append("\r\n"));
+        // 编号为 xxx 的
+        if(errorMsg.length() > 0){
+            errorMsg.insert(0,"单据编号为：").append("的单据状态不为\"待分配\",不能进行【催办】");
+            throw new KDBizException(errorMsg.toString());
+        }
+    }
+
+    private void hyperLinkOpenBill(HyperLinkClickArgs args,String selectField,String linkId,String openBillName) {
+        args.setCancel(true);
+        IListView listView = (IListView) this.getView();
+        long pkId = (Long) listView.getFocusRowPkId();
+        DynamicObject bill = QueryServiceHelper.queryOne(BonusUtil.DISTRIBUTE_SUM_BILL_FORM_ID, selectField, new QFilter("id", QCP.equals, pkId).toArray());
+        long approvalId = ObjectUtils.isEmpty(bill) ? 0L : bill.getLong(linkId);
+        if(approvalId != 0L){
+            BonusUtil.openInfoBill(this.getView(), approvalId,openBillName,null);
+        }
+    }
+}

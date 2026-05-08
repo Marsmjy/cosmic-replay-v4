@@ -1,0 +1,727 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribution.second;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.entity.datamodel.events.ChangeData;
+import kd.bos.entity.datamodel.events.PropertyChangedArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.IPageCache;
+import kd.bos.form.control.EntryGrid;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.form.operate.formop.DeleteEntry;
+import kd.bos.form.operate.formop.NewEntry;
+import kd.bos.list.ListShowParameter;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.TimeServiceHelper;
+import kd.hr.hbp.common.constants.org.TreeTemplateConstants;
+import kd.sdk.hr.haos.business.helper.HAOSServiceHelper;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.BonusWriteBackUtil;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * @Author: donner
+ * @Date: 2025/04/10 11:36
+ * @Description: 奖金分配单据插件V2，${ISV_FLAG}_bonus_dis_detail
+ **/
+public class BonusDisSecondPlugin extends AbstractBillPlugIn implements BeforeF7SelectListener {
+
+
+    @Override
+    public void registerListener(EventObject e) {
+        // 事件注册-部门留存明细分录-选择承担组织
+        BasedataEdit undertakeOrg3 = this.getView().getControl("${ISV_FLAG}_undertake_org3");
+        undertakeOrg3.addBeforeF7SelectListener(this);
+        // 事件注册-人员分配明细分录-选择承担组织
+        BasedataEdit undertakeOrg2 = this.getView().getControl("${ISV_FLAG}_undertake_org2");
+        undertakeOrg2.addBeforeF7SelectListener(this);
+        // 事件注册-组织分配明细分录-选择承担组织
+        BasedataEdit undertakeOrg = this.getView().getControl("${ISV_FLAG}_undertake_org");
+        undertakeOrg.addBeforeF7SelectListener(this);
+        // 创建人信息过滤
+        BasedataEdit deptPerson = this.getView().getControl("${ISV_FLAG}_dept_person");
+        deptPerson.addBeforeF7SelectListener(this);
+        // 事件注册-组织分配明细-选择行政组织
+        BasedataEdit xzOrg = this.getView().getControl("${ISV_FLAG}_org");
+        xzOrg.addBeforeF7SelectListener(this);
+        // 事件注册-留存奖部门经费-选择行政组织
+        BasedataEdit lzOrg = this.getView().getControl("${ISV_FLAG}_admin_org_keep");
+        lzOrg.addBeforeF7SelectListener(this);
+        // 事件注册-人员核定明细分录-员工姓名
+        BasedataEdit aCompanyBase = this.getView().getControl("${ISV_FLAG}_peson");
+        aCompanyBase.addBeforeF7SelectListener(this);
+    }
+
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent beforeF7SelectEvent) {
+        String name = beforeF7SelectEvent.getProperty().getName();
+        ListShowParameter showParameter = (ListShowParameter) beforeF7SelectEvent.getFormShowParameter();
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+
+        ArrayList<Long> orgIdList = new ArrayList<>();
+        switch (name){
+            case "${ISV_FLAG}_peson":
+                // 允许查询离职员工
+                showParameter.setCustomParam("isAllowInfoClassifyEdit",Boolean.TRUE);
+                break;
+            case "${ISV_FLAG}_undertake_org3":
+            case "${ISV_FLAG}_undertake_org2":
+            case "${ISV_FLAG}_undertake_org":
+                // 行政组织类型为“子公司”及虚拟组织股份总部
+                QFilter orgFilter = new QFilter("adminorgtype.number",QCP.equals, "1028_S");
+                orgFilter.or("number",QCP.in,Arrays.asList("10017990","YX.10.30","10000050","10000268","10012991"));
+                showParameter.getListFilterParameter().getQFilters().add(orgFilter);
+                // F7基础资料-组织树过滤
+                this.filterOrgTreeByF7Limit(showParameter,orgFilter);
+                break;
+            case "${ISV_FLAG}_dept_person":
+                QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+                DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+                // 组织人过滤
+                QFilter personOrgFilter = new QFilter("employee.number",QCP.equals, currentPerson.getString("number"));
+                showParameter.getListFilterParameter().getQFilters().add(personOrgFilter);
+                break;
+            case "${ISV_FLAG}_org":
+                // 设置列表过滤条件
+                // 组织分配明细
+                // 留存部门经费
+                // 不显示行政组织类型为“1043_S 业务组\1050_S 工厂\1070_S 车间/工段”的组织
+                // 增量  1010_S 1015_S 1025_S
+                QFilter orgTemp = new QFilter("adminorgtype.number",QCP.not_in, Arrays.asList("1043_S","1050_S","1070_S"
+                        ,"1010_S","1015_S","1025_S"));
+                showParameter.getListFilterParameter().getQFilters().add(orgTemp);
+                // F7基础资料-组织树过滤
+                this.filterOrgTreeByF7Limit(showParameter,orgTemp);
+                break;
+            case "${ISV_FLAG}_admin_org_keep":
+                // 行政组织类型为一级部门、二级部门、虚拟组织
+                QFilter orgtypeFilter = new QFilter("adminorgtype.number",QCP.in, Arrays.asList("1040_S","1041_S","1080_S"));
+                showParameter.getListFilterParameter().getQFilters().add(orgtypeFilter);
+                // F7基础资料-组织树过滤
+                this.filterOrgTreeByF7Limit(showParameter,orgtypeFilter);
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        Object source = args.getSource();
+        // 分录中删行事件监听
+        if(source instanceof DeleteEntry) {
+            String operateKey = ((DeleteEntry) source).getOperateKey();
+            if("deleteentry_staff".equals(operateKey)) {
+                // 人员分配明细-删行
+                EntryGrid entryGrid = this.getControl("${ISV_FLAG}_person_dis_entry");
+                int [] selectIndexArr = entryGrid.getSelectRows();
+                DynamicObject dataEntity = this.getModel().getDataEntity(true);
+                // 人员分配分录
+                DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+                for(int selectIndex : selectIndexArr) {
+                    DynamicObject rowObject = personEntry.get(selectIndex);
+                    // 是否锁定行
+                    String locked = rowObject.getString("${ISV_FLAG}_locked_staff");
+                    if("1".equals(locked)){
+                        throw new KDBizException("人员分配明细分录存在上级分配数据，不允许删除！");
+                    }
+                }
+            } else if("deleteentry_dept".equals(operateKey)) {
+                // 部门分配明细-删行
+                EntryGrid entryGrid = this.getControl("${ISV_FLAG}_retention_entry");
+                int [] selectIndexArr = entryGrid.getSelectRows();
+                DynamicObject dataEntity = this.getModel().getDataEntity(true);
+                // 部门分配分录
+                DynamicObjectCollection deptEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_retention_entry");
+                for(int selectIndex : selectIndexArr) {
+                    DynamicObject rowObject = deptEntry.get(selectIndex);
+                    // 是否锁定行
+                    String locked = rowObject.getString("${ISV_FLAG}_locked_dept");
+                    if("1".equals(locked)){
+                        throw new KDBizException("留存部门经费分录存在上级分配数据，不允许删除！");
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs afterDoOperationEventArgs) {
+        Object source = afterDoOperationEventArgs.getSource();
+        FormOperate operate = (FormOperate) afterDoOperationEventArgs.getSource();
+        String operateKey = operate.getOperateKey();
+        // 分录中增行监听
+        if(source instanceof NewEntry) {
+            DynamicObject dataEntity = this.getModel().getDataEntity(true);
+            // 人员分配增行
+            if("newentry_staff".equals(operateKey)) {
+                // 人员分配分录
+                DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+                int lastIndex = personEntry.size() - 1;
+                // 设置人员分配明细-承担组织
+                this.updatePersonUnderTakeOrg(lastIndex);
+            } else if("newentry_org".equals(operateKey)) {
+                // 组织分配分录
+                DynamicObjectCollection entry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry");
+                int lastIndex = entry.size() - 1;
+                // 设置组织分配明细-承担组织
+                this.updateOrgUnderTakeOrg(lastIndex);
+            } else if("newentry_dept".equals(operateKey)) {
+                // 部门留存分录
+                DynamicObjectCollection entry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_retention_entry");
+                int lastIndex = entry.size() - 1;
+                // 设置部门留存分配明细-承担组织
+                this.updateKeepUnderTakeOrg(lastIndex);
+            }
+            // 分录公共控制
+            this.entryCommonControl();
+        } else if(source instanceof DeleteEntry) {
+            this.entryCommonControl();
+        }
+
+    }
+
+
+    /**
+     * 当单据已经保存，并以查看或修改模式打开时触发。此时，单据数据会从数据库加载
+     * @param e
+     */
+    @Override
+    public void afterLoadData(EventObject e) {
+        super.afterLoadData(e);
+        // 分录公共控制
+        this.entryCommonControl();
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        // 获取工作流中设置的业务标识
+        String bizIdentifyKey = this.getView().getFormShowParameter().getCustomParam("bizIdentifyKey");
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        // 判断是否在工作流中打开
+        if("bonusDisV2".equalsIgnoreCase(bizIdentifyKey)){
+            // 将奖金分配单的主键id传递到父页面的页面缓存中
+            IPageCache parentPageCache = this.getView().getParentView().getPageCache();
+            parentPageCache.put("workFlowBonusIdFromSecondVersion",dataEntity.getString("id"));
+            // 工作流中打开可编辑，显示按钮
+            this.getView().setVisible(true,"${ISV_FLAG}_advcontoolbarap","${ISV_FLAG}_advcontoolbarap1","${ISV_FLAG}_advcontoolbarap2");
+        }else{
+            // 别的途径打开不可编辑，隐藏按钮
+            this.getView().setVisible(false,"${ISV_FLAG}_advcontoolbarap","${ISV_FLAG}_advcontoolbarap1","${ISV_FLAG}_advcontoolbarap2");
+        }
+        entryCommonControl();
+    }
+
+    /**
+     * 值改变事件
+     * @param e
+     */
+    @Override
+    public void propertyChanged(PropertyChangedArgs e) {
+        String name = e.getProperty().getName();
+        ChangeData changeData = e.getChangeSet()[0];
+        boolean entryChanged = false;
+        switch(name){
+            case "${ISV_FLAG}_peson":
+                // 人员分配明细-新选择了员工
+                this.employeeChange(changeData);
+                entryChanged = true;
+                break;
+            case "${ISV_FLAG}_real_dis_decimal":
+                // 人员分配明细-实际分配金额发生变化
+                this.staffMoneyChange(changeData);
+                entryChanged = true;
+                break;
+            case "${ISV_FLAG}_distribute_decimal":
+                // 组织分配明细-实际分配金额发生变化
+                entryChanged = true;
+                break;
+            case "${ISV_FLAG}_retention_decimal":
+                // 部门留存经费-实际分配金额发生变化
+                entryChanged = true;
+                break;
+            case "${ISV_FLAG}_org":
+                // 组织分配明细-行政组织发生变化
+                this.adminOrgChange(changeData);
+                break;
+            case "${ISV_FLAG}_admin_org_keep":
+                // 留存部门经费-行政组织发生变化
+                this.orgKeepChange(changeData);
+            case "${ISV_FLAG}_dept_person":
+                this.valueChangeCreateStaffSelect();
+                break;
+            default:
+
+                break;
+        }
+        // 分录有变化
+        if(entryChanged){
+            // 分录公共控制
+            this.entryCommonControl();
+        }
+    }
+
+    /**
+     * >>留存部门经费分配明细-行政组织发生变化
+     * @param changeData
+     */
+    private void orgKeepChange(ChangeData changeData) {
+        //组织核定信息单据体中行政组织发生变化
+        DynamicObject adminorg =(DynamicObject) changeData.getNewValue();
+        if (adminorg != null){
+            //1.带出所选行政组织所属的经营主体
+            //1.1经营主体
+            DynamicObject haosCompanytype = adminorg.getDynamicObject("org");
+            int rowIndex = changeData.getRowIndex();
+            this.getModel().setValue("${ISV_FLAG}_bs_entity_org",haosCompanytype,rowIndex);
+            // 所属公司
+            this.getModel().setValue("${ISV_FLAG}_keep_company",adminorg.getDynamicObject("belongcompany"),rowIndex);
+            // 设置组织分配明细-承担组织
+            this.updateKeepUnderTakeOrg(rowIndex);
+        }
+    }
+
+    /**
+     * >>组织分配明细-行政组织发生变化
+     * @param changeData
+     */
+    private void adminOrgChange(ChangeData changeData) {
+        //组织核定信息单据体中行政组织发生变化
+        DynamicObject adminorg =(DynamicObject) changeData.getNewValue();
+        if (adminorg != null){
+            //1.带出所选行政组织所属的经营主体
+            //1.1经营主体
+            DynamicObject haosCompanytype = adminorg.getDynamicObject("org");
+            int rowIndex = changeData.getRowIndex();
+            this.getModel().setValue("${ISV_FLAG}_business_org",haosCompanytype,rowIndex);
+            //2默认带出所选组织负责人
+            List<Long> orgIds = new ArrayList<>();
+            long orgId = adminorg.getLong("id");
+            orgIds.add(orgId);
+            //2默认带出所选组织负责人
+            Map<Long, List<Map<String, Object>>> personIds = HAOSServiceHelper.queryPastChargeByOrgId(orgIds, TimeServiceHelper.now());
+            // 一个组织出现多个负责人的时候取哪一个
+//            List<Long> dutyPersonIds = BonusWriteBackUtil.listOrgDutyPersonIds(adminorg.getLong("id"));
+            // 一个组织出现多个负责人的时候取哪一个
+            if (!personIds.isEmpty() && personIds.containsKey(orgId)){
+                //person
+                List<Map<String, Object>> personMap = personIds.get(orgId);
+                Map<String, Object> map = personMap.get(0);
+                if (!map.isEmpty() && map.containsKey("person")) {
+                    this.getModel().setValue("${ISV_FLAG}_distribute_person", Long.valueOf(String.valueOf(map.get("person"))), rowIndex);
+                }
+            }
+            // 设置组织分配明细-承担组织
+            this.updateOrgUnderTakeOrg(rowIndex);
+        }
+    }
+
+    /**
+     * >>F7基础资料-组织树过滤
+     * @param showParameter
+     * @param orgFilter
+     */
+    private void filterOrgTreeByF7Limit(ListShowParameter showParameter,QFilter orgFilter){
+        // 过滤左树
+        DynamicObjectCollection adminorgCollection = QueryServiceHelper.query("haos_adminorg", "id,structlongnumber", orgFilter.toArray());
+        List<String> orgList = adminorgCollection.stream().map(item -> item.getString("structlongnumber")).collect(Collectors.toList());
+        List<String> structnumber = new ArrayList<>();
+        for (String structlongnumber : orgList) {
+            String[] split = structlongnumber.split("!");
+            structnumber.addAll(Arrays.stream(split).collect(Collectors.toList()));
+        }
+        QFilter filter = new QFilter("structnumber",QCP.in,structnumber);
+        DynamicObjectCollection orgTree = QueryServiceHelper.query("haos_adminorg", "id", filter.toArray());
+        showParameter.getCustomParams().put(TreeTemplateConstants.BIZ_QFILTER_KEY, new QFilter("adminorg.id", QCP.in, orgTree.stream().map(item -> item.getLong("id")).collect(Collectors.toSet())).toSerializedString());
+    }
+
+    /**
+     * >>人员分配明细单据体中人员发生变化
+     * @param changeData
+     */
+    private void employeeChange(ChangeData changeData) {
+        //1人员核定明细单据体中人员发生变化
+        DynamicObject hrPerson =(DynamicObject) changeData.getNewValue();
+        //1.1所属经营主体,所属公司,所属部门,查询人员的任职经历,最新的历史版本，承担组织,默认为人员所属公司，支持修改
+        if (hrPerson != null){
+            String employeeNumber = hrPerson.getString("number");
+            long staffId = hrPerson.getLong("id");
+            // 查找最新任职
+            QFilter hrpiEmpposorgrelFilter = new QFilter("id", QCP.equals,staffId);
+            DynamicObject hrpiEmpposorgrel = QueryServiceHelper.queryOne("hrpi_empposorgrel","id,company,adminorg,adminorg.org,position", hrpiEmpposorgrelFilter.toArray());
+
+
+            int rowIndex = changeData.getRowIndex();
+            if (hrpiEmpposorgrel != null){
+                // 员工工号
+                this.getModel().setValue("${ISV_FLAG}_peson_number",employeeNumber,rowIndex);
+
+                //任职经历历史版本
+                this.getModel().setValue("${ISV_FLAG}_employment_history",hrpiEmpposorgrel.getLong("id"),rowIndex);
+                // 所属经营主体
+                this.getModel().setValue("${ISV_FLAG}_per_business_entity",hrpiEmpposorgrel.getLong("adminorg.org"),rowIndex);
+                // 所属公司
+                this.getModel().setValue("${ISV_FLAG}_per_admin_company",hrpiEmpposorgrel.getLong("company"),rowIndex);
+                // 所属部门-行政组织
+                this.getModel().setValue("${ISV_FLAG}_admin_dept",hrpiEmpposorgrel.getLong("adminorg"),rowIndex);
+                // 岗位
+                this.getModel().setValue("${ISV_FLAG}_admin_post",hrpiEmpposorgrel.getLong("position"),rowIndex);
+            }
+            // 设置人员分配明细-承担组织
+            this.updatePersonUnderTakeOrg(rowIndex);
+        }
+    }
+
+
+    /**
+     * 设置人员分配明细-承担组织
+     * @param rowIndex
+     */
+    private void updatePersonUnderTakeOrg(int rowIndex){
+        int lastIndex = rowIndex;
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+        // 分录行对象
+        DynamicObject rowObject = (DynamicObject) personEntry.get(lastIndex);
+        // 上级单承担组织
+        DynamicObject ptUndertakeOrg = dataEntity.getDynamicObject("${ISV_FLAG}_pt_undertake_org");
+        // 新增分录时
+        // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+        // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+        // 否则，不可编辑
+        DynamicObject realUndertakeOrg = null;
+        if(ptUndertakeOrg != null){
+            realUndertakeOrg = ptUndertakeOrg;
+        } else{
+            realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,null,"${ISV_FLAG}_per_business_entity.id",rowObject.getDynamicObject("${ISV_FLAG}_per_admin_company"));
+        }
+        this.getModel().setValue("${ISV_FLAG}_undertake_org2",realUndertakeOrg,lastIndex);
+    }
+
+    /**
+     * 设置组织分配明细-承担组织
+     * @param rowIndex
+     */
+    private void updateOrgUnderTakeOrg(int rowIndex){
+        int lastIndex = rowIndex;
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry");
+        // 分录行对象
+        DynamicObject rowObject = (DynamicObject) personEntry.get(lastIndex);
+        // 上级单承担组织
+        DynamicObject ptUndertakeOrg = dataEntity.getDynamicObject("${ISV_FLAG}_pt_undertake_org");
+        // 新增分录时
+        // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+        // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+        // 否则，不可编辑
+        DynamicObject realUndertakeOrg = null;
+        if(ptUndertakeOrg != null){
+            realUndertakeOrg = ptUndertakeOrg;
+        } else{
+            realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,"${ISV_FLAG}_org","${ISV_FLAG}_business_org.id",null);
+        }
+        this.getModel().setValue("${ISV_FLAG}_undertake_org",realUndertakeOrg,lastIndex);
+    }
+
+    /**
+     * 获取承担组织
+     * @param dataEntity
+     * @param rowObject
+     * @param entryOrgKey 行政组织
+     * @param entryJyKey 经营主体
+     * @return
+     */
+    private DynamicObject getUndertakeOrg(DynamicObject dataEntity,DynamicObject rowObject,String entryOrgKey,String entryJyKey,DynamicObject belongCompany){
+        DynamicObject realUndertakeOrg = null;
+        String costDuty = dataEntity.getString("${ISV_FLAG}_cost_duty");
+        String jyzt = dataEntity.getString("${ISV_FLAG}_jyztfp");
+        if("B".equals(costDuty) && "1".equals(jyzt)){
+            // 受奖方承担 且 核定到经营主体
+            // 奖金管理组织id
+            long orgId = dataEntity.getLong("org.id");
+            // 分录所属经营主体组织id
+            long entryOrgId = rowObject.getLong(entryJyKey);
+            if(entryOrgId == orgId){
+                // 所属公司 company
+                DynamicObject company = null;
+                if(belongCompany == null){
+                    DynamicObject adminorg = rowObject.getDynamicObject(entryOrgKey);
+                    if(adminorg != null){
+                        company = adminorg.getDynamicObject("company");
+                    }
+                } else{
+                    // 人员分录上的所属公司
+                    company = belongCompany;
+                }
+                // 分录行所属公司
+                realUndertakeOrg = company;
+            } else{
+                 // realUndertakeOrg = dataEntity.getDynamicObject("${ISV_FLAG}_attribut_company");
+            }
+        }
+        return realUndertakeOrg;
+    }
+
+    /**
+     * 设置部门留存分配明细-承担组织
+     * @param rowIndex
+     */
+    private void updateKeepUnderTakeOrg(int rowIndex){
+        int lastIndex = rowIndex;
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_retention_entry");
+        // 分录行对象
+        DynamicObject rowObject = (DynamicObject) personEntry.get(lastIndex);
+        // 上级单承担组织
+        DynamicObject ptUndertakeOrg = dataEntity.getDynamicObject("${ISV_FLAG}_pt_undertake_org");
+        // 新增分录时
+        // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+        // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+        // 否则，不可编辑
+        DynamicObject realUndertakeOrg = null;
+        if(ptUndertakeOrg != null){
+            realUndertakeOrg = ptUndertakeOrg;
+        } else{
+            realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,"${ISV_FLAG}_admin_org_keep","${ISV_FLAG}_bs_entity_org.id",null);
+        }
+        this.getModel().setValue("${ISV_FLAG}_undertake_org3",realUndertakeOrg,lastIndex);
+    }
+
+    /**
+     * >>人员分配明细单据体中分配金额发生变化
+     * @param changeData
+     */
+    private void staffMoneyChange(ChangeData changeData) {
+        BigDecimal disMoney =(BigDecimal) changeData.getNewValue();
+        int rowIndex = changeData.getRowIndex();
+        // 给按规则分配金额赋值
+        // this.getModel().setValue("${ISV_FLAG}_rule_dis_decimal",disMoney,rowIndex);
+    }
+
+
+    /**
+     * 分录公共控制
+     */
+    private void entryCommonControl(){
+        DynamicObject dataEntity = this.getModel().getDataEntity(true);
+        DynamicObject ptUndertakeOrg = dataEntity.getDynamicObject("${ISV_FLAG}_pt_undertake_org");
+        // 奖金总额
+        BigDecimal moneyTotal = dataEntity.getBigDecimal("${ISV_FLAG}_money_total");
+        // 人员分配分录
+        DynamicObjectCollection personEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+        for (int rowIndex = 0; rowIndex < personEntry.size(); rowIndex++) {
+            // 分录行对象
+            DynamicObject rowObject = (DynamicObject) personEntry.get(rowIndex);
+            // 1、处理分配占比
+            {
+                // 实际分配金额
+                BigDecimal realDecimal = rowObject.getBigDecimal("${ISV_FLAG}_real_dis_decimal");
+                BigDecimal distributeRatio = realDecimal.divide(moneyTotal,4, RoundingMode.HALF_UP);
+                // 分配占比
+                this.getModel().setValue("${ISV_FLAG}_dis_ratio",distributeRatio,rowIndex);
+            }
+            // 是否锁定行
+            String locked = rowObject.getString("${ISV_FLAG}_locked_staff");
+            // 2、锁行-从上级带过来的数据
+            {
+                if("1".equals(locked)){
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_peson");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_peson_number");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_per_business_entity");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_per_admin_company");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_admin_dept");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_rule_dis_decimal");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_real_dis_decimal");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_dis_ratio");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org2");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_is_upper_dis");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_warn_remark");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_person_remark");
+                } else {
+                    // 新增分录时
+                    // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+                    // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+                    // 否则，不可编辑
+                   /* String jyzt = dataEntity.getString("${ISV_FLAG}_jyztfp");
+                    if("0".equals(jyzt)){
+                        this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org2");
+                    }*/
+                    DynamicObject realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,null,"${ISV_FLAG}_per_business_entity.id",rowObject.getDynamicObject("${ISV_FLAG}_per_admin_company"));
+                    if (realUndertakeOrg == null && ptUndertakeOrg ==null){
+                        this.getView().setEnable(true,rowIndex,"${ISV_FLAG}_undertake_org2");
+                    }else {
+                        this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org2");
+                    }
+                }
+            }
+        }
+        // 组织分配分录
+        DynamicObjectCollection orgEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry");
+        for (int rowIndex = 0; rowIndex < orgEntry.size(); rowIndex++) {
+            // 分录行对象
+            DynamicObject rowObject = (DynamicObject) orgEntry.get(rowIndex);
+            // 1、处理分配占比
+            {
+                // 分配金额
+                BigDecimal realDecimal = rowObject.getBigDecimal("${ISV_FLAG}_distribute_decimal");
+                BigDecimal distributeRatio = realDecimal.divide(moneyTotal,4, RoundingMode.HALF_UP);
+                // 留存占比
+                this.getModel().setValue("${ISV_FLAG}_distribute_ratio",distributeRatio,rowIndex);
+            }
+            {
+                DynamicObject realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,"${ISV_FLAG}_org","${ISV_FLAG}_business_org.id",null);
+                if (realUndertakeOrg == null && ptUndertakeOrg ==null){
+                    this.getView().setEnable(true,rowIndex,"${ISV_FLAG}_undertake_org");
+                }else {
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org");
+                }
+                // 新增分录时
+                // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+                // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+                // 否则，不可编辑
+                /*String jyzt = dataEntity.getString("${ISV_FLAG}_jyztfp");
+                if("0".equals(jyzt)){
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org");
+                }*/
+            }
+        }
+        // 部门分配分录
+        DynamicObjectCollection deptEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_retention_entry");
+        for (int rowIndex = 0; rowIndex < deptEntry.size(); rowIndex++) {
+            // 分录行对象
+            DynamicObject rowObject = (DynamicObject) deptEntry.get(rowIndex);
+            // 1、处理分配占比
+            {
+                // 实际分配金额
+                BigDecimal realDecimal = rowObject.getBigDecimal("${ISV_FLAG}_retention_decimal");
+                BigDecimal distributeRatio = realDecimal.divide(moneyTotal,4, RoundingMode.HALF_UP);
+                // 留存占比
+                this.getModel().setValue("${ISV_FLAG}_retention_ratio",distributeRatio,rowIndex);
+            }
+            // 2、锁行-从上级带过来的数据
+            {
+                // 是否锁定行
+                String locked = rowObject.getString("${ISV_FLAG}_locked_dept");
+                if("1".equals(locked)){
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_admin_org_keep");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_keep_company");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_bs_entity_org");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_retention_decimal");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_retention_ratio");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org3");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_is_upper");
+                    this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_retention_remark");
+                } else {
+                    // 新增分录时
+                    // ①默认带出本单“分配组织”在上级单对应的“承担组织”，若为空，则默认赋值分录行的“所属公司”
+                    // ②若本张分配单的“经营主体分配”为“是”，则此字段可编辑：行政组织类型为“子公司”及虚拟组织股份总部
+                    // 否则，不可编辑
+                    /*String jyzt = dataEntity.getString("${ISV_FLAG}_jyztfp");
+                    if("0".equals(jyzt)){
+                        this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org3");
+                    }*/
+                    DynamicObject realUndertakeOrg = getUndertakeOrg(dataEntity,rowObject,"${ISV_FLAG}_admin_org_keep","${ISV_FLAG}_bs_entity_org.id",null);
+                    if (realUndertakeOrg == null && ptUndertakeOrg ==null){
+                        this.getView().setEnable(true,rowIndex,"${ISV_FLAG}_undertake_org3");
+                    }else {
+                        this.getView().setEnable(false,rowIndex,"${ISV_FLAG}_undertake_org3");
+                    }
+                }
+            }
+        }
+        // 计算总额
+        this.calcTotalMoney(dataEntity);
+    }
+
+    /**
+     * 计算总额
+     * @param distributeDynamicObject
+     */
+    private void calcTotalMoney(DynamicObject distributeDynamicObject){
+        // 分配统计
+        // 人员分配-当前已分配总额
+        BigDecimal personDistributeTotal = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry")
+                .stream().filter(upper -> ! upper.getBoolean("${ISV_FLAG}_is_upper_dis"))
+                .map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_real_dis_decimal")).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 人员分配-上级分配总额
+        BigDecimal personUpperDistributeTotal = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry")
+                .stream().filter(upper -> upper.getBoolean("${ISV_FLAG}_is_upper_dis"))
+                .map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_real_dis_decimal")).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 组织分配-分配总额
+        BigDecimal deptDistributeTotal = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_dept_dis_entry")
+                .stream().map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_distribute_decimal")).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 留存部门-当前已分配总额
+        BigDecimal retentionTotal = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_retention_entry")
+                .stream().filter(upper -> ! upper.getBoolean("${ISV_FLAG}_is_upper"))
+                .map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_retention_decimal")).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 留存部门-上级分配总额
+        BigDecimal retentionUpperTotal = distributeDynamicObject.getDynamicObjectCollection("${ISV_FLAG}_retention_entry")
+                .stream().filter(upper -> upper.getBoolean("${ISV_FLAG}_is_upper"))
+                .map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_retention_decimal")).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal currentDistributeTotal = personDistributeTotal.add(deptDistributeTotal).add(retentionTotal);
+        BigDecimal upperDistributeTotal = personUpperDistributeTotal.add(retentionUpperTotal);
+        // 可分配总额
+        BigDecimal enableDisTotal = distributeDynamicObject.getBigDecimal("${ISV_FLAG}_enable_distribute_tl");
+        this.getModel().setValue("${ISV_FLAG}_current_dis_total", currentDistributeTotal); // 本次分配总金额
+        this.getModel().setValue("${ISV_FLAG}_org_dis_total", deptDistributeTotal); // 组织分配总额
+        this.getModel().setValue("${ISV_FLAG}_person_dis_total", personDistributeTotal); // 人员分配总额
+        this.getModel().setValue("${ISV_FLAG}_rentention_dis_total", retentionTotal); // 部门留存总额
+        this.getModel().setValue("${ISV_FLAG}_upper_dis_total", upperDistributeTotal); // 上级分配总额
+        this.getModel().setValue("${ISV_FLAG}_money_total", enableDisTotal.add(upperDistributeTotal)); // 奖金总额=可分配总额+上级分配总额
+
+        // 可分配总额
+        BigDecimal availTotal2 = distributeDynamicObject.getBigDecimal("${ISV_FLAG}_enable_distribute_tl");
+        // 本次分配
+        BigDecimal currTotal2 = distributeDynamicObject.getBigDecimal("${ISV_FLAG}_current_dis_total");
+        // 剩余未用金额
+        this.getModel().setValue("${ISV_FLAG}_leave_total",availTotal2.subtract(currTotal2));
+    }
+
+    /**
+     * >>值改变事件-组织人发生变化
+     */
+    private void valueChangeCreateStaffSelect(){
+        // 组织人发生变化
+        DynamicObject bill = this.getView().getModel().getDataEntity();
+        DynamicObject deptPerson = bill.getDynamicObject("${ISV_FLAG}_dept_person");
+        IDataModel model = this.getModel();
+        if (deptPerson != null){
+            DynamicObject position = deptPerson.getDynamicObject("position");
+            model.setValue("${ISV_FLAG}_attribut_post",position);
+
+            model.setValue("${ISV_FLAG}_attribut_dept",deptPerson.getDynamicObject("adminorg"));
+            model.setValue("${ISV_FLAG}_attribut_company",deptPerson.getDynamicObject("company"));
+        }else {
+            model.setValue("${ISV_FLAG}_attribut_post",null);
+            model.setValue("${ISV_FLAG}_attribut_dept",null);
+            model.setValue("${ISV_FLAG}_attribut_company",null);
+        }
+    }
+
+}

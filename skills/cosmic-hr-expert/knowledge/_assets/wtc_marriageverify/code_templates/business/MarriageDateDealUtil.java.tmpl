@@ -1,0 +1,156 @@
+package ${ISV_FLAG}.wtc.wtabm.utils;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.resource.ResManager;
+import kd.bos.form.IFormView;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.hr.hbp.common.util.HRDateTimeUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+
+import java.text.ParseException;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @author ningjie
+ * @description 日期处理工具类
+ * @DATE 2025/12/10 19:34
+ */
+public class MarriageDateDealUtil {
+
+    private static final Log LOG = LogFactory.getLog(MarriageDateDealUtil.class);
+
+    private static final String MARRIAGE_DATE_CACHE_KEY = "MARRIAGE_DATE_CACHE_KEY";
+
+    /**
+     * @param personId
+     * @param view
+     * @description: 处理扩展结婚登记信息
+     * @params:
+     * @return: java.util.Date
+     * @author ningjie
+     * @date 2025/12/11 10:16
+     */
+    public static Date dealMarriageDate(long personId, IFormView view) {
+
+        QFilter filterPersonId = new QFilter("id", QCP.equals, personId);
+        DynamicObject dynamicObject1 = BusinessDataServiceHelper.loadSingle("hrpi_employee", "marriageregistdate", new QFilter[]{filterPersonId});
+        Date marriageRegistDate = dynamicObject1.getDate("marriageregistdate");// 获取 人员档案基本信息的结婚登记日
+        if (marriageRegistDate != null) {
+            view.getPageCache().put(MARRIAGE_DATE_CACHE_KEY, HRDateTimeUtils.formatDate(marriageRegistDate));
+        }
+        return marriageRegistDate;
+    }
+
+    /**
+     * @param employeeIdList
+     * @description: 获取婚姻登记信息
+     * @params:
+     * @return: kd.bos.dataentity.entity.DynamicObject[]
+     * @author ningjie
+     * @date 2025/12/11 10:17
+     */
+    public static DynamicObject[] getMarriageInfo(List<Long> employeeIdList) {
+        QFilter filterPersonId = new QFilter("id", QCP.in, employeeIdList);
+        DynamicObject[] dynamicObjectArr = BusinessDataServiceHelper.load("hrpi_employee", "marriageregistdate", new QFilter[]{filterPersonId});
+        return dynamicObjectArr;
+    }
+
+    /**
+     * @param view
+     * @description: 从页面上获取结婚登记日期
+     * @params:
+     * @return: java.util.Date
+     * @author ningjie
+     * @date 2025/12/10 21:04
+     */
+    public static Date getMarriageStartDate(IFormView view) {
+
+        String startDateStr = view.getPageCache().get(MARRIAGE_DATE_CACHE_KEY);
+        if (HRStringUtils.isEmpty(startDateStr)) {
+            return null;
+        }
+        Date marriageStartDate = null;
+        try {
+            HRDateTimeUtils.parseDate(startDateStr, "yyyy-MM-dd");
+        } catch (ParseException e) {
+            LOG.error("parseDate error", startDateStr);
+        }
+        return marriageStartDate;
+
+    }
+
+    /**
+     * @param view
+     * @description: 从页面中获取婚假截止日期
+     * @params:
+     * @return: java.util.Date
+     * @author ningjie
+     * @date 2025/12/10 21:04
+     */
+    public static Date getMarriageEndDate(IFormView view) {
+
+        String startDateStr = view.getPageCache().get(MARRIAGE_DATE_CACHE_KEY);
+        if (HRStringUtils.isEmpty(startDateStr)) {
+            return null;
+        }
+        Date marriageStartDate = null;
+        try {
+            HRDateTimeUtils.parseDate(startDateStr, "yyyy-MM-dd");
+        } catch (ParseException e) {
+            LOG.error("parseDate error", startDateStr);
+        }
+        Date marriageEndDate = getMarriageEndDate(marriageStartDate);
+        return marriageEndDate;
+    }
+
+    public static Date getMarriageEndDate(Date marriageStartDate) {
+        Date marriageEndDate = HRDateTimeUtils.addYear(marriageStartDate, 1);
+        return marriageEndDate;
+    }
+
+    /**
+     * @param startdate
+     * @param enddate
+     * @param view
+     * @description: 校验页面婚假日期信息
+     * @params:
+     * @return: boolean
+     * @author ningjie
+     * @date 2025/12/10 21:04
+     */
+    public static boolean valideClick(Date startdate, Date enddate, IFormView view) {
+        //婚假开始日期
+        Date marriageStartDate = MarriageDateDealUtil.getMarriageStartDate(view);
+        if (marriageStartDate == null) {
+            return true;
+        }
+        String yMd = HRDateTimeUtils.formatDate(startdate);
+        String endyMd = HRDateTimeUtils.formatDate(enddate);
+
+        if (marriageStartDate.after(startdate) && marriageStartDate.after(enddate)) { // 结婚登记日期开始时间和结束日期都超出
+            view.showTipNotification(ResManager.loadKDString(yMd + "~" + endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+            return false;
+        }
+        if (marriageStartDate.after(startdate)) { // 结婚登记日期开始时间超有效期
+            view.showTipNotification(ResManager.loadKDString(yMd + "~" + endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+            return false;
+        }
+        Date marriageEndDate = MarriageDateDealUtil.getMarriageEndDate(marriageStartDate);
+
+        if (marriageEndDate.before(startdate)) { // 若婚假申请开始或结束时间超有效期
+            view.showTipNotification(ResManager.loadKDString(yMd + "~" + endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+            return false;
+        }
+        if (marriageEndDate.before(enddate)) {
+            view.showTipNotification(ResManager.loadKDString(endyMd + "超出休假有效范围，请调整。", "VaInfoService_4", "wtc-wtabm-business", new Object[0]));
+            return false;
+        }
+        return true;
+    }
+
+}

@@ -1,0 +1,1863 @@
+{
+  "new": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "new",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "新增",
+    "operationType": "new",
+    "operationId": "b5994054000016ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "modify": {
+    "parameter": null,
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "modify",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "修改",
+    "operationType": "modify",
+    "operationId": "b5994054000017ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "view": {
+    "parameter": null,
+    "permissionItemId": "47150e89000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "view",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看",
+    "operationType": "view",
+    "operationId": "b5994054000018ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "6096194600001fac",
+        "LevelId": 2
+      },
+      {
+        "IsCheckEmptyValue": true,
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "创建组织和名称组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "name"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "createorg.id"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "3+GIED+=/MDT",
+        "CustomPromp": "",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "编码唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "numberx"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "4/SRQZ17V+N9",
+        "CustomPromp": "项目分组或取数项目中存在相同编码",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "名称唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "name"
+          }
+        ],
+        "RuleType": "GroupFieldUnique",
+        "Id": "4/SRS7W7MQOY",
+        "CustomPromp": "",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "唯一识别码唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "uniquecode"
+          }
+        ],
+        "PreCondition": {
+          "RuleDescription": "自定义取数且项目分组类别是考勤公式",
+          "_Type_": "PreCondition",
+          "RuleCondition": "way = '2' and parent.id != 0 and parent.grouptype = '2'",
+          "Id": "43IJU=INKUA9"
+        },
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "40AXYG95BPVS",
+        "CustomPromp": "",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "b599405400001aac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 5,
+    "pluginCount": 12,
+    "refreshFieldIds": [
+      "NHDPhh2S5Q",
+      "49eO8WfYRm"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 1,
+        "ClassName": "kd.bos.business.plugin.BaseTreeOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 2,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 3,
+        "ClassName": "kd.bos.business.plugin.BaseTreeLongNumberOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 4,
+        "ClassName": "kd.bos.form.plugin.bdctrl.TreeBaseDataSavePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 5,
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataSavePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "RowKey": 6,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 7,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "控制使用状态",
+        "RowKey": 8,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "必录校验",
+        "RowKey": 8,
+        "ClassName": "kd.wtc.wtbd.opplugin.web.scenecfg.SceneFieldCfgMustInputOp",
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "RowKey": 9,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.wtc.wtbd.opplugin.web.retrieval.RetrievalItemOp",
+        "RowKey": 9,
+        "ClassName": "kd.wtc.wtbd.opplugin.web.retrieval.RetrievalItemOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "delete": {
+    "parameter": {
+      "_Type_": "DelParameter",
+      "DraftValidReference": true,
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    },
+    "permissionItemId": "4715e1f1000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只能删除暂存的数据。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "RuleType": "FormValidate",
+        "Id": "1cc0054f000016ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "数据已经禁用，不能删除。",
+        "Message": "数据已经禁用，不能删除。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f789ca66000000ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "CustValidation",
+        "Description": "HR基础资料删除校验",
+        "Enabled": true,
+        "RuleType": "hrbddeletevalidator",
+        "Id": "2+U=5MGHE+DK",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "CustValidation",
+        "Description": "HR基础资料删除校验",
+        "Enabled": true,
+        "RuleType": "hrbddeletevalidator",
+        "Id": "4/WH3HFD=5E3",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "delete",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除",
+    "operationType": "delete",
+    "operationId": "b599405400001bac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 4,
+    "pluginCount": 7,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.BaseTreeOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 1,
+        "ClassName": "kd.bos.business.plugin.BaseTreeDeleteValidate",
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 2,
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataTreeDeletePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 3,
+        "ClassName": "kd.bos.coderule.CodeRuleDeleteOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "RowKey": 4,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataStatusOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 5,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.wtc.wtbd.opplugin.web.retrieval.RetrievalItemOp",
+        "RowKey": 5,
+        "ClassName": "kd.wtc.wtbd.opplugin.web.retrieval.RetrievalItemOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "DelParameter",
+      "_raw_keys": [
+        "_Type_",
+        "DraftValidReference",
+        "OperationKey",
+        "ListDelScope"
+      ],
+      "DraftValidReference": true,
+      "OperationKey": "next",
+      "ListDelScope": "seldata"
+    }
+  },
+  "audit": {
+    "parameter": {
+      "_Type_": "AuditParameter",
+      "Value": "C",
+      "StatusFieldId": "AkId5S4yTs",
+      "CommentFieldId": "h736cFwZ6e"
+    },
+    "permissionItemId": "47162f66000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据状态必须为已提交才能审核。",
+        "Keyword": "status",
+        "Expression": "status = 'B'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1cc0054f000018ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已经禁用，不能审核。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000bfac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "CustValidation",
+        "Description": "基础资料在流程中校验",
+        "RuleType": "InProcess",
+        "Id": "2W/BRWU+MXP7"
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "audit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "审核",
+    "operationType": "audit",
+    "operationId": "b599405400001cac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 3,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataAuditPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 1,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "AuditParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId",
+        "CommentFieldId"
+      ],
+      "Value": "C",
+      "StatusFieldId": "AkId5S4yTs",
+      "CommentFieldId": "h736cFwZ6e"
+    }
+  },
+  "unaudit": {
+    "parameter": {
+      "_Type_": "UnAuditParameter",
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs",
+      "CommentFieldId": "h736cFwZ6e"
+    },
+    "permissionItemId": "47165e8e000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "请先提交审核。",
+        "Keyword": "status",
+        "Expression": "status = 'C'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1cc0054f000019ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已禁用，不允许反审核。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000c0ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "CustValidation",
+        "Description": "基础资料在流程中校验",
+        "RuleType": "InProcess",
+        "Id": "2W/BU/L+T3I2"
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "unaudit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "反审核",
+    "operationType": "unaudit",
+    "operationId": "b599405400001dac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 3,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataUnAuditPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 1,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "UnAuditParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId",
+        "CommentFieldId"
+      ],
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs",
+      "CommentFieldId": "h736cFwZ6e"
+    }
+  },
+  "disable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "47160c2b000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "暂存数据不能禁用。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000baac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已为禁用状态。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000bbac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "disable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "禁用",
+    "operationType": "disable",
+    "operationId": "b599405400001eac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataDisablePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 1,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "0",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "enable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "4730fc5d000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已为可用状态。",
+        "Keyword": "enable",
+        "Expression": "enable = '1'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f2843bab0000bcac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "enable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "启用",
+    "operationType": "enable",
+    "operationId": "b599405400001fac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 3,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.business.plugin.BaseTreeEnableValidate",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 1,
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataEnablePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 2,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "close": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "close",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "关闭",
+    "operationType": "close",
+    "operationId": "b5994054000021ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "returndata": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "returndata",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "返回数据",
+    "operationType": "returndata",
+    "operationId": "c54e30e7000010ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "submit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "804f6478000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存的数据才允许提交。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1cc0054f000017ac",
+        "LevelId": 2
+      },
+      {
+        "IsCheckEmptyValue": true,
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "编码字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "424b895300015bac",
+        "CustomPromp": "",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "Enabled": true,
+        "RuleType": "MustInput",
+        "Id": "RS=E9QE25UN",
+        "LevelId": 2
+      },
+      {
+        "IsCheckEmptyValue": true,
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "创建组织和名称组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "name"
+          },
+          {
+            "_Type_": "FieldId",
+            "Id": "createorg.id"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "3+GIJ4HT++29",
+        "CustomPromp": "",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "submit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交",
+    "operationType": "submit",
+    "operationId": "f381c03f00002cac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 4,
+    "pluginCount": 9,
+    "refreshFieldIds": [
+      "NHDPhh2S5Q",
+      "49eO8WfYRm"
+    ],
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataSubmitPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 1,
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "基础资料版本化保存操作插件",
+        "RowKey": 1,
+        "ClassName": "kd.bos.base.bdversion.BdVersionSaveServicePlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 3,
+        "ClassName": "kd.bos.business.plugin.BaseTreeOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "",
+        "RowKey": 4,
+        "ClassName": "kd.bos.business.plugin.BaseTreeLongNumberOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "RowKey": 5,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "RowKey": 6,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataEnableOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "RowKey": 7,
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseOriginalOp",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "必录校验",
+        "RowKey": 7,
+        "ClassName": "kd.wtc.wtbd.opplugin.web.scenecfg.SceneFieldCfgMustInputOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "unsubmit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "80513207000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据状态必须是已提交才能撤销。",
+        "Keyword": "status",
+        "Expression": "status = 'B'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "3bdba4470000d3ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已经禁用，不能撤销。",
+        "Keyword": "enable",
+        "Expression": "enable = '0'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "f789ca66000001ac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "unsubmit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "撤销",
+    "operationType": "unsubmit",
+    "operationId": "f381c03f00002dac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "受控基础资料撤销插件",
+        "ClassName": "kd.bos.form.plugin.bdctrl.BaseDataUnSubmitPlugin",
+        "Enabled": true,
+        "BizAppId": ""
+      },
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "copy": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "copy",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "复制",
+    "operationType": "copy",
+    "operationId": "f381c03f000033ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f381c03f000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "option": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "option",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选项设置",
+    "operationType": "option",
+    "operationId": "c8d21820000086ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "submitandnew": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "804f6478000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "number"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2f5773ca0001b5ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存的数据才允许提交。",
+        "Keyword": "status",
+        "Expression": "status = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2f5773ca0001b6ac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "submitandnew",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并新增",
+    "operationType": "submitandnew",
+    "operationId": "f31a499a0000adac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "refreshFieldIds": [
+      "enable"
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "saveandnew": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "saveandnew",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存并新增",
+    "operationType": "saveandnew",
+    "operationId": "QQKYA+LT1/4",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "_Type_": "Plugin",
+        "ClassName": "kd.bd.assistant.plugin.basedata.BaseDataSavePlugin",
+        "Enabled": true
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "AkId5S4yTs"
+    }
+  },
+  "first": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "first",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "第一",
+    "operationType": "first",
+    "operationId": "S=VTOGXYQBY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "previous": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "previous",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "前一",
+    "operationType": "previous",
+    "operationId": "S=VUN3Y4R6Q",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "next": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "next",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "后一",
+    "operationType": "next",
+    "operationId": "S=VVFX/B38V",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "last": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "last",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "最后",
+    "operationType": "last",
+    "operationId": "S=VW0K6WD7R",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "importtemplatelist": {
+    "parameter": null,
+    "permissionItemId": "4730fc9f000003ae",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "importtemplatelist",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "管理模板",
+    "operationType": "importtemplatelist",
+    "operationId": "VZIX=AIFOYM",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarselect": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "mobtoolbarselect",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "选择",
+    "operationType": "mobtoolbarselect",
+    "operationId": "2MMZBM6FC174",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "mobtoolbarcancel": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "mobtoolbarcancel",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "取消",
+    "operationType": "mobtoolbarcancel",
+    "operationId": "2MMZF4V/MARY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "namehistory": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "namehistory",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "改名",
+    "operationType": "donothing",
+    "operationId": "2PVU302I5+FH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "namehistoryview": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "namehistoryview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "名称历史查询",
+    "operationType": "donothing",
+    "operationId": "2PVU5DLAO/49",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "assign": {
+    "parameter": null,
+    "permissionItemId": "80513208000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "assign",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "分配",
+    "operationType": "assign",
+    "operationId": "QQJFP=H2XYJ",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "unassign": {
+    "parameter": null,
+    "permissionItemId": "80513209000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "unassign",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "取消分配",
+    "operationType": "unassign",
+    "operationId": "QQJGN+SXCNA",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "bdctrlchange": {
+    "parameter": null,
+    "permissionItemId": "/IN0GIK354+3",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "bdctrlchange",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "变更控制策略",
+    "operationType": "donothing",
+    "operationId": "/IRNELTAKRN5",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "individuation": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "individuation",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "个性化数据",
+    "operationType": "donothing",
+    "operationId": "0DAGX1UWTCMA",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "assign_new": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "assign_new",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "分配",
+    "operationType": "donothing",
+    "operationId": "329L9=+W+9EZ",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "auto_assign": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "3=7G04J0/EYX",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "auto_assign",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "自动分配管理",
+    "operationType": "donothing",
+    "operationId": "3A=8/ME7O/RV",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "tbl_assign_import": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "3A/SDL+FZX7W",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "tbl_assign_import",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "Excel导入分配关系",
+    "operationType": "donothing",
+    "operationId": "3ACQVNUITEA8",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "logview": {
+    "parameter": {
+      "_Type_": "DoNothingParameter",
+      "CanNoData": true
+    },
+    "permissionItemId": "2DA5R551WK78",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "logview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看全部日志",
+    "operationType": "donothing",
+    "operationId": "21A619YEYLAH",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "DoNothingParameter",
+      "_raw_keys": [
+        "_Type_",
+        "CanNoData"
+      ],
+      "CanNoData": true
+    }
+  },
+  "viewonelog": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "viewonelog",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看日志",
+    "operationType": "donothing",
+    "operationId": "2COR0JKWRGOD",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "myenable": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    },
+    "permissionItemId": "4730fc5d000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "数据已为可用状态。",
+        "Expression": "enable = '1'",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "41YHEOB2O621",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "myenable",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "启用",
+    "operationType": "enable",
+    "operationId": "41YHIG31JNSG",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "FPK": "",
+        "_Type_": "Plugin",
+        "Description": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "ClassName": "kd.hr.hbp.opplugin.web.config.HRBaseDataLogOp",
+        "Enabled": true,
+        "BizAppId": ""
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "1",
+      "StatusFieldId": "ac5Y5Dax1q"
+    }
+  },
+  "newentry": {
+    "parameter": {
+      "_Type_": "NewEntryParameter",
+      "EntryId": "627qHnNLWf"
+    },
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "newentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "增行",
+    "operationType": "newentry",
+    "operationId": "4=GXKEMSTGGM",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "NewEntryParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "627qHnNLWf"
+    }
+  },
+  "deleteentry": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "627qHnNLWf"
+    },
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "deleteentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删行",
+    "operationType": "deleteentry",
+    "operationId": "4=GXMSP=VID+",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "627qHnNLWf"
+    }
+  },
+  "moveentryup": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "627qHnNLWf"
+    },
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "moveentryup",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "上移",
+    "operationType": "moveentryup",
+    "operationId": "4=GXP69/TFIV",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "627qHnNLWf"
+    }
+  },
+  "moveentrydown": {
+    "parameter": {
+      "_Type_": "EntryOpParameter",
+      "EntryId": "627qHnNLWf"
+    },
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "wtbd_scenefieldcfg",
+      "opKey": "moveentrydown",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "下移",
+    "operationType": "moveentrydown",
+    "operationId": "4=GXQR8AO5V1",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "EntryOpParameter",
+      "_raw_keys": [
+        "_Type_",
+        "EntryId"
+      ],
+      "EntryId": "627qHnNLWf"
+    }
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:41",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 41,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 27,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 41,
+        "parameterParsed_filled": 19,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

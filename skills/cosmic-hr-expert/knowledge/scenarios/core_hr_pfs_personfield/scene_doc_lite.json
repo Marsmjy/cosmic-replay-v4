@@ -1,0 +1,19 @@
+{
+  "scene": "core_hr_pfs_personfield",
+  "title": "人员字段池 + 单据基模板基础设施",
+  "cloud": "core_hr",
+  "description": "**ISV 配置 chgaction 字段映射时的字段元数据池**。filemapmanager 配置界面选 targetfieldnew 时下拉源就是 hpfs_personfield。base01 是单据基模板（4 层继承 hbp_hrbilltpl），ISV 写自定义单据时 inherit base01 即可继承基础字段（org / employee / billno / billstatus 等）。build_plan 提到 22 单据基模板（base01-base22）· 此处只列代表实体。",
+  "entities": [
+    "hpfs_personfield",
+    "hpfs_base01"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · hpfs 是所有人事单据的元配置层 · 改这里影响所有下游业务云",
+  "pluginPattern": "HRBaseDataTplEdit / HRDataBaseOp · ISV 走 hpfs_chgaction + filemapmanager 配置 · 不直接继承 hpfs OP 类",
+  "_decompile_anchors": [],
+  "_meta": {
+    "note": "hpfs 第二波 · 2 个 form · 业务核心 · 详见 docs/CHGACTION_DEEP_TRACE.md",
+    "createdAt": "2026-04-29"
+  }
+}

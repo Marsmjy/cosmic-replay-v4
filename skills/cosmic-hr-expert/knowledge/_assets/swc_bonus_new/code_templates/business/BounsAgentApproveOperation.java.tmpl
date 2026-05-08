@@ -1,0 +1,66 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bouns_agent_approve.operation;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * Description: 代发审批单审批通过后，更新对应奖金发放数据
+ */
+public class BounsAgentApproveOperation extends AbstractOperationServicePlugIn {
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        List<String> fieldKeys = e.getFieldKeys();
+        fieldKeys.add("${ISV_FLAG}_payment_company");
+        fieldKeys.add("${ISV_FLAG}_entryentity.${ISV_FLAG}_sourceid");
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+
+        // 审核或提交并生效后更新对应的发放单
+        if ("audit".equals(operationKey) || "submiteffect".equals(operationKey)){
+            // 查询发放人员
+            List<Long> sourceId = Arrays.stream(entities)
+                    .map(item -> item.getDynamicObjectCollection("${ISV_FLAG}_entryentity"))
+                    .flatMap(DynamicObjectCollection::stream)
+                    .map(item -> item.getLong("${ISV_FLAG}_sourceid"))
+                    .collect(Collectors.toList());
+            DynamicObject[] bonusPayments = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_payment", "id,org,${ISV_FLAG}_payment_company,${ISV_FLAG}_is_agent", new QFilter[]{new QFilter("id", QCP.in, sourceId)});
+            Map<Long, DynamicObject> bonusPaymentsMap = Arrays.stream(bonusPayments).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+
+            // 查询行政组织
+            List<Long> paymentCompanyIds = Arrays.stream(entities).map(item -> item.getLong("${ISV_FLAG}_payment_company.id")).collect(Collectors.toList());
+            QFilter orgFilter = new QFilter("id",QCP.in,paymentCompanyIds);
+            DynamicObject[] orgCollection = BusinessDataServiceHelper.load("haos_adminorg", "id,org", orgFilter.toArray());
+            Map<Long, DynamicObject> orgCollectionMap = Arrays.stream(orgCollection).collect(Collectors.toMap(key -> key.getLong("id"), value -> value));
+
+            for (DynamicObject bill : entities) {
+                long paymentCompanyId = bill.getLong("${ISV_FLAG}_payment_company.id");
+                DynamicObjectCollection entryentity = bill.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+                for (DynamicObject entryBill : entryentity) {
+                    DynamicObject org = orgCollectionMap.get(paymentCompanyId);
+                    DynamicObject bonusPayment = bonusPaymentsMap.get(entryBill.getLong("${ISV_FLAG}_sourceid"));
+                    bonusPayment.set("org",org.getLong("org.id"));
+                    bonusPayment.set("${ISV_FLAG}_payment_company",paymentCompanyId);
+                    bonusPayment.set("${ISV_FLAG}_is_agent", "1"); // 代发设置为是
+                }
+            }
+            SaveServiceHelper.update(bonusPayments);
+        }
+    }
+}

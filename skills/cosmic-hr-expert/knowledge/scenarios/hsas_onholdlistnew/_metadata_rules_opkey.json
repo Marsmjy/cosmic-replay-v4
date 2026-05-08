@@ -1,0 +1,1096 @@
+{
+  "new": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "new",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "新增",
+    "operationType": "new",
+    "operationId": "b599405400000cac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "modify": {
+    "parameter": null,
+    "permissionItemId": "4715a0df000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "modify",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "修改",
+    "operationType": "modify",
+    "operationId": "b599405400000dac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "delete": {
+    "parameter": null,
+    "permissionItemId": "4715e1f1000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只能删除暂存的数据。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'A'",
+        "RuleType": "FormValidate",
+        "Id": "1d11920c000004ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "下游单据存在性校验",
+        "Message": "存在下游单据，不能删除",
+        "Expression": "IsPush()",
+        "TrueThrow": true,
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1+9OXACHMV3M"
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "delete",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除",
+    "operationType": "delete",
+    "operationId": "b599405400000eac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 2,
+    "plugins_op": [
+      {
+        "_Type_": "Plugin",
+        "RowKey": 1,
+        "ClassName": "kd.bos.coderule.CodeRuleDeleteOp",
+        "Enabled": true
+      },
+      {
+        "_Type_": "Plugin",
+        "RowKey": 2,
+        "ClassName": "kd.swc.hsas.opplugin.web.onhold.OnHoldBillDeleteOp",
+        "Enabled": true
+      }
+    ]
+  },
+  "save": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "RuleType": "MustInput",
+        "Id": "RS=8GBXGZY4",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "save",
+    "operationId": "c91d5125000033ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "_Type_": "Plugin",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation"
+      ],
+      "AfterOperation": "default"
+    }
+  },
+  "submit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存的数据才允许提交!",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'A'",
+        "RuleType": "FormValidate",
+        "Id": "194cc69300000aac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "billno"
+          }
+        ],
+        "RuleType": "GroupFieldUnique",
+        "Id": "3c48f4980000efac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "MustInputValidation",
+        "Description": "字段值合规性校验",
+        "RuleType": "MustInput",
+        "Id": "RS=AANUYST7",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "submit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交",
+    "operationType": "submit",
+    "operationId": "c91d5125000034ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 3,
+    "pluginCount": 1,
+    "plugins_op": [
+      {
+        "_Type_": "Plugin",
+        "ClassName": "kd.bos.business.plugin.CodeRuleOp",
+        "Enabled": true
+      }
+    ],
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "audit": {
+    "parameter": {
+      "_Type_": "AuditParameter",
+      "Value": "C",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "47162f66000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "单据状态必须为已提交才能审核。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'B'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "194cc693000015ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "InProcessValidation",
+        "Description": "单据在流程中校验",
+        "Enabled": true,
+        "RuleType": "InProcess",
+        "Id": "=K8MV9VWN3Z",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "audit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "审核",
+    "operationType": "audit",
+    "operationId": "c91d5125000035ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "AuditParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "C",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "unaudit": {
+    "parameter": {
+      "_Type_": "UnAuditParameter",
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "47165e8e000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "请先提交审核!",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'C'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "1d11920c000005ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "InProcessValidation",
+        "Description": "单据在流程中校验",
+        "Enabled": true,
+        "RuleType": "InProcess",
+        "Id": "=K8PAT6QHU3",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "unaudit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "反审核",
+    "operationType": "unaudit",
+    "operationId": "c91d5125000036ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "UnAuditParameter",
+      "_raw_keys": [
+        "_Type_",
+        "Value",
+        "StatusFieldId"
+      ],
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "close": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "close",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "关闭",
+    "operationType": "close",
+    "operationId": "c91d5125000037ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "refresh": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "refresh",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "刷新",
+    "operationType": "refresh",
+    "operationId": "f8f9e162000000ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "printpreview": {
+    "parameter": null,
+    "permissionItemId": "4730fc9e000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "printpreview",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "打印预览",
+    "operationType": "printpreview",
+    "operationId": "f8f9e162000001ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "unsubmit": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "80513207000000ac",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "单据状态必须是已提交单据才能撤销。",
+        "Keyword": "billstatus",
+        "Expression": "billstatus=\"B\"",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "3bdba447000113ac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "unsubmit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "撤销",
+    "operationType": "unsubmit",
+    "operationId": "f8f9e162000002ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 1,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "A",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "copy": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "copy",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "复制",
+    "operationType": "copy",
+    "operationId": "f8f9e162000005ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "submitandnew": {
+    "parameter": {
+      "_Type_": "SaveParameter",
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    },
+    "permissionItemId": "",
+    "logEnable": true,
+    "saveAndSubmit": false,
+    "validations": [
+      {
+        "_Type_": "GrpfieldsuniqueValidation",
+        "Description": "组合字段唯一性校验",
+        "Fields": [
+          {
+            "_Type_": "FieldId",
+            "Id": "billno"
+          }
+        ],
+        "Enabled": true,
+        "RuleType": "GroupFieldUnique",
+        "Id": "2f5773ca0001d0ac",
+        "LevelId": 2
+      },
+      {
+        "_Type_": "ConditionValidation",
+        "Description": "合法性校验",
+        "Message": "只有暂存的数据才允许提交!",
+        "Keyword": "billstatus",
+        "Expression": "billstatus = 'A'",
+        "Enabled": true,
+        "RuleType": "FormValidate",
+        "Id": "2f5773ca0001d1ac",
+        "LevelId": 2
+      }
+    ],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "submitandnew",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并新增",
+    "operationType": "submitandnew",
+    "operationId": "f31a499a000098ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 2,
+    "pluginCount": 0,
+    "parameterParsed": {
+      "_Type_": "SaveParameter",
+      "_raw_keys": [
+        "_Type_",
+        "AfterOperation",
+        "Value",
+        "StatusFieldId"
+      ],
+      "AfterOperation": "default",
+      "Value": "B",
+      "StatusFieldId": "6q69iznvHX"
+    }
+  },
+  "view": {
+    "parameter": null,
+    "permissionItemId": "47150e89000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "view",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "查看",
+    "operationType": "view",
+    "operationId": "17208d6b000000ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "printsetting": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "printsetting",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "打印设置",
+    "operationType": "printsetting",
+    "operationId": "5dbe943a000010ac",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "first": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "first",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "第一",
+    "operationType": "first",
+    "operationId": "S=XKK8OD98D",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "previous": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "previous",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "前一",
+    "operationType": "previous",
+    "operationId": "S=XM2EIP/WL",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "next": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "next",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "后一",
+    "operationType": "next",
+    "operationId": "S=XM+3GQ635",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "last": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "last",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "最后",
+    "operationType": "last",
+    "operationId": "S=XNT/ARF6O",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "importdata": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "importdata",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导入数据",
+    "operationType": "importdata",
+    "operationId": "VZHY/XMF7XK",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportlist": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "exportlist",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出数据（按导入模板）",
+    "operationType": "exportlist",
+    "operationId": "10JPBJUKNGSW",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "exportlistbyselectfields": {
+    "parameter": null,
+    "permissionItemId": "0YH1MN9OTQ4J",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "exportlistbyselectfields",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "导出",
+    "operationType": "exportlist",
+    "operationId": "13NVF6Y2P98N",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_submit": {
+    "parameter": null,
+    "permissionItemId": "0A3CBG6XWQC5",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_submit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并生效",
+    "operationType": "donothing",
+    "operationId": "1CHBJF/EVU7+",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_release": {
+    "parameter": null,
+    "permissionItemId": "0ZCQINOEA/CJ",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_release",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "解薪",
+    "operationType": "donothing",
+    "operationId": "1CLJ6ESNP+CY",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_stoppay": {
+    "parameter": null,
+    "permissionItemId": "0ZCQNHVFZW0E",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_stoppay",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "终止发放",
+    "operationType": "donothing",
+    "operationId": "1CLJB/GL/2AL",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_undo": {
+    "parameter": null,
+    "permissionItemId": "80513207000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_undo",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "撤销",
+    "operationType": "donothing",
+    "operationId": "1CLJD+W7DB3C",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_upload": {
+    "parameter": null,
+    "permissionItemId": "2NJ5SR4NUEJ=",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_upload",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "上传附件",
+    "operationType": "donothing",
+    "operationId": "1CLJEPPKVEU8",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_download": {
+    "parameter": null,
+    "permissionItemId": "2NJ5XVVCMBCL",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_download",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "下载附件",
+    "operationType": "donothing",
+    "operationId": "1CLJGNUYFMI7",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_skiptomsgcfg": {
+    "parameter": null,
+    "permissionItemId": "13ZV0EY+DM43",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_skiptomsgcfg",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "消息配置",
+    "operationType": "donothing",
+    "operationId": "1CLJIZ+61=J0",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_resendmsg": {
+    "parameter": null,
+    "permissionItemId": "13ZV+U8YYC=L",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_resendmsg",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "重发消息",
+    "operationType": "donothing",
+    "operationId": "1CLJKM68=U+Q",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_addperson": {
+    "parameter": null,
+    "permissionItemId": "47156aff000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_addperson",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "添加人员",
+    "operationType": "donothing",
+    "operationId": "1CVT+4HT+MM2",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_delperson": {
+    "parameter": null,
+    "permissionItemId": "4715e1f1000000ac",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_delperson",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除人员",
+    "operationType": "donothing",
+    "operationId": "1CVTAJGK43KE",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_calnewentry": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_calnewentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "添加核算记录",
+    "operationType": "donothing",
+    "operationId": "1CVTCNHYELP5",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "caltable_deleteentry": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "caltable_deleteentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除核算记录",
+    "operationType": "donothing",
+    "operationId": "1CVTEFLL0/=0",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_salaryfilenewentry": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_salaryfilenewentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "添加薪资档案",
+    "operationType": "donothing",
+    "operationId": "1CVTGI721ZMK",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "salaryfile_deleteentry": {
+    "parameter": null,
+    "permissionItemId": "",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "salaryfile_deleteentry",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "删除薪资档案",
+    "operationType": "donothing",
+    "operationId": "1CVTIHP4M=S7",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_save": {
+    "parameter": null,
+    "permissionItemId": "0=KX5+QVF5+R",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_save",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "保存",
+    "operationType": "donothing",
+    "operationId": "1CVTK7+W3HHB",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_formsubmit": {
+    "parameter": null,
+    "permissionItemId": "0A3CBG6XWQC5",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_formsubmit",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "提交并生效",
+    "operationType": "donothing",
+    "operationId": "2F=BTCAYG2RZ",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "donothing_abandon": {
+    "parameter": null,
+    "permissionItemId": "0=KX5+R7YTRT",
+    "logEnable": false,
+    "saveAndSubmit": false,
+    "validations": [],
+    "_meta": {
+      "scene": "hsas_onholdlistnew",
+      "opKey": "donothing_abandon",
+      "validatorsFromRulesChain": true
+    },
+    "operationName": "废弃",
+    "operationType": "donothing",
+    "operationId": "4OBHR301JACQ",
+    "opMessageEnable": false,
+    "confirmMsg": "",
+    "successMsg": "",
+    "opBizRuleCount": 0,
+    "validationCount": 0,
+    "pluginCount": 0
+  },
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "opKeys_filled": 39,
+        "opKeys_missing_in_listOps": [],
+        "validations_filled": 13,
+        "opBizRules_filled": 0,
+        "plugins_op_filled": 4,
+        "parameterParsed_filled": 6,
+        "op_detail_errors": []
+      }
+    }
+  ]
+}

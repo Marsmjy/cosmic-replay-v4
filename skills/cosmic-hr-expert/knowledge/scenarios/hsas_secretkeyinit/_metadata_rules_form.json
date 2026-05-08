@@ -1,0 +1,89 @@
+{
+  "formId": "hsas_secretkeyinit",
+  "formName": null,
+  "sceneId": "hsas_secretkeyinit",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "0T+HEEAGSTO0",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_secretkeyinit",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_secretkeyinit.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_secretkeyinit",
+      "type": "MainEntity",
+      "title": "工资条安全设置",
+      "physicalTable": null,
+      "fieldCount": 1
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "textfield_secret": {
+      "fieldId": "2ZUmzgJXi0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_secretkeyinit",
+      "title": "文本",
+      "physicalColumn": "—",
+      "_fieldApId": "2ZUmzgJXi0"
+    }
+  },
+  "requiredFields": {
+    "hsas_secretkeyinit": [
+      "textfield_secret"
+    ]
+  },
+  "invisibleFields": [],
+  "formPlugins": [
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.secret.SecretKeyInitEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 1,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

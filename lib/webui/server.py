@@ -42,10 +42,13 @@ import threading
 import time
 import uuid
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 
 # ⭐ 导入任务管理器
 from lib.task_manager import TASK_MANAGER, CaseResult, ExecutionTask
+# ⭐ 导入任务 DAO（持久化）
+from lib.db.dao import TaskDAO, ReportDAO
 
 
 def _load_dotenv():
@@ -80,7 +83,7 @@ from typing import Any
 
 try:
     from fastapi import FastAPI, HTTPException, UploadFile, File, Body, Request
-    from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
+    from fastapi.responses import FileResponse, StreamingResponse, JSONResponse, HTMLResponse
     from fastapi.staticfiles import StaticFiles
     import uvicorn
 except ImportError:
@@ -95,7 +98,9 @@ sys.path.insert(0, str(SKILL_ROOT))
 from lib.config import Config, CONFIG_DIR
 from lib.runner import run_case, load_yaml
 from lib import har_extractor
+from lib.report_exporter import export_html
 from lib.webui.log_store import LogStore, install_global_capture
+from lib.notifier import EmailNotifier
 
 
 # ============================================================
@@ -104,6 +109,14 @@ from lib.webui.log_store import LogStore, install_global_capture
 CONFIG = Config()
 APP = FastAPI(title="cosmic-replay", version="0.1.0")
 _start_time = time.time()  # ⭐ P0-3: 启动时间，用于健康检查
+
+# 邮件通知
+_notification_config = {}
+try:
+    _notification_config = CONFIG.raw.get("notification", {})
+except Exception:
+    pass
+EMAIL_NOTIFIER = EmailNotifier(_notification_config)
 
 # ⭐ P1-2: 执行历史存储（内存中保留最近100次）
 class ExecutionHistory:
@@ -135,6 +148,50 @@ class ExecutionHistory:
         return [r for r in self._history if r["case_name"] == case_name][-limit:]
 
 EXECUTION_HISTORY = ExecutionHistory(100)
+
+# ⭐ 任务持久化 DAO
+def _ensure_task_tables():
+    """确保任务相关表存在（首次启动自动创建）"""
+    try:
+        from lib.db.pool import get_pool
+        pool = get_pool()
+        pool.execute("""
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                env_id TEXT,
+                total_count INTEGER DEFAULT 0,
+                passed_count INTEGER DEFAULT 0,
+                failed_count INTEGER DEFAULT 0,
+                duration_s REAL DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                started_at TIMESTAMP,
+                finished_at TIMESTAMP
+            )
+        """)
+        pool.execute("""
+            CREATE TABLE IF NOT EXISTS task_cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                case_name TEXT NOT NULL,
+                case_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                step_ok INTEGER DEFAULT 0,
+                step_count INTEGER DEFAULT 0,
+                duration_s REAL DEFAULT 0,
+                error_message TEXT,
+                FOREIGN KEY (task_id) REFERENCES tasks(id)
+            )
+        """)
+        pool.get_connection().commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"创建任务表失败（非致命）: {e}")
+
+_ensure_task_tables()
+TASK_DAO = TaskDAO()
+REPORT_DAO = ReportDAO()
 
 # 日志存储（目录从 config 读）
 _log_dir_path = (SKILL_ROOT / CONFIG.webui.logging_dir.lstrip("./")) if CONFIG.webui.logging_dir else (SKILL_ROOT / "logs")
@@ -327,6 +384,9 @@ def api_delete_env(env_id: str):
 @APP.get("/api/cases")
 def api_list_cases():
     """返回所有用例的元信息（name / 路径 / tags / last_run）"""
+    # 批量获取每个用例的最近执行记录
+    last_runs = LOG_STORE.get_last_run_per_case(limit=200)
+
     items = []
     for p in list_case_files():
         name = case_name_from_path(p)
@@ -344,6 +404,20 @@ def api_list_cases():
                 meta["step_count"] = len(case.get("steps", []))
         except Exception as e:
             meta["parse_error"] = str(e)
+
+        # 附加最近执行信息
+        lr = last_runs.get(name)
+        if lr:
+            meta["last_result"] = "PASS" if lr.get("passed") else "FAIL"
+            meta["last_run_time"] = datetime.fromtimestamp(lr["mtime"]).strftime("%Y-%m-%d %H:%M:%S") if lr.get("mtime") else None
+            meta["last_run_id"] = lr.get("run_id")
+            meta["last_duration_s"] = lr.get("duration_s")
+        else:
+            meta["last_result"] = None
+            meta["last_run_time"] = None
+            meta["last_run_id"] = None
+            meta["last_duration_s"] = None
+
         items.append(meta)
     return items
 
@@ -367,7 +441,7 @@ def api_save_case_yaml(name: str, body: dict = Body(...)):
     return {"ok": True, "name": name, "size": len(content)}
 
 
-@APP.delete("/api/cases/{name:path}")
+@APP.delete("/api/cases/{name}")
 def api_delete_case(name: str):
     p = case_path_from_name(name)
     if p.exists():
@@ -387,8 +461,7 @@ def api_update_case_display_name(name: str, body: dict = Body(...)):
         raise HTTPException(400, "display_name不能为空")
     
     # 读取YAML
-    content = p.read_text(encoding="utf-8")
-    case = load_yaml(content)
+    case = load_yaml(p)
     if not isinstance(case, dict):
         raise HTTPException(500, "用例解析失败")
     
@@ -416,6 +489,57 @@ def api_batch_delete_cases(body: dict = Body(...)):
             p.unlink()
             deleted.append(name)
     return {"ok": True, "deleted": deleted, "count": len(deleted)}
+
+
+@APP.post("/api/cases/{name:path}/rename")
+def api_rename_case(name: str, body: dict = Body(...)):
+    """重命名用例（修改文件名 + 同步更新 YAML 内 name 字段）"""
+    new_name = body.get("new_name", "").strip()
+    if not new_name:
+        raise HTTPException(400, "新名称不能为空")
+    old_path = case_path_from_name(name)
+    new_path = case_path_from_name(new_name)
+    if not old_path.exists():
+        raise HTTPException(404, f"用例 {name} 不存在")
+    if new_path.exists():
+        raise HTTPException(409, f"用例 {new_name} 已存在")
+    # 同步更新 YAML 内的 name 字段（用正则替换保留注释和格式）
+    import re as _re
+    try:
+        content = old_path.read_text(encoding="utf-8")
+        # 匹配 name: xxx 行（可能带引号）
+        new_content = _re.sub(
+            r'^(name:\s*).*$',
+            rf'\g<1>{new_name}',
+            content,
+            count=1,
+            flags=_re.MULTILINE
+        )
+        if new_content != content:
+            old_path.write_text(new_content, encoding="utf-8")
+    except Exception:
+        pass  # 即使更新 name 字段失败，仍允许重命名文件
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(old_path), str(new_path))
+    return {"ok": True, "new_name": new_name}
+
+
+@APP.post("/api/cases/{name:path}/description")
+def api_update_case_description(name: str, body: dict = Body(...)):
+    """更新用例描述"""
+    import yaml
+    description = body.get("description", "")
+    p = case_path_from_name(name)
+    if not p.exists():
+        raise HTTPException(404, f"用例 {name} 不存在")
+    # 读取 YAML，修改 description 字段，写回
+    data = load_yaml(p)
+    if not isinstance(data, dict):
+        raise HTTPException(500, "用例解析失败")
+    data['description'] = description
+    new_content = yaml.dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    p.write_text(new_content, encoding="utf-8")
+    return {"ok": True}
 
 
 # ============================================================
@@ -496,6 +620,11 @@ def api_run_case(name: str, body: dict = Body(default={})):
         case = load_yaml(p)
     except Exception as e:
         raise HTTPException(400, f"YAML 解析失败: {e}")
+
+    if not isinstance(case, dict):
+        raise HTTPException(400,
+            f"YAML 格式错误: 期望顶层是字典(dict)，实际得到 {type(case).__name__}。"
+            f"请检查文件 {name}.yaml 是否为空或格式损坏。")
 
     case = _merge_env_into_case(case, env_id)
 
@@ -723,12 +852,21 @@ def api_create_task(body: dict = Body(...)):
     case_names = body.get("case_names", [])
     env_id = body.get("env_id") or CONFIG.webui.default_env
     name = body.get("name", "")
+    concurrency = body.get("concurrency", 3)
     
     if not case_names:
         raise HTTPException(400, "缺少用例列表")
     
     # 创建任务
     task = TASK_MANAGER.create_task(case_names, env_id, name)
+    task.concurrency = max(1, int(concurrency or 3))  # 存储并发数
+    
+    # ⭐ 持久化到数据库
+    try:
+        TASK_DAO.create(task_id=task.task_id, name=task.name,
+                        case_names=task.case_names, env_id=env_id)
+    except Exception as e:
+        LOG_STORE.add("warn", "task_dao", f"任务持久化失败: {e}")
     
     return {
         "ok": True,
@@ -747,12 +885,24 @@ def api_start_task(task_id: str):
     if task.status not in ("pending", "completed"):
         raise HTTPException(400, f"任务状态不允许启动: {task.status}")
     
+    # 重跑时清空旧结果
+    if task.status == "completed":
+        task.results.clear()
+    
     # 更新状态
     TASK_MANAGER.update_task_status(task_id, "running")
+    # ⭐ 同步持久化状态
+    try:
+        TASK_DAO.update_status(task_id, "running")
+    except Exception:
+        pass
     
     # 启动执行线程
+    concurrency = getattr(task, 'concurrency', 3) or 3
+    
     def worker():
-        for case_name in task.case_names:
+        def run_single_case(case_name):
+            """独立执行一个用例（线程安全）"""
             try:
                 p = case_path_from_name(case_name)
                 if not p.exists():
@@ -761,9 +911,16 @@ def api_start_task(task_id: str):
                         passed=False,
                         error=f"用例文件不存在",
                     ))
-                    continue
+                    return
                 
                 case = load_yaml(p)
+                if not isinstance(case, dict):
+                    TASK_MANAGER.add_result(task_id, CaseResult(
+                        name=case_name,
+                        passed=False,
+                        error=f"YAML格式错误: 文件为空或格式损坏",
+                    ))
+                    return
                 case = _merge_env_into_case(case, task.env_id)
                 
                 run_id = uuid.uuid4().hex[:12]
@@ -771,11 +928,10 @@ def api_start_task(task_id: str):
                 RUNS[run_id] = sess
                 
                 start_time = time.time()
-                result = CaseResult(name=case_name, passed=False, run_id=run_id)  # ⭐ 记录run_id用于跳转执行历史
+                result = CaseResult(name=case_name, passed=False, run_id=run_id)
                 
                 def capture_event(evt_type, payload):
                     sess.emit(evt_type, payload)
-                    # ⭐ 捕获阶段信息用于报告
                     if evt_type == "step_ok":
                         result.step_ok += 1
                         result.step_count += 1
@@ -785,8 +941,12 @@ def api_start_task(task_id: str):
                             result.error = payload.get("error", "步骤失败")
                 
                 try:
-                    run_case(case, on_event=capture_event)
-                    result.passed = True
+                    run_result = run_case(case, on_event=capture_event)
+                    result.passed = run_result.passed
+                    if not run_result.passed and not result.error:
+                        failed_steps = [s for s in run_result.steps if not s.get("ok") and not s.get("optional")]
+                        if failed_steps:
+                            result.error = failed_steps[0].get("error", "步骤失败")[:200]
                 except Exception as e:
                     result.passed = False
                     result.error = str(e)[:200]
@@ -796,16 +956,41 @@ def api_start_task(task_id: str):
                     sess.close()
                     
             except Exception as e:
-                import traceback
                 TASK_MANAGER.add_result(task_id, CaseResult(
                     name=case_name,
                     passed=False,
                     error=f"{type(e).__name__}: {str(e)[:200]}",
                 ))
         
-        # 生成报告
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            futures = {executor.submit(run_single_case, name): name
+                      for name in task.case_names}
+            for future in as_completed(futures):
+                # 等待完成（异常已在 run_single_case 内部处理）
+                pass
+        
+        # 所有用例完成后生成报告
         TASK_MANAGER.update_task_status(task_id, "completed")
         TASK_MANAGER.generate_report(task_id)
+        # ⭐ 持久化报告到数据库
+        try:
+            report = TASK_MANAGER.get_report_by_task(task_id)
+            if report:
+                REPORT_DAO.create(task_id, report.to_dict())
+        except Exception:
+            pass
+        # ⭐ 发送邮件通知
+        try:
+            report = TASK_MANAGER.get_report_by_task(task_id)
+            if report:
+                EMAIL_NOTIFIER.notify_task_completed(report.to_dict())
+        except Exception:
+            pass
+        # ⭐ 同步持久化完成状态
+        try:
+            TASK_DAO.update_status(task_id, "completed")
+        except Exception:
+            pass
     
     t = threading.Thread(target=worker, daemon=True)
     t.start()
@@ -816,7 +1001,36 @@ def api_start_task(task_id: str):
 @APP.get("/api/tasks")
 def api_list_tasks(limit: int = 20):
     """列出最近的任务"""
-    return TASK_MANAGER.list_tasks(limit)
+    tasks = TASK_MANAGER.list_tasks(limit)
+    if not tasks:
+        # 内存为空，从数据库恢复
+        try:
+            db_records = TASK_DAO.list_recent(limit)
+            tasks = [
+                {
+                    "task_id": r.id,
+                    "name": r.name,
+                    "case_names": [],
+                    "env_id": r.env_id or "",
+                    "concurrency": 3,
+                    "status": r.status,
+                    "created_at": r.created_at or "",
+                    "started_at": r.started_at or "",
+                    "finished_at": r.finished_at or "",
+                    "total_count": r.total_count or 0,
+                    "passed_count": r.passed_count or 0,
+                    "failed_count": r.failed_count or 0,
+                    "duration_s": round(r.duration_s or 0, 2),
+                    "pass_rate": round(
+                        (r.passed_count or 0) * 100.0 / r.total_count, 1
+                    ) if r.total_count else 0,
+                    "results": [],
+                }
+                for r in db_records
+            ]
+        except Exception:
+            tasks = []
+    return tasks
 
 
 @APP.get("/api/tasks/{task_id}")
@@ -832,20 +1046,122 @@ def api_get_task(task_id: str):
 def api_get_task_report(task_id: str):
     """获取任务执行报告"""
     report = TASK_MANAGER.get_report_by_task(task_id)
-    if not report:
-        raise HTTPException(404, f"报告不存在: {task_id}")
-    return report.to_dict()
+    if report:
+        return report.to_dict()
+    # fallback 到数据库
+    try:
+        db_report = REPORT_DAO.get_by_task_id(task_id)
+        if db_report:
+            return db_report
+    except Exception:
+        pass
+    raise HTTPException(404, f"报告不存在: {task_id}")
+
+
+@APP.get("/api/tasks/{task_id}/report/export")
+def api_export_report(task_id: str, format: str = "html"):
+    """导出报告为 HTML 文件"""
+    # 获取报告数据（内存或数据库）
+    report = TASK_MANAGER.get_report_by_task(task_id)
+    if report:
+        report_data = report.to_dict()
+    else:
+        try:
+            report_data = REPORT_DAO.get_by_task_id(task_id)
+        except Exception:
+            report_data = None
+        if not report_data:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+    if format == "html":
+        html_content = export_html(report_data)
+        return HTMLResponse(
+            content=html_content,
+            headers={"Content-Disposition": f"attachment; filename=report_{task_id}.html"}
+        )
+
+    raise HTTPException(400, "Unsupported format")
 
 
 @APP.get("/api/reports")
 def api_list_reports(limit: int = 20):
     """列出所有执行报告"""
+    # 先从内存获取
     reports = []
     for task in TASK_MANAGER.list_tasks(limit):
         rpt = TASK_MANAGER.get_report_by_task(task["task_id"])
         if rpt:
             reports.append(rpt.to_dict())
-    return reports
+    if reports:
+        return reports
+    # fallback 数据库
+    try:
+        return REPORT_DAO.list_recent(limit)
+    except Exception:
+        return []
+
+
+@APP.get("/api/reports/trend")
+def api_reports_trend(days: int = 14):
+    """获取报告趋势数据"""
+    try:
+        return REPORT_DAO.list_trend(days)
+    except Exception:
+        return []
+
+
+@APP.get("/api/cases/{name:path}/stability")
+def api_case_stability(name: str, limit: int = 10):
+    """获取用例稳定性数据"""
+    try:
+        return REPORT_DAO.get_case_stability(name, limit)
+    except Exception:
+        return {"case_name": name, "total_runs": 0, "passed": 0, "failed": 0, "pass_rate": 0, "is_flaky": False}
+
+
+@APP.get("/api/reports/{report_id}/compare/{baseline_id}")
+def api_compare_reports(report_id: str, baseline_id: str):
+    """对比两份报告"""
+    try:
+        current = REPORT_DAO.get_by_task_id(report_id)
+        baseline = REPORT_DAO.get_by_task_id(baseline_id)
+        if not current or not baseline:
+            raise HTTPException(404, "Report not found")
+
+        # 提取两份报告的用例结果
+        current_cases = {r["name"]: r["passed"] for r in (current.get("case_results") or [])}
+        baseline_cases = {r["name"]: r["passed"] for r in (baseline.get("case_results") or [])}
+
+        new_failures = []   # 新增失败
+        fixed = []          # 修复成功
+        still_failing = []  # 持续失败
+
+        for name, passed in current_cases.items():
+            baseline_passed = baseline_cases.get(name)
+            if baseline_passed is None:
+                continue  # 新增用例，跳过对比
+            if not passed and baseline_passed:
+                new_failures.append(name)
+            elif passed and not baseline_passed:
+                fixed.append(name)
+            elif not passed and not baseline_passed:
+                still_failing.append(name)
+
+        return {
+            "current_id": report_id,
+            "baseline_id": baseline_id,
+            "new_failures": new_failures,
+            "fixed": fixed,
+            "still_failing": still_failing,
+            "summary": {
+                "current_pass_rate": current.get("summary", {}).get("pass_rate", 0),
+                "baseline_pass_rate": baseline.get("summary", {}).get("pass_rate", 0),
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
 
 @APP.get("/api/execution_history")

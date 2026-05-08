@@ -1,0 +1,27 @@
+package ${ISV_FLAG}.wtc.attendancecycle.plugin.form.wtam_busitripbil.service.impl;
+
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import org.springframework.stereotype.Service;
+import ${ISV_FLAG}.wtc.attendancecycle.plugin.form.wtam_busitripbil.service.ArchivalInformationService;
+
+import java.util.List;
+
+@Service
+public class ArchivalInformationServiceImpl implements ArchivalInformationService {
+    @Override
+    public DynamicObject getArchivalInformation(Long archivalId) {
+        QFilter qFilter = new QFilter("fileboid", QCP.equals,archivalId);
+        return  BusinessDataServiceHelper.loadSingle("wtp_attstateinfo","storageto",new QFilter[]{qFilter});
+    }
+
+    @Override
+    public DynamicObject[] getArchivalInformations(List<Object> attfileIds) {
+        QFilter qFilter = new QFilter("fileboid", "in",attfileIds);
+        return  BusinessDataServiceHelper.load("wtp_attstateinfo","storageto,personid.name",new QFilter[]{qFilter});
+    }
+
+
+}

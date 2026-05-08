@@ -1,0 +1,446 @@
+{
+  "formId": "wtss_pcpersonhome",
+  "formName": null,
+  "sceneId": "wtss_pcpersonhome",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "1Q=BI7RA+PXM",
+  "metaIdTechnical": "30UWUYOD=BZP",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtss_pcpersonhome",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtss_pcpersonhome.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtss_pcpersonhome",
+      "type": "MainEntity",
+      "title": "我的假勤",
+      "physicalTable": null,
+      "fieldCount": 0
+    },
+    {
+      "name": "fastappentryentity",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 5
+    },
+    {
+      "name": "entryentitycount",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 5
+    },
+    {
+      "name": "perentryentitycount",
+      "type": "EntryEntity",
+      "title": "单据体",
+      "physicalTable": null,
+      "fieldCount": 5
+    },
+    {
+      "name": "qtentryentitycount",
+      "type": "EntryEntity",
+      "title": "定额单据体",
+      "physicalTable": null,
+      "fieldCount": 11
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "ShowControlAction": {
+          "RET": "251",
+          "ActionType": "ShowControlAction",
+          "Description": "显示控件",
+          "Id": "3ID11VW1436S",
+          "Fields": {
+            "FieldId": {
+              "Id": "iFH8a7mKJH"
+            }
+          }
+        }
+      },
+      "PreDescription": "daydate !=null",
+      "TrueActions": {
+        "HideControlAction": {
+          "RET": "251",
+          "ActionType": "HideControlAction",
+          "Description": "隐藏控件",
+          "Id": "3ID11VW166NT",
+          "Fields": {
+            "FieldId": {
+              "Id": "iFH8a7mKJH"
+            }
+          }
+        }
+      },
+      "Description": "隐藏缺省页面",
+      "Id": "3=DJ3SG6HM5Z",
+      "PreCondition": "daydate !=null"
+    }
+  ],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "fastpic": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "PictureField",
+      "ref": null,
+      "entity": "fastappentryentity",
+      "title": "图片字段",
+      "physicalColumn": "—"
+    },
+    "fastname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "fastappentryentity",
+      "title": "单据名称",
+      "physicalColumn": "—"
+    },
+    "fastbill": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "fastappentryentity",
+      "title": "单据",
+      "physicalColumn": "—"
+    },
+    "attperiodentry": {
+      "fieldId": "et6rj9PuqW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "wtp_perattperiod",
+      "entity": "fastappentryentity",
+      "title": "考勤期间",
+      "physicalColumn": "—",
+      "_fieldApId": "et6rj9PuqW"
+    },
+    "daydate": {
+      "fieldId": "GMS60pRKm7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "fastappentryentity",
+      "title": "日期",
+      "physicalColumn": "—",
+      "_fieldApId": "GMS60pRKm7"
+    },
+    "datasouvalue": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentitycount",
+      "title": "0",
+      "physicalColumn": "—"
+    },
+    "datasouname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentitycount",
+      "title": "名称",
+      "physicalColumn": "—"
+    },
+    "unit1": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentitycount",
+      "title": "(",
+      "physicalColumn": "—"
+    },
+    "unit": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentitycount",
+      "title": "天",
+      "physicalColumn": "—"
+    },
+    "unit2": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentitycount",
+      "title": ")",
+      "physicalColumn": "—"
+    },
+    "datasouvaluepre": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "perentryentitycount",
+      "title": "0",
+      "physicalColumn": "—"
+    },
+    "datasounamepre": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "perentryentitycount",
+      "title": "名称",
+      "physicalColumn": "—"
+    },
+    "unit11": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "perentryentitycount",
+      "title": "(",
+      "physicalColumn": "—"
+    },
+    "unitpre": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "perentryentitycount",
+      "title": "天",
+      "physicalColumn": "—"
+    },
+    "unit21": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "perentryentitycount",
+      "title": ")",
+      "physicalColumn": "—"
+    },
+    "datasouvalueqt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "0",
+      "physicalColumn": "—"
+    },
+    "datasounameqt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "名称",
+      "physicalColumn": "—"
+    },
+    "unit111": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "(",
+      "physicalColumn": "—"
+    },
+    "unitqt": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "天",
+      "physicalColumn": "—"
+    },
+    "unit211": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": ")",
+      "physicalColumn": "—"
+    },
+    "qtdate": {
+      "fieldId": "C3y2mFBqPx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "年份",
+      "physicalColumn": "—",
+      "_fieldApId": "C3y2mFBqPx"
+    },
+    "attperiod": {
+      "fieldId": "8flCG90jpE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attperiodentry",
+      "entity": "qtentryentitycount",
+      "title": "考勤期间",
+      "physicalColumn": "—",
+      "_fieldApId": "8flCG90jpE"
+    },
+    "questionpk1": {
+      "fieldId": "BaEo8tYR7GmM2SX0ce",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "问题1的主键",
+      "physicalColumn": "—",
+      "_fieldApId": "BaEo8tYR7GmM2SX0ce"
+    },
+    "questionpk2": {
+      "fieldId": "NNY3e1aStJ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "问题2的主键",
+      "physicalColumn": "—",
+      "_fieldApId": "NNY3e1aStJ"
+    },
+    "questionpk3": {
+      "fieldId": "57mq4c3Nwa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "问题3的主键",
+      "physicalColumn": "—",
+      "_fieldApId": "57mq4c3Nwa"
+    },
+    "questionpk4": {
+      "fieldId": "HiKWhPSXiv",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BigIntField",
+      "ref": null,
+      "entity": "qtentryentitycount",
+      "title": "问题4的主键",
+      "physicalColumn": "—",
+      "_fieldApId": "HiKWhPSXiv"
+    }
+  },
+  "requiredFields": {
+    "wtss_pcpersonhome": [],
+    "fastappentryentity": [
+      "attperiodentry",
+      "daydate"
+    ],
+    "entryentitycount": [],
+    "perentryentitycount": [],
+    "qtentryentitycount": [
+      "qtdate",
+      "attperiod"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "30UWUYOD=BZP_CmQ8CVcE",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.wtc.wtss.formplugin.web.pc.PersonHomePCPlugin",
+      "Description": "kd.wtc.wtss.formplugin.web.pc.PersonHomePCPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 09:50",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "bizappId"
+        ],
+        "fieldId_filled": 8,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

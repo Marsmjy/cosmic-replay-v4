@@ -1,0 +1,386 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum;
+
+import kd.bos.cache.CacheFactory;
+import kd.bos.cache.DistributeSessionlessCache;
+import kd.bos.coderule.api.CodeRuleInfo;
+import kd.bos.context.RequestContext;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.metadata.IDataEntityProperty;
+import kd.bos.db.tx.TX;
+import kd.bos.db.tx.TXHandle;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.AddValidatorsEventArgs;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.exception.KDBizException;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.bos.servicehelper.coderule.CodeRuleServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.template.OperateDistributeCacheUtil;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.operate.${ISV_FLAG}_bonus_distribute_sum.validate.BonusDistributeSumValidatePlugin;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.other.util.BonusUtil;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+/**
+ * Author: 王博纶
+ * Date: 2025/4/7 15:08
+ * FileName: BonusDistributeSumOperatePlugin
+ * Description: 奖金分配汇总操作插件
+ */
+public class BonusDistributeSumOperatePlugin extends AbstractOperationServicePlugIn {
+    private static final Log logger = LogFactory.getLog(BonusDistributeSumOperatePlugin.class);
+    public static final String BTN_DO_NOTHING_GEN_APPROVAL = "donothing_gen_approval"; // 生成审批单
+    public static final String BTN_DO_NOTHING_COMPOSITE = "donothing_composite"; // 复核
+    public static final String BTN_DO_NOTHING_REVOKE = "donothing_revoke"; // 撤销
+    public static final String BTN_DO_NOTHING_URGEING = "donothing_urgeing"; // 催办
+    private static final String DISTRIBUTE_CACHE_KEY = "swc/bonus/gen_sum_approval_bill_op"; // 分布式缓存的key
+    private static final String OPERATE_DISTRIBUTE_CACHE_LOCK_KEY = "swc/bonus/op_distribute_cache_key"; // 操作分布式缓存的key
+    private static final long WAIT_TIME_OUT = 1000 * 60L ; // 1Min
+    private static final int CACHE_TIME_OUT = 1000 * 60 * 5; // 5Min
+
+
+    @Override
+    public void onAddValidators(AddValidatorsEventArgs e) {
+       e.getValidators().add(new BonusDistributeSumValidatePlugin());
+    }
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        try {
+            List<String> fieldKeys = e.getFieldKeys();
+            String name = this.billEntityType.getName();
+            Map<String, IDataEntityProperty> fieldMap = EntityMetadataCache.getDataEntityType(name).getAllFields();
+            Set<String> keyNumbers = fieldMap.keySet();
+            fieldKeys.addAll(keyNumbers);
+            e.getFieldKeys().remove("${ISV_FLAG}_approval_bill");
+        } catch (Exception ex) {
+            throw new RuntimeException("onPrepareProperties all filed fail",ex);
+        }
+    }
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        DynamicObject[] entities = e.getDataEntities();
+        String operationKey = e.getOperationKey();
+        // 【复核】
+        if(BTN_DO_NOTHING_COMPOSITE.equals(operationKey)){
+            compositeOperate(entities);
+        }
+        // 【撤销】
+        else if(BTN_DO_NOTHING_REVOKE.equals(operationKey)){
+            Arrays.stream(entities).forEach(entity -> {
+               Long approvalId = entity.getLong("${ISV_FLAG}_sum_approval_id");
+               if(approvalId != null && approvalId.longValue() > 0){
+                   throw new KDBizException("已有勾选的数据生成汇总审批单");
+               }
+            });
+            revokeOperate(entities);
+        }
+        // 【生成审批单】
+        else if(BTN_DO_NOTHING_GEN_APPROVAL.equals(operationKey)){
+            createApprovalBills(entities);
+        }
+    }
+
+    private void revokeOperate(DynamicObject[] entities) {
+        // 将单据状态修改为【待复核】
+        Arrays.stream(entities).forEach(dataEntry -> {
+                dataEntry.set("billstatus",BonusDistributeSumValidatePlugin.DAI_FU_HE); // 单据状态 --- "待复核"
+                dataEntry.set("${ISV_FLAG}_composite_person",null); // 复核人 --- 清空
+        });
+        BonusUtil.updateBill(entities);
+    }
+
+    private static void createApprovalBills(DynamicObject[] entities) {
+        // 获取当前操作所选择的数据的主键id
+        List<String> distributeSumIdList = Arrays.stream(entities).map(id -> id.getString("id")).collect(Collectors.toList());
+        List<String> distributeSumNoList = Arrays.stream(entities).map(id -> id.getString("billno")).collect(Collectors.toList());
+        // 调用模板方法工具类的加锁方法
+        OperateDistributeCacheUtil.operateCacheTryLock(() -> {
+            DistributeSessionlessCache distributeSessionlessCache = CacheFactory.getCommonCacheFactory().getDistributeSessionlessCache(true);
+            // 先读取分布式缓存，判断是否存在值
+            String cacheValue = distributeSessionlessCache.get(DISTRIBUTE_CACHE_KEY);
+            checkCacheContain(entities, cacheValue);
+            // 将对应的数据更新到分布式缓存中
+            updateCache(distributeSumIdList, distributeSessionlessCache);
+            return null;
+        }, OPERATE_DISTRIBUTE_CACHE_LOCK_KEY, WAIT_TIME_OUT);
+
+        // 以下是正常的生成逻辑
+        Date currentDate = Calendar.getInstance().getTime();
+        long currUserId = RequestContext.get().getCurrUserId();
+        try {
+            // 生成审批单
+            logger.info("ready for create approval_sum_bill");
+            DynamicObject approvalSumBill = BusinessDataServiceHelper.newDynamicObject(BonusUtil.APPROVAL_SUM_BILL);
+            String billNo = CodeRuleServiceHelper.getNumber(BonusUtil.APPROVAL_SUM_BILL, approvalSumBill, null);
+            // 隐藏信息
+            setHiddenInfo(currentDate, currUserId, approvalSumBill, distributeSumIdList,distributeSumNoList);
+            // 分配基本信息
+            setDistributeBaseInfo(entities, approvalSumBill, billNo);
+            // 奖金分配详情
+            setAwardEntry(entities, approvalSumBill);
+            // 概览
+            setOverviewInfo(entities, approvalSumBill);
+            // 开启事务
+            try (TXHandle h = TX.requiresNew()) {
+                try {
+                    // 将生成的数据进行落库
+                    Object[] saveResult = SaveServiceHelper.save(new DynamicObject[]{approvalSumBill});
+                    long sumApprovalId = ((DynamicObject) saveResult[0]).getLong("id");
+                    logger.info("save approval_sum_bill result:{}",saveResult);
+                    // 记录生成审批单的时间，同步落库
+                    Arrays.stream(entities).forEach(dataEntry -> {
+                        dataEntry.set("${ISV_FLAG}_approval_status", "A"); // 审批单状态
+                        dataEntry.set("${ISV_FLAG}_gen_bill_date",currentDate);
+                        dataEntry.set("${ISV_FLAG}_sum_approval_id",sumApprovalId);
+                    });
+                    SaveServiceHelper.update(entities);
+                    logger.info("success update distribute_sum prop by '${ISV_FLAG}_gen_bill_date' result:{}");
+                } catch (Throwable ex) {
+                    logger.error("unknown fail:{}",ex);
+                    h.markRollback();
+                    throw ex;
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("create approval_sum_bill fall reason :{}", ex);
+            throw new KDBizException(ex.getMessage());
+        }finally {
+            // 无论是否执行成功都将缓存重置 需要释放分布式缓存中的数据
+            cleanDistributeCache(distributeSumIdList);
+        }
+    }
+    private static void cleanDistributeCache(List<String> distributeSumIdList) {
+        if (CollectionUtils.isEmpty(distributeSumIdList)) { // 空值保护，避免无意义操作
+            logger.info("distributeSumIdList is empty, skip cache clean");
+            return;
+        }
+        try {
+            OperateDistributeCacheUtil.operateCacheTryLock(() -> {
+                DistributeSessionlessCache distributeSessionlessCache = CacheFactory.getCommonCacheFactory().getDistributeSessionlessCache(true);
+                // 删除并更新缓存
+                deleteAndUpdateCache(distributeSumIdList, distributeSessionlessCache);
+                return Boolean.TRUE; // 满足方法签名，无跳转风险
+            }, OPERATE_DISTRIBUTE_CACHE_LOCK_KEY, WAIT_TIME_OUT);
+        } catch (Exception cacheEx) {
+            logger.error("clean distribute cache failed, distributeSumIdList:{}", distributeSumIdList, cacheEx);
+        }
+    }
+
+    private static void compositeOperate(DynamicObject[] entities) {
+        // 将单据状态修改为【已复核】
+        Arrays.stream(entities).forEach(dataEntry -> {
+            dataEntry.set("billstatus",BonusDistributeSumValidatePlugin.YI_FU_HE); // 单据状态 --- "已复核"
+            dataEntry.set("${ISV_FLAG}_composite_person",RequestContext.get().getCurrUserId()); // 复核人 --- 当前单据操作人
+        });
+        SaveServiceHelper.update(entities);
+    }
+    private static void setHiddenInfo(Date currentDate, long currUserId, DynamicObject approvalSumBill, List<String> distributeSumIdList,List<String> distributeSumNoList) {
+        approvalSumBill.set("creator", currUserId); // 创建人
+        approvalSumBill.set("modifier", currUserId); // 修改人
+        approvalSumBill.set("createtime", currentDate); // 创建时间
+        approvalSumBill.set("modifytime", currentDate); // 修改时间
+        approvalSumBill.set("billstatus", "A"); // 单据状态
+        approvalSumBill.set("auditstatus", "A"); // 审批状态
+        approvalSumBill.set("${ISV_FLAG}_source_dis_sum_id_tag", String.join(",",distributeSumIdList)); // 来源分配汇总单id的tag标签
+        approvalSumBill.set("${ISV_FLAG}_source_dis_sum_no", String.join(",",distributeSumNoList)); // 来源分配汇总单no的
+        approvalSumBill.set("${ISV_FLAG}_currencyfield", BonusUtil.currency); // 币别
+    }
+
+    private static void setDistributeBaseInfo(DynamicObject[] entities, DynamicObject approvalSumBill, String billNo) {
+        DynamicObject org = entities[0].getDynamicObject("org");
+        DynamicObject bonusItem = entities[0].getDynamicObject("${ISV_FLAG}_bonus_item");
+        DynamicObject awardTypeItem = entities[0].getDynamicObject("${ISV_FLAG}_award_type");
+        String approvalBillNo = entities[0].getString("${ISV_FLAG}_approval_no");
+        DynamicObject approvalBill =  BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_bonus_approval_2nd",
+                new QFilter[]{
+                        new QFilter("billno", QCP.equals, approvalBillNo)
+                });
+        Date belongDate = entities[0].getDate("${ISV_FLAG}_belong_period");
+        Object warnRemark = entities[0].get("${ISV_FLAG}_warn_rule");
+        DynamicObject belongOrg = entities[0].getDynamicObject("${ISV_FLAG}_belong_to_org");
+
+        approvalSumBill.set("org", org); // 奖金管理组织
+        approvalSumBill.set("billno", billNo); // 审批单号
+        approvalSumBill.set("${ISV_FLAG}_bonus_item", bonusItem); // 奖金项目
+        approvalSumBill.set("${ISV_FLAG}_award_type", awardTypeItem); // 奖金类型
+
+        // 调用自动编码规则
+        CodeRuleInfo codeRule = CodeRuleServiceHelper.getCodeRule(approvalSumBill.getDataEntityType().getName(), approvalSumBill, null);
+        // 获取单据编码
+        String billno = CodeRuleServiceHelper.getNumber(codeRule, approvalSumBill);
+        approvalSumBill.set("billno", billno);
+        approvalSumBill.set("${ISV_FLAG}_belong_date", belongDate); // 归属周期
+        approvalSumBill.set("${ISV_FLAG}_warn_remark", warnRemark); // 预警说明
+        approvalSumBill.set("${ISV_FLAG}_source_app", approvalBill); // 来源核定单
+        approvalSumBill.set("${ISV_FLAG}_source_approval_id", approvalBill.getLong("id")); // 来源核定单id
+        approvalSumBill.set("${ISV_FLAG}_personalization",approvalBill.getString("${ISV_FLAG}_personalization")); // 奖金业务类别
+        // 创建人信息
+        setCreatorDefault(approvalSumBill);
+        // 单据所属组织取创建人的所在公司
+        approvalSumBill.set("${ISV_FLAG}_bill_belong_org", approvalSumBill.get("${ISV_FLAG}_attribut_company"));
+    }
+
+    /**
+     * >>默认设置创建人信息
+     */
+    private static void setCreatorDefault(DynamicObject approvalSumBill){
+        // 组织人设置默认值
+        QFilter personFilter = new QFilter("id", QCP.equals, RequestContext.get().getCurrUserId());
+        DynamicObject currentPerson = QueryServiceHelper.queryOne("bos_user", "id,number", personFilter.toArray());
+        QFilter filter = new QFilter("employee.empnumber", QCP.equals, currentPerson.getString("number"));
+        filter.and(new QFilter("isdeleted",QCP.equals,"0"));
+        DynamicObject empPosRel = BusinessDataServiceHelper.loadSingle("hrpi_empposorgrel", "id,adminorg,position,company", new QFilter[]{filter});
+        if (empPosRel != null){
+            approvalSumBill.set("${ISV_FLAG}_dept_person",empPosRel);
+            DynamicObject position = empPosRel.getDynamicObject("position");
+            approvalSumBill.set("${ISV_FLAG}_attribut_post",position);
+            approvalSumBill.set("${ISV_FLAG}_attribut_dept",empPosRel.getDynamicObject("adminorg"));
+            approvalSumBill.set("${ISV_FLAG}_attribut_company",empPosRel.getDynamicObject("company"));
+        }
+    }
+
+    private static void setAwardEntry(DynamicObject[] entities, DynamicObject approvalSumBill) {
+        DynamicObjectCollection personDisEntryCollection = approvalSumBill.getDynamicObjectCollection("${ISV_FLAG}_person_dis_entry");
+        Arrays.stream(entities).forEach(disObject -> {
+
+            DynamicObject itemEntry = personDisEntryCollection.addNew();
+            // 分配单编码
+            itemEntry.set("${ISV_FLAG}_tdkw_distribute_no",disObject.getString("billno"));
+            // 分配单名称
+            itemEntry.set("${ISV_FLAG}_distribute_name",disObject.getString("${ISV_FLAG}_bill_name"));
+            // 分配组织
+            itemEntry.set("${ISV_FLAG}_distribute_org",disObject.getDynamicObject("${ISV_FLAG}_distribute_org"));
+            // 已分配总额
+            itemEntry.set("${ISV_FLAG}_already_dis_decimal",disObject.getBigDecimal("${ISV_FLAG}_already_dis_total"));
+            // 分配人员数量
+            itemEntry.set("${ISV_FLAG}_distribute_count",disObject.getString("${ISV_FLAG}_already_dis_count"));
+            // 可分配人员总额
+            itemEntry.set("${ISV_FLAG}_distribute_total",disObject.getBigDecimal("${ISV_FLAG}_already_dis_count_to"));
+            // 部门留用总额
+            itemEntry.set("${ISV_FLAG}_dept_retebtion_total",disObject.getBigDecimal("${ISV_FLAG}_dept_retention_total"));
+            // 触发预警人数
+            itemEntry.set("${ISV_FLAG}_warn_count",disObject.getString("${ISV_FLAG}_warn_count"));
+            // 分配人
+//            itemEntry.set("${ISV_FLAG}_subordinate",disObject.getDynamicObject("${ISV_FLAG}_warn_count"));
+            // 复核人
+            itemEntry.set("${ISV_FLAG}_reviewer",disObject.getDynamicObject("${ISV_FLAG}_composite_person"));
+            // 备注
+            itemEntry.set("${ISV_FLAG}_remark",disObject.getString("${ISV_FLAG}_sum_remark"));
+        });
+    }
+
+    /**
+     * 通过分配单编码查询分配单ids
+     * @param sumNoSet
+     * @return
+     */
+    private static DynamicObject[] listDisSumIdsByNos(Set<String> sumNoSet){
+        if(sumNoSet != null){
+            QFilter personFilter = new QFilter("billno", QCP.in,  sumNoSet);
+            DynamicObject[] list = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_dis_detail",
+                    "id"
+                    ,personFilter.toArray());
+            return list;
+        }
+        return null;
+    }
+
+    /**
+     * 通过分配单编码查询分配单
+     * @param sumNoSet
+     * @return
+     */
+    private static DynamicObject[] listDisSumByNos(Set<Long> sumNoSet){
+        if(sumNoSet != null){
+            DynamicObject[] billList = BusinessDataServiceHelper.load(
+                    sumNoSet.toArray(),
+                    EntityMetadataCache.getDataEntityType("${ISV_FLAG}_bonus_dis_detail")
+            );
+            return billList;
+        }
+        return null;
+    }
+
+    private static void setOverviewInfo(DynamicObject[] entities, DynamicObject approvalSumBill) {
+        Integer alreadyDistributePersonCount = Arrays.stream(entities).mapToInt(dataEntry -> dataEntry.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail").size()).sum();
+        BigDecimal alreadyDistributePersonTotal = Arrays.stream(entities).map(dataEntry -> dataEntry.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail").stream().map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_dis_total_person")).reduce(BigDecimal.ZERO,BigDecimal::add)).reduce(BigDecimal.ZERO,BigDecimal::add);
+        BigDecimal deptRetentionTotal = Arrays.stream(entities).map(dataEntry -> dataEntry.getDynamicObjectCollection("${ISV_FLAG}_dept_retentiion_deta").stream().map(decimal -> decimal.getBigDecimal("${ISV_FLAG}_retention_total_dept")).reduce(BigDecimal.ZERO,BigDecimal::add)).reduce(BigDecimal.ZERO,BigDecimal::add);
+        BigDecimal alreadyDistributeTotal = alreadyDistributePersonTotal.add(deptRetentionTotal);
+        Long warnPersonCount = Arrays.stream(entities).mapToLong(dataEntry -> dataEntry.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail").stream().filter(warn -> HRStringUtils.isNotBlank(warn.getString("${ISV_FLAG}_warn_remark_person"))).count()).sum();
+        BigDecimal maxPersonRatio = Arrays.stream(entities).max(Comparator.comparing(a -> a.getBigDecimal("${ISV_FLAG}_max_ratio"))).map(ratio -> ratio.getBigDecimal("${ISV_FLAG}_max_ratio")).orElse(BigDecimal.ZERO);
+
+        approvalSumBill.set("${ISV_FLAG}_already_dis_total", alreadyDistributeTotal); // 已分配总额
+        approvalSumBill.set("${ISV_FLAG}_already_dis_count", alreadyDistributePersonCount); // 已分配人员数量
+        approvalSumBill.set("${ISV_FLAG}_already_dis_per_tl", alreadyDistributePersonTotal); // 已分配人员总额
+        approvalSumBill.set("${ISV_FLAG}_retention_total", deptRetentionTotal); // 部门留用总额
+        approvalSumBill.set("${ISV_FLAG}_warn_person_count", warnPersonCount); // 触发预警人数
+        approvalSumBill.set("${ISV_FLAG}_max_ratio", maxPersonRatio); // 人员最高分占比
+    }
+
+    /**
+     * 校验分布式缓存中是否存在可生成的数据
+     */
+    private static void checkCacheContain(DynamicObject[] entities, String cacheValue) {
+        if(HRStringUtils.isNotBlank(cacheValue)){
+            // 存在值进行下面的校验 --- 判断当前选择的数据的id是否存在缓存的值中
+            List<String> split = Arrays.asList(cacheValue.split("&"));
+            // 获取到缓存中包含的分配汇总单的编码
+            Set<String> cacheContainBillNoSet = Arrays.stream(entities).map(dataEntry -> {
+                String approvalSumId = dataEntry.getString("id");
+                // 判断当前选择的数据是否包含在分布式缓存中
+                boolean isContain = split.contains(approvalSumId);
+                return isContain ? dataEntry.getString("billno") : null;
+            }).filter(Objects::nonNull).collect(Collectors.toSet());
+            // 如果set集合中存在值，直接报错进行返回，并终止当前的操作
+            if(CollectionUtils.isNotEmpty(cacheContainBillNoSet)){
+                throw new KDBizException(String.format("单据编码为：\r\n %S \r\n的正在被操作，请重新选在在执行！！！", String.join(",\r\n", cacheContainBillNoSet)));
+            }
+        }
+    }
+
+    private static void deleteAndUpdateCache(List<String> distributeSumIdList, DistributeSessionlessCache distributeSessionlessCache) {
+        String cacheValue = distributeSessionlessCache.get(DISTRIBUTE_CACHE_KEY);
+        if(HRStringUtils.isNotBlank(cacheValue)){
+            List<String> list = new ArrayList<>(Arrays.asList(cacheValue.split("&")));
+            list.removeIf(distributeSumIdList::contains);
+            // 将删除后的数据添加回分布式缓存中
+            distributeSessionlessCache.put(DISTRIBUTE_CACHE_KEY, String.join("&", list),CACHE_TIME_OUT, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private static void updateCache(List<String> distributeSumIdList, DistributeSessionlessCache distributeSessionlessCache) {
+        String cacheValue = distributeSessionlessCache.get(DISTRIBUTE_CACHE_KEY);
+        String join;
+        if(HRStringUtils.isNotBlank(cacheValue)){
+            List<String> split = new ArrayList<>(Arrays.asList(cacheValue.split("&")));
+            split.addAll(distributeSumIdList);
+            join = String.join("&", split);
+        }else{
+            join = String.join("&", distributeSumIdList);
+        }
+        distributeSessionlessCache.put(DISTRIBUTE_CACHE_KEY,join,CACHE_TIME_OUT,TimeUnit.MILLISECONDS);
+    }
+}

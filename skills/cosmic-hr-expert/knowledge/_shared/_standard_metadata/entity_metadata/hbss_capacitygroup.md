@@ -1,0 +1,52 @@
+# hbss_capacitygroup — 能力素质维度
+
+**表单编码**: `hbss_capacitygroup`  
+**表单ID**: `2FP62N57PF4J`  
+**归属**: HR基础服务云 / HR基础服务  
+**来源系统**: 金蝶苍穹 HCM 人力资源  
+
+---
+
+## 实体: hbss_capacitygroup（能力素质维度） [BaseEntity]
+
+- **数据库表**: `t_hbss_capacitygroup`  
+
+### 字段列表
+
+| 字段Key | 中文名 | 类型 | 数据库字段名 | 必填 | 引用 |
+|---------|--------|------|-------------|------|------|
+| number | 编码 | TextField | fnumber |  |  |
+| name | 名称 | MuliLangTextField | fname |  |  |
+| status | 数据状态 | BillStatusField | fstatus |  |  |
+| creator | 创建人 | CreaterField | fcreatorid |  | bos_user |
+| modifier | 修改人 | ModifierField | fmodifierid |  | bos_user |
+| enable | 使用状态 | BillStatusField | fenable |  |  |
+| createtime | 创建时间 | CreateDateField | fcreatetime |  |  |
+| modifytime | 修改时间 | ModifyDateField | fmodifytime |  |  |
+| masterid | 主数据内码 | MasterIdField | fmasterid |  |  |
+| longnumber | 长编码 | TextField | — |  |  |
+| level | 级次 | IntegerField | — |  |  |
+| fullname | 长名称 | MuliLangTextField | — |  |  |
+| isleaf | 是否叶子 | CheckBoxField | — |  |  |
+| parent | 上级维度 | ParentBasedataField | — |  | hbss_capacitygroup |
+| createorg | 创建组织 | OrgField | — |  | bos_org |
+| org | 管理组织 | OrgField | — |  | bos_org |
+| useorg | 使用组织 | OrgField | — |  | bos_org |
+| ctrlstrategy | 控制策略 | ComboField | — |  |  |
+| sourcedata | 原资料id | BigIntField | — |  |  |
+| bitindex | 位图 | IntegerField | — |  |  |
+| srcindex | 原资料位图 | IntegerField | — |  |  |
+| srccreateorg | 原创建组织 | OrgField | — |  | bos_org |
+| simplename | 简称 | MuliLangTextField | fsimplename |  |  |
+| description | 简介 | MuliLangTextField | fdescription |  |  |
+| disabler | 禁用人 | UserField | FDisablerID |  | bos_user |
+| disabledate | 禁用时间 | DateTimeField | FDisableDate |  |  |
+| issyspreset | 系统预置 | CheckBoxField | fissyspreset |  |  |
+| index | 排序号 | IntegerField | findex |  |  |
+| initdatasource | 数据来源 | ComboField | finitdatasource |  |  |
+| orinumber | 出厂编码 | TextField | forinumber |  |  |
+| oristatus | 出厂数据编辑状态 | ComboField | foristatus |  |  |
+| oriname | 出厂名称 | MuliLangTextField | foriname |  |  |
+| type | 描述方式 | ComboField | ftype | ✓ |  |
+| parentdim | 上级维度 | BasedataField | fparentdim |  | hbss_capacitygroup |
+

@@ -1,0 +1,227 @@
+package ${ISV_FLAG}.odc.homs.formplugin;
+
+import ${ISV_FLAG}.odc.homs.common.DateTimeCommon;
+import kd.bos.bill.BillShowParameter;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.utils.StringUtils;
+import kd.bos.entity.datamodel.IDataModel;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.CloseCallBack;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.ShowType;
+import kd.bos.form.control.events.ItemClickEvent;
+import kd.bos.form.events.ClosedCallBackEvent;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.list.ListFilterParameter;
+import kd.bos.list.ListShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.model.PermissionStatus;
+
+import java.util.*;
+
+/**
+ * @author 陈路
+ * @date:2023/1/22
+ * @description: 年度编制管理表单插件
+ */
+public class PlanyearBillFormPlugin extends AbstractFormPlugin {
+
+    private static Log logger = LogFactory.getLog(PlanyearBillFormPlugin.class);
+
+    /**
+     * 应用id
+     */
+    private static final String APPID = "homs";
+
+    /**
+     * 单据体标识
+     */
+    private static final String ENTRYNAME = "${ISV_FLAG}_planyear_detail";
+
+    //权限项id
+    private static final String PERMITEMID = PermissionStatus.View;
+
+    private static final String BIZ_QFILTER_KEY = "bizQFilterKey";
+
+    @Override
+    public void registerListener(EventObject e) {
+        super.registerListener(e);
+        this.addItemClickListeners("tbmain");
+    }
+
+    @Override
+    public void afterBindData(EventObject e) {
+        super.afterBindData(e);
+        //打开编制详情列表
+        ListShowParameter lsp = new ListShowParameter();
+        ListFilterParameter listFilterParameter = new ListFilterParameter();
+        DynamicObject planyearObj = (DynamicObject) this.getModel().getValue("${ISV_FLAG}_planyear");
+        IDataModel model = this.getModel();
+        //计划ID
+        long planId = planyearObj.getLong("id");
+        //所属年度
+        model.setValue("${ISV_FLAG}_year", planyearObj.getDate("${ISV_FLAG}_year"));
+        //编制单位(业务单元)
+        DynamicObject orgObj = planyearObj.getDynamicObject("${ISV_FLAG}_org");
+        String sonNumber = orgObj.getString("number");
+        //取编制单位长编码
+        //编制组织层级
+        String dgdlOrghierarchy = planyearObj.getString("${ISV_FLAG}_orghierarchy");
+        //数据过滤同一个编制计划的数据
+        QFilter filter = new QFilter("${ISV_FLAG}_planyear.id", QCP.equals, planId);
+        listFilterParameter.setFilter(filter);
+        lsp.setListFilterParameter(listFilterParameter);
+        //单据跳转到编制详情列表
+        lsp.setBillFormId("${ISV_FLAG}_planyear_detail");
+        //打开的位置
+        lsp.getOpenStyle().setTargetKey("${ISV_FLAG}_plandetail");
+        lsp.getOpenStyle().setShowType(ShowType.InContainer);
+        //组织层级取编制计划数据传递子页面
+        lsp.setCustomParam("${ISV_FLAG}_orghierarchy", dgdlOrghierarchy);
+        lsp.setCustomParam("orgId", orgObj.getLong("id"));
+        Set<Long> adminList = getAdminByOrg(sonNumber, dgdlOrghierarchy);
+        //过滤左树
+        if (!adminList.isEmpty()) {
+            //获取当前子集团下所选层级的行政组织
+            QFilter orgQFilter = new QFilter("${ISV_FLAG}_planyear.id", QCP.equals, planyearObj.getPkValue())
+                    .and("${ISV_FLAG}_is_org", QCP.equals, "02");
+            DynamicObject[] loads = BusinessDataServiceHelper.load("${ISV_FLAG}_planyear_detail", "id,${ISV_FLAG}_adminorg1,${ISV_FLAG}_adminorg2,${ISV_FLAG}_adminorg3,${ISV_FLAG}_adminorg4,${ISV_FLAG}_adminorg5,${ISV_FLAG}_adminorg6", orgQFilter.toArray());
+            //非当前BU下的行政组织
+            Set<Long> notThistOrgList = new HashSet<>();
+            String filed = "${ISV_FLAG}_adminorg";
+            for (DynamicObject obj : loads) {
+                for (int i = 1; i < 7; i++) {
+                    DynamicObject orgAdmin = obj.getDynamicObject(filed + i);
+                    if (Objects.nonNull(orgAdmin)) {
+
+                        try{
+                            notThistOrgList.add((Long) orgAdmin.getDynamicObject("parent").getPkValue());
+                            notThistOrgList.add((Long) orgAdmin.getPkValue());
+                        }catch (Exception ex){
+                            throw new KDBizException(orgAdmin.getString("number")+"没有上级组织");
+                        }
+
+
+                    }
+                }
+            }
+            logger.info("PlanyearBillFormPlugin获取不属于当前组织BU的行政组织" + notThistOrgList);
+            if (!notThistOrgList.isEmpty()) {
+                //无效组织单独处理
+                if (notThistOrgList.contains(1774822336449484800L)){
+                    notThistOrgList.add(1774542341323883520L);
+                }
+                adminList.addAll(notThistOrgList);
+
+            }
+            QFilter treeQfilte = new QFilter("adminorg.id", QCP.in, adminList);
+            lsp.setCustomParam(BIZ_QFILTER_KEY, treeQfilte.toSerializedString());
+        }
+        //获取维度
+        this.getView().showForm(lsp);
+        model.setDataChanged(false);
+    }
+
+    @Override
+    public void itemClick(ItemClickEvent evt) {
+        super.itemClick(evt);
+        String itemKey = evt.getItemKey();
+        if ("${ISV_FLAG}_syn_person".equals(itemKey)) {
+            DynamicObject dgdlPlanObj = (DynamicObject) this.getModel().getValue("${ISV_FLAG}_planyear");
+            //开始月份
+            Date dgdlStartmonth = dgdlPlanObj.getDate("${ISV_FLAG}_startmonth");
+            Date monthStartDate = DateTimeCommon.getMonthStartDate(dgdlStartmonth);
+            Date date = DateTimeCommon.addDay(monthStartDate, -1);
+            if (date.compareTo(new Date()) > 0) {
+                date = new Date();
+            }
+            //同步在岗人员
+            FormShowParameter fsp = new FormShowParameter();
+            fsp.setFormId("${ISV_FLAG}_syn_person");
+            //同步日期默认开始月份前一天
+            fsp.setCustomParam("syn_date", date);
+            //编制详情ID
+            Object pkValue = this.getModel().getDataEntity().getPkValue();
+            //编制计划
+            fsp.setCustomParam("planId", dgdlPlanObj.getPkValue());
+            //获取详情
+            DynamicObject detailObj = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_planyear_detail", "id", new QFilter("id", QCP.equals, pkValue).toArray());
+            if (Objects.nonNull(detailObj)) {
+                fsp.setCustomParam("detailId", pkValue);
+            } else {
+                //数据点获取的行政组织
+                String adminId = this.getView().getPageCache().get("admingId");
+                logger.info("子页面传递过来的父级编码" + adminId);
+                if (StringUtils.isEmpty(adminId) || "100000".equals(adminId)) {
+                    throw new KDBizException("请选择需要同步的组织");
+                }
+
+                //获取自身数据
+                QFilter detailQFilter = new QFilter("${ISV_FLAG}_planyear.number", QCP.equals, dgdlPlanObj.getString("number"))
+                        .and("adminorg.id", QCP.equals, Long.valueOf(adminId));
+                DynamicObject thisDetail = BusinessDataServiceHelper.loadSingle("${ISV_FLAG}_planyear_detail", "id", detailQFilter.toArray());
+                if (Objects.nonNull(thisDetail)) {
+                    throw new KDBizException("当前组织已同步在岗人员,无需重复同步");
+                }
+                fsp.setCustomParam("admingId", Long.valueOf(adminId));
+            }
+            fsp.getOpenStyle().setShowType(ShowType.Modal);
+            fsp.setCloseCallBack(new CloseCallBack(this, "synPerson"));
+            this.getView().showForm(fsp);
+        }
+    }
+
+
+    @Override
+    public void closedCallBack(ClosedCallBackEvent e) {
+        super.closedCallBack(e);
+        String actionId = e.getActionId();
+        if ("synPerson".equals(actionId) && e.getReturnData() != null) {
+//            String pageSonId = this.getPageCache().get("detailId");
+//            IFormView childView = this.getView().getView(pageSonId);
+//            childView.invokeOperation("refresh");
+//            this.getView().sendFormAction(childView);
+
+            String returnData = (String) e.getReturnData();
+            //编制详情
+            BillShowParameter fsp = new BillShowParameter();
+            fsp.setFormId("${ISV_FLAG}_planyear_detail");
+            //设置返回页面id
+            fsp.setPkId(returnData);
+            fsp.getOpenStyle().setShowType(ShowType.Modal);
+            this.getView().showForm(fsp);
+        }
+    }
+
+
+    private Set<Long> getAdminByOrg(String orgNumber, String hierarchy) {
+        Set<Long> adminList = new HashSet<>();
+        logger.info("CompilationPlanUrgeOp所需生成的组织层级" + hierarchy + ",组织编码=" + orgNumber);
+        //转换层级
+        int intOrg = Integer.parseInt(hierarchy);
+        //控制层级
+        List<String> orghierarchyList = new ArrayList<>();
+        for (int i = 1; i <= intOrg + 1; i++) {
+            orghierarchyList.add("0" + i);
+        }
+        orghierarchyList.add("99");
+        //获取当前子集团下所选层级的行政组织
+        QFilter orgQFilter = new QFilter("datastatus", QCP.equals, "1")
+                .and("org.number", QCP.equals, orgNumber)
+                .and("enable", QCP.equals, "1")
+                .and("adminorglayer.number", QCP.in, orghierarchyList)
+                .and("iscurrentversion", QCP.equals, "1");
+        DynamicObject[] orgObjs = BusinessDataServiceHelper.load("haos_adminorg", "id", orgQFilter.toArray());
+        logger.info("CompilationPlanUrgeOp行政组织长度=" + orgObjs.length);
+        for (DynamicObject orgObj : orgObjs) {
+            adminList.add((Long) orgObj.getPkValue());
+        }
+        return adminList;
+    }
+
+
+}

@@ -1,0 +1,280 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_payment;
+
+import kd.bos.bill.BillShowParameter;
+import kd.bos.bill.OperationStatus;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.db.tx.TX;
+import kd.bos.db.tx.TXHandle;
+import kd.bos.dlock.DLock;
+import kd.bos.entity.datamodel.ListSelectedRow;
+import kd.bos.entity.datamodel.ListSelectedRowCollection;
+import kd.bos.exception.KDBizException;
+import kd.bos.form.ShowType;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.operate.FormOperate;
+import kd.bos.list.ListShowParameter;
+import kd.bos.list.plugin.AbstractListPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QFilter;
+import kd.bos.orm.util.CollectionUtils;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.cd.common.operate.chain.OperateChain;
+import kd.cd.common.util.BotpUtils;
+import kd.cd.common.util.PushResult;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+
+/**
+ * Author: wanghansheng
+ * Description: 奖金发放
+ */
+public class BounsPaymentListPlugin extends AbstractListPlugin{
+    private static final Log log = LogFactory.getLog(BounsPaymentListPlugin.class);
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+        FormOperate operate = (FormOperate) args.getSource();
+        String operationKey = operate.getOperateKey();
+        // 奖金代发、奖金终止、奖金发放
+        if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operationKey) || BounsPaymentUtils.DonothingBonusTermination.equals(operationKey) || BounsPaymentUtils.DonothingBonusPayment.equals(operationKey)) {
+            // 取消后续操作
+            args.setCancel(true);
+            ListSelectedRowCollection listSelectedData = args.getListSelectedData();
+            Object[] ids = listSelectedData.getPrimaryKeyValues();
+            if (ids.length > 5000){
+                throw new KDBizException("勾选数量请勿超过5000条");
+            }
+
+            // 校验
+            List<String> errorMsg = BounsPaymentUtils.bounsPaymentvalidtor(Arrays.stream(ids).map(item -> (Long)item).collect(Collectors.toList()),operationKey);
+            if (!CollectionUtils.isEmpty(errorMsg)){
+                throw new KDBizException(String.join("",errorMsg));
+            }
+
+            try (DLock lock = DLock.create(BounsPaymentUtils.key, "奖金发放操作锁")) {
+                if (lock.tryLock()) {
+                    try (TXHandle tx = TX.requiresNew("BounsPaymentListPlugin.bonus.operation")) {
+                        try {
+                            DynamicObject[] entities = BusinessDataServiceHelper.load(ids,BusinessDataServiceHelper.newDynamicObject("${ISV_FLAG}_bonus_payment").getDynamicObjectType());
+                            // 奖金代发
+                            if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operationKey)) {
+                                createAgentApprove(entities);
+                            }
+                            // 奖金终止
+                            if (BounsPaymentUtils.DonothingBonusTermination.equals(operationKey)) {
+                                createEndApprove(entities);
+                            }
+                            // 奖金发放
+                            if (BounsPaymentUtils.DonothingBonusPayment.equals(operationKey)) {
+                                createBoundsRecord(entities);
+                            }
+                        } catch (Throwable e) {
+                            tx.markRollback();
+                            throw e;
+                        }
+                    }
+                } else {
+                    throw new KDBizException("正在执行奖金相关操作，请稍后重试。");
+                }
+            }
+
+            // 操作成功后，刷新列表，跳转
+            // 代发
+            if (BounsPaymentUtils.DonothingAgentDisbursement.equals(operationKey)) {
+                DynamicObject[] bounsAgentApprove = BounsPaymentUtils.getBounsAgentApprove(Arrays.stream(ids).map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsAgentApprove != null && bounsAgentApprove.length > 0){
+                    showBonusPlanApproval(bounsAgentApprove[0].getDynamicObjectType().getName(),bounsAgentApprove[0].getPkValue());
+                }
+                reload();
+            }
+
+            // 奖金终止
+            if (BounsPaymentUtils.DonothingBonusTermination.equals(operationKey)) {
+                DynamicObject[] bounsAgentApprove = BounsPaymentUtils.getBounsEndApprove(Arrays.stream(ids).map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsAgentApprove != null && bounsAgentApprove.length > 0){
+                    showBonusPlanApproval(bounsAgentApprove[0].getDynamicObjectType().getName(),bounsAgentApprove[0].getPkValue());
+                }
+                reload();
+            }
+
+            // 奖金发放
+            if (BounsPaymentUtils.DonothingBonusPayment.equals(operationKey)) {
+                DynamicObject[] bounsAgentApprove = BounsPaymentUtils.getBounsRecord(Arrays.stream(ids).map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsAgentApprove != null && bounsAgentApprove.length > 0){
+                    showBonusPlanApproval(bounsAgentApprove[0].getDynamicObjectType().getName(),bounsAgentApprove[0].getPkValue());
+                }
+                reload();
+            }
+        }
+    }
+
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+        super.afterDoOperation(args);
+        if (args.getOperationResult() != null && args.getOperationResult().isSuccess()) {
+            String operateKey = args.getOperateKey();
+            ListSelectedRowCollection selectedRows = this.getSelectedRows();
+            List<Object> ids = selectedRows.stream().map(ListSelectedRow::getPrimaryKeyValue).collect(Collectors.toList());
+
+            // 发放记录
+            if(operateKey.equals("donothing_distribution_record")){
+                if(ids.size() > 1){
+                    this.getView().showTipNotification("请选择单条数据。");
+                    return;
+                }
+                DynamicObject[] bounsRecordAll = BounsPaymentUtils.getBounsRecordAll(ids.stream().map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsRecordAll != null && bounsRecordAll.length > 0){
+                    showBonusRecords(bounsRecordAll[0].getDynamicObjectType().getName(), Arrays.stream(bounsRecordAll).map(item -> item.getLong("id")).collect(Collectors.toList()));
+                }else {
+                    this.getView().showTipNotification("暂无发放记录。");
+                }
+            }
+
+            // 代发记录
+            if(operateKey.equals("donothing_agent_record")){
+                if(ids.size() > 1){
+                    this.getView().showTipNotification("请选择单条数据。");
+                    return;
+                }
+                DynamicObject[] bounsRecordAll = BounsPaymentUtils.getBounsAgentRecordAll(ids.stream().map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsRecordAll != null && bounsRecordAll.length > 0){
+                    showBonusRecords(bounsRecordAll[0].getDynamicObjectType().getName(), Arrays.stream(bounsRecordAll).map(item -> item.getLong("id")).collect(Collectors.toList()));
+                }else {
+                    this.getView().showTipNotification("暂无代发记录。");
+                }
+            }
+
+            // 终止记录
+            if(operateKey.equals("donothing_termination_record")){
+                if(ids.size() > 1){
+                    this.getView().showTipNotification("请选择单条数据。");
+                    return;
+                }
+                DynamicObject[] bounsRecordAll = BounsPaymentUtils.getBounsEndRecordAll(ids.stream().map(item -> (Long) item).collect(Collectors.toList()));
+                if (bounsRecordAll != null && bounsRecordAll.length > 0){
+                    showBonusRecords(bounsRecordAll[0].getDynamicObjectType().getName(), Arrays.stream(bounsRecordAll).map(item -> item.getLong("id")).collect(Collectors.toList()));
+                }else {
+                    this.getView().showTipNotification("暂无终止记录。");
+                }
+            }
+        }
+    }
+    /**
+     * 跳转到计划汇总审批界面
+     */
+    private void showBonusPlanApproval(String formId, Object pkId) {
+        OperationStatus operationStatus = OperationStatus.EDIT;
+        BillShowParameter formShowParameter = new BillShowParameter();
+        formShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+        formShowParameter.setStatus(operationStatus);
+        formShowParameter.setFormId(formId);
+        formShowParameter.setPkId(pkId);
+        this.getView().showForm(formShowParameter);
+    }
+
+    /**
+     * 跳转到列表界面
+     */
+    private void showBonusRecords(String formId, List<Long> pkId) {
+        QFilter idsFilter = new QFilter("id", "in", pkId);
+        ListShowParameter listShowParameter = new ListShowParameter();
+        listShowParameter.getListFilterParameter().setFilter(idsFilter);
+        listShowParameter.setFormId("bos_list");
+        listShowParameter.setBillFormId(formId);
+        listShowParameter.getOpenStyle().setShowType(ShowType.MainNewTabPage);
+        this.getView().showForm(listShowParameter);
+    }
+
+
+    /**
+     * 生成代发审批单
+     */
+    public void createAgentApprove(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_agent_approve", rows, "2374131471679206400");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("代发审批单生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+            SaveServiceHelper.save(entities);
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成代发审批单失败。\n" + errMsg);
+        }
+    }
+
+    /**
+     * 生成终止审批单
+     */
+    public void createEndApprove(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_end_approval", rows, "2374134742162460672");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("终止审批单生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成终止审批单失败。\n" + errMsg);
+        }
+    }
+
+    /**
+     * 生成奖金发放记录
+     */
+    public void createBoundsRecord(DynamicObject[] entities) {
+        // 进行下推
+        List<ListSelectedRow> rows = new ArrayList<>();
+        for (DynamicObject bill : entities) {
+            ListSelectedRow row = new ListSelectedRow();
+            row.setPrimaryKeyValue(bill.getLong("id"));
+            rows.add(row);
+        }
+        PushResult pushResult = BotpUtils.push(false, "${ISV_FLAG}_bonus_payment", "${ISV_FLAG}_bouns_record", rows, "2374113761146556416");
+        if (pushResult.isSuccess()) {
+            // 收集计划汇总审批单id
+            DynamicObject[] dataPacks = pushResult.getDatapacks();
+            if (dataPacks.length > 1){
+                throw new KDBizException("奖金发放记录生成过程中进行了拆单，请联系相关人员查看。");
+            }
+            for (DynamicObject dataPack : dataPacks) {
+                // 保存数据
+                OperateChain.of(dataPack).save().failThenDeleteAndThrow();
+            }
+        } else {
+            String errMsg = pushResult.getErrMsg();
+            throw new KDBizException("生成奖金发放记录失败。\n" + errMsg);
+        }
+    }
+}

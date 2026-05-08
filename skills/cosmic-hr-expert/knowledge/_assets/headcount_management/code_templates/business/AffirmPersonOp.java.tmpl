@@ -1,0 +1,377 @@
+package ${ISV_FLAG}.odc.homs.opplugin;
+
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.entity.plugin.AbstractOperationServicePlugIn;
+import kd.bos.entity.plugin.PreparePropertysEventArgs;
+import kd.bos.entity.plugin.args.BeginOperationTransactionArgs;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+/**
+ * @Author: yaoshuai
+ * @CreateTime: 2024-01-29  15:02
+ * @Description: 确认操作, 向上级同步人员
+ */
+public class AffirmPersonOp extends AbstractOperationServicePlugIn {
+
+
+    private static Log logger = LogFactory.getLog(SycnOnPersonOp.class);
+
+    /**
+     * 编制详情
+     */
+    private static final String PLAN_DETAIL = "${ISV_FLAG}_planyear_detail";
+
+    /**
+     * 查询字段
+     */
+    private static final String FILED = "id,billstatus,${ISV_FLAG}_synctime," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_groupid," +
+            "${ISV_FLAG}_entry.seq," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_detail_adminorg," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_laborreltype," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_stdposition," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_post_aisle," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_jobproperty," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_personrank," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_label4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_dispatch," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_workplace," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_actual," +
+//            "${ISV_FLAG}_entry.${ISV_FLAG}_non_staff," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_add," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_reduce," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_plan," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_control," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_prechg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg7," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg8," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg9," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_chg13," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_preavg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg1," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg2," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg3," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg4," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg5," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg6," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg7," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg8," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg9," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg10," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg11," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_avg12," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_mulperson," +
+//            "${ISV_FLAG}_entry.${ISV_FLAG}_non_mulperson," +
+            "${ISV_FLAG}_entry.${ISV_FLAG}_average";
+
+    @Override
+    public void onPreparePropertys(PreparePropertysEventArgs e) {
+        super.onPreparePropertys(e);
+        e.getFieldKeys().add("${ISV_FLAG}_planyear");
+        e.getFieldKeys().add("adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg1");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg2");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg3");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg4");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg5");
+        e.getFieldKeys().add("${ISV_FLAG}_adminorg6");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg1");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg2");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg3");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg4");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg5");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg6");
+        e.getFieldKeys().add("${ISV_FLAG}_detail_adminorg");
+        e.getFieldKeys().add("${ISV_FLAG}_stdposition");
+        e.getFieldKeys().add("${ISV_FLAG}_non_staff");
+        e.getFieldKeys().add("${ISV_FLAG}_laborreltype");
+        e.getFieldKeys().add("${ISV_FLAG}_post_aisle");
+        e.getFieldKeys().add("${ISV_FLAG}_jobproperty");
+        e.getFieldKeys().add("${ISV_FLAG}_personrank");
+        e.getFieldKeys().add("${ISV_FLAG}_label1");
+        e.getFieldKeys().add("${ISV_FLAG}_label2");
+        e.getFieldKeys().add("${ISV_FLAG}_label3");
+        e.getFieldKeys().add("${ISV_FLAG}_label4");
+        e.getFieldKeys().add("${ISV_FLAG}_dispatch");
+        e.getFieldKeys().add("${ISV_FLAG}_workplace");
+        e.getFieldKeys().add("${ISV_FLAG}_actual");
+        e.getFieldKeys().add("${ISV_FLAG}_groupid");
+        e.getFieldKeys().add("${ISV_FLAG}_mulperson");
+        e.getFieldKeys().add("${ISV_FLAG}_non_mulperson");
+        args(e);
+    }
+
+
+    @Override
+    public void beginOperationTransaction(BeginOperationTransactionArgs e) {
+        super.beginOperationTransaction(e);
+        DynamicObject[] dataEntities = e.getDataEntities();
+        for (DynamicObject dataEntry : dataEntities) {
+            Object pkValue = dataEntry.getPkValue();
+            logger.info("AffirmPersonOp获取详情ID=", pkValue);
+            //编制详情
+            DynamicObject detailObj = BusinessDataServiceHelper.loadSingleFromCache(pkValue, PLAN_DETAIL);
+            if (Objects.nonNull(detailObj)) {
+                //末端组织
+                DynamicObject lastAdminOrg = detailObj.getDynamicObject("adminorg");
+                String lastNumber = lastAdminOrg.getString("number");
+                //编制计划
+                DynamicObject planYear = detailObj.getDynamicObject("${ISV_FLAG}_planyear");
+                //组织层级
+                String hierarchy = planYear.getString("${ISV_FLAG}_orghierarchy");
+                int intHierarchy = Integer.parseInt(hierarchy);
+                String adminStr = "${ISV_FLAG}_adminorg";
+                List<DynamicObject> adminList = new ArrayList<>();
+                for (int i = 1; i <= intHierarchy; i++) {
+                    DynamicObject admin = detailObj.getDynamicObject(adminStr + i);
+                    if (admin.getString("number").equals(lastNumber)) {
+                        break;
+                    }
+                    adminList.add(admin);
+                }
+                //上级行政组织
+                DynamicObject parentAdmin = adminList.get(adminList.size() - 1);
+                //获取上级详情信息
+                QFilter detailQFilter = new QFilter("${ISV_FLAG}_planyear.number", QCP.equals, planYear.getString("number"))
+                        .and("adminorg.number", QCP.equals, parentAdmin.getString("number"));
+                DynamicObject parentDetail = BusinessDataServiceHelper.loadSingle(PLAN_DETAIL, FILED, detailQFilter.toArray());
+                if (Objects.nonNull(parentDetail)) {
+                    logger.info("AffirmPersonOp即将要保存的id=", parentDetail.getLong("id"));
+                    //当前单据分录
+                    DynamicObjectCollection thisEntry = detailObj.getDynamicObjectCollection("${ISV_FLAG}_entry");
+                    // 当前单据分录末端组织集合
+                    Set<String> thisAdminOrgSet = thisEntry.stream().map(entry -> entry.getDynamicObject("${ISV_FLAG}_detail_adminorg").getString("number")).collect(Collectors.toSet());
+                    //上级分录
+                    DynamicObjectCollection parentEntry = parentDetail.getDynamicObjectCollection("${ISV_FLAG}_entry");
+                    logger.debug("AffirmPersonOp分录长度=" , parentEntry.size());
+                    //分装分录,区别新增还是修改
+                    Iterator<DynamicObject> iterator = parentEntry.iterator();
+                    //先删除,在新增
+                    while (iterator.hasNext()) {
+                        DynamicObject parentData = iterator.next();
+                        DynamicObject adminorg = parentData.getDynamicObject("${ISV_FLAG}_detail_adminorg");
+                        String lastEntryNumber = adminorg.getString("number");
+                        logger.info("AffirmPersonOp分录末级组织编码=" , lastEntryNumber);
+                        if (thisAdminOrgSet.contains(lastEntryNumber)) {
+                            iterator.remove();
+                        }
+                    }
+                    logger.debug("AffirmPersonOp分录删除完长度=" + parentEntry.size());
+                    //父级分录长度
+                    int parentSize = parentEntry.size();
+                    for (int i = 0; i < thisEntry.size(); i++) {
+                        DynamicObject thisObj = thisEntry.get(i);
+                        //分组唯一ID
+                        DynamicObject addNew = parentEntry.addNew();
+                        addNew.set("${ISV_FLAG}_groupid", thisObj.getString("${ISV_FLAG}_groupid"));
+                        logger.info("AffirmPersonOp唯一值获取=" + thisObj.getString("${ISV_FLAG}_groupid"));
+                        //组织
+                        DynamicObject adminorg1 = thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg1");
+                        addNew.set("${ISV_FLAG}_detail_adminorg1", adminorg1);
+                        addNew.set("${ISV_FLAG}_detail_adminorg2", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg2"));
+                        addNew.set("${ISV_FLAG}_detail_adminorg3", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg3"));
+                        addNew.set("${ISV_FLAG}_detail_adminorg4", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg4"));
+                        addNew.set("${ISV_FLAG}_detail_adminorg5", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg5"));
+                        addNew.set("${ISV_FLAG}_detail_adminorg6", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg6"));
+                        //末级组织
+                        addNew.set("${ISV_FLAG}_detail_adminorg", thisObj.getDynamicObject("${ISV_FLAG}_detail_adminorg"));
+                        //用工类型
+                        addNew.set("${ISV_FLAG}_laborreltype", thisObj.getDynamicObject("${ISV_FLAG}_laborreltype"));
+                        //标准岗位
+                        addNew.set("${ISV_FLAG}_stdposition", thisObj.getDynamicObject("${ISV_FLAG}_stdposition"));
+                        //岗位通道
+                        addNew.set("${ISV_FLAG}_post_aisle", thisObj.getDynamicObject("${ISV_FLAG}_post_aisle"));
+                        //岗位属性
+                        addNew.set("${ISV_FLAG}_jobproperty", thisObj.getDynamicObject("${ISV_FLAG}_jobproperty"));
+                        //职级
+                        addNew.set("${ISV_FLAG}_personrank", thisObj.getDynamicObject("${ISV_FLAG}_personrank"));
+                        //岗位标签
+                        //大雁
+                        addNew.set("${ISV_FLAG}_label1", thisObj.getString("${ISV_FLAG}_label1"));
+                        //新四化
+                        addNew.set("${ISV_FLAG}_label2", thisObj.getString("${ISV_FLAG}_label2"));
+                        //国际化
+                        addNew.set("${ISV_FLAG}_label3", thisObj.getString("${ISV_FLAG}_label3"));
+                        //数字化
+                        addNew.set("${ISV_FLAG}_label4", thisObj.getString("${ISV_FLAG}_label4"));
+                        //对外派驻
+                        addNew.set("${ISV_FLAG}_dispatch", thisObj.getString("${ISV_FLAG}_dispatch"));
+                        //工作地点
+                        addNew.set("${ISV_FLAG}_workplace", thisObj.getDynamicObject("${ISV_FLAG}_workplace"));
+                        //人员明细
+                        DynamicObjectCollection mulpersons = thisObj.getDynamicObjectCollection("${ISV_FLAG}_mulperson");
+                        DynamicObjectCollection dgdlMulperson = addNew.getDynamicObjectCollection("${ISV_FLAG}_mulperson");
+                        dgdlMulperson.clear();
+                        for (DynamicObject detail : mulpersons) {
+                            DynamicObject dataObj = detail.getDynamicObject("fbasedataid");
+                            Long basedataId = (Long) dataObj.getPkValue();
+                            DynamicObject newCurrency = new DynamicObject(dgdlMulperson.getDynamicObjectType());
+                            newCurrency.set("fbasedataid", basedataId);
+                            logger.debug("AffirmPersonOp多选基础资料信息=" + basedataId);
+                            dgdlMulperson.add(newCurrency);
+                        }
+                        addNew.set("${ISV_FLAG}_mulperson", dgdlMulperson);
+//                        DynamicObjectCollection dgdlNonMulperson = addNew.getDynamicObjectCollection("${ISV_FLAG}_non_mulperson");
+//                        DynamicObjectCollection thisObjDynamicObjectCollection = thisObj.getDynamicObjectCollection("${ISV_FLAG}_non_mulperson");
+//                        dgdlNonMulperson.clear();
+//                        for (DynamicObject dynamicObject : thisObjDynamicObjectCollection) {
+//                            DynamicObject dataObj = dynamicObject.getDynamicObject("fbasedataid");
+//                            Long basedataId = (Long) dataObj.getPkValue();
+//                            DynamicObject newCurrency = new DynamicObject(thisObjDynamicObjectCollection.getDynamicObjectType());
+//                            newCurrency.set("fbasedataid", basedataId);
+//                            logger.debug("AffirmPersonOp多选基础资料信息=" + basedataId);
+//                            dgdlNonMulperson.add(newCurrency);
+//                        }
+//                        addNew.set("${ISV_FLAG}_non_mulperson", dgdlNonMulperson);
+                        //实际人数
+                        addNew.set("${ISV_FLAG}_actual", thisObj.get("${ISV_FLAG}_actual"));
+//                        addNew.set("${ISV_FLAG}_non_staff", thisObj.get("${ISV_FLAG}_non_staff"));
+                        //计划新增
+                        addNew.set("${ISV_FLAG}_add", thisObj.get("${ISV_FLAG}_add"));
+                        //计划减少
+                        addNew.set("${ISV_FLAG}_reduce", thisObj.get("${ISV_FLAG}_reduce"));
+                        //计划年编制
+                        addNew.set("${ISV_FLAG}_plan", thisObj.get("${ISV_FLAG}_plan"));
+                        //控编人数
+                        addNew.set("${ISV_FLAG}_control", thisObj.get("${ISV_FLAG}_control"));
+                        //人数计算
+                        setAvg(addNew, thisObj);
+                        //手动调整明细行位置
+                        addNew.set("seq", parentSize);
+                        logger.info("AffirmPersonOp手动设置顺序seq=" , parentSize);
+                        parentSize++;
+                    }
+
+                    //执行保存操作
+                    OperateOption option = OperateOption.create();
+                    //人员同步时间
+                    parentDetail.set("${ISV_FLAG}_synctime", new Date());
+                    DynamicObject[] planObjs = new DynamicObject[]{parentDetail};
+                    SaveServiceHelper.save(planObjs);
+//                    logger.info("AffirmPersonOp向上级同步人员=" , endResult);
+                }
+                //调整当前单据状态
+                OperateOption thisOption = OperateOption.create();
+                //设置为已确认
+                dataEntry.set("billstatus", "I");
+                DynamicObject[] thisDataEntry = new DynamicObject[]{dataEntry};
+//                SaveServiceHelper.save(thisDataEntry);
+                OperationResult result = OperationServiceHelper.executeOperate("save", "${ISV_FLAG}_planyear_detail", thisDataEntry, thisOption);
+                logger.info("AffirmPersonOp修改当前单据状态=" , result);
+            }
+        }
+    }
+
+
+    private void args(PreparePropertysEventArgs e) {
+        e.getFieldKeys().add("${ISV_FLAG}_prechg10");
+        e.getFieldKeys().add("${ISV_FLAG}_prechg11");
+        e.getFieldKeys().add("${ISV_FLAG}_prechg12");
+
+        e.getFieldKeys().add("${ISV_FLAG}_chg1");
+        e.getFieldKeys().add("${ISV_FLAG}_chg2");
+        e.getFieldKeys().add("${ISV_FLAG}_chg3");
+        e.getFieldKeys().add("${ISV_FLAG}_chg4");
+        e.getFieldKeys().add("${ISV_FLAG}_chg5");
+        e.getFieldKeys().add("${ISV_FLAG}_chg6");
+        e.getFieldKeys().add("${ISV_FLAG}_chg7");
+        e.getFieldKeys().add("${ISV_FLAG}_chg8");
+        e.getFieldKeys().add("${ISV_FLAG}_chg9");
+        e.getFieldKeys().add("${ISV_FLAG}_chg10");
+        e.getFieldKeys().add("${ISV_FLAG}_chg11");
+        e.getFieldKeys().add("${ISV_FLAG}_chg12");
+
+        e.getFieldKeys().add("${ISV_FLAG}_preavg10");
+        e.getFieldKeys().add("${ISV_FLAG}_preavg11");
+        e.getFieldKeys().add("${ISV_FLAG}_preavg12");
+
+        e.getFieldKeys().add("${ISV_FLAG}_avg1");
+        e.getFieldKeys().add("${ISV_FLAG}_avg2");
+        e.getFieldKeys().add("${ISV_FLAG}_avg3");
+        e.getFieldKeys().add("${ISV_FLAG}_avg4");
+        e.getFieldKeys().add("${ISV_FLAG}_avg5");
+        e.getFieldKeys().add("${ISV_FLAG}_avg6");
+        e.getFieldKeys().add("${ISV_FLAG}_avg7");
+        e.getFieldKeys().add("${ISV_FLAG}_avg8");
+        e.getFieldKeys().add("${ISV_FLAG}_avg9");
+        e.getFieldKeys().add("${ISV_FLAG}_avg10");
+        e.getFieldKeys().add("${ISV_FLAG}_avg11");
+        e.getFieldKeys().add("${ISV_FLAG}_avg12");
+
+        e.getFieldKeys().add("${ISV_FLAG}_average");
+    }
+
+    private void setAvg(DynamicObject addNew, DynamicObject thisObj) {
+        //计划-去年
+        addNew.set("${ISV_FLAG}_prechg10", thisObj.get("${ISV_FLAG}_prechg10"));
+        addNew.set("${ISV_FLAG}_prechg11", thisObj.get("${ISV_FLAG}_prechg11"));
+        addNew.set("${ISV_FLAG}_prechg12", thisObj.get("${ISV_FLAG}_prechg12"));
+        //计划-今年
+        addNew.set("${ISV_FLAG}_chg1", thisObj.get("${ISV_FLAG}_chg1"));
+        addNew.set("${ISV_FLAG}_chg2", thisObj.get("${ISV_FLAG}_chg2"));
+        addNew.set("${ISV_FLAG}_chg3", thisObj.get("${ISV_FLAG}_chg3"));
+        addNew.set("${ISV_FLAG}_chg4", thisObj.get("${ISV_FLAG}_chg4"));
+        addNew.set("${ISV_FLAG}_chg5", thisObj.get("${ISV_FLAG}_chg5"));
+        addNew.set("${ISV_FLAG}_chg6", thisObj.get("${ISV_FLAG}_chg6"));
+        addNew.set("${ISV_FLAG}_chg7", thisObj.get("${ISV_FLAG}_chg7"));
+        addNew.set("${ISV_FLAG}_chg8", thisObj.get("${ISV_FLAG}_chg8"));
+        addNew.set("${ISV_FLAG}_chg9", thisObj.get("${ISV_FLAG}_chg9"));
+        addNew.set("${ISV_FLAG}_chg10", thisObj.get("${ISV_FLAG}_chg10"));
+        addNew.set("${ISV_FLAG}_chg11", thisObj.get("${ISV_FLAG}_chg11"));
+        addNew.set("${ISV_FLAG}_chg12", thisObj.get("${ISV_FLAG}_chg12"));
+        //实际-去年
+        addNew.set("${ISV_FLAG}_preavg10", thisObj.get("${ISV_FLAG}_preavg10"));
+        addNew.set("${ISV_FLAG}_preavg11", thisObj.get("${ISV_FLAG}_preavg11"));
+        addNew.set("${ISV_FLAG}_preavg12", thisObj.get("${ISV_FLAG}_preavg12"));
+        //实际-今年
+        addNew.set("${ISV_FLAG}_avg1", thisObj.get("${ISV_FLAG}_avg1"));
+        addNew.set("${ISV_FLAG}_avg2", thisObj.get("${ISV_FLAG}_avg2"));
+        addNew.set("${ISV_FLAG}_avg3", thisObj.get("${ISV_FLAG}_avg3"));
+        addNew.set("${ISV_FLAG}_avg4", thisObj.get("${ISV_FLAG}_avg4"));
+        addNew.set("${ISV_FLAG}_avg5", thisObj.get("${ISV_FLAG}_avg5"));
+        addNew.set("${ISV_FLAG}_avg6", thisObj.get("${ISV_FLAG}_avg6"));
+        addNew.set("${ISV_FLAG}_avg7", thisObj.get("${ISV_FLAG}_avg7"));
+        addNew.set("${ISV_FLAG}_avg8", thisObj.get("${ISV_FLAG}_avg8"));
+        addNew.set("${ISV_FLAG}_avg9", thisObj.get("${ISV_FLAG}_avg9"));
+        addNew.set("${ISV_FLAG}_avg10", thisObj.get("${ISV_FLAG}_avg10"));
+        addNew.set("${ISV_FLAG}_avg11", thisObj.get("${ISV_FLAG}_avg11"));
+        addNew.set("${ISV_FLAG}_avg12", thisObj.get("${ISV_FLAG}_avg12"));
+        //平均
+        addNew.set("${ISV_FLAG}_average", thisObj.getBigDecimal("${ISV_FLAG}_average"));
+    }
+}

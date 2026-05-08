@@ -1,0 +1,318 @@
+package ${ISV_FLAG}.swc.sit.form.social_security_pay;
+
+import kd.bos.bill.AbstractBillPlugIn;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.form.field.BasedataEdit;
+import kd.bos.form.field.events.AfterF7SelectEvent;
+import kd.bos.form.field.events.AfterF7SelectListener;
+import kd.bos.form.field.events.BeforeF7SelectEvent;
+import kd.bos.form.field.events.BeforeF7SelectListener;
+import kd.bos.list.ListShowParameter;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.QueryServiceHelper;
+import kd.sdk.plugin.Plugin;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EventObject;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Author: wanghansheng
+ * 社保公积金代缴申请单,代缴人员过滤
+ */
+public class SocialSecurityPersonFilterFormPlugin extends AbstractBillPlugIn implements Plugin,BeforeF7SelectListener, AfterF7SelectListener {
+    private static final Log log = LogFactory.getLog(SocialSecurityPersonFilterFormPlugin.class);
+
+    @Override
+    public void registerListener(EventObject e) {
+        //监听代缴人员，即人员社保档案
+        super.registerListener(e);
+        BasedataEdit personController = this.getView().getControl("${ISV_FLAG}_person");
+        personController.addBeforeF7SelectListener(this);
+
+        //监听基数表
+        BasedataEdit radixTable = this.getView().getControl("${ISV_FLAG}_radix_table");
+        radixTable.addBeforeF7SelectListener(this);
+        radixTable.addAfterF7SelectListener(this);
+    }
+
+    //社保公积金代缴申请单,代缴人员过滤
+    @Override
+    public void beforeF7Select(BeforeF7SelectEvent f7) {
+        // 获取当前单据上的【社保公积金管理组织】的编码
+        String orgNumber = this.getOrgNumber();
+        log.info("当前单据上的【社保公积金管理组织】的编码为：{}", orgNumber);
+        DynamicObject bosOrg = BusinessDataServiceHelper.loadSingle("bos_org", new QFilter("number", QCP.equals, orgNumber).toArray());
+        String name = f7.getProperty().getName();
+        DynamicObject paymentServiceType = this.getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_payment_service_type");
+        String paymentServiceTypeName;//代缴业务类型
+        if (paymentServiceType == null) {
+            this.getView().showErrorNotification("请先选择代缴业务类型");
+            f7.setCancel(true);
+            return;
+        }
+        paymentServiceTypeName = paymentServiceType.getString("number");
+
+        //社保公积金管理组织
+        DynamicObject orgValue = (DynamicObject) this.getModel().getValue("org");
+        if (orgValue == null) {
+            this.getView().showErrorNotification("请先确定社保公积金管理组织。");
+            f7.setCancel(true);
+            return;
+        }
+        QFilter orgFilter = new QFilter("org", QCP.equals, orgValue.getLong("id"));
+
+        //代缴人员过滤，当代缴业务类型为新增代缴时
+        if ("${ISV_FLAG}_person".equals(name) && "001".equals(paymentServiceTypeName)) {
+            //进行过滤
+            QFilter qFilter = new QFilter("status", QFilter.not_equals2, "E");//数据状态为非已废弃
+//            qFilter.and(new QFilter("sinsurstatus", QFilter.equals, "normal"));//“参保状态”为“正常缴纳”
+            qFilter.and(new QFilter("employee.hsbs_empentrel.laborrelstatus.number", QFilter.not_equals2, "1080_S"));//“用工关系”不为“已离职”
+            qFilter.and(QFilter.of("(welfarepayertheory = welfarepayer)"));//“理论参保单位”和“实际参保单位”一致
+
+            ListShowParameter showParameter = (ListShowParameter) f7.getFormShowParameter();
+            showParameter.getListFilterParameter().setFilter(qFilter.and(orgFilter));
+        }
+
+        //代缴人员过滤，当代缴业务类型为停止代缴时
+        if ("${ISV_FLAG}_person".equals(name) && ("002".equals(paymentServiceTypeName) || "003".equals(paymentServiceTypeName))) {
+            //进行过滤
+            QFilter qFilter = new QFilter("status", QFilter.not_equals2, "E");//数据状态为非已废弃
+            qFilter.and(new QFilter("sinsurstatus", QFilter.equals, "normal"));//“参保状态”为“正常缴纳”
+            qFilter.and(new QFilter("isescrowstaff", QCP.equals, "1"));//代管员工”为“是”；
+            ListShowParameter showParameter = (ListShowParameter) f7.getFormShowParameter();
+            showParameter.getListFilterParameter().setFilter(qFilter.and(orgFilter));
+        }
+
+        //基数表过滤
+        if ("${ISV_FLAG}_radix_table".equals(name)) {
+            //新增代缴
+            if ("001".equals(paymentServiceTypeName)) {
+                DynamicObjectCollection entryentity = this.getModel().getEntryEntity("entryentity");
+                if (entryentity.size() == 0) {
+                    this.getView().showErrorNotification("请先确定新增代缴明细。");
+                    f7.setCancel(true);
+                }
+            }
+
+            if ("003".equals(paymentServiceTypeName)) {
+                DynamicObjectCollection entryentity = this.getModel().getEntryEntity("${ISV_FLAG}_base_entryentity");
+                if (entryentity.size() == 0) {
+                    this.getView().showErrorNotification("请先确定基数调整明细。");
+                    f7.setCancel(true);
+                }
+            }
+
+            //拿到代缴人员，根据代缴人员的理论参保公司进行过滤
+            //根据代缴公司过滤基数表
+            DynamicObject dataEntity = this.getView().getModel().getDataEntity();
+            DynamicObject kdcdPayingCompany = dataEntity.getDynamicObject("${ISV_FLAG}_paying_company");
+
+            if (kdcdPayingCompany != null) {
+                QFilter qFilter;
+                //进行过滤，社保人员理论参保单位与社保基数表一致
+                qFilter = new QFilter("${ISV_FLAG}_insured_entity", QFilter.equals, kdcdPayingCompany.get("id"));
+                log.info("正常分支下的QFilter：{}", qFilter);
+                //进行过滤，代缴公司要与基数表的参保单位一致
+                ListShowParameter showParameter = (ListShowParameter) f7.getFormShowParameter();
+                showParameter.getListFilterParameter().setFilter(qFilter);
+            } else {
+                this.getView().showErrorNotification("请先确定代缴公司。");
+                f7.setCancel(true);
+            }
+        }
+
+    }
+
+    //社保公积金代缴申请单,基数表
+    @Override
+    public void afterF7Select (AfterF7SelectEvent afterF7SelectEvent){
+        // 获取当前单据上的【社保公积金管理组织】的编码
+        String orgNumber = this.getOrgNumber();
+        //代缴业务类型
+        DynamicObject paymentServiceType = this.getModel().getDataEntity().getDynamicObject("${ISV_FLAG}_payment_service_type");
+        String paymentServiceTypeName = paymentServiceType.getString("number");
+
+        Long primaryKeyValue = null;
+        if (afterF7SelectEvent.getListSelectedRow() == null) {
+            DynamicObject radixTable = (DynamicObject) this.getView().getModel().getDataEntity().get("${ISV_FLAG}_radix_table");
+            if (radixTable != null) {
+                primaryKeyValue = radixTable.getLong("id");
+            }
+        } else {
+            primaryKeyValue = (Long) afterF7SelectEvent.getListSelectedRow().getPrimaryKeyValue();
+        }
+
+        if (primaryKeyValue == null) {
+            return;
+        }
+
+        //获取人员id
+        DynamicObject dataEntity = this.getView().getModel().getDataEntity();
+        DynamicObject person = (DynamicObject) dataEntity.get("${ISV_FLAG}_person");
+        Long personId = person.getLong("employee.id");
+
+        //获取员工职级，从任职经历基础页面中获取职级
+        QFilter hrpiEmpjobrelFilter = new QFilter("employee", QCP.equals, personId);
+        hrpiEmpjobrelFilter.and(new QFilter("enddate", QCP.large_equals, new Date()));
+        hrpiEmpjobrelFilter.and(new QFilter("iscurrentdata", QCP.equals, true));
+        DynamicObject hrpiEmpjobrel = QueryServiceHelper.queryOne("hrpi_empjobrel", "joblevel", hrpiEmpjobrelFilter.toArray());
+
+        if (hrpiEmpjobrel == null) {
+            return;
+        }
+
+        //查询社保基数表
+        QFilter socialSecurityFundFilter = new QFilter("id", QCP.equals, primaryKeyValue);
+        DynamicObject[] socialSecurityFund = BusinessDataServiceHelper.load("${ISV_FLAG}_social_security_fund",
+                "id, ${ISV_FLAG}_entryentity.${ISV_FLAG}_multiple_ranks,${ISV_FLAG}_entryentity.${ISV_FLAG}_social_medical,${ISV_FLAG}_entryentity.${ISV_FLAG}_reserve_fund",
+                socialSecurityFundFilter.toArray());
+
+
+        //收集entryid
+        Map<Long, DynamicObject> map = new HashMap<>();
+        for (DynamicObject dynamicObject : socialSecurityFund) {
+            DynamicObjectCollection entryEntity = dynamicObject.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+            for (DynamicObject entry : entryEntity) {
+                DynamicObjectCollection multipleRanks = entry.getDynamicObjectCollection("${ISV_FLAG}_multiple_ranks");
+                for (DynamicObject multipleRank : multipleRanks) {
+                    long baseDataId = multipleRank.getLong("fbasedataid.id");
+                    map.put(baseDataId, entry);
+                }
+            }
+        }
+
+        //基数表没有对应的职级
+        long jobLevelId = hrpiEmpjobrel.getLong("joblevel");
+        if (map.isEmpty() || !map.containsKey(jobLevelId)) {
+            return;
+        }
+
+        Integer socialMedical = null;  //社保基数
+        Integer reserveFund = null;    //公积金基数
+        //基数表有对应的职级
+        if (map.containsKey(jobLevelId)) {
+            DynamicObject object = map.get(jobLevelId);
+            socialMedical = object.getInt("${ISV_FLAG}_social_medical");
+            reserveFund = object.getInt("${ISV_FLAG}_reserve_fund");
+        }
+
+        //代缴业务类型为新增代缴时
+        if ("001".equals(paymentServiceTypeName)) {
+            DynamicObjectCollection entryentity = this.getModel().getEntryEntity("entryentity");
+            //基数表有对应的社保
+            if (socialMedical != null) {
+                for (DynamicObject dynamicObject : entryentity) {
+                    //社保
+                    if (dynamicObject.get("${ISV_FLAG}_payment_insurance_e").equals("A")) {
+                        dynamicObject.set("${ISV_FLAG}_endowment_e", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_medical_e", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_unemployment_e", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_industrial_injury_e", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_maternity_e",socialMedical);
+                        // 公共的设置
+                        dynamicObject.set("${ISV_FLAG}_supply_medica_e", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_radix", socialMedical);
+                    }
+                }
+            }
+            //基数表有对应的公积金
+            if (reserveFund != null) {
+                for (DynamicObject dynamicObject : entryentity) {
+                    //公积金
+                    if (dynamicObject.get("${ISV_FLAG}_payment_insurance_e").equals("B")) {
+                        dynamicObject.set("${ISV_FLAG}_housing_e", reserveFund);
+                        dynamicObject.set("${ISV_FLAG}_radix", reserveFund);
+                    }
+                }
+            }
+            this.getView().updateView("entryentity");
+        }
+
+        //代缴业务类型为基数调整时
+        if ("003".equals(paymentServiceTypeName)) {
+            DynamicObjectCollection entryentity = this.getModel().getEntryEntity("${ISV_FLAG}_base_entryentity");
+            //基数表有对应的社保
+            if (socialMedical != null) {
+                for (DynamicObject dynamicObject : entryentity) {
+                    //社保
+                    if (dynamicObject.get("${ISV_FLAG}_base_insurance_e").equals("A")) {
+                        dynamicObject.set("${ISV_FLAG}_base_endowment_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_base_medical_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_unemployment_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_base_injury_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_base_maternity_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_base_medica_e1", socialMedical);
+                        dynamicObject.set("${ISV_FLAG}_radix_base", socialMedical);
+                    }
+                }
+            }
+            //基数表有对应的公积金
+            if (reserveFund != null) {
+                for (DynamicObject dynamicObject : entryentity) {
+                    //公积金
+                    if (dynamicObject.get("${ISV_FLAG}_base_insurance_e").equals("B")) {
+                        dynamicObject.set("${ISV_FLAG}_base_housing_e1", reserveFund);
+                        dynamicObject.set("${ISV_FLAG}_radix_base", reserveFund);
+                    }
+                }
+            }
+            this.getView().updateView("${ISV_FLAG}_base_entryentity");
+        }
+
+        //修改基数表后，设置单据体是否可编辑
+        setEntryFiledEnable(paymentServiceType);
+    }
+
+    //修改基数表后，设置单据体是否可编辑
+    private void setEntryFiledEnable (DynamicObject paymentServiceType){
+        //如果paymentInsurance为A，即社保，那么将住房公积金设置为不可编辑
+        //如果paymentInsurance为B，即住房公积金，那么将社保设置为不可编辑
+        SocialSecurityPayFormPlugin socialSecurityPayFormPlugin = new SocialSecurityPayFormPlugin();
+        String paymentServiceTypeNumber = paymentServiceType.getString("number");
+        String insurance = this.getModel().getDataEntity().getString("${ISV_FLAG}_payment_insurance");
+        List<String> insuranceList = Arrays.stream(insurance.split(",")).filter(item -> !StringUtils.isEmpty(item)).collect(Collectors.toList());
+        if ("001".equals(paymentServiceTypeNumber)) {
+            //设置单据体某些字段不可编辑
+            for (int i = 0; i < insuranceList.size(); i++) {
+                socialSecurityPayFormPlugin.setEntryFiledEnable(this.getView(), insuranceList.get(i), i, "0");
+            }
+        }
+
+        if ("002".equals(paymentServiceTypeNumber)) {
+            //设置单据体某些字段不可编辑
+            for (int i = 0; i < insuranceList.size(); i++) {
+                socialSecurityPayFormPlugin.setEntryFiledEnable(this.getView(), insuranceList.get(i), i, "1");
+            }
+        }
+
+        if ("003".equals(paymentServiceTypeNumber)) {
+            //设置单据体某些字段不可编辑
+            for (int i = 0; i < insuranceList.size(); i++) {
+                socialSecurityPayFormPlugin.setEntryFiledEnable(this.getView(), insuranceList.get(i), i, "2,3");
+            }
+        }
+    }
+
+    /**
+     * 获取当前单据上的【社保公积金管理组织】的编码
+     *
+     * @return 单据上的【社保公积金管理组织】的编码
+     */
+    private String getOrgNumber() {
+        DynamicObject createOrg = this.getModel().getDataEntity(true).getDynamicObject("org");
+        return createOrg == null ? "" : createOrg.getString("number");
+    }
+}
+

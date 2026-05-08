@@ -1,0 +1,19 @@
+{
+  "scene": "core_hr_pfs_crossvalid",
+  "title": "交叉校验（ISV 加业务约束的位置）",
+  "cloud": "core_hr",
+  "description": "ISV 加自定义业务约束的位置 · 在 chgaction 执行前检查跨字段/跨实体规则。和 hpfs_chgaction 配套使用：chgaction 决定改什么字段，crossvalidation 决定何时拒绝改。典型用法：试用期内不可调岗 / 离职后 30 天内不可重雇 / 借调期间不可发起调动等。",
+  "entities": [
+    "hpfs_crossvalidation",
+    "hpfs_chgcrossvalid"
+  ],
+  "fieldCount": 0,
+  "opKeyCount": 0,
+  "crossCloudImpact": "高 · hpfs 是所有人事单据的元配置层 · 改这里影响所有下游业务云",
+  "pluginPattern": "HRBaseDataTplEdit / HRDataBaseOp · ISV 走 hpfs_chgaction + filemapmanager 配置 · 不直接继承 hpfs OP 类",
+  "_decompile_anchors": [],
+  "_meta": {
+    "note": "hpfs 第二波 · 2 个 form · 业务核心 · 详见 docs/CHGACTION_DEEP_TRACE.md",
+    "createdAt": "2026-04-29"
+  }
+}

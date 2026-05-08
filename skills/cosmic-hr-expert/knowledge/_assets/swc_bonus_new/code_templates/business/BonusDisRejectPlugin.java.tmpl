@@ -1,0 +1,405 @@
+package ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_distribution.second;
+
+
+import kd.bos.dataentity.OperateOption;
+import kd.bos.dataentity.entity.DynamicObject;
+import kd.bos.dataentity.entity.DynamicObjectCollection;
+import kd.bos.dataentity.entity.LocaleString;
+import kd.bos.db.tx.TX;
+import kd.bos.db.tx.TXHandle;
+import kd.bos.entity.EntityMetadataCache;
+import kd.bos.entity.operate.Donothing;
+import kd.bos.entity.operate.OperateOptionConst;
+import kd.bos.entity.operate.result.OperationResult;
+import kd.bos.form.FormShowParameter;
+import kd.bos.form.events.AfterDoOperationEventArgs;
+import kd.bos.form.events.BeforeDoOperationEventArgs;
+import kd.bos.form.field.TextEdit;
+import kd.bos.form.plugin.AbstractFormPlugin;
+import kd.bos.logging.Log;
+import kd.bos.logging.LogFactory;
+import kd.bos.orm.query.QCP;
+import kd.bos.orm.query.QFilter;
+import kd.bos.servicehelper.BusinessDataServiceHelper;
+import kd.bos.servicehelper.operation.OperationServiceHelper;
+import kd.bos.servicehelper.operation.SaveServiceHelper;
+import kd.bos.util.CollectionUtils;
+import kd.hr.hbp.common.util.HRStringUtils;
+import ${ISV_FLAG}.swc.hsbm.biz.swc.plugin.form.${ISV_FLAG}_bonus_approval_sheet.second.operation.BonusApprovalSheetBillSecondPushPlugin;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EventObject;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * ${ISV_FLAG}_adjustment_details-
+ * wanghansheng
+ * 二开动态展示员工定调薪明细信息
+ */
+public class BonusDisRejectPlugin extends AbstractFormPlugin {
+    private static final Log logger = LogFactory.getLog(BonusDisRejectPlugin.class);
+
+    @Override
+    public void beforeBindData(EventObject e) {
+        FormShowParameter formShowParameter = this.getView().getFormShowParameter();
+        Map<String, Object> customParams = formShowParameter.getCustomParams();
+        // 来源于驳回勾选中的分配单编码
+        List<String> yesBillNoListTemp = (List)customParams.get("yes_reject");
+        // 驳回  bh   反审核 fsh
+        String operateSource = (String)customParams.get("operate_source");
+        if("bh".equals(operateSource)){
+            TextEdit textEdit = this.getControl("${ISV_FLAG}_reason1");
+            textEdit.setCaption(new LocaleString("驳回原因（手动填写）"));
+        }
+        // 找到分配单根节点对应的分配单编码
+        List<String> yesBillNoList = listTreeMinNode(yesBillNoListTemp);
+        DynamicObject[] allBills = listAllNext(yesBillNoList);
+        DynamicObjectCollection entryFirstEntity = this.getModel().getDataEntity(true).getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+        entryFirstEntity.clear();
+        for(String billNo : yesBillNoList){
+            DynamicObject currentBill = Arrays.stream(allBills).filter(item ->item.getString("billno").equals(billNo))
+                    .findFirst().orElse(null);
+            if(currentBill == null){
+                continue;
+            }
+            DynamicObject entity = entryFirstEntity.addNew();
+            // 单据编号
+            entity.set("${ISV_FLAG}_billno1",billNo);
+            // 单据名称
+            entity.set("${ISV_FLAG}_billname1",currentBill.getString("${ISV_FLAG}_name"));
+            // 组织人
+            entity.set("${ISV_FLAG}_dept_person1",currentBill.getDynamicObject("${ISV_FLAG}_dept_person"));
+            // 上级单据
+            entity.set("${ISV_FLAG}_billno_p1",currentBill.getString("${ISV_FLAG}_parent_bill_no"));
+        }
+        DynamicObjectCollection entrySecondEntity = this.getModel().getDataEntity(true).getDynamicObjectCollection("${ISV_FLAG}_entryentity1");
+        entrySecondEntity.clear();
+        for(DynamicObject secondBill : allBills){
+            String billNo = secondBill.getString("billno");
+            String billStatus = secondBill.getString("billstatus");
+            // 已废弃的不再展示
+            if(yesBillNoList.contains(billNo) || "F".equals(billStatus)){
+                continue;
+            }
+            DynamicObject entity = entrySecondEntity.addNew();
+            // 单据编号
+            entity.set("${ISV_FLAG}_billno2",billNo);
+            // 单据名称
+            entity.set("${ISV_FLAG}_billname2",secondBill.getString("${ISV_FLAG}_name"));
+            // 组织人
+            entity.set("${ISV_FLAG}_dept_person2",secondBill.getDynamicObject("${ISV_FLAG}_dept_person"));
+            // 上级单据
+            entity.set("${ISV_FLAG}_billno_p2",secondBill.getString("${ISV_FLAG}_parent_bill_no"));
+            // 原因
+            entity.set("${ISV_FLAG}_reason2","上级单据" + secondBill.getString("${ISV_FLAG}_parent_bill_no") + "被撤销，此单据需同时作废");
+        }
+        if(yesBillNoListTemp.size() > yesBillNoList.size()){
+            this.getView().showSuccessNotification("所选数据存在关联关系，下级单据可自动废弃，已为您进行分类");
+        }
+    }
+
+    /**
+     * 分配单信息
+     */
+    public static class DisNode{
+        // 编码
+        private String billNo;
+        // 编码路径
+        private String billNoPath;
+        // 编码层级
+        private int pathLevel;
+
+        private DisNode(String billNo, String billNoPath, int pathLevel){
+            this.billNo = billNo;
+            this.billNoPath = billNoPath;
+            this.pathLevel = pathLevel;
+        }
+
+        public String getBillNo() {
+            return billNo;
+        }
+
+        public void setBillNo(String billNo) {
+            this.billNo = billNo;
+        }
+
+        public String getBillNoPath() {
+            return billNoPath;
+        }
+
+        public void setBillNoPath(String billNoPath) {
+            this.billNoPath = billNoPath;
+        }
+
+        public int getPathLevel() {
+            return pathLevel;
+        }
+
+        public void setPathLevel(int pathLevel) {
+            this.pathLevel = pathLevel;
+        }
+    }
+
+    /**
+     * 找到一批分配单的最小根节点对应的编码列表
+     * @param yesBillNoList 一批分配单编码
+     * @return 最小根节点编码列表
+     */
+    private List<String> listTreeMinNode(List<String> yesBillNoList){
+        QFilter itemFilter = new QFilter("billno", QCP.in,  yesBillNoList);
+        DynamicObject[] dbs = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_dis_detail",
+                "id,billno,${ISV_FLAG}_billno_path_tag"
+                , itemFilter.toArray());
+        List<DisNode> disNodes = new ArrayList<>();
+        // 勾选数据在tree中的层级
+        Set<Integer> levels = new HashSet<>();
+        String spiltChar = "&";
+        for(DynamicObject db : dbs){
+            String billNo = db.getString("billno");
+            String billNoPath = db.getString("${ISV_FLAG}_billno_path_tag");
+            String [] tempArr = billNoPath.split(spiltChar);
+            int pathLevel = tempArr.length;
+            levels.add(pathLevel);
+            disNodes.add(new DisNode(billNo,billNoPath,pathLevel));
+        }
+        List<Integer> levelSortList = levels.stream().sorted().collect(Collectors.toList());
+        // 最小根节点编码set
+        List<String> treeNodeNoList = new ArrayList<>();
+        List<String> treeNodeNoPathList = new ArrayList<>();
+        List<DisNode> tempNodeList = null;
+        for(Integer level : levelSortList){
+            tempNodeList = disNodes.stream().filter(item ->item.getPathLevel() == level.intValue()).collect(Collectors.toList());
+            for(DisNode node : tempNodeList){
+                String currentBillNo = node.getBillNo();
+                String currentBillNoPath = node.getBillNoPath();
+                String pathKey = currentBillNoPath + spiltChar;
+                // 当前节点的上级计数
+                long parentCount = treeNodeNoPathList.stream().filter(item ->
+                        pathKey.startsWith(item)
+                ).count();
+                if(parentCount == 0l){
+                    treeNodeNoList.add(currentBillNo);
+                    treeNodeNoPathList.add(currentBillNoPath);
+                }
+            }
+        }
+        return treeNodeNoList;
+    }
+
+    private DynamicObject[] listAllNext(List<String> yesBillNoList){
+        QFilter personFilter = null;
+        for(String billNo : yesBillNoList){
+            if(personFilter == null){
+                personFilter = new QFilter("${ISV_FLAG}_billno_path_tag", QCP.like,  "%" + billNo + "%");
+            } else {
+                personFilter.or("${ISV_FLAG}_billno_path_tag", QCP.like, "%" + billNo + "%");
+            }
+        }
+        if(personFilter != null){
+            DynamicObject[] allNextList = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_dis_detail",
+                    "billno,${ISV_FLAG}_name,id,${ISV_FLAG}_billno_path_tag,${ISV_FLAG}_parent_bill_no,${ISV_FLAG}_dept_person,billstatus"
+                    , personFilter.toArray());
+            return allNextList;
+        }
+        return null;
+    }
+
+    @Override
+    public void beforeDoOperation(BeforeDoOperationEventArgs args) {
+        super.beforeDoOperation(args);
+
+    }
+
+    @Override
+    public void afterDoOperation(AfterDoOperationEventArgs args) {
+        if(args.getOperationResult().isSuccess()){
+            Object source = args.getSource();
+            DynamicObject dataEntity = this.getModel().getDataEntity(true);
+            if(source instanceof Donothing){
+                String operateKey = ((Donothing) source).getOperateKey();
+                if(HRStringUtils.equals("donothing_confirm",operateKey)) {
+                    // 开启事务 --- 反审核或废弃分配单
+                    try (TXHandle h = TX.requiresNew()) {
+                        try {
+                            this.handleReject(dataEntity);
+                        } catch (Throwable ex) {
+                            logger.error("distribute or distribute_sum reject fail:{}",ex);
+                            h.markRollback();
+                            throw ex;
+                        }
+                    }
+                    this.getView().close();
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理反审核、废弃逻辑
+     * @param dataEntity
+     */
+    private void handleReject(DynamicObject dataEntity){
+        // 反审核单据列表
+        DynamicObjectCollection fistEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_entryentity");
+        // 下级废弃单据列表
+        DynamicObjectCollection secondEntry = dataEntity.getDynamicObjectCollection("${ISV_FLAG}_entryentity1");
+        // 关联分配汇总单编号
+        Set<String> disBillSumNos = new HashSet<>();
+        Set<String> fistBillNoSet = fistEntry.stream()
+                .map(s -> s.getString("${ISV_FLAG}_billno1")).collect(Collectors.toSet());
+        // 处理反审核单据
+        DynamicObject[] fistList = listByBillNos(fistBillNoSet);
+        if(fistList != null && fistList.length > 0){
+            Arrays.stream(fistList).forEach(dynamicObject -> {
+                String billno = dynamicObject.getString("billno");
+                DynamicObject row = fistEntry.stream().filter(
+                        temp -> temp.getString("${ISV_FLAG}_billno1").equals(billno)
+                ).findFirst().orElse(null);
+                if(row != null){
+                    dynamicObject.set("${ISV_FLAG}_handle_note",row.getString("${ISV_FLAG}_reason1"));
+                    // 先暂存
+                    dynamicObject.set("billstatus","A");
+                    disBillSumNos.add(dynamicObject.getString("${ISV_FLAG}_dis_billno"));
+                }
+            });
+            SaveServiceHelper.save(fistList);
+            // 提交分配-开启流程
+            List<Long> ids = Arrays.stream(fistList).map(s -> s.getLong("id")).collect(Collectors.toList());
+            OperateOption option = OperateOption.create();
+            option.setVariableValue(OperateOptionConst.SKIPCHECKPERMISSION, String.valueOf(true));
+            // 跳过权限
+            OperateOption operateOption = OperateOption.create();
+            operateOption.setVariableValue(OperateOptionConst.ISHASRIGHT, String.valueOf(true));
+            operateOption.setVariableValue(OperateOptionConst.SKIPCHECKPERMISSION, String.valueOf(true));
+            OperationResult saveResult = OperationServiceHelper.executeOperate("submit", "${ISV_FLAG}_bonus_dis_detail", ids.toArray(), operateOption);
+            logger.info("batch submit distribute result:{}",saveResult);
+        }
+        Set<String> secondBillNoSet = secondEntry.stream()
+                .map(s -> s.getString("${ISV_FLAG}_billno2")).collect(Collectors.toSet());
+        // 处理废弃单据
+        DynamicObject[] secondList = listByBillNos(secondBillNoSet);
+        if(secondList != null && secondList.length > 0){
+            Arrays.stream(secondList).forEach(dynamicObject -> {
+                String billno = dynamicObject.getString("billno");
+                DynamicObject row = secondEntry.stream().filter(
+                        temp -> temp.getString("${ISV_FLAG}_billno2").equals(billno)
+                ).findFirst().orElse(null);
+                if(row != null){
+                    dynamicObject.set("${ISV_FLAG}_handle_note",row.getString("${ISV_FLAG}_reason2"));
+                    // 废弃
+                    dynamicObject.set("billstatus","F");
+                    disBillSumNos.add(dynamicObject.getString("${ISV_FLAG}_dis_billno"));
+                }
+            });
+            SaveServiceHelper.save(secondList);
+        }
+        // 删除奖金分配汇总单各分录来源于奖金分配单的记录
+        if (fistBillNoSet == null){
+            fistBillNoSet = new HashSet<>();
+        }
+        if (secondBillNoSet == null){
+            secondBillNoSet = new HashSet<>();
+        }
+        this.handleSumThenRefresh(disBillSumNos, fistBillNoSet, secondBillNoSet);
+    }
+
+    /**
+     * 删除奖金分配汇总单各分录来源于奖金分配单的记录，刷新各分配汇总单的金额相关统计值
+     * @param disBillSumNos 关联分配汇总单编号
+     * @param fistBillNoSet 反审核分配单编码
+     * @param secondBillNoSet 下级待废弃分配单编码
+     */
+    private void handleSumThenRefresh(Set<String> disBillSumNos,Set<String> fistBillNoSet,Set<String> secondBillNoSet){
+        // 最终需要在分配汇总单记录中移除的分配单编号
+        Set<String> dealBillNoSet = fistBillNoSet;
+        dealBillNoSet.addAll(secondBillNoSet);
+        DynamicObject[] sumDynamicIdArr = listDisSumIdsByNos(disBillSumNos);
+        Set<Long> ids = Arrays.stream(sumDynamicIdArr).map(item ->item.getLong("id")).collect(Collectors.toSet());
+        // 通过汇总单编码查询汇总单
+        DynamicObject[] sumDynamicArr = listDisSumByNos(ids);
+        if(sumDynamicArr != null && sumDynamicArr.length > 0){
+            for(DynamicObject sumObject : sumDynamicArr){
+                // 人员分配明细
+                DynamicObjectCollection personList = sumObject.getDynamicObjectCollection("${ISV_FLAG}_person_dis_detail");
+                // 当前分配汇总单中人员分录中需要移除的 index
+                Iterator<DynamicObject> iterator1 = personList.iterator();
+                while (iterator1.hasNext()) {
+                    DynamicObject entryData = iterator1.next();
+                    String fpBillno = entryData.getString("${ISV_FLAG}_source_bill_fp.billno");
+                    if(dealBillNoSet.contains(fpBillno)){
+                        iterator1.remove();
+                    }
+                }
+                // 部门留用明细
+                DynamicObjectCollection deptList = sumObject.getDynamicObjectCollection("${ISV_FLAG}_dept_retentiion_deta");
+                // 当前分配汇总单中部门分录中需要移除的 index
+                Iterator<DynamicObject> iterator2 = deptList.iterator();
+                while (iterator2.hasNext()) {
+                    DynamicObject entryData = iterator2.next();
+                    String fpBillno = entryData.getString("${ISV_FLAG}_source_fp_dept.billno");
+                    if(dealBillNoSet.contains(fpBillno)){
+                        iterator2.remove();
+                    }
+                }
+                // 设置分配统计信息
+                BonusApprovalSheetBillSecondPushPlugin.setDistributeStatistics(sumObject);
+            }
+            SaveServiceHelper.save(sumDynamicArr);
+        }
+    }
+
+    /**
+     * 查询分配单通过分配单编码
+     * @param yesBillNoSet
+     * @return
+     */
+    private DynamicObject[] listByBillNos(Set<String> yesBillNoSet){
+        if(yesBillNoSet != null){
+            QFilter personFilter = new QFilter("billno", QCP.in,  yesBillNoSet);
+            DynamicObject[] list = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_dis_detail",
+                    "id,billno,${ISV_FLAG}_name,${ISV_FLAG}_billno_path_tag,${ISV_FLAG}_parent_bill_no" +
+                            ",${ISV_FLAG}_dept_person,${ISV_FLAG}_handle_note,billstatus,${ISV_FLAG}_dis_billno"
+                    , personFilter.toArray());
+            return list;
+        }
+        return null;
+    }
+
+    /**
+     * 通过汇总单编码查询汇总单ids
+     * @param sumNoSet
+     * @return
+     */
+    private DynamicObject[] listDisSumIdsByNos(Set<String> sumNoSet){
+        if(sumNoSet != null){
+            QFilter personFilter = new QFilter("billno", QCP.in,  sumNoSet);
+            DynamicObject[] list = BusinessDataServiceHelper.load("${ISV_FLAG}_bonus_distribute_sum",
+                    "id"
+                    ,personFilter.toArray());
+            return list;
+        }
+        return null;
+    }
+
+    /**
+     * 通过汇总单编码查询汇总单
+     * @param sumNoSet
+     * @return
+     */
+    private DynamicObject[] listDisSumByNos(Set<Long> sumNoSet){
+        if(sumNoSet != null){
+            DynamicObject[] billList = BusinessDataServiceHelper.load(
+                    sumNoSet.toArray(),
+                    EntityMetadataCache.getDataEntityType("${ISV_FLAG}_bonus_distribute_sum")
+            );
+            return billList;
+        }
+        return null;
+    }
+}
