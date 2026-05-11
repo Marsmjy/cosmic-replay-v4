@@ -687,12 +687,22 @@ def has_error_action(resp: Any) -> list[str]:
                     if t or i:
                         errors.append(f"{t} | {str(i)[:150]}")
         if a == "ShowNotificationMsg":
+            # P0-2 优化：苍穹 Notification 的 type 字段是可靠信号
+            #   - type=0  → info/success（真实 HAR 证实：saveandeffect 成功返回 type=0 "保存并生效成功"）
+            #   - type=1  → warning
+            #   - type=2  → error
+            #   - type=3+ → 其他告警
+            # 先按 type 判定；type 缺失或非 0 再按关键词白名单兜底，避免老响应误判。
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
                     content = str(p.get("content") or "")
                     if not content:
                         continue
-                    # 成功类 / 信息通知类不算错误
+                    ntype = p.get("type")
+                    # type=0 明确是信息/成功类，直接放行
+                    if ntype == 0:
+                        continue
+                    # 成功类 / 信息通知类不算错误（type 缺失场景的兜底）
                     success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "完成",
                                   "已设置", "已清空", "已更新", "已调整", "已同步",
                                   "属于非", "自动", "将关闭")

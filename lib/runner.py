@@ -446,7 +446,9 @@ def assertion_handler(name: str):
 @assertion_handler("no_error_actions")
 def _a_no_errors(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     step_id = assert_spec.get("step")
+    step_desc = ""
     if step_id:
+        step_desc = (ctx.get("step_descriptions") or {}).get(step_id, "")
         resp = ctx["step_responses"].get(step_id)
         if resp is None:
             return False, f"找不到步骤 '{step_id}' 的响应"
@@ -456,13 +458,18 @@ def _a_no_errors(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
         resp = ctx["last_response"]
     errs = has_error_action(resp)
     if errs:
-        return False, f"发现 {len(errs)} 条错误消息: {errs[:3]}"
-    return True, ""
+        where = f"【{step_desc}】" if step_desc else (f"步骤 {step_id}" if step_id else "最后一步")
+        return False, f"{where} 发现 {len(errs)} 条错误消息: {errs[:3]}"
+    # ⭐ 成功时也返回带业务含义的 msg，避免日志里 msg 为空
+    if step_desc:
+        return True, f"✅ 【{step_desc}】响应未出现苍穹错误 action（showErrMsg / ShowNotificationMsg-error）"
+    return True, "✅ 响应未出现苍穹错误 action"
 
 
 @assertion_handler("no_save_failure")
 def _a_no_save_failure(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     step_id = assert_spec.get("step", "save")
+    step_desc = (ctx.get("step_descriptions") or {}).get(step_id, "")
     resp = ctx["step_responses"].get(step_id)
     if resp is None:
         return False, f"找不到步骤 '{step_id}' 的响应"
@@ -470,8 +477,12 @@ def _a_no_save_failure(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     if errs:
         # 把错误也塞给 ctx 供 advisor 用
         ctx.setdefault("collected_errors", []).extend(errs)
-        return False, f"保存被拦截: {errs[:5]}"
-    return True, ""
+        where = f"【{step_desc}】" if step_desc else f"步骤 {step_id}"
+        return False, f"{where} 保存被拦截: {errs[:5]}"
+    # ⭐ 成功时 msg 带业务含义
+    if step_desc:
+        return True, f"✅ 【{step_desc}】写库成功（无字段级错误、无操作失败 action）"
+    return True, "✅ 写库成功（无错误消息）"
 
 
 @assertion_handler("response_contains")
@@ -605,7 +616,11 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     emit("session_ready", {
         "root_page_id": sess.root_page_id,
-        "resolved_vars": _build_display_vars(vars_ns),
+        "resolved_vars": _build_display_vars(
+            vars_ns,
+            case.get("vars_labels") or {},
+            case.get("steps") or [],
+        ),
     })
 
     # 主表单预开
@@ -627,6 +642,12 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "last_step_response": None,
         "response_history": [],   # advisor 用，累积所有响应
         "main_form_id": main_form,  # ⭐ 供 menuItemClick L2 pageId 自动绑定
+        # ⭐ step_id → 中文业务描述，供断言/日志生成人话
+        "step_descriptions": {
+            s.get("id"): (s.get("description") or "")
+            for s in (case.get("steps") or [])
+            if s.get("id")
+        },
     }
 
     for raw_step in case.get("steps") or []:
@@ -736,23 +757,33 @@ def run_case(case: dict, on_event=None) -> RunResult:
     for a_raw in case.get("assertions") or []:
         a = resolve_vars(a_raw, vars_ns)
         atype = a.get("type")
+        # ⭐ 预查断言挂靠的 step 描述，供日志展示
+        _asrt_step = a.get("step") or ""
+        _asrt_step_label = (ctx.get("step_descriptions") or {}).get(_asrt_step, "")
         handler = ASSERTION_HANDLERS.get(atype)
         if not handler:
             result.assertions.append({
                 "type": atype, "ok": False, "msg": f"未知断言: {atype}",
             })
-            emit("assertion_fail", {"type": atype, "msg": f"未知断言: {atype}"})
+            emit("assertion_fail", {
+                "type": atype, "msg": f"未知断言: {atype}",
+                "step": _asrt_step, "step_label": _asrt_step_label,
+            })
             continue
         try:
             ok, msg = handler(a, ctx)
             result.assertions.append({"type": atype, "ok": ok, "msg": msg})
             emit("assertion_ok" if ok else "assertion_fail",
-                 {"type": atype, "msg": msg})
+                 {"type": atype, "msg": msg,
+                  "step": _asrt_step, "step_label": _asrt_step_label})
         except Exception as e:
             result.assertions.append({
                 "type": atype, "ok": False, "msg": f"断言执行异常: {e}",
             })
-            emit("assertion_fail", {"type": atype, "msg": f"异常: {e}"})
+            emit("assertion_fail", {
+                "type": atype, "msg": f"异常: {e}",
+                "step": _asrt_step, "step_label": _asrt_step_label,
+            })
 
     # 7. 失败时生成修复建议
     if not result.passed:
@@ -820,19 +851,95 @@ _VAR_LABEL_MAP = {
 }
 
 
-def _build_display_vars(vars_ns: dict) -> list[dict]:
+def _infer_labels_from_steps(steps: list[dict]) -> dict[str, str]:
+    """从 steps 的 description 反推每个变量对应的业务中文名。
+
+    规则：
+      1. update_fields.fields 中 value 引用 ${vars.KEY} 的 → 把 step.description 里
+         「...」的第一个匹配作为 KEY 的业务 label
+      2. pick_basedata.value_id 引用 ${vars.KEY} 的 → 同理
+
+    这让右侧"本次运行变量值"面板的 label 能跟左侧"执行步骤"的「...」对齐。
+    """
+    import re as _re
+    labels: dict[str, str] = {}
+    ref_re = _re.compile(r"\$\{vars\.([A-Za-z_][A-Za-z0-9_]*)\}")
+    zh_re = _re.compile(r"[「【]([^」】]+)[」】]")
+
+    def _extract_zh(text: str | None) -> str | None:
+        if not text:
+            return None
+        m = zh_re.search(str(text))
+        return m.group(1).strip() if m else None
+
+    for s in steps or []:
+        if not isinstance(s, dict):
+            continue
+        desc = s.get("description")
+        biz_name = _extract_zh(desc)
+        if not biz_name:
+            continue
+
+        # 递归展平，从任意嵌套结构里提取所有 ${vars.KEY} 引用
+        def _collect_refs(obj, acc: set):
+            if isinstance(obj, str):
+                for k in ref_re.findall(obj):
+                    acc.add(k)
+            elif isinstance(obj, dict):
+                for v in obj.values():
+                    _collect_refs(v, acc)
+            elif isinstance(obj, list):
+                for v in obj:
+                    _collect_refs(v, acc)
+
+        t = s.get("type")
+        if t == "update_fields":
+            refs: set = set()
+            _collect_refs(s.get("fields"), refs)
+            # 单变量引用（去重后）才给业务名归属，避免多字段误标
+            if len(refs) == 1:
+                labels.setdefault(next(iter(refs)), biz_name)
+        elif t == "pick_basedata":
+            vid = s.get("value_id")
+            if isinstance(vid, str):
+                for k in ref_re.findall(vid):
+                    labels.setdefault(k, biz_name)
+    return labels
+
+
+def _build_display_vars(
+    vars_ns: dict,
+    vars_labels: dict | None = None,
+    steps: list[dict] | None = None,
+) -> list[dict]:
     """提取所有用户声明的变量（排除内部/session变量），附带中文标签。
 
-    返回格式: [{"key": "test_number", "label": "编码", "value": "kdtest_xxx"}, ...]
+    返回格式: [{"key": "test_number", "label": "员工编号", "value": "kdtest_xxx"}, ...]
+
+    label 优先级（高 → 低）：
+      1. step.description 反查       —— 与左侧执行步骤「...」内业务名对齐（最准确）
+      2. case.vars_labels[k]        —— YAML 里用户显式声明（覆盖兜底）
+      3. _VAR_LABEL_MAP[k]          —— 内置常见字段字典
+      4. 后缀启发式匹配
+      5. k 自身
     """
     results: list[dict] = []
+    vars_labels = vars_labels or {}
+    # 1) 从 steps 反推的业务 label（如 "员工姓名"、"企业"、"行政组织"）
+    step_labels = _infer_labels_from_steps(steps or [])
     for k, v in vars_ns.items():
         if k.startswith("_") or k.startswith("session."):
             continue
-        # 优先用已知标签，否则用变量名本身
-        label = _VAR_LABEL_MAP.get(k)
+        # 1) step 反查（最权威，与左侧执行步骤对齐）
+        label = step_labels.get(k)
+        # 2) YAML vars_labels（用户自定义覆盖；仅在 step 反查未命中时使用）
+        if not label and isinstance(vars_labels, dict):
+            label = vars_labels.get(k)
+        # 3) 内置字典
         if not label:
-            # 尝试后缀匹配
+            label = _VAR_LABEL_MAP.get(k)
+        if not label:
+            # 4) 尝试后缀匹配
             for suffix, lbl in [("number", "编码"), ("name", "名称"),
                                 ("phone", "电话"), ("cert", "证件号"),
                                 ("code", "编码")]:
