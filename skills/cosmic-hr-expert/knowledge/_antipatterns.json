@@ -763,7 +763,8 @@
       "evidence_sources": [
         "docs/PPT01_DEEP_TRACE.md#L141",
         "docs/PPT01_DEEP_TRACE.md#L155",
-        "docs/PPT01_DEEP_TRACE.md#L160"
+        "docs/PPT01_DEEP_TRACE.md#L160",
+        "skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md"
       ]
     },
     {
@@ -792,7 +793,9 @@
       "why_wrong": "苍穹业务规则平台的公式引擎函数清单·**当前知识包没沉淀**·LLM 给的 YEARFRAC / DATEDIF / YEAR / DATE / MONTH / IF 等任何具体函数名都是 Excel 函数或编造的·苍穹公式引擎不是 Excel·函数名可能完全不同·甚至可能不支持文本公式（只支持可视化拖拽）。给客户假函数名 = 客户配进去发现报错·信任崩塌。",
       "correct_alternative": "绝不写任何具体函数名——包括 YEAR/MONTH/IF 等看似'常见'的函数也不行。告诉客户：'去苍穹业务规则平台 → 公式编辑器 → 点击插入函数按钮·查看当前环境实际支持的函数列表'。只描述业务逻辑（如'计算出生日期到退休日期的周岁差值'），不描述语法。用自然语言写校验条件（如'如果男性且退休时年龄不足法定值则阻断'），让客户用自己的公式编辑器实现。",
       "if_user_insists": "再次强调函数清单需在客户环境核实·skill 不能保证语法准确。",
-      "evidence_sources": []
+      "evidence_sources": [
+        "skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md"
+      ]
     },
     {
       "id": "AP-027",
@@ -822,7 +825,38 @@
       "why_wrong": "中国 2025 起开始渐进式延迟退休·**不是固定阈值 60/55/50**·真实需要按出生年月查表（每年延几个月）。LLM 给客户简化承诺'修改阈值数字即可'是错的。",
       "correct_alternative": "建议客户用基础资料表存'出生年代 → 退休年龄'映射表·按员工出生年代查表得出对应退休年龄·这样政策变化时只改基础资料数据·不改公式。或显式标注'当前规则按 60/55/50 简化·政策更新时需调整'让客户知情。",
       "if_user_insists": "提醒客户后果·写在交付物里。",
-      "evidence_sources": []
+      "evidence_sources": [
+        "skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md"
+      ]
+    },
+    {
+      "id": "AP-029",
+      "pattern": "HR 单据扩展涉及'工号/员工/任职'字段·用 BasedataField + hspm_ermanfile 老模式·不用 EmployeeField 控件",
+      "trigger_keywords": [
+        "BasedataField.*hspm_ermanfile",
+        "loadSingle.*hspm_ermanfile",
+        "BasedataField + hspm_ermanfile",
+        "employee 字段 BasedataField",
+        "工号字段 BasedataField",
+        "调动单 ermanfile",
+        "hspm_ermanfile 外键",
+        "BaseEntityId.*hspm_ermanfile"
+      ],
+      "trigger_intents": [
+        "新建人事单据",
+        "调动单",
+        "退休单",
+        "员工档案扩展"
+      ],
+      "why_wrong": "hspm_ermanfile 在新模型已废（真发 metaNotFound）·hspm_ermanfile_e/_emly/_ext 等推断视图也都不存在·只有 hspm_ermanfilemob 7 字段轻量壳。HR 单据涉及'工号/员工/任职/组织分配'字段·**苍穹有专用 EmployeeField 控件**·6 选 1 查询实体（员工 hrpi_employee / 任职 hrpi_empposorgrel / 组织分配 hrpi_assignment + 3 个薪酬镜像）·标品 haos_staffcase / haos_othemproleorgrel 等都是用 EmployeeField·这是新模型的标准做法。继续用 BasedataField+hspm_ermanfile = 上来就废 = 客户 form 加载时 form 不存在错误。",
+      "correct_alternative": "字段类型选 EmployeeField（HR 员工控件）·查询实体按业务语义 6 选 1：(1) 一对一锚点 → 员工 hrpi_employee；(2) 一员工多任职/调动业务 → 任职经历 hrpi_empposorgrel；(3) 需 persongroup/管理范围 → 组织分配 hrpi_assignment；(4) swc 云内 → 对应薪酬镜像。⚠ OpenAPI buildMeta/modifyMeta 不支持 EmployeeField·必须苍穹开发助手 IDE 手工建。详细用法见 _shared/_standard_metadata/er_model/cosmic-entity-metadata-guide.md §3.2.2 + memory/cosmic_employeefield_authoritative.md",
+      "if_user_insists": "强警告：hspm_ermanfile 已确认废·真发 metaNotFound·继续用 = 上线即崩溃。请走 EmployeeField 路径。",
+      "evidence_sources": [
+        "dcs_regression/blocked_on_knowledge/case_005_batchorgadjust/real_dispatch_probes/real_dispatch_audit.md",
+        "dcs_regression/blocked_on_knowledge/case_005_batchorgadjust/real_dispatch_probes/probe_v4_results.json",
+        "knowledge/_shared/_standard_metadata/er_model/cosmic-entity-metadata-guide.md#3.2.2",
+        "knowledge/_shared/_standard_metadata/entity_metadata/haos_staffcase.md"
+      ]
     },
     {
       "id": "AP-028",

@@ -161,6 +161,77 @@ docs/PPT01_DEEP_TRACE.md 第 7 节                                   SDK 三层�
 
 H 类必须按 **8 步法**走·跳任何一步 = 脑补：
 
+### 🚨🚨🚨 Step H-00 · 反模式自检门禁（v1.1.0 加 · 2026-05-08 退休单事故反哺 · 绝不允许跳过）
+
+> **任何方案输出前·先跑这套自检·把结果钉死在响应顶部**。这是 stop-the-line 门禁·没跑 = 输出禁止。
+> 触发原因：2026-05-07 退休单方案命中 AP-025/026/027 三个 P0 反模式·skill 自检脱档·详 [skill_incidents/2026-05-07_retirement_bill_brainmaking](file:///D:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md)
+
+#### Step H-00.1 · 提取关键词
+从用户输入提取 2-4 个核心关键词（如"退休单"·"法定退休年龄"·"业务规则"·"批量导入"）。
+
+#### Step H-00.2 · grep _antipatterns.json 全文匹配 trigger_keywords
+LLM 必须**在心智里逐条对照** Level 0 已读的 `_antipatterns.json` 18 条 antipattern 的 `trigger_keywords` 数组：
+- 关键词 / 用户原句 / 即将给出的方案文字 任一段命中 → **立即标记该 AP-XXX 命中**
+- 例：用户说"退休单/法定退休年龄"·命中 AP-023 / AP-025 / AP-026 / AP-027 全部
+- 例：用户说"批量导入"·命中 AP-024
+- 例：用户说"hrpi 主表加 entry"·命中 AP-021
+
+#### Step H-00.3 · grep _intent_routing.json 拿候选场景全档
+LLM 必须**在心智里查** Level 0 已读的 `_intent_routing.json` 对应意图：
+- `candidates` 数组 priority 1/2/3 **三档全展示**·不能只展示末选
+- `notes_for_llm` 数组**逐条贴出**·一条不漏
+- `must_read_first` 数组**全部读一遍**
+
+#### Step H-00.4 · 响应顶部钉死"反模式自检"段（强制格式）
+
+任何 H 类响应**第 1 段必须是**：
+
+```markdown
+## ⚠️ 反模式自检（输出前钉死·不允许移到底部）
+
+| 反模式 | 命中 | 处置 |
+|---|:---:|---|
+| AP-XXX 命中名称 | ✅ | 已按 correct_alternative 改写方案 / 已亮警告 |
+| AP-YYY 命中名称 | ❌ 未命中 | - |
+| ... | ... | ... |
+
+**意图候选三档**（来自 _intent_routing.json#"<意图>"）：
+- 首选：scene-X / priority-1 / 理由 …
+- 次选：scene-Y / priority-2 / 理由 …
+- 末选：scene-Z / priority-3 / 理由 …
+
+**铁律检查清单**：
+- [✅/❌] ISV 占位符用 `${ISV_FLAG}_` 而非 `{ISV}_`
+- [✅/❌] 公式 0 具体函数名（不写 YEARFRAC/DATEDIF/YEAR/MONTH/IF/DATE 等）
+- [✅/❌] 退休年龄不硬编码 60/55/50（建议建基础资料表）
+- [✅/❌] 字段类型用真名（BasedataField/ComboField/DateField/...）·不写"下拉"
+- [✅/❌] 性别字段引 hbss_sex（标品真存法）·不自建 ComboField
+- [✅/❌] 菜单路径标"客户环境实测"·不脑补
+- [✅/❌] 字段定义前已查 entity_metadata/hrpi_employee.md·避免冗余
+```
+
+#### Step H-00.5 · 命中任何 P0 AP·进入"修复重写"模式
+
+如果 Step H-00.2 命中任何 P0 AP（AP-021 / AP-022 / AP-023 / AP-025 / AP-026 / AP-027）：
+1. **不允许**直接给方案
+2. **必须**先按 `correct_alternative` 段重新拟方案
+3. 在响应顶部"反模式自检"段·**列出每个命中 AP + 已按 correct_alternative 怎么改了**
+
+#### Step H-00.6 · 自检失败的强制回退
+
+如果 LLM 发现自己即将写：
+- 任何 Excel 函数名（YEARFRAC / DATEDIF / DATEDIFF / YEAR / MONTH / DAY / IF / ABS / ROUND / DATE）→ **立刻删·改为"客户在业务规则平台插入函数按钮里查可用函数清单"**
+- 60 / 55 / 50 任何退休年龄硬编码 → **立刻删·改为"建议建 `${ISV_FLAG}_legal_retire_age` 基础资料表存映射"**
+- "下拉" / "下拉框" / "选择框" 中文字段类型词 → **立刻替换为 `BasedataField` / `ComboField` 真名**
+- "推荐继承 hbp_histimeseqtpl"（针对人事单据）→ **必须先评估 chgaction 路径·才能给末选**
+- `{ISV}_` 占位符 → **立刻全替换为 `${ISV_FLAG}_`**
+
+**这条铁律是硬性约束·不是建议·违反 = skill 输出失败**。
+
+详细铁律见 [memory/feedback_skill_must_grep_antipatterns_before_output.md](file:///C:/Users/kingdee/.claude/projects/d--aiworkspace-cludecodeworkspace/memory/feedback_skill_must_grep_antipatterns_before_output.md)。
+
+---
+
 ### Step H-0a · 方案推荐（强制前置 · 不允许跳过）
 
 任何"实现 / 开发 / 写插件 / 加字段 / 做 X 功能"类需求来了·**先出 6 档方案推荐表**：

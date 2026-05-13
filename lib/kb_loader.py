@@ -164,6 +164,82 @@ def resolve_cloud(form_id: str) -> str | None:
     return _CLOUD_INDEX.get(form_id)
 
 
+# ---------- 字段类型 → 分类映射 ----------
+
+# 知识库字段类型 → 语义分类
+# 类型名来自 scene_doc_lite.json 的 "t" 字段（*Field 命名），
+# 同时兼容部分 Property 命名（若 MetadataResolver 返回 Property 后缀）。
+FIELD_TYPE_CATEGORY: dict[str, str] = {
+    # 文本类 → text（归入 vars / 智能用例变量）
+    "TextField": "text",
+    "MuliLangTextField": "text",
+    "TextProperty": "text",
+    "MultiLangTextProperty": "text",
+    "LargeTextProperty": "text",
+    "MultiLineTextProperty": "text",
+
+    # 基础资料类 → basedata（pick_fields, env_sensitive: high）
+    "BasedataField": "basedata",
+    "HRAdminOrgField": "basedata",
+    "HRBaseDataField": "basedata",
+    "OrgField": "basedata",
+    "UserField": "basedata",
+    "BasedataPropField": "basedata",
+    "BaseDataProperty": "basedata",
+    "MultiBaseDataProperty": "basedata",
+
+    # 日期类 → date（pick_fields, date_* 前缀）
+    "DateField": "date",
+    "DateTimeField": "date",
+    "DateProperty": "date",
+    "DateTimeProperty": "date",
+
+    # 枚举/下拉类 → enum（pick_fields, env_sensitive: low）
+    "ComboField": "enum",
+    "CheckBoxField": "enum",
+    "ComboProperty": "enum",
+    "RadioProperty": "enum",
+    "CheckProperty": "enum",
+
+    # 数值类 → number（pick_fields, env_sensitive: low）
+    "IntegerField": "number",
+    "BigIntField": "number",
+    "AmountField": "number",
+    "IntegerProperty": "number",
+    "LongProperty": "number",
+    "DecimalProperty": "number",
+
+    # 布尔类 → boolean（pick_fields, env_sensitive: low）
+    "BooleanProperty": "boolean",
+
+    # 系统字段 → system（忽略）
+    "CreaterField": "system",
+    "ModifierField": "system",
+    "CreateDateField": "system",
+    "ModifyDateField": "system",
+    "MasterIdField": "system",
+    "BillStatusField": "system",
+    "AuditField": "system",
+}
+
+
+def get_field_type(form_id: str, field_key: str) -> str | None:
+    """查询知识库中字段的原始类型名（如 'BasedataField'、'TextField'）。
+
+    返回 scene_doc_lite.json 中该字段的 't' 值，未命中返回 None。
+    可配合 FIELD_TYPE_CATEGORY 映射得到语义分类。
+    """
+    if not form_id or not field_key:
+        return None
+    scene = resolve_scene(form_id)
+    fields = (scene or {}).get("fields") or {}
+    meta = fields.get(field_key) or fields.get(field_key.lower())
+    if meta:
+        t = meta.get("t", "") or ""
+        return t if t else None
+    return None
+
+
 # ---------- 字段分类 ----------
 
 # A 档：必须变量化（自由输入 + 唯一约束）
@@ -280,5 +356,7 @@ __all__ = [
     "resolve_cloud",
     "classify_field",
     "field_meta",
+    "get_field_type",
+    "FIELD_TYPE_CATEGORY",
     "all_form_ids",
 ]

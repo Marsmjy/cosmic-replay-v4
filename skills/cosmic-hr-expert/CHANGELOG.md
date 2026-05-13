@@ -1,5 +1,77 @@
 # 变更日志
 
+## v1.2.0 · 2026-05-08 · EmployeeField 控件 + AP-029 反哺（case_005 真发发现）
+
+### 触发场景
+
+case_005_batchorgadjust 改造时·真发查 hspm_ermanfile 已废·一开始计划改成 BasedataField+hrpi_empposorgrel·但用户在苍穹开发助手 IDE 里发现：**字段类型选"HR员工"时·查询实体下拉自带 6 个标品选项**——这是新模型的标准做法·比手工配 BasedataField 外键更优。
+
+### 反哺 3 处
+
+#### 1. 新增 AP-029 · `BasedataField + hspm_ermanfile` 老模式拦截
+
+- 8 个 trigger_keywords 命中老写法
+- correct_alternative 引导 EmployeeField + 6 选 1 查询实体
+- evidence_sources 链到 case_005 真发探针 + 标品 haos_staffcase 实证
+
+#### 2. cosmic-entity-metadata-guide.md §3.2.2 加 EmployeeField 完整章节
+
+- 6 个查询实体选项表（员工/任职/组织分配 + 3 个薪酬镜像）
+- dym XML 形态示例
+- 标品实证（haos_staffcase / haos_othemproleorgrel）
+- ⚠ OpenAPI 限制提示（buildMeta/modifyMeta 不支持 EmployeeField）
+- 场景决策树（4 类业务场景对应选哪个）
+
+#### 3. _intent_routing.json#"新建人事单据" 加【强制】notes
+
+- 触发"工号/员工/任职/组织分配"字段时·强制走 EmployeeField
+- 关联 AP-029 + cosmic-entity-metadata-guide §3.2.2
+
+### 包元信息
+
+- 反模式：27 → **28**（+AP-029）
+- 意图：78（不变·notes 加强）
+- knowledge/_shared/_standard_metadata/er_model/cosmic-entity-metadata-guide.md：+50 行 §3.2.2
+
+### 配套 memory
+
+- `cosmic_employeefield_authoritative.md`（HR 员工字段权威用法）
+- 已注册到 MEMORY.md "写知识库铁律"段
+
+---
+
+## v1.1.0 · 2026-05-08 · Step H-00 反模式自检门禁（v1.0.9 trigger 加强后仍漏 → 加 stop-the-line）
+
+### 事故续集（v1.0.9 修了 trigger·LLM 仍漏）
+
+v1.0.9 给 AP-025/026/027 加了 trigger keywords·但 LLM 实操"我要生成一个退休单·并校验法定退休年龄"时·依然命中 3 个 P0 反模式·原因：
+- trigger 命中是平台层信号·SKILL.md 没把"命中 = 必须钉死在响应顶部"做成强制门禁
+- 已有的 §"零代码硬约束"段（v1.0.5 加）藏在 H-0a 后面·LLM 写到那时方案已成型
+
+### 修复（SKILL.md 改造 · 不动 _antipatterns.json）
+
+**新增 Step H-00 · 反模式自检门禁**（钉死在 H 类入口·v1.0.5 §"零代码硬约束"前）：
+- H-00.1 提取关键词
+- H-00.2 心智 grep _antipatterns.json 18 条 trigger
+- H-00.3 心智 grep _intent_routing.json 候选三档全展示
+- **H-00.4 强制响应顶部钉死"反模式自检"段**（含 7 条铁律检查清单 ✅/❌）
+- H-00.5 命中任何 P0 AP·进入修复重写模式
+- H-00.6 自检失败的强制回退（YEARFRAC/DATEDIF/60/"下拉"/"hbp_histimeseqtpl"等关键词的拦截规则）
+
+### 配套
+
+- 新建 memory `feedback_skill_must_grep_antipatterns_before_output.md`
+- 沉淀事故 case `cosmic_hr_knowledge_explorer/skill_incidents/2026-05-07_retirement_bill_brainmaking/`（user_input + audit_report + feedback_actions.yaml）
+- 新建 `skill_incidents/README.md` 作为 skill 输出事故复盘体系入口
+
+### 包元信息
+
+- 反模式：27（不变 · 同 v1.0.9）
+- 意图：78（不变）
+- SKILL.md 行数：857 → ~960
+
+---
+
 ## v1.0.9 · 2026-05-07 · 固 AP-026/027/025 trigger 防 LLM 在退休单方案踩坑
 
 ### 事故（qoder 实测·退休单方案输出深度审查）

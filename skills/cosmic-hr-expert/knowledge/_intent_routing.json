@@ -2076,11 +2076,15 @@
         "PPT01:155 模板继承铁律：①业务领域模板（htm_quit/hom_onboard/hpfs_*）→②hbp 通用 6 大模板→③平台基础。**必须逐档评估**，不能跳过①直接选②",
         "退休单模板选型：路径A=复用htm_quit扩展（推荐·继承审批流/状态机）→路径B=继承hbp_histimeseqtpl（合法第②档）→路径C=从零建",
         "退休/调动/入职/转正/离职 等人员变动 → 优先评估 chgaction 路径（hpfs_chgaction + filemapmanager + fieldrelation）",
+        "【强制】输出方案时·必须把上面 candidates 数组的所有 priority 1/2/3 全部展示给用户·不能只展示末选并跳过 chgaction 评估·跳档 = 命中 AP-025（详 skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md）",
+        "【强制】响应顶部必须钉死'反模式自检'段·列出本意图关联的 AP-022/023/025/026/027 各自的命中状态·命中即按 correct_alternative 重写方案",
         "【禁止】输出任何具体公式函数名——包括 YEARFRAC/DATEDIF/DATEDIFF/YEAR/MONTH/IF/ABS/ROUND 等。不是Excel！苍穹公式引擎函数名未知。只描述业务逻辑·让用户在公式编辑器'插入函数'菜单查",
         "【禁止】在公式中用 {ISV}_xxx 占位符写伪代码——如 '退休时年龄 = YEARFRAC({ISV}_birthdate, {ISV}_retiredate)' 这种写法直接误导客户。正确做法是纯自然语言描述：'计算出生日期到退休日期的周岁差值'",
+        "【禁止】ISV 占位符用 {ISV}_·必须用 ${ISV_FLAG}_（部署级变量·客户全局替换 · 详 memory/feedback_isv_developer_flag_per_project.md）",
         "中国 2025 起渐进式延迟退休·退休年龄已非固定 60/55/50·建议建基础资料表存'出生年份→法定退休年龄'映射·校验规则从映射表取值",
         "字段设计区分两类：①快照字段（如'退休时岗位'·退休后组织引用失效·必需物理存储）②展示字段（如'姓名/性别/出生日期'·基础资料控件可直接跨实体显示·不必冗余存储）",
-        "字段定义前先查 entity_metadata/hrpi_employee.md·标品已有的字段不要在本实体重建"
+        "字段定义前先查 entity_metadata/hrpi_employee.md·标品已有的字段不要在本实体重建·性别真存法 = BasedataField + ref:hbss_sex（不是'下拉'·不是 ComboField）",
+        "【强制·2026-05-08】HR 单据涉及'工号/员工/任职/组织分配'字段·必用 EmployeeField 控件·6 选 1 查询实体（员工 hrpi_employee / 任职 hrpi_empposorgrel / 组织分配 hrpi_assignment + 3 个薪酬镜像）·禁用 BasedataField + hspm_ermanfile（已废·命中 AP-029）·详 _shared/_standard_metadata/er_model/cosmic-entity-metadata-guide.md §3.2.2"
       ]
     },
     "HR 导入导出扩展": {

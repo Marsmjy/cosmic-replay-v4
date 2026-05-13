@@ -99,6 +99,7 @@ from lib.config import Config, CONFIG_DIR
 from lib.runner import run_case, load_yaml
 from lib import har_extractor
 from lib.report_exporter import export_html
+from lib.session_manager import SESSION_MGR
 from lib.webui.log_store import LogStore, install_global_capture
 from lib.notifier import EmailNotifier
 
@@ -821,6 +822,33 @@ async def api_har_preview(request: Request):
 
     save_path = d / f"preview_{int(time.time())}_{filename}"
     save_path.write_bytes(content)
+
+    # ⭐ 提取环境参数，确定元数据状态
+    env_id = request.query_params.get("env_id", "")
+    metadata_status = "offline"  # offline / online / degraded
+
+    if env_id:
+        try:
+            env_cfg = CONFIG.get_env(env_id) or CONFIG.default_env()
+            if env_cfg and env_cfg.credentials.is_configured():
+                login_session = SESSION_MGR.get_or_create(
+                    env_id=env_id,
+                    base_url=env_cfg.base_url,
+                    username=env_cfg.credentials.resolve_username(),
+                    password=env_cfg.credentials.resolve_password(),
+                    datacenter_id=env_cfg.datacenter_id,
+                )
+                if login_session:
+                    metadata_status = "online"
+                else:
+                    metadata_status = "degraded"
+            elif env_cfg:
+                metadata_status = "degraded"
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Preview login failed for env '{env_id}': {e}")
+            metadata_status = "degraded"
+
     try:
         # ⭐ 热重载 har_extractor，确保用最新代码
         import importlib
@@ -831,11 +859,12 @@ async def api_har_preview(request: Request):
             "ok": True,
             "preview": preview,
             "har_file": save_path.name,   # 后续 extract 用这个
+            "metadata_status": metadata_status,  # ⭐ 告知前端元数据增强状态
         }
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"ok": False, "error": f"{type(e).__name__}: {e}"},
+            content={"ok": False, "error": f"{type(e).__name__}: {e}", "metadata_status": "offline"},
         )
 
 
@@ -845,6 +874,7 @@ def api_har_extract(body: dict = Body(...)):
     har_file = body.get("har_file")
     case_name = body.get("case_name") or "untitled"
     var_overrides = body.get("var_overrides")  # ⭐ 用户变量配置
+    pick_field_overrides = body.get("pick_field_overrides")  # ⭐ 环境字段配置
     if not har_file:
         raise HTTPException(400, "缺少 har_file")
     har_path = har_upload_dir() / har_file
@@ -859,7 +889,7 @@ def api_har_extract(body: dict = Body(...)):
         import importlib
         importlib.reload(har_extractor)
 
-        yaml_text = har_extractor.build_yaml_case(har_path, case_name, var_overrides=var_overrides)
+        yaml_text = har_extractor.build_yaml_case(har_path, case_name, var_overrides=var_overrides, pick_field_overrides=pick_field_overrides)
         # ⭐ 在 YAML 中注入 created_at 字段（在 name: 行之后插入）
         now_iso = datetime.now().isoformat(timespec='seconds')
         if re.search(r'^created_at:', yaml_text, flags=re.MULTILINE):
@@ -885,6 +915,57 @@ def api_har_extract(body: dict = Body(...)):
                 "overwritten": overwritten, "action": action}
     except Exception as e:
         raise HTTPException(500, f"抽取失败: {e}")
+
+
+@APP.post("/api/pick-field-update")
+def api_pick_field_update(body: dict = Body(...)):
+    """更新已生成YAML中的pick_field值"""
+    case_name = body.get("case_name")
+    step_id = body.get("step_id")
+    value_id = body.get("value_id")
+
+    if not case_name or not step_id:
+        raise HTTPException(400, "缺少 case_name 或 step_id")
+
+    p = case_path_from_name(case_name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {case_name}")
+
+    # 读取YAML
+    case = load_yaml(p)
+    if not isinstance(case, dict):
+        raise HTTPException(500, "用例解析失败")
+
+    pick_fields = case.get("pick_fields")
+    if pick_fields is None:
+        raise HTTPException(404, "用例中无 pick_fields")
+
+    # 支持 dict 和 list 两种格式
+    found = False
+    if isinstance(pick_fields, dict):
+        # dict 格式：键为 step_id（如 pick_gender_id）
+        if step_id in pick_fields and isinstance(pick_fields[step_id], dict):
+            pick_fields[step_id]["value_id"] = value_id
+            found = True
+    elif isinstance(pick_fields, list):
+        # list 格式：每项有 id 字段
+        for item in pick_fields:
+            if isinstance(item, dict) and item.get("id") == step_id:
+                item["value_id"] = value_id
+                found = True
+                break
+    else:
+        raise HTTPException(500, "pick_fields 格式异常")
+
+    if not found:
+        raise HTTPException(404, f"pick_fields 中未找到 id={step_id}")
+
+    # 写回文件
+    import yaml
+    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    p.write_text(new_content, encoding="utf-8")
+
+    return {"ok": True, "step_id": step_id, "value_id": value_id}
 
 
 # ============================================================

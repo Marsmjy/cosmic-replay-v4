@@ -498,6 +498,100 @@ def _a_response_contains(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
 
 
 # =============================================================
+# pick_fields 运行时值注入
+# =============================================================
+def _apply_pick_fields(case: dict):
+    """运行前将 pick_fields 的用户修改值注入到对应步骤参数"""
+    pick_fields = case.get("pick_fields") or {}
+    if not pick_fields:
+        return
+    steps = case.get("steps") or []
+    step_map = {s.get("id", ""): s for s in steps}
+
+    for pf_id, pf_meta in pick_fields.items():
+        if not isinstance(pf_meta, dict):
+            continue
+        value = pf_meta.get("value_name", "")
+        if not value:
+            continue
+
+        # date_* -> 替换 update_fields 步骤中的日期字段
+        if pf_id.startswith("date_"):
+            field_key = pf_id[5:]  # 去掉 "date_" 前缀，如 date_bsed -> bsed
+            for step in steps:
+                if step.get("type") == "update_fields":
+                    fields = step.get("fields") or {}
+                    if field_key in fields:
+                        fv = fields[field_key]
+                        if isinstance(fv, dict):
+                            # 多语言字段：更新所有语言版本
+                            for lang in list(fv.keys()):
+                                fv[lang] = value
+                        else:
+                            fields[field_key] = value
+
+        # env_*_treeview_focus -> 更新 addnew 步骤的 post_data 中 treeview.focus.id
+        elif pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
+            # 优先使用 value_id（数字ID），fallback 到 value_name
+            inject_value = pf_meta.get("value_id") or pf_meta.get("value_name", "")
+            if not inject_value:
+                continue
+            # 提取 step_id: env_click_addnew_treeview_focus -> click_addnew
+            step_id = pf_id[4:-15]  # 去掉 "env_" 前缀和 "_treeview_focus" 后缀
+            step = step_map.get(step_id)
+            if step and step.get("post_data"):
+                post_data = step["post_data"]
+                if isinstance(post_data, list):
+                    for pd_item in post_data:
+                        if isinstance(pd_item, dict) and "treeview" in pd_item:
+                            tv = pd_item["treeview"]
+                            if isinstance(tv, dict) and "focus" in tv:
+                                focus = tv["focus"]
+                                if isinstance(focus, dict):
+                                    focus["id"] = inject_value
+                elif isinstance(post_data, dict) and "treeview" in post_data:
+                    tv = post_data["treeview"]
+                    if isinstance(tv, dict) and "focus" in tv:
+                        focus = tv["focus"]
+                        if isinstance(focus, dict):
+                            focus["id"] = inject_value
+
+        # pick_* → 覆盖匹配的 pick_basedata 步骤中的 value_id
+        elif pf_id.startswith("pick_"):
+            field_key = pf_meta.get("field_key") or pf_id[5:]  # 优先用 meta 中的 field_key，fallback 到去前缀
+            inject_vid = pf_meta.get("value_id", "")
+            inject_vname = pf_meta.get("value_name", "")
+            if inject_vid or inject_vname:
+                for step in steps:
+                    if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
+                        if inject_vid:
+                            step["value_id"] = str(inject_vid)
+                        if inject_vname:
+                            step["value_name"] = str(inject_vname)
+                        log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
+                        break
+
+        # enum_* / bool_* / num_* -> 替换 update_fields 或 pick_basedata 步骤中的对应字段
+        elif pf_id.startswith("enum_") or pf_id.startswith("bool_") or pf_id.startswith("num_"):
+            field_key = pf_id.split("_", 1)[1]  # 去掉前缀
+            if not value:
+                continue
+            # 在 update_fields 步骤中查找并替换对应字段
+            for step in steps:
+                if step.get("type") == "update_fields":
+                    fields = step.get("fields") or {}
+                    if field_key in fields:
+                        fields[field_key] = value
+                        break
+            # 也检查 pick_basedata 类型步骤
+            # （枚举字段可能通过 setItemByIdFromClient 设值）
+            for step in steps:
+                if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
+                    step["value_id"] = value
+                    break
+
+
+# =============================================================
 # Runner 主流程
 # =============================================================
 class RunResult:
@@ -558,12 +652,28 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 pass
 
     result = RunResult()
+
+    # 构建 pick_fields 预览（状态为 pending）
+    _pick_fields_raw = case.get("pick_fields") or {}
+    _pick_fields_preview = []
+    for pf_id, pf_meta in _pick_fields_raw.items():
+        _pick_fields_preview.append({
+            "step_id": pf_id,
+            "field_key": pf_meta.get("field_key", ""),
+            "value_id": str(pf_meta.get("value_id", "") or pf_meta.get("value_name", "")),
+            "value_name": pf_meta.get("value_name", ""),
+            "label": pf_meta.get("label", pf_id),
+            "env_sensitive": pf_meta.get("env_sensitive", "medium"),
+            "status": "pending",
+        })
+
     emit("case_start", {
         "name": case.get("name", "?"), 
         "description": case.get("description", ""),
         # 先发送vars定义（显示用户配置的模板）
         "vars_def": {k: v for k, v in (case.get("vars") or {}).items() if not k.startswith("_")},
         "vars_labels": case.get("vars_labels", {}),
+        "pick_fields_preview": _pick_fields_preview,
     })
 
     # 1. 解析 env
@@ -622,6 +732,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             case.get("steps") or [],
         ),
     })
+
+    # 应用 pick_fields 中用户修改的环境值
+    _apply_pick_fields(case)
 
     # 主表单预开
     main_form = case.get("main_form_id")
@@ -685,6 +798,24 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 break
             continue
 
+        # ⭐ 通用安全网：如果目标 form_id 没有有效 pageId，自动 open_form 补偿
+        _target_form = step.get("form_id")
+        _target_app = step.get("app_id")
+        if _target_form and _target_app and stype not in ("open_form", "sleep"):
+            _need_open = False
+
+            # pageId 完全缺失时才触发 auto-open
+            if _target_form not in replay.page_ids:
+                _need_open = True
+                log.debug(f"[auto-open] {_target_form}: pageId 缺失")
+
+            if _need_open:
+                try:
+                    _auto_pid = replay.open_form(_target_form, _target_app, lazy=False)
+                    log.info(f"[auto-open] {_target_form} → pageId={_auto_pid[:20]}...")
+                except Exception as _e:
+                    log.warning(f"[auto-open] failed for {_target_form}: {_e}")
+
         try:
             resp = handler(step, replay, ctx)
             ctx["last_response"] = resp
@@ -695,6 +826,41 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
             # 检测错误 action
             errs = has_error_action(resp) if resp else []
+
+            # ⭐ 通用安全网：检测 "页面未初始化或者已经过期" / "获取缓存连接客户端失败" 错误
+            # 原因：响应中 showForm 的 pageId 覆盖了已 loadData 的有效 pageId，导致后续请求使用未初始化的 pageId
+            # 修复：移除过期 pageId → 重新 open_form → loadData 初始化 → 重试当前步骤
+            if errs and _target_form and _target_app:
+                _stale_page_detected = any(
+                    "页面未初始化或者已经过期" in e or "获取缓存连接客户端失败" in e
+                    for e in errs
+                )
+                if _stale_page_detected:
+                    log.warning(f"[stale-page] {sid}: pageId for {_target_form} expired, attempting re-open + reload")
+                    try:
+                        # 1. 移除过期 pageId
+                        replay.page_ids.pop(_target_form, None)
+                        # 2. 重新打开表单获取新 pageId
+                        _fresh_pid = replay.open_form(_target_form, _target_app, lazy=False)
+                        log.info(f"[stale-page] re-opened {_target_form} → pageId={_fresh_pid[:20]}...")
+                        # 3. loadData 初始化表单
+                        replay.load_data(_target_form, _target_app)
+                        log.info(f"[stale-page] loadData({_target_form}) OK, retrying step {sid}")
+                        # 4. 重试当前步骤
+                        resp = handler(step, replay, ctx)
+                        ctx["last_response"] = resp
+                        ctx["last_step_response"] = resp
+                        ctx["step_responses"][sid] = resp
+                        if resp is not None:
+                            ctx["response_history"].append(resp)
+                        # 重新检测错误
+                        errs = has_error_action(resp) if resp else []
+                        if not errs:
+                            log.info(f"[stale-page] retry succeeded for {sid}")
+                    except Exception as _retry_e:
+                        log.warning(f"[stale-page] retry failed for {sid}: {_retry_e}")
+                        # errs 保留原始错误，继续走正常错误流程
+
             if errs and not optional:
                 # 进一步尝试从 bos_operationresult 拉详情
                 save_errs = extract_save_errors(resp, replay) if resp else errs
@@ -822,6 +988,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 log.warning(f"advisor 执行异常，跳过建议: {e}")
 
     result.end_ts = time.time()
+    env_fields = _build_env_fields(case, result)
+    if env_fields:
+        emit("env_fields_resolved", {"fields": env_fields})
     emit("case_done", {
         "passed": result.passed,
         "duration_s": round(result.duration, 2),
@@ -954,6 +1123,32 @@ def _build_display_vars(
             "value": str(v),
         })
     return results
+
+
+def _build_env_fields(case: dict, result) -> list[dict]:
+    """收集所有 pick_basedata 步骤的执行结果，构造 env_fields 列表。"""
+    pick_fields = case.get("pick_fields") or {}
+    raw_steps = case.get("steps") or []
+    # 建立 step_id -> 原始 step 的映射
+    raw_step_map = {s["id"]: s for s in raw_steps if s.get("id")}
+
+    env_fields: list[dict] = []
+    for result_step in result.steps:
+        if result_step.get("type") != "pick_basedata":
+            continue
+        step_id = result_step.get("id")
+        raw = raw_step_map.get(step_id, {})
+        meta = pick_fields.get(step_id) or {}
+        env_fields.append({
+            "step_id": step_id,
+            "field_key": raw.get("field_key", ""),
+            "value_id": str(raw.get("value_id", "")),
+            "value_name": raw.get("value_name", ""),
+            "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
+            "env_sensitive": meta.get("env_sensitive", "medium"),
+            "status": "ok" if result_step.get("ok") else "fail",
+        })
+    return env_fields
 
 
 def _build_resolved_request(step: dict) -> dict:

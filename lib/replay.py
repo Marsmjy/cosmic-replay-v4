@@ -199,6 +199,10 @@ class CosmicFormReplay:
         self._pending_tab_page_id: str | None = None
         # addVirtualTab 响应里按 appId 记的 pending pageId（未绑定表单，按 app 兜底）
         self._pending_by_app: dict[str, str] = {}
+        # ⭐ 已成功 loadData 的 form 集合，防止 showForm 从兄弟表单响应覆盖已初始化的 pageId
+        self._loaded_forms: set[str] = set()
+        # 当前正在 invoke 的 form_id（供 _harvest_page_ids 判断来源）
+        self._current_invoke_form: str | None = None
 
     # ---------- 资源管理 ----------
 
@@ -293,6 +297,8 @@ class CosmicFormReplay:
         """
         if lazy and form_id in self.page_ids:
             return self.page_ids[form_id]
+        # ⭐ 重新打开表单时清除 loaded 标记，允许后续 showForm 更新
+        self._loaded_forms.discard(form_id)
         if parent_page_id is None:
             parent_page_id = self.s.root_page_id
         params_obj = {
@@ -463,8 +469,13 @@ class CosmicFormReplay:
             raise ProtocolError(f"invoke {form_id}/{ac} bad json: {r.text[:200]}")
 
         self.last_response = resp
+        self._current_invoke_form = form_id
         self._harvest_page_ids(resp)
+        self._current_invoke_form = None
         self._harvest_virtual_tab_pageids(resp)
+        # ⭐ loadData 完成后标记表单已加载，后续兄弟表单响应中的 showForm 不再覆盖其 pageId
+        if ac == "loadData":
+            self._loaded_forms.add(form_id)
         # ⭐ 关键：服务端通过 addVirtualTab 下发的新 pageId 需要被正确路由到下一个目标表单
         #
         # 两种场景：
@@ -497,6 +508,11 @@ class CosmicFormReplay:
         多层深处。如果只检查顶层会漏掉，导致新表单 pageId 不更新。
         """
         # 先递归收集所有 showForm 里的 formId → pageId（强覆盖）
+        # ⭐ 修复：不覆盖已 loadData 的表单 pageId（除非 showForm 来自同表单的请求响应）
+        #    根因：苍穹多 tab 页面中，兄弟表单（日历/待入职/快捷卡片等）的 loadData 响应
+        #    会附带 showForm 为主表单下发新 pageId，但该 pageId 未经 loadData 初始化，
+        #    导致后续对主表单的操作报 "页面未初始化或者已经过期"。
+        _invoking = self._current_invoke_form
         def harvest_showform(obj):
             if isinstance(obj, list):
                 for item in obj:
@@ -508,6 +524,10 @@ class CosmicFormReplay:
                             fid = p.get("formId")
                             pid = p.get("pageId")
                             if isinstance(fid, str) and isinstance(pid, str) and len(pid) >= 16 and fid:
+                                # 如果该表单已 loadData 且不是当前请求表单，跳过覆盖
+                                if fid in self._loaded_forms and fid != _invoking:
+                                    log.debug(f"[harvest/showForm] SKIP {fid}: already loaded, pid={str(pid)[:20]} from sibling {_invoking}")
+                                    continue
                                 old = self.page_ids.get(fid)
                                 if old != pid:
                                     log.debug(f"[harvest/showForm] {fid}: {str(old)[:20]}→{pid[:20]}")

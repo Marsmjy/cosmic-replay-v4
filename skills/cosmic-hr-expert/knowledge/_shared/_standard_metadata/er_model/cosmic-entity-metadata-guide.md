@@ -305,6 +305,76 @@ FieldDataType（字段类型体系）
 > - 苍穹中"部门"和"组织"均使用 `OrgField`，**不能**用 `BasedataField + bd_department`
 > - `GroupField` 是基础资料分组（树形分类），不是部门字段
 
+#### 3.2.1 HR 业务高频脑补陷阱（实证 → 别脑补）
+
+LLM 在生成 HR 方案时容易把这些字段的类型写错，**真账以 `_metadata_rules_form.json` 为准**：
+
+| 字段含义 | ❌ 容易脑补成 | ✅ 标品真存法 | 实证 |
+|---|---|---|---|
+| 性别 | "下拉（男/女）"·`ComboField` | `BasedataField` 引用 `hbss_sex` | `scenarios/core_hr_blacklist/_metadata_rules_form.json` 的 `gender` 字段 |
+| 民族 | `ComboField` | `BasedataField` 引用 `hbss_nationality` | hbss 基础资料 |
+| 国籍 | `ComboField` | `BasedataField` 引用 `hbss_country` | hbss 基础资料 |
+| 政治面貌 | `ComboField` | `BasedataField` 引用 `hbss_politicalstatus` | hbss 基础资料 |
+| 部门 / 组织 | `BasedataField + bd_department` | `OrgField`（不填 basedataNumber） | 见上"高频错误" |
+| 员工 | `BasedataField + bd_user` | `BasedataField` 引用 `hrpi_employee` | core_hr 标品 |
+| 岗位 | 自定义 ComboField | `BasedataField` 引用 `hrpi_position` | core_hr 标品 |
+
+> **铁律**：HR 业务字段定义前·先 grep `knowledge/scenarios/<相关场景>/_metadata_rules_form.json` 看标品真存法·**不要凭印象选 ComboField**。
+> "下拉" 是中文俗称·苍穹元数据真名是 `ComboField` / `MulComboField`·不要把"下拉"作为字段类型字面值写到方案里。
+> 详见反面案例 `skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md`。
+
+#### 3.2.2 ⭐ EmployeeField 控件（HR 业务专用·新模型推荐方案）
+
+> **铁律**：HR 单据涉及"工号/员工/任职/组织分配"字段·**优先用 `EmployeeField` 控件**·不要再用 `BasedataField + hspm_ermanfile` 老模式（hspm_ermanfile 已废）。
+>
+> 来源：2026-05-08 case_005_batchorgadjust 真发发现·配套 [memory/cosmic_employeefield_authoritative.md](file:///C:/Users/kingdee/.claude/projects/d--aiworkspace-cludecodeworkspace/memory/cosmic_employeefield_authoritative.md)
+
+##### 6 个查询实体选项（苍穹开发助手 IDE 字段属性下拉）
+
+| 选项 | 业务实体 | F7 查询视图 | 适用场景 |
+|---|---|---|---|
+| **员工** | `hrpi_employee` | `hrpi_employeenewf7query` | 1:1 锚点·按员工挂数据 |
+| **组织分配** | `hrpi_assignment` | `hrpi_assignmentf7query` | 需 persongroup / 行政组织信息 |
+| **任职经历** | `hrpi_empposorgrel` | `hrpi_empposf7query` | 一员工多任职·调动业务必选 |
+| 员工（薪酬镜像） | `hrpi_employee_lk` | 薪酬云镜像 | swc 云内引用员工 |
+| 组织分配（薪酬镜像）| `hrpi_assignment_lk` | 薪酬云镜像 | swc 云内引用组织分配 |
+| 任职经历（薪酬镜像）| `hrpi_empposorgrel_lk` | 薪酬云镜像 | swc 云内引用任职 |
+
+##### dym XML 形态
+
+```xml
+<EmployeeField>           <!-- 字段类型 EmployeeField·非 BasedataField -->
+    <Key>${ISV_FLAG}_employeefield</Key>
+    <FieldName>fk_${ISV_FLAG}_employeefield</FieldName>
+    <Name>工号</Name>
+    <DisplayProp>employee.number</DisplayProp>      <!-- F7 选中显示 -->
+    <BaseEntityId>hrpi_employee</BaseEntityId>      <!-- 6 选 1 -->
+    <ParentId>分录ID</ParentId>
+</EmployeeField>
+```
+
+##### 标品实证
+
+参考标品用法：
+- `haos_staffcase` 的 `empposorgrel` 字段（EmployeeField·hrpi_empposf7query）
+- `haos_staffcase` 的 `employee` 字段（EmployeeField·hrpi_employeenewf7query）
+- `haos_othemproleorgrel` 的 `employee` 字段（同上）
+
+##### ⚠ OpenAPI 限制
+
+- v3 真发的 `buildMeta` / `modifyMeta` **不支持**创建 `EmployeeField`
+- **必须用苍穹开发助手 IDE 手工建**·或先 IDE 建再导出 dym
+- 详 `aihr/cosmic/field_types_authoritative.py:92` 注释
+
+##### 决策树（场景 → 选哪个）
+
+```
+单据按"员工"挂数据·一对一        → 选"员工" → hrpi_employee
+单据按"任职"挂数据·一员工可多任职 → 选"任职经历" → hrpi_empposorgrel
+单据需 persongroup/管理范围信息   → 选"组织分配" → hrpi_assignment
+跨云 swc 内引用                  → 选对应的薪酬镜像（_lk）
+```
+
 ### 3.3 下拉字段的 comboOptions 格式
 
 凡 `ComboField`、`MulComboField`、`CheckBoxGroupField`、`RadioGroupField` 类型，**必须**提供选项：

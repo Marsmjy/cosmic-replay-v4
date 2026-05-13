@@ -332,9 +332,9 @@
     
     <!-- 导航 -->
     <nav class="flex items-center gap-1 text-sm">
+      <a class="nav-item" :class="{ 'active': view==='import_har' }" @click="openHarWizard()">导入 HAR</a>
       <a class="nav-item" :class="{ 'active': view==='dashboard' }" @click="view='dashboard'">用例</a>
       <a class="nav-item" :class="{ 'active': view==='batch' }" @click="view='batch'">批量运行</a>
-      <a class="nav-item" :class="{ 'active': view==='import_har' }" @click="openHarWizard()">导入 HAR</a>
       <a class="nav-item relative" :class="{ 'active': view==='logs' }" @click="openLogs()">
         日志
         <span x-show="errorBadgeCount > 0"
@@ -492,9 +492,9 @@
 
               <td class="px-4 py-3.5">
                 <div class="flex items-center gap-2">
-                  <!-- 非编辑状态：显示名称，双击进入编辑 -->
+                  <!-- 非编辑状态：显示名称，单击打开用例 -->
                   <span x-show="editingCaseName !== c.name" 
-                        @dblclick="startEditCaseName(c.name, c.display_name || c.name)"
+                        @click="openCase(c.name)"
                         class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer flex-1 block truncate max-w-md"
                         x-text="c.display_name || c.name"
                         :title="c.display_name || c.name"></span>
@@ -507,15 +507,21 @@
                          class="bg-gray-700 border border-sky-500 rounded px-2 py-0.5 text-white text-sm w-full flex-1"
                          x-ref="editNameInput">
                   <button x-show="editingCaseName !== c.name"
-                          @click="startEditCaseName(c.name, c.display_name || c.name)"
+                          @click.stop="startEditCaseName(c.name, c.display_name || c.name)"
                           class="text-slate-500 hover:text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="编辑名称">✎</button>
                 </div>
                 <!-- 描述：非编辑状态 -->
-                <div x-show="editingDesc !== c.name" @dblclick="startEditCaseDesc(c)"
-                     class="text-xs text-gray-500 block truncate max-w-md cursor-pointer hover:text-gray-400 mt-0.5"
-                     x-text="c.description || '双击添加描述'"
-                     :title="c.description || '双击编辑描述'"></div>
+                <div class="flex items-center gap-1 mt-0.5">
+                  <div x-show="editingDesc !== c.name"
+                       class="text-xs text-gray-500 block truncate max-w-md"
+                       x-text="c.description || '暂无描述'"
+                       :title="c.description || ''"></div>
+                  <button x-show="editingDesc !== c.name"
+                          @click.stop="startEditCaseDesc(c)"
+                          class="text-slate-500 hover:text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                          title="编辑描述">✎</button>
+                </div>
                 <!-- 描述：编辑状态 -->
                 <input x-show="editingDesc === c.name"
                        :value="c.description || ''" @blur="saveCaseDesc($event, c)" @keyup.enter="$event.target.blur()"
@@ -632,10 +638,10 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-12 gap-4">
-      <div class="col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <div class="grid grid-cols-12 gap-4 h-[calc(100vh-260px)]">
+      <div class="col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-4 overflow-hidden flex flex-col">
         <div class="text-xs text-slate-400 uppercase mb-3">执行步骤</div>
-        <div class="space-y-1.5 max-h-[calc(100vh-260px)] overflow-y-auto scrollbar-thin pr-2">
+        <div class="space-y-1.5 flex-1 overflow-y-auto scrollbar-thin pr-2">
           <template x-for="p in phases" :key="p.id">
             <div class="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-slate-800/50 cursor-pointer"
                  :class="{
@@ -665,7 +671,7 @@
         </div>
       </div>
 
-      <div class="col-span-7 space-y-3">
+      <div class="col-span-7 space-y-3 overflow-y-auto scrollbar-thin">
         <!-- ⭐ Tab 切换：运行结果 | 变量面板 | YAML 编辑器 -->
         <div class="flex gap-1 border-b border-slate-800">
           <button class="px-4 py-2 text-sm -mb-px border-b-2"
@@ -707,17 +713,63 @@
             </div>
           </div>
 
-          <!-- ⭐ 变量实际值（运行后显示） -->
-          <div x-show="(resolved_vars||[]).length > 0"
+          <!-- 合并：运行变量 + 环境字段 -->
+          <div x-show="(resolved_vars||[]).length > 0 || (envFields||[]).length > 0"
                class="bg-slate-900 border border-slate-800 rounded-lg p-4 mb-3">
-            <div class="text-xs text-slate-400 uppercase mb-2">本次运行变量值</div>
-            <div class="grid grid-cols-2 gap-2">
-              <template x-for="item in (resolved_vars||[])" :key="item.key">
-                <div class="flex items-baseline gap-2 text-sm bg-slate-950 rounded px-3 py-1.5">
-                  <span class="text-slate-400 shrink-0 text-xs" x-text="item.label"></span>
-                  <code class="mono text-amber-300 break-all text-xs" x-text="item.value"></code>
-                </div>
-              </template>
+
+            <!-- 子模块1: 本次运行变量值 -->
+            <div x-show="(resolved_vars||[]).length > 0" class="mb-3">
+              <div class="text-xs text-slate-400 uppercase mb-2">本次运行变量值</div>
+              <div class="grid grid-cols-2 gap-2">
+                <template x-for="item in (resolved_vars||[])" :key="item.key">
+                  <div class="flex items-baseline gap-2 text-sm bg-slate-950 rounded px-3 py-1.5">
+                    <span class="text-slate-400 shrink-0 text-xs" x-text="item.label"></span>
+                    <code class="mono text-amber-300 break-all text-xs" x-text="item.value"></code>
+                    <span x-show="item.display_name" class="text-xs text-slate-500 shrink-0" x-text="item.display_name"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- 子模块2: 环境相关字段 -->
+            <div x-show="(envFields||[]).length > 0">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-slate-400 uppercase">环境相关字段</span>
+                <span class="text-xs text-slate-500" x-text="'(' + (envFields||[]).length + ' 项)'"></span>
+              </div>
+              <div class="space-y-1.5">
+                <template x-for="ef in (envFields||[])" :key="ef.step_id">
+                  <div class="flex items-center gap-2 text-sm bg-slate-950 rounded px-3 py-1.5">
+                    <!-- 状态图标 -->
+                    <span class="shrink-0 w-4 h-4 flex items-center justify-center">
+                      <template x-if="ef.status === 'ok'">
+                        <svg class="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                      </template>
+                      <template x-if="ef.status === 'pending'">
+                        <svg class="w-3.5 h-3.5 text-slate-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                          <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                      </template>
+                      <template x-if="ef.status !== 'ok' && ef.status !== 'pending'">
+                        <svg class="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                      </template>
+                    </span>
+                    <!-- 敏感度圆点 -->
+                    <span class="shrink-0 w-2.5 h-2.5 rounded-full"
+                          :class="{'bg-red-500': ef.env_sensitive === 'high', 'bg-yellow-500': ef.env_sensitive === 'medium', 'bg-green-500': ef.env_sensitive === 'low'}"></span>
+                    <!-- 标签 -->
+                    <span class="text-slate-400 shrink-0 text-xs" x-text="ef.label"></span>
+                    <!-- 值名 -->
+                    <code class="mono text-amber-300 break-all text-xs" x-text="ef.value_name || ef.value_id"></code>
+                    <!-- ID -->
+                    <span class="text-xs text-slate-600 mono ml-auto shrink-0" x-show="ef.value_name" x-text="'ID: ' + ef.value_id"></span>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
 
@@ -853,43 +905,122 @@
 
         <!-- Tab: 变量面板 -->
         <div x-show="detailTab==='vars'">
-          <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-sm font-medium">用例变量</div>
+          <!-- 智能用例变量面板 -->
+          <div class="mb-4 border border-slate-700 rounded-lg overflow-hidden">
+            <!-- 标题栏 -->
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-800 cursor-pointer"
+                 @click="varsExpanded = !varsExpanded">
               <div class="flex items-center gap-2">
-                <!-- ⭐ P2-5: 变量实时预览开关 -->
-                <label class="flex items-center gap-1 text-xs text-slate-400">
-                  <input type="checkbox" x-model="livePreviewVars" class="accent-sky-500">
-                  实时预览
-                </label>
-                <button @click="resetVars()" class="text-xs text-slate-500 hover:text-slate-300">重置</button>
+                <svg class="w-4 h-4 text-sky-400 transition-transform" :class="{'rotate-90': varsExpanded}" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-sm font-medium text-slate-200">智能用例变量</span>
+                <span class="text-xs text-slate-400" x-text="'(' + parsedVars().length + '项)'"></span>
               </div>
             </div>
-            
-            <!-- ⭐ P2-5: 变量编辑器 -->
-            <template x-for="(pv, i) in parsedVars()" :key="i">
-              <div class="flex items-center gap-3 bg-slate-950 rounded px-3 py-2">
-                <div class="w-36 shrink-0">
-                  <code class="mono text-xs text-sky-400" x-text="pv.key"></code>
-                  <span x-show="getVarLabel(pv.key)" class="text-xs text-slate-500 ml-1" x-text="'(' + getVarLabel(pv.key) + ')'"></span>
+            <!-- 变量列表 -->
+            <div x-show="varsExpanded" x-transition class="divide-y divide-slate-700">
+              <template x-for="(pv, i) in parsedVars()" :key="i">
+                <div class="px-4 py-3 hover:bg-slate-800/50">
+                  <div class="flex items-center gap-2 mb-1">
+                    <code class="mono text-sm text-sky-400" x-text="pv.key"></code>
+                    <span x-show="getVarLabel(pv.key)" class="text-xs text-slate-500" x-text="'(' + getVarLabel(pv.key) + ')'"></span>
+                  </div>
+                  <div class="flex items-center gap-2 ml-1">
+                    <span class="text-xs text-slate-500">值:</span>
+                    <input type="text" :value="pv.value" @input="updateParsedVar(pv.key, $event.target.value)"
+                           @keydown.enter="saveVarValue(pv.key)"
+                           @blur="if(yamlDirty) saveVarValue(pv.key)"
+                           class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none">
+                    <span class="text-xs text-slate-500" x-show="pv.hint" x-text="pv.hint"></span>
+                    <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                            @click="saveVarValue(pv.key)">保存</button>
+                  </div>
+                  <div class="ml-1 mt-1">
+                    <span class="text-xs text-slate-500" x-show="pv.hint" x-text="pv.hint === '随机' ? '每次运行自动生成随机值' : pv.hint === '日期' ? '自动填充当天日期' : pv.hint === '引用' ? '引用其他变量的值' : ''"></span>
+                  </div>
                 </div>
-                <div class="flex-1">
-                  <input type="text" :value="pv.value" @input="updateParsedVar(pv.key, $event.target.value)"
-                         class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm mono">
-                </div>
-                <div class="text-xs text-slate-500 w-20 shrink-0" x-text="pv.hint || ''"></div>
+              </template>
+              <div x-show="parsedVars().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center">
+                该用例没有声明变量
               </div>
-            </template>
-            <div x-show="parsedVars().length === 0" class="text-sm text-slate-500 py-4 text-center">
-              该用例没有声明变量
-            </div>
-            <div class="pt-3 border-t border-slate-800 text-xs text-slate-500 space-y-1">
-              <div><code class="text-amber-400">${rand:N}</code> → N 位随机数字</div>
-              <div><code class="text-amber-400">${today}</code> → 当天日期 YYYY-MM-DD</div>
-              <div><code class="text-amber-400">${vars.xxx}</code> → 引用其他变量</div>
-              <div><code class="text-amber-400">${env:XXX}</code> → 环境变量</div>
+              <!-- 变量语法帮助 -->
+              <div class="px-4 py-3 text-xs text-slate-500 space-y-1">
+                <div><code class="text-amber-400">${rand:N}</code> → N 位随机数字</div>
+                <div><code class="text-amber-400">${today}</code> → 当天日期 YYYY-MM-DD</div>
+                <div><code class="text-amber-400">${vars.xxx}</code> → 引用其他变量</div>
+                <div><code class="text-amber-400">${env:XXX}</code> → 环境变量</div>
+              </div>
             </div>
           </div>
+
+          <!-- 环境相关字段面板 -->
+          <template x-if="parsedPickFields().length > 0 || harPickFields.length > 0">
+            <div class="mb-4 border border-slate-700 rounded-lg overflow-hidden">
+              <!-- 标题栏 -->
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-800 cursor-pointer"
+                   @click="pickFieldsExpanded = !pickFieldsExpanded">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-yellow-400 transition-transform" :class="{'rotate-90': pickFieldsExpanded}" 
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                  <span class="text-sm font-medium text-slate-200">环境相关字段</span>
+                  <span class="text-xs text-slate-400" x-text="'(' + (parsedPickFields().length > 0 ? parsedPickFields().length : harPickFields.length) + '项)'"></span>
+                </div>
+                <div class="flex gap-2 text-xs">
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span>必改</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>可能需改</span>
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span>一般不改</span>
+                </div>
+              </div>
+              <!-- 字段列表 -->
+              <div x-show="pickFieldsExpanded" x-transition class="divide-y divide-slate-700">
+                <template x-for="pf in (parsedPickFields().length > 0 ? parsedPickFields() : harPickFields.map(h => ({step_id: h.id, label: h.label, env_sensitive: h.env_sensitive, value_id: h.value_id, value_name: h.value_name || ''})))" :key="pf.step_id">
+                  <div class="px-4 py-3 hover:bg-slate-800/50">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            :class="{
+                              'bg-red-500': pf.env_sensitive === 'high',
+                              'bg-yellow-500': pf.env_sensitive === 'medium',
+                              'bg-green-500': pf.env_sensitive === 'low'
+                            }"></span>
+                      <code class="mono text-sm text-sky-400" x-text="pf.step_id"></code>
+                      <span class="text-xs text-slate-500" x-text="'(' + pf.label + ')'"></span>
+                    </div>
+                    <div class="flex items-center gap-2 ml-5">
+                      <span class="text-xs text-slate-500">值:</span>
+                      <input type="text" 
+                             :id="'pf_input_' + pf.step_id"
+                             class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
+                             x-init="$el.value = pf.value_id"
+                             :data-orig="pf.value_id"
+                             @input="let idx = harPickFields.findIndex(h => h.id === pf.step_id); if(idx !== -1) harPickFields[idx].value_id = $el.value"
+                             @keydown.enter="savePickFieldValue(pf.step_id, $el.value)"
+                             @blur="if($el.value !== ($el.dataset.orig || '')) savePickFieldValue(pf.step_id, $el.value)">
+                      <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                              @click="savePickFieldValue(pf.step_id, document.getElementById('pf_input_' + pf.step_id).value)">保存</button>
+                    </div>
+                    <!-- 中文名称显示（当 value_name 存在且与 value_id 不同时） -->
+                    <div x-show="pf.value_name && pf.value_name !== pf.value_id" class="ml-5 mt-1">
+                      <span class="text-xs text-slate-400" x-text="'名称: ' + pf.value_name"></span>
+                    </div>
+                    <div class="ml-5 mt-1">
+                      <span class="text-xs" 
+                            :class="{
+                              'text-red-400': pf.env_sensitive === 'high',
+                              'text-yellow-400': pf.env_sensitive === 'medium',
+                              'text-green-400': pf.env_sensitive === 'low'
+                            }"
+                            x-text="pf.env_sensitive === 'high' ? '跨环境必须修改' : pf.env_sensitive === 'medium' ? '可能需要修改' : '系统枚举，一般不需修改'">
+                      </span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Tab: YAML 编辑器 -->
@@ -982,10 +1113,7 @@
 
     <!-- Step 1: 上传 -->
     <div x-show="harStep===1" class="bg-slate-900 border border-slate-800 rounded-lg p-6">
-      <div class="mb-4 text-sm text-slate-400">
-        把浏览器 F12 导出的 HAR 文件拖到下方区域，或点击选择文件。
-      </div>
-      <div class="border-2 border-dashed border-slate-700 rounded-lg p-12 text-center transition"
+      <div class="border-2 border-dashed border-slate-700 rounded-lg p-10 text-center transition"
            :class="{'drop-hover': dropHover}"
            @dragover.prevent="dropHover=true"
            @dragleave.prevent="dropHover=false"
@@ -1001,11 +1129,42 @@
       <div x-show="harUploading" class="mt-4 text-sm text-sky-400 text-center">
         <span class="pulse-dot">●</span> 正在解析 HAR...
       </div>
+
+      <!-- 内联帮助：如何获取 HAR -->
+      <div class="mt-5 pt-4 border-t border-slate-800">
+        <div class="flex items-center gap-2 cursor-pointer select-none" @click="guideExpanded = !guideExpanded">
+          <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-xs text-slate-400">不知道如何获取 HAR 文件？</span>
+          <svg class="w-3 h-3 text-slate-600 transition-transform duration-200" :class="guideExpanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+        <div x-show="guideExpanded" x-transition.opacity.duration.150ms class="mt-3 pl-5 border-l-2 border-slate-800 space-y-2 text-xs text-slate-500">
+          <p><span class="text-slate-300 font-medium">①</span> 打开 Chrome 浏览器，按 <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 text-[11px]">F12</kbd> 打开开发者工具</p>
+          <p><span class="text-slate-300 font-medium">②</span> 切换到 <span class="text-slate-300">Network</span> 面板，勾选 <span class="text-slate-300">Preserve log</span></p>
+          <p><span class="text-slate-300 font-medium">③</span> 在页面上执行完整的业务操作（如新增、提交、审批等）</p>
+          <p><span class="text-slate-300 font-medium">④</span> 在请求列表空白处右键 → <span class="text-slate-300">Save all as HAR with content</span></p>
+          <p class="text-slate-600 pt-1">导出后将 .har 文件拖入上方区域，系统会自动识别核心接口并引导你完成后续配置。</p>
+        </div>
+      </div>
     </div>
 
     <!-- Step 2: 预览 + 变量配置 -->
     <div x-show="harStep===2 && harPreview"
          class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
+
+      <!-- ⭐ 元数据状态提示条 -->
+      <div x-show="metadataStatus === 'online'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        <span>已连接环境，元数据增强已启用</span>
+      </div>
+      <div x-show="metadataStatus === 'degraded'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        <span>环境连接失败，使用离线解析模式</span>
+      </div>
+      <div x-show="metadataStatus === 'offline'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-50 border border-gray-200 text-gray-500 text-xs">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        <span>未选择环境，使用离线解析模式</span>
+      </div>
+
       <div class="grid grid-cols-4 gap-3">
         <div class="bg-slate-950 border border-slate-800 rounded p-3">
           <div class="text-xs text-slate-400">主表单</div>
@@ -1027,47 +1186,108 @@
 
       <!-- ⭐ 变量配置面板 -->
       <div x-show="(harPreview?.detected_vars || []).length > 0"
-           class="bg-slate-950 border border-amber-900/40 rounded-lg p-4">
+           class="bg-slate-950 border border-purple-900/40 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <span class="text-amber-400 text-sm">⚙</span>
-            <span class="text-sm font-medium text-amber-200">变量配置</span>
+            <span class="text-purple-400 text-sm">⚙</span>
+            <span class="text-sm font-medium text-purple-200">变量配置</span>
             <span class="text-xs text-slate-500">系统检测到以下字段可参数化，你可以编辑模板或禁用不需要的变量</span>
           </div>
         </div>
         <div class="space-y-2">
-          <template x-for="(v, i) in harVarConfig" :key="i">
-            <div class="flex items-center gap-3 px-3 py-2 rounded"
-                 :class="v.enabled ? 'bg-slate-900' : 'bg-slate-900/50 opacity-50'">
-              <input type="checkbox" x-model="v.enabled" class="accent-sky-500 shrink-0">
-              <div class="w-28 shrink-0">
-                <!-- ⭐ 显示真实业务中文名（v.label），颜色沿用 category 粗分类 -->
-                <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap"
-                      :class="{
-                        'bg-sky-900/60 text-sky-300': v.category==='编码',
-                        'bg-emerald-900/60 text-emerald-300': v.category==='名称',
-                        'bg-amber-900/60 text-amber-300': v.category==='电话',
-                        'bg-purple-900/60 text-purple-300': v.category==='证件号',
-                        'bg-slate-800 text-slate-300': !['编码','名称','电话','证件号'].includes(v.category),
-                      }" x-text="v.label || v.category"></span>
-              </div>
-              <div class="w-32 shrink-0">
-                <code class="mono text-xs text-sky-400" x-text="'${vars.' + v.name + '}'"></code>
-              </div>
-              <input type="text" x-model="v.template" :disabled="!v.enabled"
-                     class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono
-                            disabled:opacity-30 disabled:cursor-not-allowed"
-                     placeholder="模板值">
-              <div class="text-xs text-slate-500 w-24 shrink-0 text-right">
-                <span x-text="v.name"></span>
-              </div>
+          <!-- 按分类分组渲染变量 -->
+          <template x-for="cat in [...new Set(harVarConfig.map(v => v.category))]" :key="cat">
+            <div class="mb-2">
+              <!-- 该分类下的变量 -->
+              <template x-for="(v, i) in harVarConfig.filter(v => v.category === cat)" :key="v.name">
+                <div class="flex items-center gap-3 px-3 py-2 rounded"
+                     :class="v.enabled ? 'bg-slate-900' : 'bg-slate-900/50 opacity-50'">
+                  <input type="checkbox" x-model="v.enabled" class="accent-sky-500 shrink-0">
+                  <div class="w-28 shrink-0">
+                    <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap"
+                          :class="{
+                            'bg-sky-900/60 text-sky-300': v.category==='编码',
+                            'bg-emerald-900/60 text-emerald-300': v.category==='名称',
+                            'bg-amber-900/60 text-amber-300': v.category==='电话',
+                            'bg-purple-900/60 text-purple-300': v.category==='证件号',
+                            'bg-slate-800 text-slate-300': !['编码','名称','电话','证件号'].includes(v.category),
+                          }" x-text="v.label || v.category"></span>
+                  </div>
+                  <div class="w-32 shrink-0">
+                    <code class="mono text-xs text-sky-400" x-text="'${vars.' + v.name + '}'"></code>
+                  </div>
+                  <input type="text" x-model="v.template" :disabled="!v.enabled"
+                         class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono
+                                disabled:opacity-30 disabled:cursor-not-allowed"
+                         placeholder="模板值">
+                  <div class="text-xs text-slate-500 w-24 shrink-0 text-right">
+                    <span x-text="v.name"></span>
+                  </div>
+                </div>
+              </template>
             </div>
           </template>
         </div>
         <div class="text-xs text-slate-500 mt-2">
-          提示：模板中 <code class="text-amber-400">${rand:N}</code> 表示 N 位随机数字，
-          <code class="text-amber-400">${today}</code> 表示当天日期。
+          提示：模板中 <code class="text-purple-400">${rand:N}</code> 表示 N 位随机数字，
+          <code class="text-purple-400">${today}</code> 表示当天日期。
           禁用变量后，该字段将保留 HAR 中的原始值。
+        </div>
+      </div>
+
+      <!-- ⭐ 环境相关字段面板 -->
+      <div x-show="harPickFields.length > 0"
+           class="bg-slate-950 border border-orange-900/40 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-orange-400 text-sm">&#9881;</span>
+            <span class="text-sm font-medium text-orange-200">环境相关字段</span>
+            <span class="text-xs text-slate-500">系统识别到以下环境敏感字段，跨环境运行时可能需要修改</span>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <template x-for="(pf, i) in harPickFields" :key="pf.id">
+            <div class="flex items-center gap-3 px-3 py-2 rounded bg-slate-900">
+              <!-- 敏感度指示圆点 -->
+              <span class="w-2.5 h-2.5 rounded-full shrink-0"
+                    :class="{
+                      'bg-red-500': pf.env_sensitive === 'high',
+                      'bg-amber-500': pf.env_sensitive === 'medium',
+                      'bg-emerald-500': pf.env_sensitive === 'low',
+                    }"></span>
+              <!-- 字段ID -->
+              <div class="w-32 shrink-0">
+                <code class="mono text-xs text-orange-400" x-text="pf.id"></code>
+              </div>
+              <!-- 中文标签 -->
+              <div class="w-28 shrink-0">
+                <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="pf.label"></span>
+              </div>
+              <!-- 可编辑输入框：始终绑定 value_id，确保编辑值同步到 harPickFields -->
+              <span class="text-xs text-slate-500 shrink-0">值:</span>
+              <input type="text" x-model="pf.value_id"
+                     class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
+                     :placeholder="pf.value_name || 'value_id'">
+              <!-- value_name 显示 -->
+              <div class="w-24 shrink-0 text-right">
+                <span class="text-xs text-slate-500" x-show="pf.value_name && pf.value_name !== pf.value_id" x-text="pf.value_name"></span>
+              </div>
+              <!-- 敏感度文字 -->
+              <div class="w-12 shrink-0 text-right">
+                <span class="text-xs"
+                      :class="{
+                        'text-red-400': pf.env_sensitive === 'high',
+                        'text-amber-400': pf.env_sensitive === 'medium',
+                        'text-emerald-400': pf.env_sensitive === 'low',
+                      }" x-text="pf.env_sensitive === 'high' ? '必改' : pf.env_sensitive === 'medium' ? '可能需改' : '一般不改'"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="text-xs text-slate-500 mt-2 flex items-center gap-3">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> 跨环境必须修改</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> 可能需修改</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> 一般不需修改</span>
         </div>
       </div>
 
@@ -1804,32 +2024,130 @@
             </div>
           </div>
         </div>
-        <!-- 右：详情事件流 -->
-        <div class="col-span-7 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-          <div x-show="!selectedRunId" class="text-slate-500 text-sm py-12 text-center">
-            ← 点左侧一条历史查看事件详情
+        <!-- 右：详情（左右分栏布局） -->
+        <div class="col-span-7 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex flex-col">
+          <div x-show="!selectedRunId" class="text-slate-500 text-sm py-12 text-center flex-1 flex items-center justify-center">
+            ← 点左侧一条历史查看执行详情
           </div>
-          <div x-show="selectedRunId" class="max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin p-3 space-y-1">
-            <template x-for="(ev, i) in selectedRunEvents" :key="i">
-              <div class="py-1 border-b border-slate-900">
-                <!-- 时间和类型 -->
-                <div class="flex gap-2 items-start">
-                  <span class="text-xs text-slate-500 mono shrink-0" x-text="formatTs(ev.ts)"></span>
-                  <span class="text-xs font-medium shrink-0"
-                        :class="{
-                          'text-emerald-400': ev.type==='step_ok' || ev.type==='assertion_ok' || ev.type==='login_ok' || ev.type==='case_done',
-                          'text-rose-400': ev.type.endsWith('_fail') || ev.type==='case_error',
-                          'text-sky-400': ev.type==='case_start' || ev.type==='step_start' || ev.type==='login_start',
-                          'text-amber-300': ev.type==='fixes_ready',
-                          'text-slate-400': ev.type==='session_ready',
-                        }"
-                        x-text="formatEventType(ev.type)"></span>
-                </div>
-                <!-- ⭐ 业务描述 -->
-                <div class="mt-1 ml-16 text-xs" x-html="formatEventDetail(ev)"></div>
+          <template x-if="selectedRunId">
+            <div class="flex flex-col h-full max-h-[calc(100vh-220px)]">
+              <!-- 摘要栏 -->
+              <div x-show="historySummary" class="px-4 py-2 border-b border-slate-800 flex items-center gap-3 shrink-0">
+                <span :class="historySummary && historySummary.passed ? 'text-emerald-400' : 'text-rose-400'"
+                      x-text="historySummary && historySummary.passed ? '✓ 通过' : '✗ 失败'"></span>
+                <span class="text-xs text-slate-400" x-show="historySummary && historySummary.step_ok !== undefined"
+                      x-text="'步骤: ' + ((historySummary && historySummary.step_ok) || 0) + '/' + ((historySummary && historySummary.step_count) || 0)"></span>
+                <span class="text-xs text-slate-400" x-show="historySummary && historySummary.duration_s"
+                      x-text="'耗时: ' + ((historySummary && historySummary.duration_s) || 0) + 's'"></span>
               </div>
-            </template>
-          </div>
+              <!-- 运行变量 + 环境字段（紧凑显示） -->
+              <div x-show="historyVars.length > 0 || historyEnvFields.length > 0" class="px-3 pt-2 pb-1 border-b border-slate-800 shrink-0">
+                <div x-show="historyVars.length > 0" class="mb-2">
+                  <div class="text-xs text-slate-400 uppercase mb-1">运行变量值</div>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="item in historyVars" :key="item.key">
+                      <div class="flex items-baseline gap-1 text-xs bg-slate-950 rounded px-2 py-1">
+                        <span class="text-slate-400" x-text="item.label || item.key"></span>
+                        <code class="mono text-amber-300" x-text="item.value"></code>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <div x-show="historyEnvFields.length > 0" class="mb-1">
+                  <div class="text-xs text-slate-400 uppercase mb-1">环境相关字段</div>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="ef in historyEnvFields" :key="ef.step_id">
+                      <div class="flex items-center gap-1 text-xs bg-slate-950 rounded px-2 py-1">
+                        <span class="shrink-0" :class="ef.status === 'ok' ? 'text-emerald-400' : ef.status === 'pending' ? 'text-slate-400' : 'text-rose-400'"
+                              x-text="ef.status === 'ok' ? '✓' : ef.status === 'pending' ? '○' : '✗'"></span>
+                        <span class="shrink-0 w-1.5 h-1.5 rounded-full"
+                              :class="{'bg-red-500': ef.env_sensitive === 'high', 'bg-yellow-500': ef.env_sensitive === 'medium', 'bg-green-500': ef.env_sensitive === 'low'}"></span>
+                        <span class="text-slate-400" x-text="ef.label"></span>
+                        <code class="mono text-amber-300" x-text="ef.value_name || ef.value_id"></code>
+                        <span class="text-slate-600 mono" x-show="ef.value_name && ef.value_id" x-text="'(' + ef.value_id + ')'"></span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+              <!-- 主体区域：左右分栏 -->
+              <div class="flex-1 flex overflow-hidden">
+                <!-- 左侧：步骤列表 -->
+                <div class="w-2/5 border-r border-slate-800 overflow-y-auto scrollbar-thin p-2 space-y-1">
+                  <div class="text-xs text-slate-400 uppercase mb-2 px-1">执行步骤</div>
+                  <template x-for="p in historyPhases" :key="p.id">
+                    <div class="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-slate-800/50 cursor-pointer"
+                         :class="{
+                           'bg-slate-800': p.id === selectedHistoryStep,
+                           'bg-rose-900/30 border border-rose-700/50': p.status === 'fail' && p.id !== selectedHistoryStep
+                         }"
+                         @click="selectedHistoryStep = p.id">
+                      <div class="pt-0.5">
+                        <span x-show="p.status==='ok'" class="text-emerald-400">✓</span>
+                        <span x-show="p.status==='fail'" class="text-rose-400">✗</span>
+                        <span x-show="p.status==='running'" class="text-sky-400">●</span>
+                        <span x-show="p.status==='pending'" class="text-slate-600">○</span>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate" x-text="p.label"></div>
+                        <div class="text-xs text-slate-500 truncate mono" x-text="p.detail"></div>
+                      </div>
+                      <div class="text-xs text-slate-500 mono tabular-nums shrink-0"
+                           x-show="p.duration_ms" x-text="p.duration_ms + 'ms'"></div>
+                    </div>
+                  </template>
+                </div>
+                <!-- 右侧：步骤详情 -->
+                <div class="w-3/5 overflow-y-auto scrollbar-thin p-3">
+                  <div x-show="!selectedHistoryStep" class="text-slate-500 text-sm py-8 text-center">
+                    ← 点击左侧步骤查看接口详情
+                  </div>
+                  <div x-show="selectedHistoryStep && selectedHistoryPhase()">
+                    <div class="text-xs text-slate-400 uppercase mb-2">步骤详情</div>
+                    <div class="space-y-1 text-sm">
+                      <div><span class="text-slate-500">id:</span> <code class="mono" x-text="selectedHistoryPhase()?.id"></code></div>
+                      <div><span class="text-slate-500">label:</span> <span x-text="selectedHistoryPhase()?.label"></span></div>
+                      <div><span class="text-slate-500">detail:</span> <span class="mono text-xs" x-text="selectedHistoryPhase()?.detail"></span></div>
+                      <div><span class="text-slate-500">status:</span> 
+                        <span :class="{
+                          'text-emerald-400': selectedHistoryPhase()?.status === 'ok',
+                          'text-rose-400': selectedHistoryPhase()?.status === 'fail'
+                        }" x-text="selectedHistoryPhase()?.status"></span>
+                      </div>
+                      <div x-show="selectedHistoryPhase()?.duration_ms">
+                        <span class="text-slate-500">耗时:</span> <span class="mono" x-text="selectedHistoryPhase()?.duration_ms + 'ms'"></span>
+                      </div>
+                      <div x-show="selectedHistoryPhase()?.error">
+                        <span class="text-slate-500">错误:</span> <span class="text-rose-300 break-all" x-text="selectedHistoryPhase()?.error"></span>
+                      </div>
+                    </div>
+                    
+                    <!-- 请求参数 -->
+                    <div x-show="selectedHistoryPhase()?.resolved_request" class="mt-3 pt-3 border-t border-slate-800">
+                      <div class="flex items-center justify-between cursor-pointer" @click="$el.nextElementSibling.classList.toggle('hidden')">
+                        <span class="text-xs text-slate-400 uppercase">请求参数（解析后）</span>
+                        <span class="text-xs text-slate-600">点击展开/收起</span>
+                      </div>
+                      <pre class="mt-2 bg-slate-950 rounded p-3 text-xs mono text-slate-300 overflow-auto max-h-64 scrollbar-thin whitespace-pre-wrap break-all"
+                           x-text="JSON.stringify(selectedHistoryPhase()?.resolved_request, null, 2)"></pre>
+                    </div>
+                    
+                    <!-- 响应数据 -->
+                    <div x-show="selectedHistoryPhase()?.response !== undefined && selectedHistoryPhase()?.response !== null" class="mt-3 pt-3 border-t border-slate-800">
+                      <div class="flex items-center justify-between cursor-pointer" @click="$el.nextElementSibling.classList.toggle('hidden')">
+                        <span class="text-xs text-slate-400 uppercase">响应数据</span>
+                        <span class="text-xs text-slate-600">点击展开/收起</span>
+                      </div>
+                      <pre class="mt-2 bg-slate-950 rounded p-3 text-xs mono text-emerald-300 overflow-auto max-h-80 scrollbar-thin whitespace-pre-wrap break-all"
+                           x-text="typeof selectedHistoryPhase()?.response === 'object' && selectedHistoryPhase()?.response?._truncated
+                             ? selectedHistoryPhase()?.response?._preview + '\n\n... (已截断，共 ' + selectedHistoryPhase()?.response?._length + ' 字符)'
+                             : JSON.stringify(selectedHistoryPhase()?.response, null, 2)"></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -2075,12 +2393,10 @@ function app() {
     running: false,
     selectedStep: null,
     resolved_vars: [],
+    envFields: [],
     sse: null,
     
-    // ⭐ P2-5: 变量实时预览
-    livePreviewVars: false,
-    editedVars: {},  // 用户编辑的变量值
-    originalVars: {},  // 原始变量值（用于重置）
+    // ⭐ 变量面板状态
 
     // 活跃 run 登记表：caseName → {phases, summary, fixes, running, sse, runId}
     // 离开详情页不销毁，回来恢复
@@ -2093,6 +2409,8 @@ function app() {
     harFile: null,
     harCaseName: '',
     harVarConfig: [],     // ⭐ 变量配置（从 preview 初始化，用户可编辑）
+    harPickFields: [],    // ⭐ 环境相关字段（从 preview 初始化，用户可编辑）
+    metadataStatus: 'offline',  // ⭐ 元数据增强状态: online/offline/degraded
     dropHover: false,
 
     // Dashboard 增强
@@ -2105,6 +2423,12 @@ function app() {
 
     // 用例详情增强
     detailTab: 'result',  // result | vars | yaml | steps
+    
+    // ⭐ 环境相关字段面板
+    pickFieldSaving: {},
+    pickFieldsExpanded: true,
+    varsExpanded: true,
+    guideExpanded: true,
     
     // ⭐ 用例名称编辑
     editingCaseName: '',
@@ -2169,6 +2493,11 @@ function app() {
     runHistory: [],
     selectedRunId: '',
     selectedRunEvents: [],
+    historyPhases: [],
+    historyVars: [],
+    historyEnvFields: [],
+    historySummary: null,
+    selectedHistoryStep: null,
 
     async init() {
       // ⭐ 初始化主题
@@ -2308,12 +2637,6 @@ function app() {
       this.showToast('已保存');
     },
 
-    // ⭐ P2-5: 变量重置方法
-    resetVars() {
-      this.editedVars = {...this.originalVars};
-      this.showToast('变量已重置为原始值');
-    },
-
     // ======== 用例详情 ========
     async openCase(name) {
       const data = await (await fetch(`/api/cases/${name}/yaml`)).json();
@@ -2332,12 +2655,14 @@ function app() {
         this.fixes = ar.fixes;
         this.running = ar.running;
         this.resolved_vars = ar.resolved_vars || {};
+        this.envFields = ar.envFields || [];
       } else {
         this.phases = [];
         this.summary = null;
         this.fixes = [];
         this.running = false;
         this.resolved_vars = {};
+        this.envFields = [];
       }
     },
 
@@ -2476,6 +2801,7 @@ function app() {
       this.summary = ar.summary;
       this.fixes = ar.fixes;
       this.running = ar.running;
+      this.envFields = ar.envFields || [];
       // 不重复订阅 SSE（它已在后台跑）
       return true;
     },
@@ -2502,6 +2828,7 @@ function app() {
         running: true,
         sse: null,
         resolved_vars: [],
+        envFields: [],
       };
       this.activeRuns[name] = record;
       this.phases = record.phases;
@@ -2509,6 +2836,7 @@ function app() {
       this.fixes = record.fixes;
       this.running = true;
       this.resolved_vars = {};
+      this.envFields = [];
       this.lastResults[name] = 'running';
 
       try {
@@ -2568,6 +2896,17 @@ function app() {
         return p;
       };
 
+      es.addEventListener('case_start', (ev) => {
+        const d = JSON.parse(ev.data);
+        // 预加载环境字段（pending 状态）
+        const previewFields = d.pick_fields_preview || [];
+        if (previewFields.length > 0) {
+          record.envFields = previewFields;
+          if (this.currentCase?.name === name) {
+            this.envFields = record.envFields;
+          }
+        }
+      });
       es.addEventListener('login_start', (ev) => {
         const d = JSON.parse(ev.data);
         addPhase('login', '登录', d.username + ' @ ' + d.base_url, 'running');
@@ -2630,6 +2969,25 @@ function app() {
         (d.fixes || []).forEach(f => record.fixes.push(f));
         // 当前如果正在看这个 case，同步 this.fixes
         if (this.currentCase?.name === name) this.fixes = record.fixes;
+      });
+      es.addEventListener('env_fields_resolved', (ev) => {
+        const d = JSON.parse(ev.data);
+        const updates = d.fields || [];
+        if (record.envFields.length > 0 && updates.length > 0) {
+          // 逐个更新状态
+          updates.forEach(uf => {
+            const existing = record.envFields.find(ef => ef.step_id === uf.step_id);
+            if (existing) {
+              Object.assign(existing, uf);
+            } else {
+              record.envFields.push(uf);
+            }
+          });
+          record.envFields = [...record.envFields]; // 触发响应式
+        } else {
+          record.envFields = updates;
+        }
+        if (this.currentCase?.name === name) this.envFields = [...record.envFields];
       });
       es.addEventListener('case_done', (ev) => {
         const d = JSON.parse(ev.data);
@@ -2770,6 +3128,8 @@ function app() {
       this.harFile = null;
       this.harCaseName = '';
       this.harVarConfig = [];
+      this.harPickFields = [];
+      this.metadataStatus = 'offline';
       this.dropHover = false;
     },
 
@@ -2790,7 +3150,8 @@ function app() {
       }
       this.harUploading = true;
       try {
-        const resp = await fetch('/api/har/preview?filename=' + encodeURIComponent(file.name), {
+        const envId = this.currentEnv || '';
+        const resp = await fetch(`/api/har/preview?filename=${encodeURIComponent(file.name)}&env_id=${encodeURIComponent(envId)}`, {
           method: 'POST',
           headers: {'Content-Type': 'application/octet-stream'},
           body: file,
@@ -2799,8 +3160,14 @@ function app() {
         if (!data.ok) { this.showToast('HAR 解析失败: ' + (data.error || '')); return; }
         this.harPreview = data.preview;
         this.harFile = data.har_file;
+        // ⭐ 存储元数据增强状态
+        this.metadataStatus = data.metadata_status || 'offline';
         // ⭐ 初始化变量配置面板
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
+        // ⭐ 初始化环境相关字段面板（按 env_sensitive 排序，与变量面板一致）
+        const SENS_ORDER = { high: 0, medium: 1, low: 2 };
+        this.harPickFields = (data.preview.pick_fields || []).map(pf => ({...pf}))
+            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
         this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harStep = 2;
       } catch (e) {
@@ -2821,6 +3188,14 @@ function app() {
           template: vc.template,
         };
       }
+      // ⭐ 构建环境字段覆盖配置
+      const pickFieldOverrides = {};
+      for (const pf of this.harPickFields) {
+        pickFieldOverrides[pf.id] = {
+          value_id: pf.value_id,
+          value_name: pf.value_name,
+        };
+      }
       try {
         const resp = await fetch('/api/har/extract', {
           method: 'POST',
@@ -2829,6 +3204,7 @@ function app() {
             har_file: this.harFile,
             case_name: this.harCaseName,
             var_overrides: varOverrides,
+            pick_field_overrides: pickFieldOverrides,
           }),
         });
         if (!resp.ok) {
@@ -3766,12 +4142,97 @@ function app() {
     async openRunDetail(runId) {
       this.selectedRunId = runId;
       this.selectedRunEvents = [];
+      this.historyPhases = [];
+      this.historyVars = [];
+      this.historyEnvFields = [];
+      this.historySummary = null;
+      this.selectedHistoryStep = null;
       try {
         const data = await (await fetch(`/api/run_history/${runId}`)).json();
         this.selectedRunEvents = data.events || [];
+        // 解析为 phases 格式
+        const parsed = this.buildHistoryPhases(this.selectedRunEvents);
+        this.historyPhases = parsed.phases;
+        this.historyVars = parsed.historyVars;
+        this.historyEnvFields = parsed.historyEnvFields;
+        this.historySummary = parsed.historySummary;
       } catch (e) {
         this.showToast('加载 run 详情失败: ' + e.message);
+        this.selectedRunEvents = [];
+        this.historyPhases = [];
       }
+    },
+
+    buildHistoryPhases(events) {
+      const phases = [];
+      const stepMap = {};
+      let historyVars = [];
+      let historyEnvFields = [];
+      let historySummary = null;
+
+      for (const ev of events) {
+        const d = ev.data || {};
+        switch(ev.type) {
+          case 'login_start':
+            phases.push({id: 'login', label: '登录', detail: '', status: 'running', duration_ms: null});
+            break;
+          case 'login_ok': {
+            const loginPhase = phases.find(p => p.id === 'login');
+            if (loginPhase) { loginPhase.status = 'ok'; if (d.duration_ms) loginPhase.duration_ms = d.duration_ms; }
+            break;
+          }
+          case 'session_ready':
+            historyVars = d.resolved_vars || [];
+            { const sessionPhase = phases.find(p => p.id === 'login');
+              if (sessionPhase && d.duration_ms) sessionPhase.duration_ms = d.duration_ms; }
+            break;
+          case 'step_start': {
+            const phase = {id: d.id || ('step_' + phases.length), label: d.label || d.id || '步骤', detail: d.detail || '', status: 'running', duration_ms: null, resolved_request: d.resolved_request || null, response: null};
+            phases.push(phase);
+            stepMap[phase.id] = phase;
+            break;
+          }
+          case 'step_ok': {
+            const okStep = stepMap[d.id];
+            if (okStep) { okStep.status = 'ok'; if (d.duration_ms) okStep.duration_ms = d.duration_ms; if (d.response !== undefined) okStep.response = d.response; }
+            break;
+          }
+          case 'step_fail': {
+            const failStep = stepMap[d.id];
+            if (failStep) { failStep.status = 'fail'; if (d.duration_ms) failStep.duration_ms = d.duration_ms; failStep.error = d.error || ''; if (d.response !== undefined) failStep.response = d.response; }
+            break;
+          }
+          case 'case_start':
+            if (d.pick_fields_preview && d.pick_fields_preview.length > 0) {
+              historyEnvFields = d.pick_fields_preview;
+            }
+            break;
+          case 'env_fields_resolved':
+            if (historyEnvFields.length > 0 && (d.fields || []).length > 0) {
+              (d.fields || []).forEach(uf => {
+                const existing = historyEnvFields.find(ef => ef.step_id === uf.step_id);
+                if (existing) { Object.assign(existing, uf); }
+                else { historyEnvFields.push(uf); }
+              });
+              historyEnvFields = [...historyEnvFields];
+            } else {
+              historyEnvFields = d.fields || [];
+            }
+            break;
+          case 'case_done':
+            historySummary = d;
+            break;
+        }
+      }
+      // 如果有 running 状态的步骤没被标记结束，改为 fail
+      phases.forEach(p => { if (p.status === 'running') p.status = 'fail'; });
+
+      return { phases, historyVars, historyEnvFields, historySummary };
+    },
+
+    selectedHistoryPhase() {
+      if (!this.selectedHistoryStep || !this.historyPhases) return null;
+      return this.historyPhases.find(p => p.id === this.selectedHistoryStep) || null;
     },
 
     // ⭐ 从报告弹窗跳转到执行历史
@@ -4286,6 +4747,125 @@ function app() {
         if (current) steps.push(current);
         return steps;
       } catch (e) { return []; }
+    },
+
+    parsedPickFields() {
+      const yamlText = this.yamlSource || '';
+      const pickFields = {};
+      try {
+        const pfMatch = yamlText.match(/^pick_fields:\s*\n((?:[ \t]+[^\n]+\n)*)/m);
+        if (!pfMatch) return [];
+        const lines = pfMatch[1].split('\n');
+        let currentKey = null;
+        for (const line of lines) {
+          const keyMatch = line.match(/^  ([\w]+):\s*$/);
+          if (keyMatch) {
+            currentKey = keyMatch[1];
+            pickFields[currentKey] = {};
+            continue;
+          }
+          if (currentKey) {
+            const propMatch = line.match(/^\s{4}([\w]+):\s*"?([^"]*)"?\s*$/);
+            if (propMatch) {
+              pickFields[currentKey][propMatch[1]] = propMatch[2];
+            }
+          }
+        }
+      } catch(e) { return []; }
+
+      const keys = Object.keys(pickFields);
+      if (keys.length === 0) return [];
+
+      // 从 steps 段提取 pick_basedata 步骤的 value_id 和 value_name
+      const pickStepMap = {};
+      try {
+        const stepPattern = new RegExp('- id:\\s*(\\S+)\\s*\\n\\s+type:\\s*pick_basedata[\\s\\S]*?value_id:\\s*["\']?([^"\'\\n]+?)["\']?\\s*\\n(?:\\s+value_name:\\s*["\']?([^"\'\\n]*?)["\']?\\s*\\n)?', 'g');
+        let m;
+        while ((m = stepPattern.exec(yamlText)) !== null) {
+          pickStepMap[m[1]] = { value_id: m[2].trim(), value_name: (m[3] || '').trim() };
+        }
+      } catch(e) {}
+
+      const SENS_ORDER = { high: 0, medium: 1, low: 2 };
+      return keys.map(key => {
+        const entry = pickFields[key];
+        const sensitive = entry.env_sensitive || 'medium';
+        const stepData = pickStepMap[key];
+        let valueId, valueName;
+        // pick_fields 块是用户编辑的权威源，优先级最高
+        if (entry.value_id) {
+          valueId = entry.value_id;
+          valueName = entry.value_name || (stepData ? stepData.value_name : '') || '';
+        } else if (stepData) {
+          // pick_fields 没有 value_id，fallback 到步骤定义中的值
+          valueId = stepData.value_id;
+          valueName = stepData.value_name || entry.value_name || '';
+        } else {
+          valueId = entry.value_name || '';
+          valueName = '';
+        }
+        return {
+          step_id: key,
+          label: entry.label || key,
+          env_sensitive: sensitive,
+          value_id: valueId,
+          value_name: valueName,
+          source: entry.source || '',
+          _sort: SENS_ORDER[sensitive] !== undefined ? SENS_ORDER[sensitive] : 1
+        };
+      }).sort((a, b) => a._sort - b._sort);
+    },
+
+    async saveVarValue(key) {
+      if (!this.currentCase) {
+        this.showToast('未选中用例', 'error');
+        return;
+      }
+      try {
+        const resp = await fetch('/api/cases/' + encodeURIComponent(this.currentCase.name) + '/yaml', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({yaml: this.yamlSource})
+        });
+        if (!resp.ok) {
+          const data = await resp.json();
+          throw new Error(data.detail || '保存失败');
+        }
+        this.yamlDirty = false;
+        this.showToast('✓ 变量已保存');
+      } catch(e) {
+        this.showToast('保存失败: ' + (e.message || e), 'error');
+      }
+    },
+
+    async savePickFieldValue(stepId, newValue) {
+      if (!newValue || !String(newValue).trim()) { alert('值不能为空'); return; }
+      newValue = String(newValue).trim();
+      // ⭐ 立即更新本地 harPickFields（不依赖API成功）
+      const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId);
+      if (pfIdx !== -1) {
+        this.harPickFields[pfIdx].value_id = newValue;
+      }
+      var caseName = this.currentCase && this.currentCase.name;
+      if (!caseName) { this.showToast('✓ 本地已更新（远程保存跳过：预览阶段）'); return; }
+      try {
+        var resp = await fetch('/api/pick-field-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ case_name: caseName, step_id: stepId, value_id: newValue })
+        });
+        var data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || '保存失败');
+        // 刷新 YAML
+        var yamlResp = await fetch('/api/cases/' + encodeURIComponent(caseName) + '/yaml');
+        var yamlData = await yamlResp.json();
+        this.yamlSource = yamlData.yaml;
+        this.yamlDirty = false;
+        this.showToast('✓ 字段值已保存');
+      } catch(e) {
+        // ⭐ API失败时不回滚本地值，显示错误信息
+        this.showToast('保存到YAML失败: ' + (e.message || e), 'error');
+      }
     },
 
     getStepDescription(step) {

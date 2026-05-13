@@ -204,40 +204,48 @@ class TestVariableDetection:
     def test_detect_number_field(self):
         """编号字段检测"""
         actions = [{
-            "methodName": "updateValue",
-            "postData": [{}, [{"k": "number", "v": "TEST12345"}]]
+            "type": "invoke",
+            "method": "updateValue",
+            "ac": "updateValue",
+            "post_data": [{}, [{"k": "number", "v": "TEST12345"}]]
         }]
-        modified, vars_map = detect_var_placeholders(actions)
+        modified, vars_map, vars_labels = detect_var_placeholders(actions)
         assert "test_number" in vars_map
         assert "${rand:" in vars_map["test_number"]
     
     def test_detect_name_field(self):
         """名称字段检测"""
         actions = [{
-            "methodName": "updateValue",
-            "postData": [{}, [{"k": "name", "v": "测试员张三"}]]
+            "type": "invoke",
+            "method": "updateValue",
+            "ac": "updateValue",
+            "post_data": [{}, [{"k": "name", "v": "测试员张三"}]]
         }]
-        modified, vars_map = detect_var_placeholders(actions)
+        modified, vars_map, vars_labels = detect_var_placeholders(actions)
         assert "test_name" in vars_map
     
     def test_detect_phone_field(self):
         """电话字段检测"""
         actions = [{
-            "methodName": "updateValue",
-            "postData": [{}, [{"k": "phone", "v": "13800138000"}]]
+            "type": "invoke",
+            "method": "updateValue",
+            "ac": "updateValue",
+            "post_data": [{}, [{"k": "phone", "v": "13800138000"}]]
         }]
-        modified, vars_map = detect_var_placeholders(actions)
+        modified, vars_map, vars_labels = detect_var_placeholders(actions)
         assert "test_phone" in vars_map
     
     def test_detect_date_field(self):
         """日期字段检测"""
         actions = [{
-            "methodName": "updateValue",
-            "postData": [{}, [{"k": "effectdate", "v": "2026-04-28"}]]
+            "type": "invoke",
+            "method": "updateValue",
+            "ac": "updateValue",
+            "post_data": [{}, [{"k": "effectdate", "v": "2026-04-28"}]]
         }]
-        modified, vars_map = detect_var_placeholders(actions)
+        modified, vars_map, vars_labels = detect_var_placeholders(actions)
         # 检查日期是否被替换
-        for e in actions[0]["postData"][1]:
+        for e in actions[0]["post_data"][1]:
             if isinstance(e, dict) and "v" in e:
                 assert e["v"] == "${today}" or "today" in vars_map.values()
     

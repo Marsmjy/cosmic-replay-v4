@@ -1195,6 +1195,8 @@ def extract_steps(har: dict) -> list[dict]:
                 actions = json.loads(params_raw) if params_raw else []
             except Exception:
                 actions = []
+            # ⭐ 捕获响应体（用于提取 setItemByIdFromClient 的 value_name）
+            _resp_text = (entry.get("response") or {}).get("content", {}).get("text", "") or ""
             for action in actions:
                 if not isinstance(action, dict):
                     continue
@@ -1209,7 +1211,7 @@ def extract_steps(har: dict) -> list[dict]:
                     tier = "core"
                 elif tier != "core" and ctrl_key in _CORE_TOOLBAR_KEYS:
                     tier = "core"
-                steps.append({
+                step_dict: dict[str, Any] = {
                     "_har_index": i,
                     "type": "invoke",
                     "id": name,
@@ -1222,7 +1224,11 @@ def extract_steps(har: dict) -> list[dict]:
                     "post_data": action.get("postData", [{}, []]),
                     "_har_page_id": req_page_id,   # HAR 原始 pageId
                     "_tier": tier,
-                })
+                }
+                # 仅对 setItemByIdFromClient 保留响应体（提取 value_name）
+                if action.get("methodName") == "setItemByIdFromClient" and _resp_text:
+                    step_dict["_resp_text"] = _resp_text
+                steps.append(step_dict)
         elif "getConfig" in path:
             params_raw = qs.get("params", [""])[0]
             try:
@@ -1474,6 +1480,29 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                 out.append(fill_step)
 
             if value_id:
+                # ⭐ 从响应体提取 value_name（响应中 "u" action 的 v[1]）
+                value_name = ""
+                _resp_text = s.get("_resp_text", "")
+                if _resp_text:
+                    try:
+                        resp_json = json.loads(_resp_text)
+                        if isinstance(resp_json, list):
+                            field_key = s.get("key", "")
+                            for rj in resp_json:
+                                if isinstance(rj, dict) and rj.get("a") == "u":
+                                    for p_item in (rj.get("p") or []):
+                                        if (isinstance(p_item, dict)
+                                                and p_item.get("k") == field_key):
+                                            v_arr = p_item.get("v")
+                                            if (isinstance(v_arr, list)
+                                                    and len(v_arr) >= 2
+                                                    and isinstance(v_arr[1], str)):
+                                                value_name = v_arr[1]
+                                            break
+                                    if value_name:
+                                        break
+                    except Exception:
+                        pass
                 out.append({
                     "type": "pick_basedata",
                     "id": s["id"],
@@ -1481,6 +1510,7 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "app_id": s["app_id"],
                     "field_key": s["key"],
                     "value_id": value_id,
+                    "value_name": value_name,
                     "_tier": "core",
                     "_har_page_id": s.get("_har_page_id", ""),
                 })
@@ -1761,7 +1791,7 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     return assertions
 
 
-def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides: dict | None = None) -> str:
+def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides: dict | None = None, pick_field_overrides: dict | None = None) -> str:
     har = load_har(har_path)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
@@ -1954,6 +1984,132 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
     # _date_replaced 是内部标记，不输出
     vars_map.pop("_date_replaced", None)
 
+    # --- 从 cleaned 步骤中提取 pick_fields（环境相关字段） ---
+    _PF_ENV_RELATED_FIELDS = {
+        "ba_e_enterprise": "企业",
+        "ba_po_adminorg": "行政组织",
+        "ba_po_position": "职位",
+        "ba_org": "组织",
+        "ba_dept": "部门",
+        "ba_company": "公司",
+        "enterprise": "企业",
+        "adminorg": "行政组织",
+        "position": "职位",
+        "org": "组织",
+        "dept": "部门",
+    }
+    _PF_ENUM_FIELDS = {
+        "gender": "性别",
+        "certificatetype": "证件类型",
+        "ba_e_laborrelstatus": "用工状态",
+        "status": "状态",
+        "type": "类型",
+    }
+    _PF_ENV_SENSITIVE_KEYWORDS = (
+        "effectdate", "effectdatebak", "loseeffectdate",
+        "bsed", "bsled", "startdate", "enddate",
+    )
+    pick_fields_map = OrderedDict()
+    for s in cleaned:
+        if s.get("type") != "pick_basedata":
+            continue
+        field_key = s.get("field_key", "")
+        if not field_key:
+            continue
+        # value_id 可能已被 detect_var_placeholders 替换为 ${vars.xxx}，需从 vars_map 获取原始值
+        raw_value_id = s.get("value_id", "")
+        if isinstance(raw_value_id, str) and raw_value_id.startswith("${vars."):
+            vname_ref = raw_value_id[7:-1]  # 提取变量名
+            raw_value_id = vars_map.get(vname_ref, raw_value_id)
+        # 确定 step_id 和 env_sensitive
+        if field_key in _PF_ENV_RELATED_FIELDS:
+            step_id = f"pick_{field_key}"
+            env_sensitive = "medium"
+            label = _PF_ENV_RELATED_FIELDS[field_key]
+        elif field_key in _PF_ENUM_FIELDS:
+            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
+            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            env_sensitive = "low"
+            label = _PF_ENUM_FIELDS[field_key]
+        elif field_key.lower() in _PF_ENV_SENSITIVE_KEYWORDS:
+            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
+            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            env_sensitive = "medium"
+            label = _FIELD_LABELS.get(field_key.lower(), field_key)
+        else:
+            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
+            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            env_sensitive = "low"
+            label = _FIELD_LABELS.get(field_key.lower(), field_key)
+        if step_id not in pick_fields_map:
+            pick_fields_map[step_id] = OrderedDict([
+                ("value_id", str(raw_value_id)),
+                ("value_name", s.get("value_name", "") or ""),
+                ("label", label),
+                ("env_sensitive", env_sensitive),
+                ("field_key", field_key),
+            ])
+
+    # --- 从 update_fields 步骤中提取日期类环境敏感字段 ---
+    # 与 preview_har() 保持一致：update_fields 中的日期字段也应出现在 pick_fields 中
+    for s in cleaned:
+        if s.get("type") != "update_fields":
+            continue
+        fields = s.get("fields")
+        if not isinstance(fields, dict):
+            continue
+        for fk in fields:
+            fk_lower = fk.lower()
+            if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
+                step_id = f"pick_{fk}"
+                if step_id in pick_fields_map:
+                    continue
+                label = _FIELD_LABELS.get(fk_lower) or fk
+                fv = fields[fk]
+                # 提取显示值（可能是字符串、多语言 dict 或 ${today}）
+                if isinstance(fv, dict):
+                    display_val = fv.get("zh_CN", "") or str(fv)
+                elif isinstance(fv, str):
+                    display_val = fv
+                else:
+                    display_val = str(fv) if fv else ""
+                pick_fields_map[step_id] = OrderedDict([
+                    ("value_id", display_val),
+                    ("value_name", ""),
+                    ("label", label),
+                    ("env_sensitive", "medium"),
+                    ("field_key", fk),
+                ])
+    # 注：detect_var_placeholders 对 update_fields 中的日期字段使用 ${today}
+    # 内联替换，不生成 vars 变量，因此日期字段无需从 vars_map 去重
+
+    # --- 去重：从 vars_map 中移除被 pick_fields 覆盖的变量 ---
+    _pick_field_var_names = set()
+    for pf_id, pf_data in pick_fields_map.items():
+        fk = pf_data.get("field_key", "")
+        if fk:
+            _pick_field_var_names.add(f"{fk}_id")
+            _pick_field_var_names.add(fk)
+            _pick_field_var_names.add(f"pick_{fk}_id")
+            _pick_field_var_names.add(f"pick_{fk}")
+            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", fk).strip("_")
+            if _sanitized:
+                _pick_field_var_names.add(f"pick_{_sanitized}_id")
+        _pick_field_var_names.add(pf_id)
+    for vname in list(vars_map.keys()):
+        if vname in _pick_field_var_names:
+            vars_map.pop(vname)
+            vars_labels.pop(vname, None)
+
+    # --- 应用 pick_field_overrides ---
+    if pick_field_overrides:
+        for pf_id, pf_cfg in pick_field_overrides.items():
+            if isinstance(pf_cfg, dict) and pf_id in pick_fields_map:
+                if "value_id" in pf_cfg:
+                    pick_fields_map[pf_id]["value_id"] = pf_cfg["value_id"]
+                if "value_name" in pf_cfg:
+                    pick_fields_map[pf_id]["value_name"] = pf_cfg["value_name"]
+
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:
         for vname, cfg in var_overrides.items():
@@ -2010,6 +2166,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
         ])),
         ("vars", built_vars),
         ("vars_labels", built_vars_labels),  # 变量中文标签
+        ("pick_fields", pick_fields_map if pick_fields_map else OrderedDict()),
         ("main_form_id", main_form),
         ("steps", yaml_steps),
         ("assertions", _build_default_assertions(yaml_steps)),
@@ -2187,10 +2344,140 @@ def preview_har(har_path: Path) -> dict:
             "label": label,                      # ⭐ 新增：真实业务中文名
         })
 
+    # ⭐ 环境相关字段 pick_fields 提取
+    # 复用 build_yaml_case 中的 ENV_RELATED_FIELDS / ENUM_FIELDS 判断逻辑
+    _ENV_RELATED_FIELDS = {
+        "ba_e_enterprise": "企业",
+        "ba_po_adminorg": "行政组织",
+        "ba_po_position": "职位",
+        "ba_org": "组织",
+        "ba_dept": "部门",
+        "ba_company": "公司",
+        "enterprise": "企业",
+        "adminorg": "行政组织",
+        "position": "职位",
+        "org": "组织",
+        "dept": "部门",
+    }
+    _ENUM_FIELDS = {
+        "gender": "性别",
+        "certificatetype": "证件类型",
+        "ba_e_laborrelstatus": "用工状态",
+        "status": "状态",
+        "type": "类型",
+    }
+    # 环境敏感关键字（日期类字段）
+    _ENV_SENSITIVE_KEYWORDS = (
+        "effectdate", "effectdatebak", "loseeffectdate",
+        "bsed", "bsled", "startdate", "enddate",
+    )
+
+    pick_fields: list[dict] = []
+    _seen_pick_ids: set = set()
+
+    for s in raw_steps:
+        if s.get("type") == "pick_basedata":
+            field_key = s.get("field_key", "")
+            value_id = s.get("value_id", "")
+            if not field_key or not value_id:
+                continue
+
+            # 确定 step_id（与 build_yaml_case 命名规则一致）
+            if field_key in _ENV_RELATED_FIELDS:
+                step_id = f"pick_{field_key}"
+            else:
+                _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
+                step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+
+            # 去重
+            if step_id in _seen_pick_ids:
+                continue
+            _seen_pick_ids.add(step_id)
+
+            # 判断 env_sensitive 级别
+            if field_key in _ENV_RELATED_FIELDS:
+                env_sensitive = "medium"
+            elif field_key in _ENUM_FIELDS:
+                env_sensitive = "low"
+            elif field_key.lower() in _ENV_SENSITIVE_KEYWORDS:
+                env_sensitive = "medium"
+            else:
+                env_sensitive = "low"
+
+            # 标签优先级：ENV_RELATED_FIELDS > ENUM_FIELDS > _FIELD_LABELS > field_key
+            label = (
+                _ENV_RELATED_FIELDS.get(field_key)
+                or _ENUM_FIELDS.get(field_key)
+                or _FIELD_LABELS.get(field_key.lower())
+                or field_key
+            )
+
+            pick_fields.append({
+                "id": step_id,
+                "field_key": field_key,
+                "label": label,
+                "env_sensitive": env_sensitive,
+                "value_id": str(value_id),
+                "value_name": s.get("value_name", "") or "",
+            })
+
+        elif s.get("type") == "update_fields":
+            # 处理 update_fields 中包含环境敏感日期字段
+            fields = s.get("fields")
+            if not isinstance(fields, dict):
+                continue
+            for fk in fields:
+                fk_lower = fk.lower()
+                if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
+                    step_id = f"pick_{fk}"
+                    if step_id in _seen_pick_ids:
+                        continue
+                    _seen_pick_ids.add(step_id)
+
+                    label = _FIELD_LABELS.get(fk_lower) or fk
+                    fv = fields[fk]
+                    # 提取值（可能是字符串或多语言 dict）
+                    if isinstance(fv, dict):
+                        display_val = fv.get("zh_CN", "") or str(fv)
+                    elif isinstance(fv, str):
+                        display_val = fv
+                    else:
+                        display_val = str(fv) if fv else ""
+
+                    pick_fields.append({
+                        "id": step_id,
+                        "field_key": fk,
+                        "label": label,
+                        "env_sensitive": "medium",
+                        "value_id": display_val,
+                        "value_name": "",
+                    })
+
+    # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
+    _sens_order = {"high": 0, "medium": 1, "low": 2}
+    pick_fields.sort(key=lambda pf: _sens_order.get(pf["env_sensitive"], 9))
+
+    # ⭐ 去重：把已被 pick_fields 覆盖的所有字段对应变量从 var_items 移除
+    _pick_field_var_names: set = set()
+    for pf in pick_fields:
+        fk = pf.get("field_key", "")
+        step_id = pf.get("id", "")
+        if fk:
+            # 覆盖所有可能的变量命名模式
+            _pick_field_var_names.add(f"{fk}_id")          # gender_id
+            _pick_field_var_names.add(fk)                   # gender
+            _pick_field_var_names.add(f"pick_{fk}_id")      # pick_gender_id
+            _pick_field_var_names.add(f"pick_{fk}")         # pick_gender
+        if step_id:
+            _pick_field_var_names.add(step_id)              # pick_gender_id (step_id 格式)
+    if _pick_field_var_names:
+        var_items = [v for v in var_items if v["name"] not in _pick_field_var_names]
+
     preview = {
         "main_form_id": main_form,
         "tier_counts": by_tier,
         "detected_vars": var_items,
+        "pick_fields": pick_fields,
         "steps": [
             {
                 "id": s.get("id"),
