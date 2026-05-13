@@ -2002,6 +2002,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
         "gender": "性别",
         "certificatetype": "证件类型",
         "ba_e_laborrelstatus": "用工状态",
+        "laborreltypecls": "用工关系分类",
         "status": "状态",
         "type": "类型",
     }
@@ -2031,12 +2032,8 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
             env_sensitive = "low"
             label = _PF_ENUM_FIELDS[field_key]
-        elif field_key.lower() in _PF_ENV_SENSITIVE_KEYWORDS:
-            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
-            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
-            env_sensitive = "medium"
-            label = _FIELD_LABELS.get(field_key.lower(), field_key)
         else:
+            # 通用处理：所有 pick_basedata 字段均归入环境相关字段
             _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
             step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
             env_sensitive = "low"
@@ -2061,7 +2058,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
         for fk in fields:
             fk_lower = fk.lower()
             if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
-                step_id = f"pick_{fk}"
+                step_id = f"date_{fk}"
                 if step_id in pick_fields_map:
                     continue
                 label = _FIELD_LABELS.get(fk_lower) or fk
@@ -2075,7 +2072,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
                     display_val = str(fv) if fv else ""
                 pick_fields_map[step_id] = OrderedDict([
                     ("value_id", display_val),
-                    ("value_name", ""),
+                    ("value_name", display_val),
                     ("label", label),
                     ("env_sensitive", "medium"),
                     ("field_key", fk),
@@ -2092,6 +2089,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             _pick_field_var_names.add(fk)
             _pick_field_var_names.add(f"pick_{fk}_id")
             _pick_field_var_names.add(f"pick_{fk}")
+            _pick_field_var_names.add(f"date_{fk}")
             _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", fk).strip("_")
             if _sanitized:
                 _pick_field_var_names.add(f"pick_{_sanitized}_id")
@@ -2363,6 +2361,7 @@ def preview_har(har_path: Path) -> dict:
         "gender": "性别",
         "certificatetype": "证件类型",
         "ba_e_laborrelstatus": "用工状态",
+        "laborreltypecls": "用工关系分类",
         "status": "状态",
         "type": "类型",
     }
@@ -2429,7 +2428,7 @@ def preview_har(har_path: Path) -> dict:
             for fk in fields:
                 fk_lower = fk.lower()
                 if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
-                    step_id = f"pick_{fk}"
+                    step_id = f"date_{fk}"
                     if step_id in _seen_pick_ids:
                         continue
                     _seen_pick_ids.add(step_id)
@@ -2450,7 +2449,7 @@ def preview_har(har_path: Path) -> dict:
                         "label": label,
                         "env_sensitive": "medium",
                         "value_id": display_val,
-                        "value_name": "",
+                        "value_name": display_val,
                     })
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
@@ -2468,6 +2467,7 @@ def preview_har(har_path: Path) -> dict:
             _pick_field_var_names.add(fk)                   # gender
             _pick_field_var_names.add(f"pick_{fk}_id")      # pick_gender_id
             _pick_field_var_names.add(f"pick_{fk}")         # pick_gender
+            _pick_field_var_names.add(f"date_{fk}")         # date_effectdatebak
         if step_id:
             _pick_field_var_names.add(step_id)              # pick_gender_id (step_id 格式)
     if _pick_field_var_names:

@@ -511,13 +511,14 @@ def _apply_pick_fields(case: dict):
     for pf_id, pf_meta in pick_fields.items():
         if not isinstance(pf_meta, dict):
             continue
-        value = pf_meta.get("value_name", "")
-        if not value:
-            continue
 
         # date_* -> 替换 update_fields 步骤中的日期字段
+        # 对 date_* 字段，优先用 value_id（用户编辑的值），fallback 到 value_name
         if pf_id.startswith("date_"):
             field_key = pf_id[5:]  # 去掉 "date_" 前缀，如 date_bsed -> bsed
+            value = pf_meta.get("value_id") or pf_meta.get("value_name", "")
+            if not value:
+                continue
             for step in steps:
                 if step.get("type") == "update_fields":
                     fields = step.get("fields") or {}
@@ -529,6 +530,11 @@ def _apply_pick_fields(case: dict):
                                 fv[lang] = value
                         else:
                             fields[field_key] = value
+            continue
+
+        value = pf_meta.get("value_name", "")
+        if not value:
+            continue
 
         # env_*_treeview_focus -> 更新 addnew 步骤的 post_data 中 treeview.focus.id
         elif pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
@@ -569,7 +575,6 @@ def _apply_pick_fields(case: dict):
                         if inject_vname:
                             step["value_name"] = str(inject_vname)
                         log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
-                        break
 
         # enum_* / bool_* / num_* -> 替换 update_fields 或 pick_basedata 步骤中的对应字段
         elif pf_id.startswith("enum_") or pf_id.startswith("bool_") or pf_id.startswith("num_"):
@@ -765,6 +770,29 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     for raw_step in case.get("steps") or []:
         step = resolve_vars(raw_step, vars_ns)
+
+        # ---- date pick_fields 后置注入：防止 resolve_vars 用 ${today} 覆盖用户自定义日期 ----
+        if step.get("type") == "update_fields":
+            _pf = case.get("pick_fields") or {}
+            for _pf_id, _pf_meta in _pf.items():
+                if not _pf_id.startswith("date_"):
+                    continue
+                if not isinstance(_pf_meta, dict):
+                    continue
+                _field_key = _pf_id[5:]  # 去掉 "date_" 前缀
+                _value = _pf_meta.get("value_id") or _pf_meta.get("value_name", "")
+                if not _value:
+                    continue
+                _fields = step.get("fields") or {}
+                if _field_key in _fields:
+                    _fv = _fields[_field_key]
+                    if isinstance(_fv, dict):
+                        for _lang in list(_fv.keys()):
+                            _fv[_lang] = _value
+                    else:
+                        step.setdefault("fields", {})[_field_key] = _value
+        # ---- end date pick_fields 后置注入 ----
+
         stype = step.get("type")
         sid = step.get("id") or f"<{stype}>"
         optional = bool(step.get("optional"))
