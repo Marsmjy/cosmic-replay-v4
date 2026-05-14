@@ -1154,15 +1154,15 @@
       <!-- ⭐ 元数据状态提示条 -->
       <div x-show="metadataStatus === 'online'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs">
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        <span>已连接环境，元数据增强已启用</span>
+        <span>已连接环境，实时元数据查询已启用</span>
       </div>
       <div x-show="metadataStatus === 'degraded'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs">
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-        <span>环境连接失败，使用离线解析模式</span>
+        <span>环境连接异常，使用本地知识库增强</span>
       </div>
       <div x-show="metadataStatus === 'offline'" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-50 border border-gray-200 text-gray-500 text-xs">
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-        <span>未选择环境，使用离线解析模式</span>
+        <span>离线模式，使用本地知识库</span>
       </div>
 
       <div class="grid grid-cols-4 gap-3">
@@ -4912,7 +4912,55 @@ function app() {
         'effectdatebak': '生效日期',
         'simple': '简化名称',
         'longname': '长名称',
+        'nationality': '国籍',
+        'ba_po_workplace': '工作地点',
+        'workplace': '工作地点',
+        'onbrdtcitybak': '入职城市',
+        'onbrdtcity': '入职城市',
+        'ba_a_country': '国家/地区',
+        'handler': '经办人',
+        'probationperiod': '试用期',
+        'laborreltype': '用工关系类型',
+        'empgroup': '员工组',
+        'emptype': '员工类型',
+        'nation': '民族',
+        'maritalstatus': '婚姻状况',
+        'education': '学历',
+        'entrydate': '入职日期',
+        'regulardate': '转正日期',
       };
+
+      // 动态字段标签（从后端API获取，覆盖静态fieldMap）
+      let dynamicFieldLabels = null;
+
+      // 页面加载时预加载字段标签
+      async function loadFieldLabels() {
+          try {
+              const resp = await fetch('/api/field-labels');
+              if (resp.ok) {
+                  const data = await resp.json();
+                  dynamicFieldLabels = data.labels || {};
+                  console.log(`[FieldLabels] 已加载 ${data.count} 个字段标签 (source: ${data.source})`);
+              }
+          } catch (e) {
+              console.warn('[FieldLabels] 加载失败，使用本地 fieldMap 兜底', e);
+          }
+      }
+
+      // 立即加载
+      loadFieldLabels();
+
+      // 统一标签解析函数
+      function resolveFieldLabel(fieldKey) {
+          // 优先级：动态标签 > 静态fieldMap > 格式化的key
+          if (dynamicFieldLabels && dynamicFieldLabels[fieldKey]) {
+              return dynamicFieldLabels[fieldKey];
+          }
+          if (dynamicFieldLabels && dynamicFieldLabels[fieldKey.toLowerCase()]) {
+              return dynamicFieldLabels[fieldKey.toLowerCase()];
+          }
+          return fieldMap[fieldKey] || fieldMap[fieldKey.toLowerCase()] || fieldKey.replace(/_/g, ' ');
+      }
 
       // 3. 动作类型映射
       const actionMap = {
@@ -4991,7 +5039,7 @@ function app() {
 
         case 'update_fields': {
           const fieldKey = Object.keys(step.fields || {})[0] || step.field_key || '';
-          const fieldName = fieldMap[fieldKey] || fieldKey.replace(/_/g, ' ');
+          const fieldName = resolveFieldLabel(fieldKey);
           return {
             text: `填写「${fieldName}」`,
             color: 'text-amber-400'
@@ -4999,7 +5047,7 @@ function app() {
         }
 
         case 'pick_basedata':
-          const pickField = fieldMap[step.field_key] || step.field_key?.replace(/_/g, ' ') || '基础资料';
+          const pickField = step.field_key ? resolveFieldLabel(step.field_key) : '基础资料';
           return {
             text: `选择「${pickField}」`,
             color: 'text-purple-400'

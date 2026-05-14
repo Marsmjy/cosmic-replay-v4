@@ -15,6 +15,7 @@ Endpoint 清单：
   GET  /api/runs/{run_id}/events  SSE 事件流
   POST /api/har/preview         HAR → 预览结构
   POST /api/har/extract         HAR → YAML 用例
+  GET  /api/field-labels        字段标签映射（KB+静态合并）
 
 设计原则：
 - 后端只调 lib 的现成函数（Config/runner/har_extractor），不重复业务
@@ -331,6 +332,32 @@ def api_get_history(limit: int = 10):
 def api_get_case_history(case_name: str, limit: int = 5):
     """获取指定用例的执行历史"""
     return EXECUTION_HISTORY.get_by_case(case_name, limit)
+
+
+# ============================================================
+# Endpoint: 字段标签
+# ============================================================
+_field_labels_cache_merged: dict | None = None
+
+@APP.get("/api/field-labels")
+def api_field_labels():
+    """获取所有字段标签映射（合并知识库 + 静态字典）"""
+    global _field_labels_cache_merged
+    if _field_labels_cache_merged is None:
+        from lib.kb_loader import get_all_field_labels
+        from lib.har_extractor import _FIELD_LABELS
+
+        # 合并：KB 优先级高于静态字典
+        merged = dict(_FIELD_LABELS)  # 静态字典作为基础
+        kb_labels = get_all_field_labels()
+        merged.update(kb_labels)  # KB 覆盖静态字典
+        _field_labels_cache_merged = merged
+
+    return {
+        "labels": _field_labels_cache_merged,
+        "count": len(_field_labels_cache_merged),
+        "source": "kb+static",
+    }
 
 
 # ============================================================
@@ -849,12 +876,27 @@ async def api_har_preview(request: Request):
             logging.getLogger(__name__).warning(f"Preview login failed for env '{env_id}': {e}")
             metadata_status = "degraded"
 
+    # ⭐ 构建 MetadataResolver 实例（在线模式下用于实时元数据增强）
+    meta_resolver = None
+    if env_id and metadata_status == "online":
+        try:
+            from lib.metadata_resolver import MetadataResolver
+            meta_resolver = MetadataResolver(
+                base_url=env_cfg.base_url,
+                cookie=login_session["cookie"],
+                csrf_token=login_session.get("csrf_token", ""),
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"MetadataResolver 构建失败: {e}")
+            meta_resolver = None
+
     try:
         # ⭐ 热重载 har_extractor，确保用最新代码
         import importlib
         importlib.reload(har_extractor)
 
-        preview = har_extractor.preview_har(save_path)
+        preview = har_extractor.preview_har(save_path, meta_resolver=meta_resolver)
         return {
             "ok": True,
             "preview": preview,
@@ -884,12 +926,31 @@ def api_har_extract(body: dict = Body(...)):
     out_path = case_path_from_name(case_name)
     overwritten = out_path.exists()
 
+    # ⭐ 构建 MetadataResolver（从缓存 session 获取）
+    meta_resolver = None
+    env_id = body.get("env_id", "")
+    if env_id:
+        try:
+            env_cfg = CONFIG.get_env(env_id) or CONFIG.default_env()
+            login_session = SESSION_MGR.get_cached(env_id)
+            if login_session and env_cfg:
+                from lib.metadata_resolver import MetadataResolver
+                meta_resolver = MetadataResolver(
+                    base_url=env_cfg.base_url,
+                    cookie=login_session["cookie"],
+                    csrf_token=login_session.get("csrf_token", ""),
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Extract MetadataResolver 构建失败: {e}")
+            meta_resolver = None
+
     try:
         # ⭐ 重新导入时强制使用最新 har_extractor 代码（模块级热重载）
         import importlib
         importlib.reload(har_extractor)
 
-        yaml_text = har_extractor.build_yaml_case(har_path, case_name, var_overrides=var_overrides, pick_field_overrides=pick_field_overrides)
+        yaml_text = har_extractor.build_yaml_case(har_path, case_name, var_overrides=var_overrides, pick_field_overrides=pick_field_overrides, meta_resolver=meta_resolver)
         # ⭐ 在 YAML 中注入 created_at 字段（在 name: 行之后插入）
         now_iso = datetime.now().isoformat(timespec='seconds')
         if re.search(r'^created_at:', yaml_text, flags=re.MULTILINE):

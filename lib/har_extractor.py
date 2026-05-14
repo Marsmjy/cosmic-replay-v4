@@ -18,12 +18,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 import urllib.parse
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any
+
+log = logging.getLogger(__name__)
+
+from lib.kb_loader import get_field_label as _kb_get_field_label
 
 
 # ---------- 常量 ----------
@@ -264,7 +269,56 @@ _FIELD_LABELS = {
     'objecttype':         '对象类型',
     'fieldtype':          '字段类型',
     'tabletype':          '表类型',
+    # HR 入职/员工相关字段
+    'nationality':        '国籍',
+    'ba_po_workplace':    '工作地点',
+    'workplace':          '工作地点',
+    'onbrdtcitybak':      '入职城市',
+    'onbrdtcity':         '入职城市',
+    'ba_a_country':       '国家/地区',
+    'handler':            '经办人',
+    'probationperiod':    '试用期',
+    'probationenddate':   '试用期结束日期',
+    'contractstartdate':  '合同开始日期',
+    'contractenddate':    '合同结束日期',
+    'laborreltype':       '用工关系类型',
+    'empgroup':           '员工组',
+    'emptype':            '员工类型',
+    'workcity':           '工作城市',
+    'nation':             '民族',
+    'maritalstatus':      '婚姻状况',
+    'politicalstatus':    '政治面貌',
+    'education':          '学历',
+    'degree':             '学位',
+    'major':              '专业',
+    'school':             '毕业院校',
+    'entrydate':          '入职日期',
+    'regulardate':        '转正日期',
+    'dimissiondate':      '离职日期',
 }
+
+
+def _resolve_field_label(field_key: str, entity_id: str = None, meta_resolver=None) -> str:
+    """动态解析字段中文标签，优先查询实时元数据。
+
+    优先级链：
+    1. MetadataResolver 实时查询（在线时）
+    2. kb_loader.get_field_label() (知识库动态查询)
+    3. _FIELD_LABELS.get() (静态字典兜底)
+    4. field_key 原始值 (最终fallback)
+    """
+    # 新增：实时元数据查询
+    if meta_resolver and entity_id:
+        label = meta_resolver.get_field_label(entity_id, field_key)
+        if label:
+            return label
+    key_lower = field_key.lower()
+    # 优先查询知识库
+    kb_label = _kb_get_field_label(key_lower)
+    if kb_label:
+        return kb_label
+    # 静态字典兜底
+    return _FIELD_LABELS.get(key_lower, field_key)
 
 
 _AC_LABELS = {
@@ -468,12 +522,12 @@ def generate_step_description(step: dict) -> str:
             return "更新字段值"
         if ac == 'setItemByIdFromClient':
             if key:
-                fname = _FIELD_LABELS.get(key_l, key)
+                fname = _resolve_field_label(key)
                 return f"选择「{fname}」基础资料"
             return "选择基础资料"
         if ac == 'pickValue':
             if key:
-                fname = _FIELD_LABELS.get(key_l, key)
+                fname = _resolve_field_label(key)
                 return f"取值「{fname}」"
             return "取值"
 
@@ -498,7 +552,7 @@ def generate_step_description(step: dict) -> str:
             keys = list(fields.keys())
             names = []
             for k in keys[:3]:  # 最多展示 3 个字段
-                names.append(_FIELD_LABELS.get(k.lower(), k))
+                names.append(_resolve_field_label(k))
             names_str = '/'.join(names)
             if len(keys) == 1:
                 return f"填写「{names_str}」"
@@ -509,8 +563,7 @@ def generate_step_description(step: dict) -> str:
 
     # ---------- pick_basedata ----------
     if step_type == 'pick_basedata':
-        fname = _FIELD_LABELS.get((field_key or '').lower(),
-                                  field_key.replace('_', ' ') if field_key else '基础资料')
+        fname = _resolve_field_label(field_key) if field_key else '基础资料'
         return f"选择「{fname}」"
 
     # ---------- validate / wait ----------
@@ -1102,12 +1155,11 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                     if vname not in vars_map:
                         vars_map[vname] = str(value_id)
                         # 优先从 ENUM_FIELDS 兼容映射取（系统枚举中文），
-                        # 否则从 _FIELD_LABELS 通用字段映射取，
+                        # 否则通过知识库/_FIELD_LABELS 通用字段映射取，
                         # 再否则用 field_key 本身作为 label
                         vars_labels[vname] = (
                             ENUM_FIELDS.get(field_key)
-                            or _FIELD_LABELS.get(field_key.lower())
-                            or field_key
+                            or _resolve_field_label(field_key)
                         )
                     action_wrap["value_id"] = f"${{vars.{vname}}}"
 
@@ -1116,8 +1168,8 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     def _generate_var_label(vname: str, key_hint: str) -> str:
         """根据变量名和字段上下文生成中文标签"""
         # 优先使用字段标签映射
-        label = _FIELD_LABELS.get(key_hint.lower())
-        if label:
+        label = _resolve_field_label(key_hint)
+        if label and label != key_hint:
             return label
         
         # 根据变量名推断
@@ -1792,7 +1844,13 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     return assertions
 
 
-def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides: dict | None = None, pick_field_overrides: dict | None = None) -> str:
+def build_yaml_case(
+    har_path: Path,
+    case_name: str | None = None,
+    var_overrides: dict | None = None,
+    pick_field_overrides: dict | None = None,
+    meta_resolver=None,
+) -> str:
     har = load_har(har_path)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
@@ -2025,7 +2083,7 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             raw_value_id = vars_map.get(vname_ref, raw_value_id)
         # 确定 step_id 和 env_sensitive
         if field_key in _PF_ENV_RELATED_FIELDS:
-            step_id = f"pick_{field_key}"
+            step_id = f"pick_{field_key}_id"
             env_sensitive = "medium"
             label = _PF_ENV_RELATED_FIELDS[field_key]
         elif field_key in _PF_ENUM_FIELDS:
@@ -2038,7 +2096,16 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
             _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
             step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
             env_sensitive = "low"
-            label = _FIELD_LABELS.get(field_key.lower(), field_key)
+            label = _resolve_field_label(field_key, entity_id=s.get("form_id") or main_form, meta_resolver=meta_resolver)
+        # ⭐ 实时元数据增强 env_sensitive 分级
+        step_form_id = s.get("form_id") or main_form
+        if meta_resolver and step_form_id:
+            field_type = meta_resolver.get_field_type(step_form_id, field_key)
+            if field_type:
+                if field_type in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp"):
+                    env_sensitive = "medium"
+                elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
+                    env_sensitive = "low"
         if step_id not in pick_fields_map:
             pick_fields_map[step_id] = OrderedDict([
                 ("value_id", str(raw_value_id)),
@@ -2056,13 +2123,14 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
         fields = s.get("fields")
         if not isinstance(fields, dict):
             continue
+        step_form_id = s.get("form_id") or main_form
         for fk in fields:
             fk_lower = fk.lower()
             if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
                 step_id = f"date_{fk}"
                 if step_id in pick_fields_map:
                     continue
-                label = _FIELD_LABELS.get(fk_lower) or fk
+                label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
                 fv = fields[fk]
                 # 提取显示值（可能是字符串、多语言 dict 或 ${today}）
                 if isinstance(fv, dict):
@@ -2082,23 +2150,41 @@ def build_yaml_case(har_path: Path, case_name: str | None = None, var_overrides:
     # 内联替换，不生成 vars 变量，因此日期字段无需从 vars_map 去重
 
     # --- 去重：从 vars_map 中移除被 pick_fields 覆盖的变量 ---
-    _pick_field_var_names = set()
-    for pf_id, pf_data in pick_fields_map.items():
-        fk = pf_data.get("field_key", "")
-        if fk:
-            _pick_field_var_names.add(f"{fk}_id")
-            _pick_field_var_names.add(fk)
-            _pick_field_var_names.add(f"pick_{fk}_id")
-            _pick_field_var_names.add(f"pick_{fk}")
-            _pick_field_var_names.add(f"date_{fk}")
-            _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", fk).strip("_")
-            if _sanitized:
-                _pick_field_var_names.add(f"pick_{_sanitized}_id")
-        _pick_field_var_names.add(pf_id)
+    # 核心逻辑：pick_fields_map 的 key（id）去掉 "pick_" 前缀后与 vars_map 的 key 匹配
+    # 例如 pick_ba_e_enterprise_id → ba_e_enterprise_id，即为重复项
+    _pick_base_keys = set()
+    for pf_id, pf_val in pick_fields_map.items():
+        if pf_id.startswith("pick_"):
+            _pick_base_keys.add(pf_id[5:])   # pick_ba_e_enterprise_id → ba_e_enterprise_id
+        elif pf_id.startswith("date_"):
+            _pick_base_keys.add(pf_id)        # date_effectdatebak 保持原样
+        _pick_base_keys.add(pf_id)            # 也精确匹配 id 本身
+        # ⭐ 直接从 field_key 构建预期变量名（更可靠的匹配路径）
+        pf_field_key = pf_val.get("field_key", "") if isinstance(pf_val, dict) else ""
+        if pf_field_key:
+            _pick_base_keys.add(f"{pf_field_key}_id")  # ba_e_enterprise → ba_e_enterprise_id
+            _pick_base_keys.add(pf_field_key)           # 也匹配 field_key 原样
+    # 收集非 pick_basedata 步骤中 value_id 实际引用的 ${vars.xxx} 变量名，避免误删
+    # ⭐ 注意：必须排除 pick_basedata 步骤本身的引用，因为那些引用正是被 pick_fields 覆盖的
+    _step_referenced_vars = set()
+    for _s in cleaned:
+        if _s.get("type") == "pick_basedata":
+            continue  # ⭐ 跳过 pick_basedata 步骤的引用，否则会阻止去重
+        _vid = _s.get("value_id", "")
+        if isinstance(_vid, str):
+            for _m in re.finditer(r'\$\{vars\.(\w+)\}', _vid):
+                _step_referenced_vars.add(_m.group(1))
+
+    log.debug("[build_yaml_case dedup] vars_map keys BEFORE: %s", list(vars_map.keys()))
+    log.debug("[build_yaml_case dedup] _pick_base_keys: %s", _pick_base_keys)
+    log.debug("[build_yaml_case dedup] _step_referenced_vars: %s", _step_referenced_vars)
+
     for vname in list(vars_map.keys()):
-        if vname in _pick_field_var_names:
+        if vname in _pick_base_keys and vname not in _step_referenced_vars:
             vars_map.pop(vname)
             vars_labels.pop(vname, None)
+
+    log.debug("[build_yaml_case dedup] vars_map keys AFTER: %s", list(vars_map.keys()))
 
     # --- 应用 pick_field_overrides ---
     if pick_field_overrides:
@@ -2276,8 +2362,8 @@ def _infer_labels_from_preview_steps(steps: list[dict]) -> dict[str, str]:
                     sub_refs: set = set()
                     _extract_refs(fv, sub_refs)
                     if len(sub_refs) == 1:
-                        label = _FIELD_LABELS.get(str(fk).lower())
-                        if label:
+                        label = _resolve_field_label(str(fk))
+                        if label and label != str(fk):
                             labels.setdefault(next(iter(sub_refs)), label)
 
         elif t == "pick_basedata":
@@ -2288,19 +2374,19 @@ def _infer_labels_from_preview_steps(steps: list[dict]) -> dict[str, str]:
             if not refs_m:
                 continue
             vname = refs_m[0]
-            # 优先从 description 里取「...」；否则用 field_key 查 _FIELD_LABELS
+            # 优先从 description 里取「...」；否则用 field_key 查知识库/_FIELD_LABELS
             if biz_name:
                 labels.setdefault(vname, biz_name)
             else:
                 fk = str(s.get("field_key") or "").lower()
-                lbl = _FIELD_LABELS.get(fk)
-                if lbl:
+                lbl = _resolve_field_label(fk)
+                if lbl and lbl != fk:
                     labels.setdefault(vname, lbl)
 
     return labels
 
 
-def preview_har(har_path: Path) -> dict:
+def preview_har(har_path: Path, meta_resolver=None) -> dict:
     """只预览不落盘。供 webui 展示用。"""
     import copy
     har = load_har(har_path)
@@ -2384,7 +2470,7 @@ def preview_har(har_path: Path) -> dict:
 
             # 确定 step_id（与 build_yaml_case 命名规则一致）
             if field_key in _ENV_RELATED_FIELDS:
-                step_id = f"pick_{field_key}"
+                step_id = f"pick_{field_key}_id"
             else:
                 _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
                 step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
@@ -2404,12 +2490,21 @@ def preview_har(har_path: Path) -> dict:
             else:
                 env_sensitive = "low"
 
-            # 标签优先级：ENV_RELATED_FIELDS > ENUM_FIELDS > _FIELD_LABELS > field_key
+            # ⭐ 实时元数据增强 env_sensitive 分级
+            step_form_id = s.get("form_id") or main_form
+            if meta_resolver and step_form_id:
+                field_type = meta_resolver.get_field_type(step_form_id, field_key)
+                if field_type:
+                    if field_type in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp"):
+                        env_sensitive = "medium"
+                    elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
+                        env_sensitive = "low"
+
+            # 标签优先级：ENV_RELATED_FIELDS > ENUM_FIELDS > 实时元数据/知识库/_FIELD_LABELS > field_key
             label = (
                 _ENV_RELATED_FIELDS.get(field_key)
                 or _ENUM_FIELDS.get(field_key)
-                or _FIELD_LABELS.get(field_key.lower())
-                or field_key
+                or _resolve_field_label(field_key, entity_id=step_form_id, meta_resolver=meta_resolver)
             )
 
             pick_fields.append({
@@ -2426,6 +2521,7 @@ def preview_har(har_path: Path) -> dict:
             fields = s.get("fields")
             if not isinstance(fields, dict):
                 continue
+            step_form_id = s.get("form_id") or main_form
             for fk in fields:
                 fk_lower = fk.lower()
                 if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
@@ -2434,7 +2530,7 @@ def preview_har(har_path: Path) -> dict:
                         continue
                     _seen_pick_ids.add(step_id)
 
-                    label = _FIELD_LABELS.get(fk_lower) or fk
+                    label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
                     fv = fields[fk]
                     # 提取值（可能是字符串或多语言 dict）
                     if isinstance(fv, dict):
@@ -2457,22 +2553,31 @@ def preview_har(har_path: Path) -> dict:
     _sens_order = {"high": 0, "medium": 1, "low": 2}
     pick_fields.sort(key=lambda pf: _sens_order.get(pf["env_sensitive"], 9))
 
-    # ⭐ 去重：把已被 pick_fields 覆盖的所有字段对应变量从 var_items 移除
-    _pick_field_var_names: set = set()
+    # ⭐ 去重：把已被 pick_fields 覆盖的变量从 var_items 移除
+    # 核心逻辑：pick_fields 的 id 去掉 "pick_" 前缀后，与 detected_vars 的 name 匹配
+    # 例如 pick_ba_e_enterprise_id → ba_e_enterprise_id，即为重复项
+    _pick_base_keys: set = set()
     for pf in pick_fields:
-        fk = pf.get("field_key", "")
-        step_id = pf.get("id", "")
-        if fk:
-            # 覆盖所有可能的变量命名模式
-            _pick_field_var_names.add(f"{fk}_id")          # gender_id
-            _pick_field_var_names.add(fk)                   # gender
-            _pick_field_var_names.add(f"pick_{fk}_id")      # pick_gender_id
-            _pick_field_var_names.add(f"pick_{fk}")         # pick_gender
-            _pick_field_var_names.add(f"date_{fk}")         # date_effectdatebak
-        if step_id:
-            _pick_field_var_names.add(step_id)              # pick_gender_id (step_id 格式)
-    if _pick_field_var_names:
-        var_items = [v for v in var_items if v["name"] not in _pick_field_var_names]
+        pf_id = pf.get("id", "").strip()
+        pf_field_key = pf.get("field_key", "").strip()
+        if pf_id.startswith("pick_"):
+            _pick_base_keys.add(pf_id[5:])   # pick_ba_e_enterprise_id → ba_e_enterprise_id
+        elif pf_id.startswith("date_"):
+            _pick_base_keys.add(pf_id)        # date_effectdatebak 保持原样
+        if pf_id:
+            _pick_base_keys.add(pf_id)        # 也精确匹配 id 本身
+        # ⭐ 直接从 field_key 构建预期变量名（更可靠的匹配路径）
+        if pf_field_key:
+            _pick_base_keys.add(f"{pf_field_key}_id")     # ba_e_enterprise → ba_e_enterprise_id
+            _pick_base_keys.add(pf_field_key)              # 也匹配 field_key 原样
+
+    log.debug("[preview_har dedup] var_items BEFORE: %s", [v['name'] for v in var_items])
+    log.debug("[preview_har dedup] _pick_base_keys: %s", _pick_base_keys)
+
+    if _pick_base_keys:
+        var_items = [v for v in var_items if v["name"] not in _pick_base_keys]
+
+    log.debug("[preview_har dedup] var_items AFTER: %s", [v['name'] for v in var_items])
 
     preview = {
         "main_form_id": main_form,

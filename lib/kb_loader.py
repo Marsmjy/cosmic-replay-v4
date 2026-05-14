@@ -273,15 +273,59 @@ _C_RESPONSE_KEYS = {"processinstid", "pkvalue", "fid", "billid"}
 # 排除列表：后缀命中 name/number 但实际不是唯一键
 _CLASSIFY_EXCLUSIONS = {"ename", "classtypeid"}
 
+# getEntityType.do 返回的 _Type_ → 三档分类映射
+# 注意：与现有 FIELD_TYPE_CATEGORY 类似但命名不同（Prop 后缀 vs Field 后缀）
+_ENTITY_TYPE_TO_CATEGORY: dict[str, str | None] = {
+    # 文本类 → None（需结合 MustInput + 命名规则进一步判断 A）
+    "TextProp": None,
+    "MuliLangTextProp": None,
+    "LargeTextProp": None,
+    "TextAreaProp": None,
 
-def classify_field(form_id: str, field_key: str) -> str | None:
+    # 基础资料类 → B
+    "BasedataProp": "B",
+    "MulBasedataProp": "B",
+    "OrgProp": "B",
+    "UserProp": "B",
+    "AdminDivisionProp": "B",
+    "CityProp": "B",
+    "CurrencyProp": "B",
+
+    # 枚举/下拉类 → B
+    "ComboProp": "B",
+    "MulComboProp": "B",
+    "BooleanProp": "B",
+    "BillStatusProp": "B",
+
+    # 数值类 → None（通常不需变量化）
+    "IntegerProp": None,
+    "BigIntProp": None,
+    "DecimalProp": None,
+    "AmountProp": None,
+
+    # 日期类 → ignore（由运行时处理）
+    "DateProp": "ignore",
+    "DateTimeProp": "ignore",
+    "TimeProp": "ignore",
+
+    # 系统字段 → ignore
+    "CreaterProp": "ignore",
+    "ModifierProp": "ignore",
+    "CreateDateProp": "ignore",
+    "ModifyDateProp": "ignore",
+    "LongProp": "ignore",  # 主键字段
+}
+
+
+def classify_field(form_id: str, field_key: str, meta_resolver=None) -> str | None:
     """三档字段分类。返回 "A"/"B"/"C"/"ignore"/None。
     
     优先级：
       1) 响应回传特征 key → C
-      2) 知识库命中 + 字段元数据精准分类
-      3) 知识库未命中 → 按 key 名的启发式回落（A 档补位）
-      4) 其他 → None（交回原启发式）
+      2) 实时元数据精确分类（如果 meta_resolver 可用）
+      3) 知识库命中 + 字段元数据精准分类
+      4) 知识库未命中 → 按 key 名的启发式回落（A 档补位）
+      5) 其他 → None（交回原启发式）
     """
     if not field_key:
         return None
@@ -290,6 +334,27 @@ def classify_field(form_id: str, field_key: str) -> str | None:
     # C 档：响应回传（与 form 无关，纯 key 名特征）
     if kl in _C_RESPONSE_KEYS:
         return "C"
+
+    # ---- 实时元数据精确分类 ----
+    if meta_resolver:
+        rt_type = meta_resolver.get_field_type(form_id, field_key)
+        if rt_type:
+            cat = _ENTITY_TYPE_TO_CATEGORY.get(rt_type)
+            if cat is not None:
+                # 排除列表检查
+                if kl in _CLASSIFY_EXCLUSIONS:
+                    return None
+                return cat
+            # TextProp/MuliLangTextProp 需要结合命名规则判断是否为 A 档
+            if rt_type in ("TextProp", "MuliLangTextProp", "LargeTextProp", "TextAreaProp"):
+                if kl in _CLASSIFY_EXCLUSIONS:
+                    return None
+                if kl in _A_UNIQUE_KEY_HINTS or kl in _A_NAME_FIELDS:
+                    return "A"
+                if any(kl.endswith(suf) for suf in _A_UNIQUE_SUFFIXES):
+                    return "A"
+                # 必填文本但不在唯一键列表 → 不强制分类
+    # ---- 实时元数据精确分类结束 ----
 
     # 尝试走知识库字段元数据
     scene = resolve_scene(form_id) if form_id else None
@@ -350,6 +415,47 @@ def field_meta(form_id: str, field_key: str) -> dict | None:
     return fields.get(field_key) or fields.get(field_key.lower())
 
 
+# --- 字段标签动态查询 ---
+_field_labels_cache: dict = None
+
+
+def get_field_label(field_key: str) -> str | None:
+    """从知识库 field_labels.json 查询字段中文标签。
+
+    Args:
+        field_key: 字段键名（不区分大小写）
+
+    Returns:
+        中文标签字符串，未找到返回 None
+    """
+    global _field_labels_cache
+    if _field_labels_cache is None:
+        _field_labels_cache = _load_field_labels()
+    return _field_labels_cache.get(field_key.lower())
+
+
+def _load_field_labels() -> dict:
+    """懒加载 field_labels.json"""
+    labels_path = Path(__file__).parent.parent / "skills" / "cosmic-hr-expert" / "knowledge" / "field_labels.json"
+    if not labels_path.exists():
+        return {}
+    try:
+        with open(labels_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        # 确保所有 key 小写
+        return {k.lower(): v for k, v in data.items()}
+    except (json.JSONDecodeError, IOError):
+        return {}
+
+
+def get_all_field_labels() -> dict:
+    """获取所有字段标签映射（用于 API 端点）"""
+    global _field_labels_cache
+    if _field_labels_cache is None:
+        _field_labels_cache = _load_field_labels()
+    return dict(_field_labels_cache)
+
+
 __all__ = [
     "resolve_scene",
     "resolve_form_name",
@@ -359,4 +465,6 @@ __all__ = [
     "get_field_type",
     "FIELD_TYPE_CATEGORY",
     "all_form_ids",
+    "get_field_label",
+    "get_all_field_labels",
 ]
