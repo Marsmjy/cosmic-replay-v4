@@ -1078,6 +1078,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 "gender": "性别",
                 "certificatetype": "证件类型",
                 "ba_e_laborrelstatus": "用工状态",
+                "laborreltypecls": "用工关系分类",
                 "status": "状态",
                 "type": "类型",
             }

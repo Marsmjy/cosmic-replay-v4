@@ -123,18 +123,24 @@ grep -A20 "^vars:" cases/xxx.yaml
 grep "UNIQUE_KEY_HINTS\|ENV_RELATED_FIELDS\|ENUM_FIELDS" lib/har_extractor.py | head -5
 ```
 
-**代码位置**：`lib/har_extractor.py` 行 371-724
+**代码位置**：`lib/har_extractor.py` 行 721-1168
+
+**⚠️ 重要变化（2026-05）**：
+原白名单过滤机制已移除。现在 `build_yaml_case()` 中所有 `pick_basedata` 字段统一归入"环境相关字段"面板（`pick_fields` 块），不再需要手动添加白名单。
+- 代码位置：`har_extractor.py` 行 2026-2041（build_yaml_case 通用处理）
+- `_PF_ENV_RELATED_FIELDS`（行 1989）和 `_PF_ENUM_FIELDS`（行 2002）仅用于确定 `env_sensitive` 级别和 label
+- `runner.py` 中 `_apply_pick_fields()`（行 503）的 pick_* 分支已移除 `break`，支持同 field_key 多步骤全量注入（优先注入 value_id，同时注入 value_name）
 
 **修复方案**：
 
 | 场景 | 代码位置 | 修复 |
 |------|---------|------|
-| A-1: 字段是唯一标识（编码/编号/名称）没被变量化 | 行 385 `UNIQUE_KEY_HINTS` | 把字段 key 加进去 |
-| A-2: 字段是环境相关基础资料（组织/企业/部门）没被变量化 | 行 639 `ENV_RELATED_FIELDS` | 把 field_key 加进去 |
-| A-3: 字段是系统枚举值（性别/证件类型）被错误变量化了 | 行 654 `ENUM_FIELDS` | 把 field_key 加进去 |
-| A-4: click 步骤的 post_data 里字段值没识别 | 行 553-580 `_extract_click_postdata()` | 检查 field_key 是否在识别范围内 |
-| A-5（新增）: `newentry` 步骤的 post_data 里 name/number 字段值没变量化 | 行 613-642 `detect_var_placeholders()` | 新增 `ac=="newentry"` 分支，walk post_data[1] 中的 UNIQUE_KEY_HINTS 字段值 |
-| A-6（新增）: `ename`（属性名称）被错误标记为"名称"变量 | 行 394 `HR_NAME_FIELDS` + 行 398 `_CLASSIFY_KEY_EXCLUSIONS` | `ename` 同时在 `HR_NAME_FIELDS` 和 `_CLASSIFY_KEY_EXCLUSIONS` 中。① 从 `HR_NAME_FIELDS` 移除 → 停止精确匹配为 name；② 加入 `_CLASSIFY_KEY_EXCLUSIONS` → 后缀匹配 `endswith("name")` 时跳过 → `_classify_key()` 返回 `None` → `ename` 保持 HAR 原始内容不变 |
+| A-1: 字段是唯一标识（编码/编号/名称）没被变量化 | 行 735 `UNIQUE_KEY_HINTS` | 把字段 key 加进去 |
+| A-2: 字段是环境相关基础资料（组织/企业/部门）没被变量化 | 行 1060 `ENV_RELATED_FIELDS` | 把 field_key 加进去 |
+| A-3: 字段是系统枚举值（性别/证件类型/用工状态/用工关系分类）在环境相关字段面板中需要修改值 | 行 1077 `ENUM_FIELDS` + 行 2002 `_PF_ENUM_FIELDS` | 所有 pick_basedata 字段已自动归入环境相关字段面板，无需手动添加白名单。如需调整 env_sensitive 级别，编辑对应的 _PF_ENUM_FIELDS 或 _PF_ENV_RELATED_FIELDS 字典 |
+| A-4: click 步骤的 post_data 里字段值没识别 | 行 940-964（click 步骤 post_data 变量化逻辑，内联于 `detect_var_placeholders`） | 检查 field_key 是否在 `UNIQUE_KEY_HINTS` 范围内 |
+| A-5: `newentry` 步骤的 post_data 里 name/number 字段值没变量化 | 行 994-1017（`detect_var_placeholders` 内 `ac=="newentry"` 分支） | walk post_data[1] 中的 UNIQUE_KEY_HINTS 字段值，对 zh_CN 多语言和普通字符串均做变量化 |
+| A-6: `ename`（属性名称）被错误标记为"名称"变量 | 行 740 `_CLASSIFY_KEY_EXCLUSIONS` + 行 743 `HR_NAME_FIELDS` | `ename` 在 `_CLASSIFY_KEY_EXCLUSIONS`（行 740）中 → `_classify_key()` 后缀匹配 `endswith("name")` 时跳过 → 返回 `None` → `ename` 保持 HAR 原始内容不变。注意：`ename` 不在 `HR_NAME_FIELDS` 中（该集合只含 ba_em_name/em_name/staffname） |
 
 **验证方法**：
 ```bash
@@ -143,6 +149,33 @@ python3 -m lib.har_extractor extract xxx.har -o cases/xxx_new.yaml
 # 检查生成的 vars 段
 grep -A30 "^vars:" cases/xxx_new.yaml
 ```
+
+**已知 pick_basedata 字段参考**（`_FIELD_LABELS` 行 212 + `_PF_ENUM_FIELDS` 行 2002 + `_PF_ENV_RELATED_FIELDS` 行 1989）：
+
+| field_key | 中文标签 | 分类 | env_sensitive |
+|-----------|---------|------|---------------|
+| ba_e_enterprise | 企业 | ENV_RELATED | medium |
+| ba_po_adminorg | 行政组织 | ENV_RELATED | medium |
+| ba_po_position | 职位 | ENV_RELATED | medium |
+| ba_org / org | 组织 | ENV_RELATED | medium |
+| ba_dept / dept | 部门 | ENV_RELATED | medium |
+| ba_company | 公司 | ENV_RELATED | medium |
+| gender | 性别 | ENUM | low |
+| certificatetype | 证件类型 | ENUM | low |
+| ba_e_laborrelstatus | 用工状态 | ENUM | low |
+| laborreltypecls | 用工关系分类 | ENUM | low |
+| status | 状态 | ENUM | low |
+| type | 类型 | ENUM | low |
+| adminorgtype | 行政组织类型 | 通用（自动） | low |
+| changescene | 变更场景 | 通用（自动） | low |
+| basedatafield | 基础资料字段 | 通用（自动） | low |
+| menulocal | 菜单位置 | 通用（自动） | low |
+| parentorg | 上级行政组织 | 通用（自动） | low |
+| orgpattern | 组织形态 | 通用（自动） | low |
+| biztype | 业务类型 | 通用（自动） | low |
+| useorg | 使用组织 | 通用（自动） | low |
+
+> 说明：所有 pick_basedata 字段（不限于上表）均自动归入"环境相关字段"面板。分类仅影响 env_sensitive 级别和 label 显示。
 
 ---
 
@@ -164,23 +197,44 @@ grep -A30 "^vars:" cases/xxx_new.yaml
 
 **关于 pageId 的关键机制**（读这段再动手）：
 ```
-replay.py 行 178: PAGEID_FIELD_NAMES = ("pageId", "parentPageId")
-  → 每次 API 响应自动收集 pageId
-replay.py 行 190: form_id → pageId 映射
+replay.py 行 195: self.page_ids → form_id 到 pageId 的映射表
   → 维护表单ID到pageId的映射表
-replay.py 行 218: init_root()
-  → 从 getConfig.do GET 拿会话根 pageId
-replay.py 行 245: open_form()
-  → 为指定表单申请/复用 pageId
+replay.py 行 201: self._pending_by_app → 按 appId 记的 pending pageId
+  → 来自 addVirtualTab 的按应用缓存 pageId
+replay.py 行 423-441: invoke() 中的 pageId 选择规则
+  → 优先 _pending_by_app，再查 page_ids，最后兗底 root_page_id
+replay.py 行 553-568: _harvest_virtual_tab_pageids()
+  → 扫 addVirtualTab 响应，填充 _pending_by_app
 
-注意：saveandeffect 后 pageId 失效（runner.py 行 368-370）
+注意：saveandeffect 后 pageId 失效（runner.py 行 368-376）
   → runner 会自动清除旧 pageId，下次调用时重新申请
+  → 支持 keep_page: true 标记保留 pageId（用于连续新增场景）
 ```
 
 **验证**：
 ```bash
 # 跑一下看 pageId 相关错误
 python3 -m lib.runner run cases/xxx.yaml 2>&1 | grep -i "pageId\|404\|page"
+```
+
+---
+
+### 🟠 模式 A-7：日期字段 ${today} 覆盖用户自定义值
+
+**症状**：
+- 在"环境相关字段"面板修改了日期值（如 date_effectdate = 2026-01-01）
+- 执行后结果仍显示当天日期（${today} 解析值）
+
+**根因**：`resolve_vars()` 将 `${today}` 展开为当天日期，覆盖了 `_apply_pick_fields()` 预先注入的用户自定义日期值。
+
+**代码位置**：`runner.py` 行 774-794（date_* 后置注入机制）
+
+**修复**：该问题已通过后置注入机制自动修复。在主步骤循环中，每处理一个 `update_fields` 步骤时，系统会从 `pick_fields` 读取所有 `date_*` 值并强制覆盖 resolve_vars 的结果。
+
+**验证**：
+```bash
+# 确认后置注入代码存在
+grep -n "date pick_fields 后置注入" lib/runner.py
 ```
 
 ---
@@ -237,7 +291,7 @@ python3 -m lib.runner run cases/xxx.yaml 2>&1 | grep -i "pageId\|404\|page"
             注意：不要改成 saveandeffect！这个表单的保存就是 ac=click
         (b) 代码侧（根治）：在 har_extractor.py 的 action 处理循环中，
             当 ac=click 且 key in _SAVE_BUTTON_KEYS 时，设置 tier=core
-            参考：lib/har_extractor.py 行 767-769
+            参考：lib/har_extractor.py 行 1210-1212
 ```
 
 **验证方法（每次 PASS 后必须执行）**：
@@ -358,19 +412,20 @@ print(_find_login_script())  # 应输出 /.../cosmic-replay-v4/lib/cosmic_login.
 
 | 文件 | 核心函数/结构 | 行号 | 作用 | 你什么时候改它 |
 |------|-------------|------|------|--------------|
-| `har_extractor.py` | `detect_var_placeholders()` | 371-724 | 变量识别引擎 | 变量没识别/识别错了时 |
-| `har_extractor.py` | `UNIQUE_KEY_HINTS` | 385 | 唯一标识字段名单 | 编码/编号/名称没被变量化 |
-| `har_extractor.py` | `_CLASSIFY_KEY_EXCLUSIONS` | 398 | 后缀匹配排障：ename 等被误识别为 name | 属性名称被变量化时 → 把字段 key 加进来 |
-| `har_extractor.py` | `ENV_RELATED_FIELDS` | 639-651 | 环境相关基础资料名单 | 组织/企业/部门没变量化 |
-| `har_extractor.py` | `ENUM_FIELDS` | 654-660 | 系统枚举值名单 | 性别/类型被错误变量化 |
-| `har_extractor.py` | `_extract_click_postdata()` | 553-580 | click步骤post_data变量化 | 用户直接保存的字段没变量化 |
-| `har_extractor.py` | newentry 步骤变量化 | 617-645 | newentry 步骤的 post_data 中 name/number 字段抽变量 | 业务模型附表等场景中新增条目行字段值硬编码时 |
-| `har_extractor.py` | `_SAVE_BUTTON_KEYS` | 77 | btnsave→core 标记 | HAR把保存录成click时 |
-| `har_extractor.py` | AC_TIER + btnsave转换 | 760-767 | click+btnsave自动转saveandeffect | 新增save按钮类型时 |
+| `har_extractor.py` | `detect_var_placeholders()` | 721-1168 | 变量识别引擎 | 变量没识别/识别错了时 |
+| `har_extractor.py` | `UNIQUE_KEY_HINTS` | 735 | 唯一标识字段名单 | 编码/编号/名称没被变量化 |
+| `har_extractor.py` | `_CLASSIFY_KEY_EXCLUSIONS` | 740 | 后缀匹配排障：ename 等被误识别为 name | 属性名称被变量化时 → 把字段 key 加进来 |
+| `har_extractor.py` | `ENV_RELATED_FIELDS` | 1060-1072 | 环境相关基础资料名单 | 组织/企业/部门没变量化 |
+| `har_extractor.py` | `ENUM_FIELDS` | 1077-1083 | 系统枚举值名单 | 性别/类型被错误变量化 |
+| `har_extractor.py` | click 步骤 post_data 变量化（内联逻辑） | 940-964 | click 步骤 post_data 中 UNIQUE_KEY_HINTS 字段变量化 | 用户直接保存的字段没变量化 |
+| `har_extractor.py` | newentry 步骤变量化 | 994-1017 | newentry 步骤的 post_data 中 name/number 字段抽变量 | 业务模型附表等场景中新增条目行字段值硬编码时 |
+| `har_extractor.py` | `_SAVE_BUTTON_KEYS` | 80 | btnsave→core 标记 | HAR把保存录成click时 |
+| `har_extractor.py` | AC_TIER + btnsave→core 标记 | 1207-1212 | click+btnsave 自动标 tier=core（不转 saveandeffect） | 新增save按钮类型时 |
 | `runner.py` | `STEP_HANDLERS` | 312 | 步骤类型执行器映射 | 添加/修改步骤处理逻辑 |
-| `runner.py` | `run_case()` | 536 | 用例执行主循环 | 修改执行流程 |
-| `runner.py` | saveandeffect pageId失效逻辑 | 368-370 | save后清pageId | pageId刷新异常时 |
-| `replay.py` | `_harvest_virtual_tab_pageids()` + `_pending_by_app` | 480-510 | 扫 addVirtualTab 按 appId 存 pending pageId | entryRowClick 后表单 pageId 丢失时 → 检查此链路是否通 |\n| `replay.py` | pageId 查找（含 `_pending_by_app` 优先逻辑） | 389-396 | L2 pageId vs _pending_by_app 优先级选择 | 调整 L2→表单 pageId 的覆盖条件 |
+| `runner.py` | `run_case()` | 646 | 用例执行主循环 | 修改执行流程 |
+| `runner.py` | saveandeffect pageId失效逻辑 | 368-376 | save后清pageId | pageId刷新异常时 |
+| `replay.py` | `_harvest_virtual_tab_pageids()` + `_pending_by_app` | 553-568 | 扫 addVirtualTab 按 appId 存 pending pageId | entryRowClick 后表单 pageId 丢失时 → 检查此链路是否通 |
+| `replay.py` | pageId 查找（含 `_pending_by_app` 优先逻辑） | 423-441 | L2 pageId vs _pending_by_app 优先级选择 | 调整 L2→表单 pageId 的覆盖条件 |
 | `replay.py` | `init_root()` | 218 | 会话根 pageId | 初始化失败时 |
 | `replay.py` | `open_form()` | 245 | 表单 pageId 申请 | 表单打不开时 |
 | `advisor.py` | `FixSuggestion` | 123-143 | 修复建议数据结构 | 修改建议格式 |
@@ -441,7 +496,7 @@ grep -B2 -A10 "btnsave\|ac: click\|ac: saveandeffect" cases/xxx.yaml
 11. **Web UI 启动报找不到 cosmic_login.py** → 检查两处修复：(a) `lib/replay.py` 的 `_find_login_script()` 是否加了 `same_dir` 搜索；(b) `lib/webui/server.py` 的 `main()` 是否调了 `_load_dotenv()`。改完后必须重启进程（Python 缓存模块）
 12. **⛔ 改代码后必须重启 Web UI** → Python 的 uvicorn 在启动时一次性加载所有模块。对 `lib/replay.py` / `lib/runner.py` / `lib/har_extractor.py` 的任何修改，在旧的 Web UI 进程（PID）上永远不会生效。可以 kill 后 `python3 -m lib.webui.server --port 8768` 重启
 13. **断言选择** → save 步骤用 `no_save_failure`（捕获字段级校验错误），不要用 `no_error_actions`（漏报"数据已存在"和"名称重复"）
-14. **`newentry` 步骤的 post_data 字段值也要检查** → `ac=newentry` 的 `post_data[1]` 中的 `name`/`number` 等字段值也可能不是变量化的。如果看到 "ppppp1" 等硬编码值，检查 `detect_var_placeholders()` 的 `newentry` 分支（`har_extractor.py` 行 617-645）。不想变量化的字段（如 `ename` 属性名称）加到 `_CLASSIFY_KEY_EXCLUSIONS` 集合中
+14. **`newentry` 步骤的 post_data 字段值也要检查** → `ac=newentry` 的 `post_data[1]` 中的 `name`/`number` 等字段值也可能不是变量化的。如果看到 "ppppp1" 等硬编码值，检查 `detect_var_placeholders()` 的 `newentry` 分支（`har_extractor.py` 行 994-1017）。不想变量化的字段（如 `ename` 属性名称）加到 `_CLASSIFY_KEY_EXCLUSIONS`（行 740）集合中
 
 ---
 
@@ -475,7 +530,7 @@ python3 -m lib.webui.server
 | 字段值还是旧环境的测试数据 | 没被变量识别规则命中 | 模式 A-2 |
 | HAR 导入后 YAML 只有 savedeffect 没有 menuItemClick | 录制范围不对，缺少入口 | 模式 B-1 |
 | YAML 中 ac: click + key: btnsave，PASS 但无数据 | HAR 把保存录成 click 未转 saveandeffect | 模式 C-5 |
-| `ename` 被变量化为 `test_name`（不应变量化） | `_CLASSIFY_KEY_EXCLUSIONS` 中缺少 `ename`，或 `HR_NAME_FIELDS` 未移除 | 模式 A-6 |
+| `ename` 被变量化为 `test_name`（不应变量化） | `_CLASSIFY_KEY_EXCLUSIONS`（行 740）中缺少 `ename` | 模式 A-6 |
 | `name`/`number` 在 `newentry` 步骤中硬编码（如 "ppppp1"） | `detect_var_placeholders()` 的 `newentry` 分支未触发 | 模式 A-5 |
 | `FileNotFoundError: 找不到 cosmic-login skill` | `COSMIC_LOGIN_SCRIPT` 未设 + `_find_login_script()` 搜索路径没覆盖 | 模式 D |
 | save 返回空 `[]`，`page_ids.get(form_id)` 为 None | `_pending_by_app` 链路断裂 | 模式 B-3 |
