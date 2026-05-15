@@ -1,536 +1,465 @@
 ---
 name: cosmic-replay-troubleshooter
-description: 苍穹业务流 HAR 导入 → YAML 用例的故障诊断与修复。覆盖变量识别、pageId、save未入库、登录脚本、环境变量五大失败模式。适合新的 AI agent 快速上手排故。
-version: 1.2.0
+description: Cosmic Replay 执行故障排查与诊断专家
+version: 2.0
 triggers:
-  - HAR导入
-  - 变量识别
-  - pageId不对
-  - 入库失败
-  - 未入库
+  - 执行失败
+  - pageId
+  - 安全网
+  - 重试
+  - 页面未初始化
+  - 变量解析
+  - target_forms
+  - pick_fields
   - save失败
-  - 用例生成
-  - cosmic-replay排故
+  - 入库失败
   - 排故
-  - cosmic-login
-  - COSMIC_LOGIN_SCRIPT
-  - 找脚本
-  - .env
+  - invoke失败
 ---
 
-# Cosmic Replay Troubleshooter
+# Cosmic Replay 故障排查诊断
 
-苍穹 HAR 自动化测试的排故指南。给任何 AI agent 读，5 分钟内上手排故。
+快速定位 Cosmic Replay 用例执行失败的根因，面向 AI Agent 精确到代码位置与修复步骤。
 
 ---
 
-## 一、30秒看懂项目
+## 一、整体防护架构
+
+### 三层防护总览
 
 ```
-cosmic-replay-v4/           # 项目根目录
-├── lib/                    # 核心逻辑
-│   ├── har_extractor.py    # HAR → YAML（1678行）
-│   ├── runner.py           # YAML 执行引擎（1000行）
-│   ├── replay.py           # API 调用封装（668行）
-│   ├── advisor.py          # 修复建议生成器（447行）
-│   └── webui/
-│       └── server.py       # FastAPI 后端
-├── cases/                  # YAML 用例资产
-├── config/envs/            # 环境配置
-├── .env                    # 敏感凭证
-└── start.sh                # 启动脚本
+步骤准备 → [第1层: 预验证] → [第2层: auto-open 补偿] → invoke 调用 → [第3层: 安全网重试]
+               │                      │                                    │
+               ├─ pageId缺失→open+load  ├─ form_id不在page_ids→open_form     ├─ 可重试错误→pop+open+load+重试
+               ├─ L2误用→降级为L3        └─ 排除: open_form/sleep             ├─ 不可重试(业务)→中止
+               └─ 未load→预热loadData                                        └─ 超限(2次)→输出原始错误
 ```
 
-**一句话**：上传 HAR 文件 → 自动生成 YAML 用例 → 跑用例验证业务流 → 诊断修复。
+### 第1层：预验证 (`_validate_pageid_before_invoke`)
 
----
+**位置**: `lib/runner.py` 行 336-400
 
-## 二、数据流全景（判断你在哪个环节出问题）
+**触发时机**: 每个 form_id 首次被 invoke 使用（通过 `ctx["_validated_forms"]` 集合去重）
 
-```
-HAR文件（用户录制）
-    │
-    ▼
-har_extractor.py       ← 环节 A：导入阶段 ← 80% 的问题出在这里
-  detect_var_placeholders()
-  → 生成 YAML 用例
-    │
-    ▼
-runner.py              ← 环节 B：执行阶段
-  run_case()
-  → 逐步骤调用 replay.py
-    │
-    ▼
-replay.py              ← 环节 C：API 调用
-  invoke() / _refresh_session()
-  → 发 HTTP 请求到苍穹
-    │
-    ▼
-advisor.py             ← 环节 D：诊断输出
-  get_fix_suggestions()
-  → 修复建议
-```
+**排除操作**（不做预验证，避免递归/无意义校验）:
+- `loadData` / `open_form` / `close_form` / `startupflow` / `doconfirm` / `afterConfirm`
+- `method == "itemClick"`（toolbar 操作）
 
----
+**四种场景处理**:
 
-## 三、故障因果链（核心）
+| 场景 | 触发条件 | 恢复动作 |
+|------|----------|----------|
+| 1: pageId 缺失 | `form_id not in replay.page_ids` | `open_form(lazy=False)` + `load_data()` |
+| 2: L2 pageId 误用于非 toolbar 操作 | `_is_l2_pageid(pid) and not _is_toolbar` | 优先从 `_pending_by_app[app_id]` 取 L3；不可用则 `open_form` 获取新 L3 |
+| 3: 有 pageId 但未 loadData | `form_id not in replay._loaded_forms` | 预热 `load_data()` |
+| 4: 预验证异常 | open/load 抛异常 | 记 warning，由安全网兜底 |
 
-**核心认知**：
-- 80% 的问题出在 HAR 导入阶段（变量识别/步骤裁剪/tier 分类）
-- 15% 的问题出在执行层（pageId 管理/响应解析）
-- 5% 的问题出在其他
+### 第2层：auto-open 补偿（主循环内）
 
-```
-症状：用户看到的
-  save成功但数据没入库
-  pageId不对 → 404 / 空响应
-  字段值错误 → 保存报错
-  报告PASS但数据不存在
-      ↑
-环节B/C：执行层问题
-  pageId 追踪链路断裂 ← ⚠ 最隐蔽，返回空 [] 但不报错
-  变量解析错误
-  页面上下文缺失
-  关键字段内容为空
-      ↑
-环节A：HAR导入层根因     ← 80% 的常规问题在这里
-  变量没识别（硬编码值）
-  上下文步骤缺失
-  saveandeffect 被标为 optional
-  click+btnsave 被标为 ui_reaction（非 core）
-  基础资料ID硬编码
-```
+**位置**: `lib/runner.py` 行 923-939
 
-**修复路径**：改 YAML → 重新跑 → 验证
+**逻辑**: 执行每个步骤前，若 `_target_form not in replay.page_ids` 且步骤非 `open_form`/`sleep`，自动调 `replay.open_form(form_id, app_id, lazy=False)` 补偿。
 
----
+**与第1层区别**: 第1层仅对首次使用的 form_id 触发一次；此层每步都检查，覆盖中途 pageId 被 pop 的情况。
 
-### 🔴 模式 A：变量没识别（HAR 导入阶段）
+### 第3层：安全网重试 (`invoke-retry`)
 
-**症状**：
-- 换环境跑，字段值还是旧的测试数据
-- 报 "XXX已存在"（因为编码/名称没随机化）
-- 字段值看起来像硬编码的原始值
+**位置**: `lib/runner.py` 行 942-1003
 
-**根因**：`detect_var_placeholders()` 的变量识别规则没覆盖到你的字段。
-
-**诊断**：
-```bash
-# 看 YAML 的 vars 段，变量标签是不是空的
-grep -A20 "^vars:" cases/xxx.yaml
-
-# 检查字段名是否在识别规则中
-grep "UNIQUE_KEY_HINTS\|ENV_RELATED_FIELDS\|ENUM_FIELDS" lib/har_extractor.py | head -5
-```
-
-**代码位置**：`lib/har_extractor.py` 行 721-1168
-
-**⚠️ 重要变化（2026-05）**：
-原白名单过滤机制已移除。现在 `build_yaml_case()` 中所有 `pick_basedata` 字段统一归入"环境相关字段"面板（`pick_fields` 块），不再需要手动添加白名单。
-- 代码位置：`har_extractor.py` 行 2026-2041（build_yaml_case 通用处理）
-- `_PF_ENV_RELATED_FIELDS`（行 1989）和 `_PF_ENUM_FIELDS`（行 2002）仅用于确定 `env_sensitive` 级别和 label
-- `runner.py` 中 `_apply_pick_fields()`（行 503）的 pick_* 分支已移除 `break`，支持同 field_key 多步骤全量注入（优先注入 value_id，同时注入 value_name）
-
-**修复方案**：
-
-| 场景 | 代码位置 | 修复 |
-|------|---------|------|
-| A-1: 字段是唯一标识（编码/编号/名称）没被变量化 | 行 735 `UNIQUE_KEY_HINTS` | 把字段 key 加进去 |
-| A-2: 字段是环境相关基础资料（组织/企业/部门）没被变量化 | 行 1060 `ENV_RELATED_FIELDS` | 把 field_key 加进去 |
-| A-3: 字段是系统枚举值（性别/证件类型/用工状态/用工关系分类）在环境相关字段面板中需要修改值 | 行 1077 `ENUM_FIELDS` + 行 2002 `_PF_ENUM_FIELDS` | 所有 pick_basedata 字段已自动归入环境相关字段面板，无需手动添加白名单。如需调整 env_sensitive 级别，编辑对应的 _PF_ENUM_FIELDS 或 _PF_ENV_RELATED_FIELDS 字典 |
-| A-4: click 步骤的 post_data 里字段值没识别 | 行 940-964（click 步骤 post_data 变量化逻辑，内联于 `detect_var_placeholders`） | 检查 field_key 是否在 `UNIQUE_KEY_HINTS` 范围内 |
-| A-5: `newentry` 步骤的 post_data 里 name/number 字段值没变量化 | 行 994-1017（`detect_var_placeholders` 内 `ac=="newentry"` 分支） | walk post_data[1] 中的 UNIQUE_KEY_HINTS 字段值，对 zh_CN 多语言和普通字符串均做变量化 |
-| A-6: `ename`（属性名称）被错误标记为"名称"变量 | 行 740 `_CLASSIFY_KEY_EXCLUSIONS` + 行 743 `HR_NAME_FIELDS` | `ename` 在 `_CLASSIFY_KEY_EXCLUSIONS`（行 740）中 → `_classify_key()` 后缀匹配 `endswith("name")` 时跳过 → 返回 `None` → `ename` 保持 HAR 原始内容不变。注意：`ename` 不在 `HR_NAME_FIELDS` 中（该集合只含 ba_em_name/em_name/staffname） |
-
-**验证方法**：
-```bash
-# 修完后重新导入同一个 HAR
-python3 -m lib.har_extractor extract xxx.har -o cases/xxx_new.yaml
-# 检查生成的 vars 段
-grep -A30 "^vars:" cases/xxx_new.yaml
-```
-
-**已知 pick_basedata 字段参考**（`_FIELD_LABELS` 行 212 + `_PF_ENUM_FIELDS` 行 2002 + `_PF_ENV_RELATED_FIELDS` 行 1989）：
-
-| field_key | 中文标签 | 分类 | env_sensitive |
-|-----------|---------|------|---------------|
-| ba_e_enterprise | 企业 | ENV_RELATED | medium |
-| ba_po_adminorg | 行政组织 | ENV_RELATED | medium |
-| ba_po_position | 职位 | ENV_RELATED | medium |
-| ba_org / org | 组织 | ENV_RELATED | medium |
-| ba_dept / dept | 部门 | ENV_RELATED | medium |
-| ba_company | 公司 | ENV_RELATED | medium |
-| gender | 性别 | ENUM | low |
-| certificatetype | 证件类型 | ENUM | low |
-| ba_e_laborrelstatus | 用工状态 | ENUM | low |
-| laborreltypecls | 用工关系分类 | ENUM | low |
-| status | 状态 | ENUM | low |
-| type | 类型 | ENUM | low |
-| adminorgtype | 行政组织类型 | 通用（自动） | low |
-| changescene | 变更场景 | 通用（自动） | low |
-| basedatafield | 基础资料字段 | 通用（自动） | low |
-| menulocal | 菜单位置 | 通用（自动） | low |
-| parentorg | 上级行政组织 | 通用（自动） | low |
-| orgpattern | 组织形态 | 通用（自动） | low |
-| biztype | 业务类型 | 通用（自动） | low |
-| useorg | 使用组织 | 通用（自动） | low |
-
-> 说明：所有 pick_basedata 字段（不限于上表）均自动归入"环境相关字段"面板。分类仅影响 env_sensitive 级别和 label 显示。
-
----
-
-### 🟡 模式 B：pageId 不对 / 请求 404（执行阶段）
-
-**症状**：
-- 跑用例时报 `ProtocolError: no pageId in resp`
-- 表单 loadData 返回空数据
-- save 时服务端说"找不到当前页面"
-- save 返回 `[]` 但数据未入库（最隐蔽）
-
-**根因**：pageId 有三种来源，需要分别排查：
-
-| 场景 | 根因 | 诊断 | 修复 |
-|------|------|------|------|
-| B-1: YAML 缺了建立页面上下文的步骤 | HAR 录制时没有从菜单点击开始抓包，漏了 `menuItemClick` 和 `loadData` 序列 | 看 YAML 前3步：如果不是 `menuItemClick` 开头，肯定缺 | 重新录制：从**点击左侧菜单进入应用**开始抓包。har_extractor 自动从第一个 `menuItemClick` 开始裁剪 |
-| B-2: 跑用例时 `_refresh_session()` 没兜住 | `replay.py` 行 177-194 的自动 pageId 收集没匹配到新下发的 pageId | 在 runner 输出里搜 `pageId` 看自动替换情况 | 手动检查 session_ready 事件中的 pageId 映射表 |
-| B-3: pageId 链路断裂——`_pending_by_app` 未集成（**最隐蔽的无声失败**） | `replay.py` 三处缺失叠加：<br>1. `_harvest_virtual_tab_pageids()` 完全定义了但从未在 `invoke()` 中被调用<br>2. `_pending_by_app` 属性未在 `__init__` 中初始化<br>3. pageId 查找不检查 `_pending_by_app` 后备 | save 返回空 `[]`（非错误）、`replay.page_ids.get(form_id)` 返回 `None`。<br>诊断：在 invoke 调用前打印 `replay._pending_by_app` 确认是否为空。跟踪 HAR 中 `entryRowClick` → `addVirtualTab` 的 pageId 链路 | **4 处修复**（2026-04-30 实战验证）：<br>1. `__init__` 加 `self._pending_by_app = {}`<br>2. `invoke()` 响应处理后调用 `self._harvest_virtual_tab_pageids(resp)`<br>3. pageId 查找加 `self._pending_by_app.get(app_id)` 后备<br>4. `"new"` 加到 `("addnew", "modify", "copyBill", "edit")` 列表 |\n| B-4（新增 2026-04-30）: `_pending_by_app` 被 L2 pageId 屏蔽——**最隐蔽的无声失败** | B-3 全部修复后仍存在：`runner.py` 的 `target_form` 机制（行 359-366）在 `menuItemClick` 后把 L2 pageId（`{menuId}root{baseId}` 格式，51+字符）设为 `page_ids[form_id]`。后续 `loadData` 时 `page_ids.get(form_id)` 返回非空值，导致 `_pending_by_app` 后备从未触发。结果：所有操作使用列表态的 L2 pageId 而非详情态的 32hex pageId，save 返回空 `[]`。 | save 返回空 `[]`，`page_ids.get(form_id)` 返回 `{menuId}root...`（L2），而 `_pending_by_app[appId]` 有正确的 32hex pageId 但未被使用。<br>诊断：对比两者：<br>`print(page_ids.get(fid), _pending_by_app.get(aid))` | **`replay.py:389-396`** — pageId 查找改为 `_pending_by_app` 优先于 L2 pageId，但不覆盖 32hex 表单级 pageId：<br>```python<br>page_id = self.page_ids.get(form_id)<br>pending_pid = self._pending_by_app.get(app_id)<br>if (pending_pid and len(pending_pid) >= 16<br>        and page_id != pending_pid<br>        and (page_id is None or len(page_id) > 32 or '/' in page_id)):<br>    page_id = pending_pid<br>```<br>**判断条件解释**：`len(page_id) > 32` → L2 pageId（51+）；`'/' in page_id` → 也是 L2；32 字符 → 32hex 表单级 pageId，不覆盖。 |
-
-**关于 pageId 的关键机制**（读这段再动手）：
-```
-replay.py 行 195: self.page_ids → form_id 到 pageId 的映射表
-  → 维护表单ID到pageId的映射表
-replay.py 行 201: self._pending_by_app → 按 appId 记的 pending pageId
-  → 来自 addVirtualTab 的按应用缓存 pageId
-replay.py 行 423-441: invoke() 中的 pageId 选择规则
-  → 优先 _pending_by_app，再查 page_ids，最后兗底 root_page_id
-replay.py 行 553-568: _harvest_virtual_tab_pageids()
-  → 扫 addVirtualTab 响应，填充 _pending_by_app
-
-注意：saveandeffect 后 pageId 失效（runner.py 行 368-376）
-  → runner 会自动清除旧 pageId，下次调用时重新申请
-  → 支持 keep_page: true 标记保留 pageId（用于连续新增场景）
-```
-
-**验证**：
-```bash
-# 跑一下看 pageId 相关错误
-python3 -m lib.runner run cases/xxx.yaml 2>&1 | grep -i "pageId\|404\|page"
-```
-
----
-
-### 🟠 模式 A-7：日期字段 ${today} 覆盖用户自定义值
-
-**症状**：
-- 在"环境相关字段"面板修改了日期值（如 date_effectdate = 2026-01-01）
-- 执行后结果仍显示当天日期（${today} 解析值）
-
-**根因**：`resolve_vars()` 将 `${today}` 展开为当天日期，覆盖了 `_apply_pick_fields()` 预先注入的用户自定义日期值。
-
-**代码位置**：`runner.py` 行 774-794（date_* 后置注入机制）
-
-**修复**：该问题已通过后置注入机制自动修复。在主步骤循环中，每处理一个 `update_fields` 步骤时，系统会从 `pick_fields` 读取所有 `date_*` 值并强制覆盖 resolve_vars 的结果。
-
-**验证**：
-```bash
-# 确认后置注入代码存在
-grep -n "date pick_fields 后置注入" lib/runner.py
-```
-
----
-
-### 🔴 模式 C：save 成功但数据没入库（执行阶段）
-
-**症状**：
-- runner 输出 PASS
-- 但数据库查不到保存的数据
-- 这是最隐蔽的失败模式（无声失败）
-
-**根因链**（从症状往前推）：
-
-```
-症状：PASS 但无数据
-  ↑
-检查项1：saveandeffect 是否被正确执行？
-  场景 C-1: saveandeffect 被标为 optional → runner 跳过了
-            → 检查 YAML 中 saveandeffect 步骤的 tier 字段
-            → 如果不是 "core"，改之
-  代码位置：runner.py 行 368-370
-
-  ↑
-检查项2：关键上下文字段是否缺失？
-  场景 C-2: 缺少 org/changescene/parentorg 等字段
-            → 服务端校验不通过但静默返回 success
-            → 需要补 pick_basedata 步骤
-  诊断：看 advisor 输出，搜 "建议补字段"
-  修复：在 save 前插入对应 pick_basedata 步骤
-
-  ↑
-检查项3：saveandeffect 没有被正确标记
-  场景 C-3: HAR 中 save 步骤被标成了 UI 层级而不是 core
-            → har_extractor 的 AC_TIER 分类没命中
-  代码位置：har_extractor.py 中 AC_TIER 相关逻辑
-
-  ↑
-检查项4：基础资料 ID 在目标环境不存在
-  场景 C-4: ${resolve:basedata:...} 引用的 ID 在新环境没有
-            → 解析失败 → 字段值为空 → 入库时被忽略
-  诊断：在 session_ready 日志里看 vars 的解析值
-  修复：在 config/envs/xxx.yaml 里更新对应的基础资料 ID
-
-  ↑
-  场景 C-5: HAR 中的保存动作是 ac=click, key=btnsave, method=click（新增）
-            → 某些表单的保存操作本身就是 ac=click, key=btnsave（非标准 saveandeffect）
-            → ⚠ 不要改成 saveandeffect！这个表单的保存就是 ac=click
-            → ac=click 不在 AC_TIER 中 → 默认降为 ui_reaction → 被标 optional
-            → 同时 pageId 链路断裂时返回空 [] 但不报错
-  诊断：grep "btnsave\|ac: click" cases/xxx.yaml
-        → 找到 btnsave 步骤后检查是否被标了 optional
-  修复（两步）：
-        (a) YAML 侧：去掉 optional, 加 tier: core
-            注意：不要改成 saveandeffect！这个表单的保存就是 ac=click
-        (b) 代码侧（根治）：在 har_extractor.py 的 action 处理循环中，
-            当 ac=click 且 key in _SAVE_BUTTON_KEYS 时，设置 tier=core
-            参考：lib/har_extractor.py 行 1210-1212
-```
-
-**验证方法（每次 PASS 后必须执行）**：
-```bash
-# 验证1：确认 saveandeffect 存在且在 core 层级
-grep -A3 "saveandeffect\|submitandeffect" cases/xxx.yaml | head -10
-
-# 验证2：确认 save 前有必要的基础资料字段
-# 看 advisor 输出是否提示缺少字段
-
-# 验证3：确认变量解析正确（看执行日志第一条）
-# 在 Web UI 执行日志里找 session_ready 事件的 vars 段
-
-# 验证4：确认 save 步骤属性
-grep -B2 -A12 "btnsave" cases/xxx.yaml
-# 检查：ac 是 click 还是 saveandeffect
-# 检查：没有 optional: true
-# 检查：tier: core 或没有 optional 标记
-
-# 验证5：断言选择
-# no_save_failure → 检查 save 专属错误（字段级校验如"数据已存在"也会捕获）
-# no_error_actions → 只检查 bos_operationresult 级错误（save 字段校验漏报）
-# ⚠ save 步骤的断言应该用 no_save_failure，不要用 no_error_actions
-# 详见 references/assertion-blindspots.md
-```
-
----
-
-### 🟢 模式 D：登录失败——找不到 cosmic_login.py（启动阶段）
-
-**症状**：
-- `FileNotFoundError: 找不到 cosmic-login skill。请设置 COSMIC_LOGIN_SCRIPT 环境变量`
-- 开发环境 `python3 -m lib.webui.server` 直接启动时必出（因为没设环境变量）
-- `./start.sh` 启动时不出（因为脚本里设了 `COSMIC_LOGIN_SCRIPT`）
-
-**根因**：`_find_login_script()` 的搜索路径没覆盖 `lib/cosmic_login.py`（与 `replay.py` 同目录）。当 `COSMIC_LOGIN_SCRIPT` 环境变量未设时，搜索路径 `cosmic-login/cosmic_login.py` 和 `.claude/skills/cosmic-login/cosmic_login.py` 都无法命中。
-
-**修复方案**：
-
-| 场景 | 代码位置 | 修复 |
-|------|---------|------|
-| D-1: 源码级修复（永久） | `lib/replay.py` 中 `_find_login_script()` | 在循环搜索前加一行：`same_dir = here.parent / "cosmic_login.py"` |
-| D-2: Web UI 启动加载 `.env`（预防性） | `lib/webui/server.py` | 在 `main()` 第一行调用 `_load_dotenv()`，函数从项目根 `.env` 文件读取所有变量注入 `os.environ` |
-| D-3: 临时修复（老代码还能跑） | 启动前 export | `export COSMIC_LOGIN_SCRIPT=/path/to/cosmic-replay-v4/lib/cosmic_login.py` |
-
-**完整修复代码**（lib/replay.py `_find_login_script`）：
+**可重试错误模式**（字符串子串匹配）:
 ```python
-here = Path(__file__).resolve()
-# 先找同目录下的 cosmic_login.py（lib/ 目录，和 replay.py 同目录）
-same_dir = here.parent / "cosmic_login.py"
-if same_dir.exists():
-    return same_dir
-for parent in [here.parent.parent.parent, ...]:
-    ...
+_RETRYABLE_ERRORS = (
+    "页面未初始化或者已经过期",
+    "获取缓存连接客户端失败",
+    "请求超时",
+    "NullPointerException",
+)
 ```
 
-**`.env` 加载函数**（lib/webui/server.py）：
+**恢复流程**:
+1. `replay.page_ids.pop(form_id, None)` — 清除过期 pageId
+2. `replay.open_form(form_id, app_id, lazy=False)` — 申请新 pageId
+3. `replay.load_data(form_id, app_id)` — 初始化表单数据
+4. 重新执行原 handler
+
+**约束参数**:
+- 最大重试: `_INVOKE_MAX_RETRIES = 2`
+- 退避策略: `min(2^retry_count, 4)` 秒 → 2s, 4s
+- open_form 失败 → `break`（防死循环）
+- 业务逻辑错误（不匹配上述4模式）→ 不重试，直接跳出
+
+**SSE 事件**: 重试时推 `retry` 事件 `{step_id, attempt, error}`
+
+---
+
+## 二、PageId 四层跃迁模型
+
+| 层级 | 格式 | 来源 | 生命周期 |
+|------|------|------|---------|
+| L0 | `root{32hex}` | `init_root()` → `sess.root_page_id` | 整个会话 |
+| L1 | `{32hex}` | `open_portal()` | 门户切换前 |
+| L2 | `{数字menuId}root{32hex}` | menuItemClick 后计算 | 菜单导航切换前 |
+| L3 | `{32hex}` (纯32字符hex) | `open_form()`/getConfig | save/submit 后失效 |
+
+**查找优先级**: 显式指定 > `_pending_by_app[app_id]` > `page_ids[form_id]` > `root_page_id`
+
+**L2 判定** (`lib/replay.py` 行 43-50):
 ```python
-def _load_dotenv():
-    dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
-    if dotenv_path.exists():
-        for line in dotenv_path.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, val = line.partition("=")
-            key, val = key.strip(), val.strip().strip("\"'").strip()
-            if key and val and key not in os.environ:
-                os.environ[key] = val
+_L2_PATTERN = re.compile(r'^\d+root[0-9a-f]{32}$')
+def _is_l2_pageid(pid: str) -> bool:
+    return bool(_L2_PATTERN.match(pid))
 ```
 
-**验证**（无 `COSMIC_LOGIN_SCRIPT` 环境变量时）：
+**过期启发式** (`lib/replay.py` 行 297-309 `_is_pageid_likely_stale`):
+- 无 pageId → 必定无效
+- L2 pageId 绑定到未 loadData 的表单 (`form_id not in _loaded_forms`) → 可能过期
+
+**关键生命周期规则**:
+- save/submit 后 pageId 失效，框架自动 pop（除非 `keep_page=true`）
+- menuItemClick 后自动计算 L2: `f"{menuId}root{session.root_base_id}"`
+- `_pending_by_app`: addVirtualTab 响应中按 app_id 缓存待消费 pageId
+
+---
+
+## 三、target_forms 机制（HAR 导入阶段）
+
+### 问题背景
+
+苍穹菜单导航中，menuItemClick 创建 L2 pageId，多个子表单在同一导航上下文中共享此 L2。若 runner 不知道哪些表单共享 L2，会在 invoke 时为子表单使用错误的 pageId。
+
+### 规则13：自动检测
+
+**位置**: `lib/har_extractor.py` 行 2013-2069
+
+**检测流程**:
+1. 找到首个 `ac=menuItemClick` 步骤，提取 `menuId`
+2. 绑定 `target_form = main_form`
+3. 计算 L2 前缀: `l2_prefix = f"{menuId}root"`
+4. **方案A（精确）**: 扫描后续步骤的 `_har_page_id`，前缀匹配 `l2_prefix` 的非主表单 → 加入 `target_forms_set`
+5. **方案B（兜底）**: 若方案A无结果，取 menuItemClick 后紧跟的 `loadData` 步骤（`form_id ≠ main_form`，在下一个 `open_form`/`menuItemClick` 之前）
+6. 输出: `cleaned[menu_idx]["target_forms"] = sorted(target_forms_set)`
+
+### runner 消费 target_forms
+
+menuItemClick 执行时，runner 为 `target_forms` 列表中所有表单共享 L2 pageId，即 `page_ids[sub_form] = L2_pid`。
+
+### 诊断方法
+
 ```bash
-python3 -c "
-import sys, os; sys.path.insert(0, '.')
-os.environ.pop('COSMIC_LOGIN_SCRIPT', None)
-from lib.replay import _find_login_script
-print(_find_login_script())  # 应输出 /.../cosmic-replay-v4/lib/cosmic_login.py
-"
+# 检查 YAML 是否含 target_forms
+grep "target_forms" cases/xxx.yaml
+# 应在 menuItemClick 步骤看到
+```
+
+若缺失：重新导入 HAR → 检查 HAR 中是否有 `_har_page_id` 前缀匹配。
+
+---
+
+## 四、变量体系与解析
+
+### 三档变量
+
+| 档位 | 含义 | 典型字段 | 处理方式 |
+|------|------|----------|----------|
+| A档（必变） | 每次必须不同 | number/code/name | 变量化 `${vars.test_number}` |
+| B档（基础资料） | 环境相关 | org/position/country | 保留字面量，pick_fields 标记 env_sensitive |
+| C档（响应回传） | 跨步引用 | pkValue/processInstId | `${resp.step_id.path}` 引用 |
+
+### 变量解析流程
+
+```
+vars_ns 初始化 (runner.py 行 800-804)
+  → 每步: step = resolve_vars(raw_step, vars_ns) (行 865)
+    → date pick_fields 后置注入 (行 867-888)  ← 防 ${today} 覆盖用户自定义日期
+```
+
+### date pick_fields 后置注入（runner.py 行 867-888）
+
+**目的**: 防止 `resolve_vars` 展开 `${today}` 后覆盖用户在 pick_fields 中指定的日期值。
+
+**机制**:
+1. 仅对 `type == "update_fields"` 步骤生效
+2. 从 `case["pick_fields"]` 读取所有 `date_` 前缀的条目
+3. 去掉 `date_` 前缀得到 `field_key`
+4. 用 pick_fields 的 value 强制覆盖 resolve_vars 后的字段值
+5. 支持多语言 dict (`{zh_CN: ..., en: ...}`) 和纯字符串两种格式
+
+### UNIQUE_KEY_HINTS（变量识别）
+
+**位置**: `lib/har_extractor.py` 行 788-789
+
+```python
+UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname", "billno", "orderno"}
+```
+
+匹配这些字段名的值会被自动变量化，防止第二次运行"数据已存在"。
+
+---
+
+## 五、故障诊断手册
+
+### 快速诊断决策树
+
+```
+执行失败
+├─ 错误含"页面未初始化或者已经过期"?
+│   ├─ 日志有 [invoke-retry]? → 安全网已触发
+│   │   ├─ 重试后成功? → 正常，瞬态问题
+│   │   └─ 重试后仍失败? → open_form 返回空 → 检查环境连通性
+│   └─ 日志无 [invoke-retry]? → 错误未匹配 _RETRYABLE_ERRORS → 检查错误文本精确内容
+│
+├─ save 返回空 [] 无报错?
+│   ├─ page_ids 中的值匹配 ^\d+root[0-9a-f]{32}$? → L2 屏蔽问题 (类型B)
+│   ├─ YAML 中 menuItemClick 无 target_forms? → 重新导入 HAR (类型C)
+│   └─ saveandeffect 被标 optional? → 改 tier: core
+│
+├─ 字段值不对?
+│   ├─ 日期字段? → 检查 date pick_fields 后置注入 (类型D)
+│   ├─ 基础资料 ID? → 检查 config/envs/*.yaml 环境配置
+│   └─ 硬编码值? → 检查 UNIQUE_KEY_HINTS 是否覆盖该字段名
+│
+├─ "数据已存在" / "名称重复"?
+│   └─ 字段名不在 UNIQUE_KEY_HINTS → har_extractor 未变量化 → 手动添加变量
+│
+├─ 登录失败?
+│   └─ 检查 config/envs/*.yaml → username/password/datacenter_id/base_url
+│
+└─ 其他业务错误?
+    └─ 查 advisor 修复建议 (result.fixes) → 按建议修改 YAML
+```
+
+### 类型A：pageId 过期/缺失
+
+**症状**: `"页面未初始化或者已经过期"` / save 返回空 / ProtocolError
+
+**诊断步骤**:
+1. 搜日志中 `[pre-validate]` → 确认预验证是否触发
+2. 搜日志中 `[invoke-retry]` → 确认安全网是否触发
+3. 搜 `检测到可重试错误` → 确认错误是否匹配 `_RETRYABLE_ERRORS`
+4. 若安全网触发但恢复失败 → 检查 open_form 返回值（是否为空/异常）
+
+**修复方案**:
+
+| 场景 | 原因 | 修复 |
+|------|------|------|
+| 新错误模式未被安全网覆盖 | 错误文本不在 `_RETRYABLE_ERRORS` | 在 `runner.py` 行 944-949 添加新模式 |
+| open_form 恢复失败 | 网络/服务端异常 | 检查环境连通性 |
+| 预验证未触发 | 操作在排除列表 `_skip_actions` 中 | 确认 ac 是否确实需要排除 |
+| save 后 pageId 未 pop | 缺少 `invalidate_pages` 配置 | 在 save 步骤添加 `invalidate_pages: [form_id]` |
+
+### 类型B：L2 pageId 屏蔽问题
+
+**症状**: save 返回空 `[]`，且 `page_ids[form_id]` 匹配 `^\d+root[0-9a-f]{32}$`（L2 格式）
+
+**根因**: menuItemClick 后 L2 pageId 被设入 `page_ids[form_id]`，后续 save/submit 等需要 L3 的操作使用了列表态 L2
+
+**诊断**:
+1. 检查 `replay.page_ids[form_id]` 长度是否 > 32 字符
+2. 检查 `replay._pending_by_app[app_id]` 是否有可用 L3
+3. 确认预验证场景2是否正确降级（搜日志 `L2降级→L3`）
+
+**修复**: 预验证层已处理（runner.py 行 373-391）。若仍发生：
+- 检查 `_is_l2_pageid()` 判定是否正确匹配该 pageId
+- 确认 `_pending_by_app` 中是否有对应 app_id 的 L3
+
+### 类型C：多表单 L2 共享（target_forms 缺失）
+
+**症状**: 非主表单的 invoke 使用错误 pageId / 子表单操作报"页面未初始化"
+
+**诊断**:
+```bash
+grep "target_forms" cases/xxx.yaml
+# 若 menuItemClick 步骤无 target_forms，则问题确认
+```
+
+**修复**:
+1. 重新导入 HAR: `python -m lib.har_extractor extract xxx.har -o cases/xxx.yaml`
+2. 确认生成: `grep "target_forms" cases/xxx.yaml`
+3. 若 har_extractor 仍未检测到，手动添加:
+```yaml
+- type: invoke
+  ac: menuItemClick
+  target_form: main_form_id
+  target_forms: [sub_form_a, sub_form_b]
+```
+
+**排查 har_extractor 未检测到的原因**:
+- HAR 中无 menuItemClick 步骤
+- 步骤缺少 `_har_page_id` 字段
+- `_har_page_id` 前缀不匹配 `{menuId}root` 格式
+
+### 类型D：变量解析失败
+
+**症状**: 字段值为 `${today}` 字面量 / 日期被覆盖 / pick_fields 值不生效
+
+**诊断**:
+1. 确认 pick_fields 中 key 格式为 `date_<field_key>`（必须有 `date_` 前缀）
+2. 确认 `value_id` 或 `value_name` 非空
+3. 确认目标步骤 `type == "update_fields"` 且 `fields` 包含该 `field_key`
+4. 确认 vars 中变量名与引用 `${vars.xxx}` 一致
+
+**修复**: 确保 pick_fields 格式正确：
+```yaml
+pick_fields:
+  date_effectdate:       # 必须 date_ 前缀
+    value_id: "2026-01-01"
+    label: "生效日期"
+```
+
+### 类型E：业务逻辑错误（非框架问题）
+
+**特征**: 安全网不重试（错误不匹配可重试模式）
+
+**区分方法**:
+- 框架错误: `页面未初始化`/`NullPointerException`/`请求超时`/`缓存连接失败` → 安全网自动处理
+- 业务错误: `数据已存在`/`必填字段为空`/`校验不通过` → 需修改 YAML 数据
+
+**修复**: 查 advisor 输出 (`result.fixes`)，按修复建议调整 YAML 中的字段值或补步骤。
+
+### 类型F：登录/环境问题
+
+**症状**: 登录失败 / 连接超时 / datacenter_id 错误
+
+**诊断**:
+1. 检查 `config/envs/*.yaml` 中 base_url/username/password/datacenter_id
+2. 确认环境地址可达: 浏览器访问 base_url
+3. 确认凭证有效: 手动登录苍穹平台
+
+**修复**: 编辑 `config/envs/*.yaml` 或 Web UI → 配置 → 环境列表。
+
+---
+
+## 六、经验教训
+
+### Rule 14 废弃教训
+
+**结论**: 不要在 YAML 生成阶段静态插入 loadData。
+
+**失败原因**:
+1. 静态分析无法知道 form 是否已通过 menuItemClick/target_forms 初始化
+2. 额外 loadData 会覆盖已有的有效 pageId
+3. 与 target_forms 动态 pageId 管理机制冲突
+
+**当前状态**: `insert_loaddata_on_form_change()` 调用已注释（`har_extractor.py` 约行 1986-1988），等效保护由运行时三层防护提供。
+
+**正确替代方案**: 运行时三层防护（预验证 + auto-open + 安全网重试）
+
+---
+
+## 七、关键文件索引
+
+| 文件 | 行号范围 | 函数/内容 | 排查用途 |
+|------|----------|-----------|----------|
+| `lib/runner.py` | 336-400 | `_validate_pageid_before_invoke()` | 预验证四场景逻辑 |
+| `lib/runner.py` | 923-939 | auto-open 补偿 | 主循环 pageId 缺失补偿 |
+| `lib/runner.py` | 942-1003 | invoke-retry 安全网 | 可重试错误+恢复+重试循环 |
+| `lib/runner.py` | 867-888 | date pick_fields 后置注入 | 防 `${today}` 覆盖用户日期 |
+| `lib/runner.py` | 800-804 | vars_ns 初始化 | 变量命名空间构建 |
+| `lib/runner.py` | 835 | `_apply_pick_fields(case)` | 环境字段值注入 |
+| `lib/replay.py` | 43-50 | `_is_l2_pageid()` / `_L2_PATTERN` | L2 pageId 正则判定 |
+| `lib/replay.py` | 297-309 | `_is_pageid_likely_stale()` | pageId 过期启发式 |
+| `lib/replay.py` | 311-340 | `open_form()` | 表单 pageId 申请(getConfig) |
+| `lib/replay.py` | 585-600 | `_harvest_virtual_tab_pageids()` | addVirtualTab → _pending_by_app |
+| `lib/har_extractor.py` | 2013-2069 | 规则13 | menuItemClick target_forms 自动检测 |
+| `lib/har_extractor.py` | 1986-1988 | 规则14（已禁用） | 静态 loadData 插入（注释状态） |
+| `lib/har_extractor.py` | 788-789 | `UNIQUE_KEY_HINTS` | 唯一标识字段名单 |
+| `lib/advisor.py` | - | `analyze_errors()` | 错误分析+修复建议生成 |
+
+---
+
+## 八、日志分析指南
+
+### 日志存储位置
+
+- **实时执行日志**: `logs/runs/<run_id>.jsonl` — 每行一个 JSON 事件
+- **服务器日志**: `logs/server-*.log`
+- **反模式警告**: `logs/_unknowns/_antipatterns.jsonl`
+
+### JSONL 事件格式
+
+```json
+{"ts": 1715760000.123, "type": "step_start", "data": {"step_id": "save_main", "step_type": "invoke"}}
+{"ts": 1715760001.456, "type": "retry", "data": {"step_id": "save_main", "attempt": 1, "error": "页面未初始化..."}}
+{"ts": 1715760003.789, "type": "step_ok", "data": {"step_id": "save_main"}}
+```
+
+### 关键事件类型
+
+| 事件 | 含义 | 关注字段 |
+|------|------|----------|
+| `case_start` | 用例开始 | case_name |
+| `login_ok` | 登录成功 | user_id |
+| `step_start` | 步骤开始 | step_id, step_type |
+| `step_ok` | 步骤成功 | step_id |
+| `retry` | 安全网重试 | step_id, attempt, error |
+| `case_done` | 用例完成 | status, duration |
+| `case_error` | 用例异常 | error |
+
+### 快速定位方法
+
+```bash
+# 查看某次执行的所有重试
+grep "retry" logs/runs/<run_id>.jsonl
+
+# 查看失败步骤
+grep "case_error\|step_fail" logs/runs/<run_id>.jsonl
+
+# 查看预验证日志（在 stderr/stdout 中）
+# 搜索关键字: [pre-validate] / [invoke-retry] / [auto-open]
 ```
 
 ---
 
-## 四、快速修复循环（三步法）
+## 九、常见修复方案速查
 
-**每次 FAIL 后的标准诊断路径**：
+### 修复1：安全网未覆盖新错误模式
 
-```
-第1步：跑一下看输出
-  python3 -m lib.runner run cases/xxx.yaml
-
-  结果判断：
-  ├─ 有明确错误信息 → 去 advisor 找修复建议
-  │   └─ advisor 给了建议？→ 按建议改 YAML
-  │   └─ advisor 没给建议？→ 看错误类型，按上面的模式查
-  │
-  ├─ 输出 PASS
-  │   └─ 执行"验证方法"（看上面模式 C 的验证清单）
-  │   └─ 验证通过 → 真实 PASS
-  │   └─ 验证失败 → 数据没落库 → 按模式 C 查
-  │
-  └─ 输出 404 / pageId 错误 → 按模式 B 查
-
-第2步：改 YAML
-  ├─ 补字段 → 插入到 save 步骤之前（updateValue / pick_basedata）
-  ├─ 补步骤 → 从 menuItemClick 开始（缺上下文情况下）
-  ├─ 改变量 → 更新 har_extractor.py 的规则 → 重新导入
-  ├─ 改层级 → saveandeffect 的 tier 改成 "core"
-  └─ 改类型 → ac=click + key=btnsave → ac=saveandeffect（模式 C-5）
-  注意：补了字段后确认旧步骤没有冲突值
-
-第3步：再跑 → 执行验证 → 直到真实通过
+```python
+# lib/runner.py 行 944-949，添加新模式
+_RETRYABLE_ERRORS = (
+    "页面未初始化或者已经过期",
+    "获取缓存连接客户端失败",
+    "请求超时",
+    "NullPointerException",
+    # 新增: "你的新错误关键字",
+)
 ```
 
----
+### 修复2：target_forms 缺失
 
-## 五、关键代码速查表
+重新导入 HAR → 确认生成。若仍缺失，手动在 menuItemClick 步骤添加:
+```yaml
+- type: invoke
+  ac: menuItemClick
+  target_form: main_form_id
+  target_forms: [sub_form_a, sub_form_b]
+```
 
-| 文件 | 核心函数/结构 | 行号 | 作用 | 你什么时候改它 |
-|------|-------------|------|------|--------------|
-| `har_extractor.py` | `detect_var_placeholders()` | 721-1168 | 变量识别引擎 | 变量没识别/识别错了时 |
-| `har_extractor.py` | `UNIQUE_KEY_HINTS` | 735 | 唯一标识字段名单 | 编码/编号/名称没被变量化 |
-| `har_extractor.py` | `_CLASSIFY_KEY_EXCLUSIONS` | 740 | 后缀匹配排障：ename 等被误识别为 name | 属性名称被变量化时 → 把字段 key 加进来 |
-| `har_extractor.py` | `ENV_RELATED_FIELDS` | 1060-1072 | 环境相关基础资料名单 | 组织/企业/部门没变量化 |
-| `har_extractor.py` | `ENUM_FIELDS` | 1077-1083 | 系统枚举值名单 | 性别/类型被错误变量化 |
-| `har_extractor.py` | click 步骤 post_data 变量化（内联逻辑） | 940-964 | click 步骤 post_data 中 UNIQUE_KEY_HINTS 字段变量化 | 用户直接保存的字段没变量化 |
-| `har_extractor.py` | newentry 步骤变量化 | 994-1017 | newentry 步骤的 post_data 中 name/number 字段抽变量 | 业务模型附表等场景中新增条目行字段值硬编码时 |
-| `har_extractor.py` | `_SAVE_BUTTON_KEYS` | 80 | btnsave→core 标记 | HAR把保存录成click时 |
-| `har_extractor.py` | AC_TIER + btnsave→core 标记 | 1207-1212 | click+btnsave 自动标 tier=core（不转 saveandeffect） | 新增save按钮类型时 |
-| `runner.py` | `STEP_HANDLERS` | 312 | 步骤类型执行器映射 | 添加/修改步骤处理逻辑 |
-| `runner.py` | `run_case()` | 646 | 用例执行主循环 | 修改执行流程 |
-| `runner.py` | saveandeffect pageId失效逻辑 | 368-376 | save后清pageId | pageId刷新异常时 |
-| `replay.py` | `_harvest_virtual_tab_pageids()` + `_pending_by_app` | 553-568 | 扫 addVirtualTab 按 appId 存 pending pageId | entryRowClick 后表单 pageId 丢失时 → 检查此链路是否通 |
-| `replay.py` | pageId 查找（含 `_pending_by_app` 优先逻辑） | 423-441 | L2 pageId vs _pending_by_app 优先级选择 | 调整 L2→表单 pageId 的覆盖条件 |
-| `replay.py` | `init_root()` | 218 | 会话根 pageId | 初始化失败时 |
-| `replay.py` | `open_form()` | 245 | 表单 pageId 申请 | 表单打不开时 |
-| `advisor.py` | `FixSuggestion` | 123-143 | 修复建议数据结构 | 修改建议格式 |
-| `config/envs/sit.yaml` | 环境配置 | 全部 | 基础资料ID/环境变量 | 换环境时更新 |
-
----
-
-## 六、环境配置清单
+### 修复3：日期字段被 ${today} 覆盖
 
 ```yaml
-# config/envs/sit.yaml
-base_url: "https://xxx.kingdee.com"
-# 敏感凭证放 .env（不提交 git），用环境变量引用
-# COSMIC_USERNAME=xxx
-# COSMIC_PASSWORD=xxx
-# COSMIC_DATACENTER_ID=xxx
+pick_fields:
+  date_effectdate:       # 必须 date_ 前缀
+    value_id: "2026-01-01"
+    label: "生效日期"
 ```
 
-**环境迁移时的必改项**（在 config/envs/xxx.yaml）：
-- `base_url`：目标环境地址
-- 基础资料 ID（用户/岗位/组织等）在新环境的数值
-- `datacenterId`：数据中心 ID
+### 修复4：L2 降级不生效
+
+检查 `_pending_by_app` 是否有值。若为空 → 上游 `_harvest_virtual_tab_pageids()` 未被触发 → 检查 addVirtualTab 响应是否被正确解析。
+
+### 修复5：基础资料跨环境失败
+
+`value_id` 跨环境不同 → 在 pick_fields 中标记 `env_sensitive: true`，使用 `value_name` 替代 `value_id`。
 
 ---
 
-## 七、常用诊断命令速查
+## 十、红线规则
 
-```bash
-# 启动服务（端口 8768）
-python3 -m lib.webui.server
-
-# 导入 HAR → 生成 YAML
-python3 -m lib.har_extractor extract xxx.har -o cases/xxx.yaml
-
-# 跑用例
-python3 -m lib.runner run cases/xxx.yaml
-
-# 看 YAML 变量模板
-grep -A30 "^vars:" cases/xxx.yaml
-
-# 看执行日志中的变量解析
-# 在 Web UI 中找 session_ready 事件的 vars 段
-
-# 检查端口占用
-lsof -i :8768
-
-# 检查 save 步骤类型（模式 C-5 快速排查）
-grep -B2 -A10 "btnsave\|ac: click\|ac: saveandeffect" cases/xxx.yaml
-```
-
----
-
-## 八、做事的红线（读三遍）
-
-1. **不要在 YAML 里硬编码密码/敏感信息** → 永远用环境变量 `${env:XXX}`
-2. **不要在 YAML 里硬编码 pageId 或 traceId** → 这些是动态值，执行器会管理
-3. **不要删 menuItemClick 步骤** → 那是页面上下文的起点
-4. **不要删 treeview.focus** → 那是用户点击过的树节点，决定了当前上下文
-5. **不要删 changeYear** → 每个日期 updateValue 前都有它，跳过会导致日期不落值
-6. **不要把 saveandeffect 标为 optional** → 核心步骤，必须 core
-7. **PASS 不代表数据落库** → 每次 PASS 后执行验证清单
-8. **不要在 YAML 里写死基础资料 ID** → 用 `${resolve:basedata:...}` 或 `${vars.xxx_id}`
-9. **出现问题先看这个文档** → 按故障因果链定位，不要盲目改代码
-10. **如果 YAML 里有 ac: click + key: btnsave** → 
-    (a) 检查是否被标了 optional → 改为 tier: core
-    (b) **不要改成 saveandeffect** — 这个表单的保存就是 ac=click，不是所有 save 都是 saveandeffect
-    (c) 同时检查 pageId 链路：`entryRowClick → addVirtualTab → _pending_by_app` 是否完整
-11. **Web UI 启动报找不到 cosmic_login.py** → 检查两处修复：(a) `lib/replay.py` 的 `_find_login_script()` 是否加了 `same_dir` 搜索；(b) `lib/webui/server.py` 的 `main()` 是否调了 `_load_dotenv()`。改完后必须重启进程（Python 缓存模块）
-12. **⛔ 改代码后必须重启 Web UI** → Python 的 uvicorn 在启动时一次性加载所有模块。对 `lib/replay.py` / `lib/runner.py` / `lib/har_extractor.py` 的任何修改，在旧的 Web UI 进程（PID）上永远不会生效。可以 kill 后 `python3 -m lib.webui.server --port 8768` 重启
-13. **断言选择** → save 步骤用 `no_save_failure`（捕获字段级校验错误），不要用 `no_error_actions`（漏报"数据已存在"和"名称重复"）
-14. **`newentry` 步骤的 post_data 字段值也要检查** → `ac=newentry` 的 `post_data[1]` 中的 `name`/`number` 等字段值也可能不是变量化的。如果看到 "ppppp1" 等硬编码值，检查 `detect_var_placeholders()` 的 `newentry` 分支（`har_extractor.py` 行 994-1017）。不想变量化的字段（如 `ename` 属性名称）加到 `_CLASSIFY_KEY_EXCLUSIONS`（行 740）集合中
-
----
-
-## 九、项目标准启动命令
-
-```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 首次初始化
-python3 -m lib.webui.server --init
-
-# 启动 Web UI（默认 8768 端口）
-python3 -m lib.webui.server
-
-# 或使用启动脚本
-./start.sh
-```
-
----
-
-## 附录：常见错误对照表
-
-| 错误信息 | 可能原因 | 参考模式 |
-|---------|---------|---------|
-| `ProtocolError: no pageId in resp` | 缺页面上下文步骤 / session 过期 | 模式 B |
-| `no_save_failure` | 缺少必填字段（org/changescene 等） | 模式 C-2 |
-| 提示"XXX已存在" | 编码/名称没变量化，跑重了 | 模式 A-1 |
-| save 返回 success 但查无数据 | saveandeffect 被跳过 | 模式 C-1 |
-| `${resolve:basedata:...}` 解析报错 | 基础资料 ID 在目标环境不存在 | 模式 C-4 |
-| 字段值还是旧环境的测试数据 | 没被变量识别规则命中 | 模式 A-2 |
-| HAR 导入后 YAML 只有 savedeffect 没有 menuItemClick | 录制范围不对，缺少入口 | 模式 B-1 |
-| YAML 中 ac: click + key: btnsave，PASS 但无数据 | HAR 把保存录成 click 未转 saveandeffect | 模式 C-5 |
-| `ename` 被变量化为 `test_name`（不应变量化） | `_CLASSIFY_KEY_EXCLUSIONS`（行 740）中缺少 `ename` | 模式 A-6 |
-| `name`/`number` 在 `newentry` 步骤中硬编码（如 "ppppp1"） | `detect_var_placeholders()` 的 `newentry` 分支未触发 | 模式 A-5 |
-| `FileNotFoundError: 找不到 cosmic-login skill` | `COSMIC_LOGIN_SCRIPT` 未设 + `_find_login_script()` 搜索路径没覆盖 | 模式 D |
-| save 返回空 `[]`，`page_ids.get(form_id)` 为 None | `_pending_by_app` 链路断裂 | 模式 B-3 |
+1. **不要静态插入 loadData** → Rule 14 教训：运行时防护已覆盖
+2. **不要删 menuItemClick** → 页面上下文起点，L2 pageId 来源
+3. **不要硬编码 pageId** → 动态值，由 replay 状态机管理
+4. **PASS 不等于数据落库** → 检查 save 步骤的断言用 `no_save_failure` 而非 `no_error_actions`
+5. **改代码后必须重启 Web UI** → Python 模块启动时一次性加载
+6. **业务错误不要改框架** → 先查 advisor 建议，修改 YAML 数据
+7. **ac=click + key=btnsave 不要改成 saveandeffect** → 某些表单保存就是 click
