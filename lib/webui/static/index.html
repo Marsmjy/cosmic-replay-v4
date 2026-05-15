@@ -1527,7 +1527,7 @@
 
     <!-- 元信息行 -->
     <div class="flex flex-wrap gap-4 text-xs text-slate-400 mb-4 px-1">
-      <span>环境: <span class="text-slate-200" x-text="taskDetail.env_id"></span></span>
+      <span>环境: <span class="text-slate-200" x-text="getEnvName(taskDetail.env_id)"></span></span>
       <span>并发: <span class="text-slate-200" x-text="taskDetail.concurrency || 3"></span></span>
       <span x-show="taskDetail.started_at">启动: <span class="text-slate-200" x-text="taskDetail.started_at?.slice(11,19) || ''"></span></span>
       <span>耗时: <span class="text-slate-200" x-text="(taskDetail.duration_s || 0).toFixed(1) + 's'"></span></span>
@@ -2165,7 +2165,7 @@
         <div class="bg-slate-800 px-6 py-4 flex items-center justify-between rounded-t-lg shrink-0">
           <div>
             <h3 class="text-lg font-semibold" x-text="currentReport.task_name || '执行报告'"></h3>
-            <div class="text-xs text-slate-400 mt-1" x-text="'环境: ' + currentReport.env + ' | ' + currentReport.generated_at"></div>
+            <div class="text-xs text-slate-400 mt-1" x-text="'环境: ' + getEnvName(currentReport.env) + ' | ' + currentReport.generated_at"></div>
           </div>
           <button @click="showReportDialog=false" class="text-slate-400 hover:text-white text-xl">&times;</button>
         </div>
@@ -2577,6 +2577,10 @@ function app() {
           c.is_flaky = false;
         }
       }
+    },
+    getEnvName(envId) {
+      const found = this.envs.find(e => e.id === envId);
+      return found ? found.name : envId;
     },
     async loadEnvs() {
       const cfg = await (await fetch('/api/config?mask=false')).json();
