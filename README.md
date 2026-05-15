@@ -97,17 +97,24 @@ Skill 包含完整的故障因果链和修复方案（变量识别漏报 / pageI
 ```
 cosmic-replay-v4/
 ├── lib/              # 核心逻辑（变量识别/执行引擎/苍穹 API 封装）
+│   ├── har_extractor.py      # HAR解析 + 变量识别核心
+│   ├── runner.py             # 执行引擎（三层防护架构）
+│   ├── replay.py             # 苍穹协议回放API
+│   ├── cosmic_login.py       # 苍穹RSA登录
+│   └── webui/                # Web UI 服务
 ├── cases/            # YAML 测试用例资产
-├── docs/             # 使用文档
-│   ├── user_guide.md           # Web UI 操作
-│   ├── operating_guide.md      # CLI 操作
-│   ├── troubleshooting.md      # 排故指南
-│   └── HAR_TO_YAML_SOP.md     # HAR 录制规范
-├── skills/           # AI Agent 排故 skill
-│   └── cosmic-replay-troubleshooter/
-├── config/           # 环境配置（不提交 git）
-├── har_uploads/      # 上传的 HAR
-└── docs/archive/     # 历史分析报告（仅存档，不需阅读）
+├── skills/           # AI Agent Skill 包
+│   ├── cosmic-hr-expert/          # HR领域知识库（558场景）
+│   ├── cosmic-replay-overview/    # 项目概览
+│   └── cosmic-replay-troubleshooter/  # 排故诊断指南
+├── config/           # 环境配置
+│   └── envs/         # 多环境配置文件
+├── deploy/           # 监控部署配置（Prometheus/Alertmanager）
+├── tests/            # 单元 & 集成测试
+├── scripts/          # 工具脚本
+├── .env.example      # 环境变量模板
+├── requirements.txt  # Python 依赖
+└── _start_webui.py   # 启动入口
 ```
 
 ---

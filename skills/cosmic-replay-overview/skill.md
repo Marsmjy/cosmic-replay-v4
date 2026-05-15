@@ -17,11 +17,11 @@
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
-| `lib/replay.py` | ~752 | 回放引擎核心：PageId 四层管理、batchInvokeAction 协议封装 |
-| `lib/runner.py` | ~1331 | YAML 用例执行器：变量解析、Step Handlers、断言、SSE 推送 |
-| `lib/har_extractor.py` | ~2548 | HAR→YAML 转换：变量三档识别、动作分类、反模式检测 |
-| `lib/webui/server.py` | ~1389 | FastAPI 后端：15+ API 端点、SSE 实时事件流 |
-| `lib/webui/static/index.html` | ~5069 | 前端 UI（宇宙主题）：用例管理/执行/HAR导入 |
+| `lib/replay.py` | ~784 | 回放引擎核心：PageId 四层管理、batchInvokeAction 协议封装 |
+| `lib/runner.py` | ~1450 | YAML 用例执行器：三层防护、变量解析、Step Handlers、断言、SSE 推送 |
+| `lib/har_extractor.py` | ~2749 | HAR→YAML 转换：变量三档识别、动作分类、反模式检测 |
+| `lib/webui/server.py` | ~1450 | FastAPI 后端：15+ API 端点、SSE 实时事件流 |
+| `lib/webui/static/index.html` | ~5117 | 前端 UI（宇宙主题）：用例管理/执行/HAR导入 |
 | `lib/diagnoser.py` | ~126 | 响应诊断：从苍穹响应提取结构化错误 |
 | `lib/advisor.py` | ~448 | 修复建议：错误分析 + YAML 补丁生成 |
 | `lib/config.py` | ~346 | 两层配置：webui.yaml + envs/*.yaml |
@@ -36,14 +36,14 @@
 ```
 Web UI (server.py + index.html)
     ↓ API 调用
-runner.py (执行引擎)
+runner.py (执行引擎: 三层防护 + Step Handlers + 断言)
     ↓ 步骤分发
-replay.py (协议层) ← diagnoser.py (错误提取) ← advisor.py (修复建议)
+replay.py (协议层: PageId 状态机) ← diagnoser.py ← advisor.py
     ↓ HTTP
 苍穹平台 batchInvokeAction.do
 ```
 
-## 三大核心设计决策
+## 四大核心设计决策
 
 ### 1. PageId 四层跃迁
 苍穹表单协议的 pageId 不是全局唯一，而是分层的：
@@ -63,12 +63,22 @@ replay.py (协议层) ← diagnoser.py (错误提取) ← advisor.py (修复建�
 执行过程通过 Server-Sent Events 流式推送：
 case_start → login_ok → session_ready → step_start/step_ok → assertion_ok → case_done
 
+### 4. invoke 三层防护架构
+执行 invoke 时有三层自动保护：
+- 预验证（_validate_pageid_before_invoke）：首次使用 form 时检查 pageId 有效性
+- auto-open 补偿：每步执行前检查 pageId 存在性
+- 安全网重试（invoke-retry）：可重试错误自动恢复（pop→open→loadData→重试）
+
+详见 skills/cosmic-replay-troubleshooter/skill.md 第一章。
+
 ## 改代码前必读清单
 1. 改 replay.py → 先理解 PageId 四层跃迁规则
 2. 改 har_extractor.py → 先看 AC_TIER 分类 + UNIQUE_KEY_HINTS 变量集
 3. 改 runner.py → Step Handler 是 @step_handler 装饰器注册式
 4. 改 server.py → SSE 事件与前端 EventSource 对应
 5. 新增断言 → 用 @assertion_handler 装饰器注册
+6. 改 runner.py 安全网 → 先理解三层防护架构（troubleshooter skill 第一章）
+7. 改 har_extractor.py 规则 → 不要静态插入 loadData（Rule 14 教训）
 
 ## 快速定位问题
 | 症状 | 去哪看 |
@@ -79,3 +89,5 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 | HAR 转换变量遗漏 | lib/har_extractor.py 的 UNIQUE_KEY_HINTS |
 | 前端不刷新 | lib/webui/static/index.html 的 Alpine.js 响应式 |
 | 用例格式错误 | 参考 cases/新增一条行政组织.yaml |
+| invoke 重试/安全网 | lib/runner.py 的 _RETRYABLE_ERRORS + invoke-retry 循环 |
+| target_forms 缺失 | lib/har_extractor.py 规则13 (行 2013-2069) |
