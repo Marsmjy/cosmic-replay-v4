@@ -1,0 +1,947 @@
+{
+  "formId": "hpdi_bizdatabill",
+  "formName": null,
+  "sceneId": "hpdi_bizdatabill",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0AXRY53TF14G",
+  "bizappId": "0NXW1VOPH+QV",
+  "metaIdTechnical": "2+63VW+9PECA",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hpdi_bizdatabill",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hpdi_bizdatabill.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hpdi_bizdatabill",
+      "type": "BillEntity",
+      "title": "业务数据提报",
+      "physicalTable": null,
+      "fieldCount": 29
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "业务数据",
+      "physicalTable": null,
+      "fieldCount": 5
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "审批状态为待重新提交",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#ED812B"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2+=5OV7R=PZ1"
+        }
+      },
+      "Id": "2+=5ORFRJ=D=",
+      "PreCondition": "billstatus='F'",
+      "Seq": "1"
+    },
+    {
+      "PreDescription": "审批状态为已提或审批通过",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#26B175"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2+=5OV7R=KK/"
+        }
+      },
+      "Id": "2+=5ORFRJ5/8",
+      "PreCondition": "billstatus='B' or billstatus='C'",
+      "Seq": "2"
+    },
+    {
+      "PreDescription": "审批状态为审批中",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#55A0F5"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2+=5OV7R=PZ2"
+        }
+      },
+      "Id": "2+=5ORFRJ=DA",
+      "PreCondition": "billstatus='D'",
+      "Seq": "3"
+    },
+    {
+      "PreDescription": "审批状态为审批不通过",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2+=5OV7R=KK0"
+        }
+      },
+      "Id": "2+=5ORFRJ5/9",
+      "PreCondition": "billstatus='E'",
+      "Seq": "4"
+    },
+    {
+      "PreDescription": "审批状态为已废弃",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#bbbbbb"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2+=5OV7R=PZ3"
+        }
+      },
+      "Id": "2+=5ORFRJ=DB",
+      "PreCondition": "billstatus='G'",
+      "Seq": "5"
+    },
+    {
+      "PreDescription": "业务数据状态为全部提报成功",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap3",
+              "ForeColor": "#26B175"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "21YQ84XRP2MH"
+        }
+      },
+      "Id": "2+=7/09I3N7T",
+      "PreCondition": "datastatus ='2'",
+      "Seq": "6"
+    },
+    {
+      "PreDescription": "业务数据状态为部分提报失败或全部提报失败",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap3",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "21YQ84XRQWN5"
+        }
+      },
+      "Id": "2+=7/09I3SLV",
+      "PreCondition": "datastatus ='3' or datastatus ='4'",
+      "Seq": "7"
+    },
+    {
+      "PreDescription": "审批状态为暂存",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap",
+              "ForeColor": "#666666"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "2/T4XV8X=3CG"
+        }
+      },
+      "Id": "2/T4XNNA8MVK",
+      "PreCondition": "billstatus='A'",
+      "Seq": "8"
+    },
+    {
+      "PreDescription": "业务数据状态为未提报",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap3",
+              "ForeColor": "#666666"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "21YQ84XRP2MI"
+        }
+      },
+      "Id": "21YQ8063DI10",
+      "PreCondition": "datastatus='1'",
+      "Seq": "9"
+    },
+    {
+      "PreDescription": "业务数据推送状态=全部已推送算薪",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap4",
+              "ForeColor": "#18BC71"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3Z6N5X26HCIB"
+        }
+      },
+      "Id": "3Z6M=9VH/994",
+      "PreCondition": "transsalarystatus = '10'",
+      "Seq": "10"
+    },
+    {
+      "PreDescription": "业务数据推送状态=全部推送算薪失败/全部算薪驳回/部分推送算薪失败/部分算薪驳回",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "combolistcolumnap4",
+              "ForeColor": "#FD6C6A"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "3Z6N5X26HBV2"
+        }
+      },
+      "Id": "3Z6M=9VH/8KW",
+      "PreCondition": "transsalarystatus = '15' or transsalarystatus = '20' or transsalarystatus = '45' or transsalarystatus = '50'",
+      "Seq": "11"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "单据编号",
+      "physicalColumn": "t_hpdi_bizdatabill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "单据状态",
+      "physicalColumn": "t_hpdi_bizdatabill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hpdi_bizdatabill",
+      "title": "创建人",
+      "physicalColumn": "t_hpdi_bizdatabill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hpdi_bizdatabill",
+      "title": "修改人",
+      "physicalColumn": "t_hpdi_bizdatabill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hpdi_bizdatabill",
+      "title": "审核人",
+      "physicalColumn": "t_hpdi_bizdatabill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "审核日期",
+      "physicalColumn": "t_hpdi_bizdatabill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "修改时间",
+      "physicalColumn": "t_hpdi_bizdatabill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "创建时间",
+      "physicalColumn": "t_hpdi_bizdatabill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "barcode": {
+      "fieldId": "yVFbeDr4Sh",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "条形码",
+      "physicalColumn": "t_hpdi_bizdatabill.fbarcode",
+      "_fieldApId": "yVFbeDr4Sh"
+    },
+    "eventeffectdate": {
+      "fieldId": "HHgn7rz5rI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "t_hpdi_bizdatabill.feventeffectdate",
+      "_fieldApId": "HHgn7rz5rI"
+    },
+    "isexistsworkflow": {
+      "fieldId": "88COGNO1Kl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "是否有工作流",
+      "physicalColumn": "t_hpdi_bizdatabill.fisexistsworkflow",
+      "_fieldApId": "88COGNO1Kl"
+    },
+    "inputdevicetype": {
+      "fieldId": "tHeQGA14j3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "输入设备",
+      "physicalColumn": "t_hpdi_bizdatabill.finputdevicetype",
+      "_fieldApId": "tHeQGA14j3"
+    },
+    "auditstatus": {
+      "fieldId": "CzgBL9dCew",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "审批状态",
+      "physicalColumn": "t_hpdi_bizdatabill.fauditstatus",
+      "_fieldApId": "CzgBL9dCew"
+    },
+    "adminorg": {
+      "fieldId": "d4q0JMyv6u",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "hpdi_bizdatabill",
+      "title": "行政组织",
+      "physicalColumn": "t_hpdi_bizdatabill.fadminorgid",
+      "_fieldApId": "d4q0JMyv6u"
+    },
+    "bizitemgroup": {
+      "fieldId": "JM6HTid6Xy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_bizitemgroup",
+      "entity": "hpdi_bizdatabill",
+      "title": "业务数据模板",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizitemgroupid",
+      "_fieldApId": "JM6HTid6Xy"
+    },
+    "datastatus": {
+      "fieldId": "SBNKhIMw5q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "业务数据提报状态",
+      "physicalColumn": "t_hpdi_bizdatabill.fdatastatus",
+      "_fieldApId": "SBNKhIMw5q"
+    },
+    "billtype": {
+      "fieldId": "2pjuKWt27O",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "单据类型",
+      "physicalColumn": "t_hpdi_bizdatabill.fbilltype",
+      "_fieldApId": "2pjuKWt27O"
+    },
+    "description": {
+      "fieldId": "a2n5D8RUg4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "备注",
+      "physicalColumn": "t_hpdi_bizdatabill_l.fdescription",
+      "_fieldApId": "a2n5D8RUg4"
+    },
+    "bizdataobjrule": {
+      "fieldId": "Q0yY84zUUW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_bizobjruleconf",
+      "entity": "hpdi_bizdatabill",
+      "title": "业务数据对象规则",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizdataobjruleid",
+      "_fieldApId": "Q0yY84zUUW"
+    },
+    "personcount": {
+      "fieldId": "ohmDhWhaTG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "总人数",
+      "physicalColumn": "t_hpdi_bizdatabill.fpersoncount",
+      "_fieldApId": "ohmDhWhaTG"
+    },
+    "bizitemcount": {
+      "fieldId": "UxonaF9J01",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "业务项目数",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizitemcount",
+      "_fieldApId": "UxonaF9J01"
+    },
+    "bizdatacount": {
+      "fieldId": "0VOadPsZP5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "业务数据条目数",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizdatacount",
+      "_fieldApId": "0VOadPsZP5"
+    },
+    "summarycreator": {
+      "fieldId": "YcWoESSNXE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "创建人",
+      "physicalColumn": "—",
+      "_fieldApId": "YcWoESSNXE"
+    },
+    "bizdataruleversion": {
+      "fieldId": "4DRt56evm5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "业务对象规则版本",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizdataruleversion",
+      "_fieldApId": "4DRt56evm5"
+    },
+    "bizdatafailcount": {
+      "fieldId": "4cD50K4EBY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "提报失败条目数",
+      "physicalColumn": "t_hpdi_bizdatabill.fbizdatafailcount",
+      "_fieldApId": "4cD50K4EBY"
+    },
+    "billname": {
+      "fieldId": "4KYsn3JHL1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "单据名称",
+      "physicalColumn": "t_hpdi_bizdatabill_l.fbillname",
+      "_fieldApId": "4KYsn3JHL1"
+    },
+    "calperiod": {
+      "fieldId": "vr3v0m7xGe",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_calperiod",
+      "entity": "hpdi_bizdatabill",
+      "title": "薪资期间",
+      "physicalColumn": "t_hpdi_bizdatabill.fcalperiodid",
+      "_fieldApId": "vr3v0m7xGe"
+    },
+    "handletype": {
+      "fieldId": "d1cuwZeUpQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "提报类型",
+      "physicalColumn": "t_hpdi_bizdatabill.fhandletype",
+      "_fieldApId": "d1cuwZeUpQ"
+    },
+    "countdown": {
+      "fieldId": "VdERKRdBDs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hpdi_bizdatabill",
+      "title": "推送算薪倒计时",
+      "physicalColumn": "—",
+      "_fieldApId": "VdERKRdBDs"
+    },
+    "org": {
+      "fieldId": "Z4mfXUrAqj",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity",
+      "title": "算发薪管理组织",
+      "physicalColumn": "t_hpdi_bizdatabill.forgid",
+      "_fieldApId": "Z4mfXUrAqj"
+    },
+    "mulbizitem": {
+      "fieldId": "gWO77zEZMd",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "业务项目范围",
+      "physicalColumn": "—",
+      "_fieldApId": "gWO77zEZMd"
+    },
+    "transsalarystatus": {
+      "fieldId": "PXP9eG1L9D1c6sRc3v",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "业务数据推送状态",
+      "physicalColumn": "t_hpdi_bizdatabill.ftranssalarystatus",
+      "_fieldApId": "PXP9eG1L9D1c6sRc3v"
+    },
+    "ischange": {
+      "fieldId": "3V6DTXZwLnGX7qACEE",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "分录状态是否变更",
+      "physicalColumn": "t_hpdi_bizdatabill.fischange",
+      "_fieldApId": "3V6DTXZwLnGX7qACEE"
+    },
+    "summarycreatetime": {
+      "fieldId": "gtfxUcDsoybcmZXuRC",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "创建时间",
+      "physicalColumn": "—",
+      "_fieldApId": "gtfxUcDsoybcmZXuRC"
+    }
+  },
+  "requiredFields": {
+    "hpdi_bizdatabill": [
+      "billno",
+      "billstatus",
+      "adminorg",
+      "bizitemgroup",
+      "billname",
+      "calperiod",
+      "handletype"
+    ],
+    "entryentity": [
+      "org"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0LI5VZUESHUD_moblist_POrM3DL1",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_moblist_cLh8Y0yN",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+63VW+9PECA_moblist_JorPYDZy",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_ckKy3s7O",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_HA5wOe8y",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+63VW+9PECA_W0rIhFdP",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_mob_Nm4HFTcx",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_mob_gq1c2ehi",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+63VW+9PECA_mob_h3pmPoAX",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0LI5VZUESHUD_list_JVAzvQts",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRY53TF14G_list_I7lmEzYz",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2+63VW+9PECA_list_ezR0lSKB",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataBillEdit",
+      "Description": "业务数据申请单插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataBillNewEntryBillPlugin",
+      "Description": "分录处理的插件(330版本之前的分录插件，处理分录上的一些操作)",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.SideWorkflowPlugin",
+      "Description": "侧边栏工作流审批记录",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataBillEntryBillPlugin",
+      "Description": "动态分录插件(330版本新增插件，处理动态分录渲染，导入)",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataBillEntryExportPlugin",
+      "Description": "动态分录导出",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataImportEdit",
+      "Description": "导入(330版本之前的，已废弃)",
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hpdi.formplugin.web.bizdata.BizDataBillList",
+      "Description": "业务数据申请单列表插件",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 17:08",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 34,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 11,
+        "jsPlugins_count": 12,
+        "formPlugins_count": 18
+      }
+    }
+  ]
+}

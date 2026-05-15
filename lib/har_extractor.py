@@ -1844,6 +1844,65 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     return assertions
 
 
+def insert_loaddata_on_form_change(steps: list) -> list:
+    """⭐ 规则14：form_id 变化时自动插入 loadData 保护步骤
+
+    当检测到 form_id 从 A 变为 B 且满足以下条件时，在变化点前插入 loadData：
+    1. 当前步骤类型为 invoke（非 open_form/loadData/sleep）
+    2. 同一 L2 上下文中（_har_page_id 共享相同前缀或相同值）
+
+    排除条件：
+    - open_form 步骤后不重复插入（runner 已隐式 loadData）
+    - loadData 步骤本身不触发保护
+    - 前一步已是同 form_id 的 loadData 则跳过
+    """
+    out = []
+    prev_form = None
+    prev_ac = None
+
+    for i, s in enumerate(steps):
+        cur_form = s.get("form_id", "")
+        cur_type = s.get("type", "")
+        cur_ac = s.get("ac", "")
+
+        # 检测 form_id 变化
+        if (cur_form and prev_form and cur_form != prev_form
+            and cur_type == "invoke"
+            and cur_ac not in ("loadData", "open_form")
+            and prev_ac != "open_form"):
+
+            # 检查前一步是否已经是同 form_id 的 loadData
+            already_has_load = (out and out[-1].get("form_id") == cur_form
+                                and out[-1].get("ac") == "loadData")
+
+            if not already_has_load:
+                # 插入 loadData 保护步骤
+                protect_step = {
+                    "type": "invoke",
+                    "id": f"protect_load_{cur_form.replace('.', '_')[:30]}",
+                    "form_id": cur_form,
+                    "app_id": s.get("app_id", "bos"),
+                    "ac": "loadData",
+                    "key": "",
+                    "method": "loadData",
+                    "args": [],
+                    "post_data": [{}, []],
+                    "_tier": "core",
+                    "_is_auto_inserted": True,
+                }
+                # 如果有 _har_page_id，继承
+                if s.get("_har_page_id"):
+                    protect_step["_har_page_id"] = s["_har_page_id"]
+                out.append(protect_step)
+                log.debug(f"[规则14] 自动插入 loadData 保护: {prev_form} → {cur_form}")
+
+        out.append(s)
+        prev_form = cur_form if cur_form else prev_form
+        prev_ac = cur_ac if cur_type in ("invoke", "open_form") else prev_ac
+
+    return out
+
+
 def build_yaml_case(
     har_path: Path,
     case_name: str | None = None,
@@ -1924,6 +1983,10 @@ def build_yaml_case(
         if s.get("optional") and s.get("ac") in ("afterConfirm", "doConfirm", "save", "submit"):
             s.pop("optional", None)
 
+    # ⭐ 规则14 已禁用 — 静态插入 loadData 缺乏运行时上下文，可能干扰 pageId 状态
+    # 等效保护由 runner.py 的安全网重试（invoke_retry）和 pageId 预验证（_validate_pageid_before_invoke）提供
+    # cleaned = insert_loaddata_on_form_change(cleaned)
+
     # ⭐ 规则11b：移除所有 release 步骤
     # 在 API 回放中，release 的目标 pageId 由 _harvest_page_ids() 维护的状态机决定。
     # 当 showForm 返回新 pageId 后，状态机已覆盖旧值，导致 release 实际释放的是
@@ -1947,12 +2010,14 @@ def build_yaml_case(
     # 推断主表单（在 release 清理 + 门户截断后重新推断，结果更准确）
     main_form = infer_main_form(cleaned)
 
-    # ⭐ 规则13：menuItemClick → 自动绑定 target_form + 移除冗余 open_form
+    # ⭐ 规则13：menuItemClick → 自动绑定 target_form + target_forms + 移除冗余 open_form
     # 苍穹菜单导航：menuItemClick 创建 L2 pageId ({menuId}root{baseId})，
     # 这是主表单列表页的正确页面标识。如果之后再有 open_form(getConfig)，
     # 会获取一个独立的、不在菜单上下文中的 pageId，导致后续 addnew/save 发送到
-    # 错误的页面。修复：1) 为 menuItemClick 添加 target_form 注解；2) 删除冗余 open_form。
+    # 错误的页面。修复：1) 为 menuItemClick 添加 target_form 注解；2) 检测共享 L2 的
+    # 子表单写入 target_forms；3) 删除冗余 open_form。
     _menu_target_set = False
+    _menu_id_for_target = ""
     for s in cleaned:
         if s.get("ac") == "menuItemClick" and not _menu_target_set:
             args = s.get("args", [])
@@ -1961,10 +2026,41 @@ def build_yaml_case(
                 if menu_id and main_form:
                     s["target_form"] = main_form
                     _menu_target_set = True
+                    _menu_id_for_target = menu_id
     if _menu_target_set:
         # 找 menuItemClick 的位置
         menu_idx = next((i for i, s in enumerate(cleaned) if s.get("target_form") == main_form), None)
         if menu_idx is not None:
+            # ⭐ 规则13b：检测共享 L2 pageId 的其他表单 → target_forms
+            # L2 pageId 格式: {menuId}root{32hex}，同一导航上下文中多个表单共享此 pageId
+            l2_prefix = f"{_menu_id_for_target}root"
+            target_forms_set: set[str] = set()
+            # 方案A：通过 _har_page_id 精确匹配共享 L2 的表单
+            for i in range(menu_idx + 1, len(cleaned)):
+                step = cleaned[i]
+                # 遇到下一个导航动作则停止扫描
+                if step.get("ac") in ("menuItemClick", "appItemClick"):
+                    break
+                har_pid = step.get("_har_page_id", "")
+                if har_pid and har_pid.startswith(l2_prefix):
+                    fid = step.get("form_id", "")
+                    if fid and fid != main_form:
+                        target_forms_set.add(fid)
+            # 方案B兜底：如果 _har_page_id 不可用，用启发式——menuItemClick 后紧跟的
+            # loadData 步骤（在下一个 open_form/menuItemClick 之前），form_id != main_form
+            if not target_forms_set:
+                for i in range(menu_idx + 1, len(cleaned)):
+                    step = cleaned[i]
+                    if step.get("ac") in ("menuItemClick", "appItemClick"):
+                        break
+                    if step.get("type") == "open_form":
+                        break
+                    if step.get("ac") == "loadData":
+                        fid = step.get("form_id", "")
+                        if fid and fid != main_form:
+                            target_forms_set.add(fid)
+            if target_forms_set:
+                cleaned[menu_idx]["target_forms"] = sorted(target_forms_set)
             # 移除 menuItemClick 之后的第一个 open_form(main_form)
             # （该 open_form 会通过 getConfig 获取错误的独立 pageId）
             for i in range(menu_idx + 1, len(cleaned)):
@@ -2216,7 +2312,7 @@ def build_yaml_case(
         for k in ("id", "type", "form_id", "app_id", "ac", "key", "method",
                   "args", "post_data", "fields", "field_key", "value_id",
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
-                  "target_form"):
+                  "target_form", "target_forms"):
             if k in s:
                 entry[k] = s[k]
         # ⭐ 自动生成步骤业务描述

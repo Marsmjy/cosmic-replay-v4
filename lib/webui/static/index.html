@@ -763,10 +763,10 @@
                           :class="{'bg-red-500': ef.env_sensitive === 'high', 'bg-yellow-500': ef.env_sensitive === 'medium', 'bg-green-500': ef.env_sensitive === 'low'}"></span>
                     <!-- 标签 -->
                     <span class="text-slate-400 shrink-0 text-xs" x-text="ef.label"></span>
-                    <!-- 值名 -->
-                    <code class="mono text-amber-300 break-all text-xs" x-text="ef.value_name || ef.value_id"></code>
                     <!-- ID -->
-                    <span class="text-xs text-slate-600 mono ml-auto shrink-0" x-show="ef.value_name" x-text="'ID: ' + ef.value_id"></span>
+                    <code class="mono text-amber-300 break-all text-xs" x-text="ef.value_id"></code>
+                    <!-- 值名 -->
+                    <span class="text-xs text-slate-400 mono ml-auto shrink-0" x-show="ef.value_name" x-text="'(' + ef.value_name + ')'"></span>
                   </div>
                 </template>
               </div>
@@ -2063,8 +2063,8 @@
                         <span class="shrink-0 w-1.5 h-1.5 rounded-full"
                               :class="{'bg-red-500': ef.env_sensitive === 'high', 'bg-yellow-500': ef.env_sensitive === 'medium', 'bg-green-500': ef.env_sensitive === 'low'}"></span>
                         <span class="text-slate-400" x-text="ef.label"></span>
-                        <code class="mono text-amber-300" x-text="ef.value_name || ef.value_id"></code>
-                        <span class="text-slate-600 mono" x-show="ef.value_name && ef.value_id" x-text="'(' + ef.value_id + ')'"></span>
+                        <code class="mono text-amber-300" x-text="ef.value_id"></code>
+                        <span class="text-slate-400 mono" x-show="ef.value_name" x-text="'(' + ef.value_name + ')'"></span>
                       </div>
                     </template>
                   </div>

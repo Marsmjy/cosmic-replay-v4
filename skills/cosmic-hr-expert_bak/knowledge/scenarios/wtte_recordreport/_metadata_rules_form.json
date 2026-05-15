@@ -1,0 +1,624 @@
+{
+  "formId": "wtte_recordreport",
+  "formName": null,
+  "sceneId": "wtte_recordreport",
+  "isv": "kingdee",
+  "modelType": "ReportFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": "1b760aa100003bac",
+  "bizappId": "1C8H4/N38LCY",
+  "metaIdTechnical": "21YK26C1L50N",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wtte_recordreport",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wtte_recordreport.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wtte_recordreport",
+      "type": "ReportEntity",
+      "title": "考勤记录-明细项目",
+      "physicalTable": null,
+      "fieldCount": 44
+    }
+  ],
+  "formRules": [
+    {
+      "FalseActions": {
+        "HideFieldAction": {
+          "RET": "251",
+          "ActionType": "HideFieldAction",
+          "Description": "隐藏字段",
+          "Id": "3D3EQV91+QBA",
+          "Fields": {
+            "FieldId": [
+              {
+                "Id": "p8PZI73Y8R"
+              },
+              {
+                "Id": "TymQXfyJWy"
+              }
+            ]
+          }
+        }
+      },
+      "PreDescription": "con_value = '3'",
+      "TrueActions": {
+        "ShowFieldAction": {
+          "RET": "251",
+          "ActionType": "ShowFieldAction",
+          "Description": "显示字段",
+          "Id": "3D3EQV91+PO1",
+          "Fields": {
+            "FieldId": [
+              {
+                "Id": "p8PZI73Y8R"
+              },
+              {
+                "Id": "TymQXfyJWy"
+              }
+            ]
+          }
+        }
+      },
+      "Description": "值区间查询",
+      "Id": "3D/U/LM11NBG",
+      "PreCondition": "con_value = '3'"
+    }
+  ],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "con_orginitem": {
+      "fieldId": "dqOPLZM4TH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "原始考勤项目",
+      "physicalColumn": "—",
+      "_fieldApId": "dqOPLZM4TH"
+    },
+    "con_value": {
+      "fieldId": "cgazqrt7Hl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "值",
+      "physicalColumn": "—",
+      "_fieldApId": "cgazqrt7Hl"
+    },
+    "shift": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_shift",
+      "entity": "wtte_recordreport",
+      "title": "班次",
+      "physicalColumn": "—"
+    },
+    "attitemtype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "原始考勤项目",
+      "physicalColumn": "—"
+    },
+    "attitemname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtbd_attitem",
+      "entity": "wtte_recordreport",
+      "title": "考勤项目名称",
+      "physicalColumn": "—"
+    },
+    "attitemnumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "考勤项目编码",
+      "physicalColumn": "—"
+    },
+    "value": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "值",
+      "physicalColumn": "—"
+    },
+    "unit": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "单位",
+      "physicalColumn": "—"
+    },
+    "showcalculate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "核算步骤",
+      "physicalColumn": "—"
+    },
+    "con_owndate": {
+      "fieldId": "A0medFhbLs",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateRangeField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "归属日期",
+      "physicalColumn": "—",
+      "_fieldApId": "A0medFhbLs"
+    },
+    "con_attperiod": {
+      "fieldId": "MPmQtfJkA2",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attperiodentry",
+      "entity": "wtte_recordreport",
+      "title": "考勤期间",
+      "physicalColumn": "—",
+      "_fieldApId": "MPmQtfJkA2"
+    },
+    "orgid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtte_recordreport",
+      "title": "考勤管理组织",
+      "physicalColumn": "—"
+    },
+    "companyvid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "wtte_recordreport",
+      "title": "所属公司",
+      "physicalColumn": "—"
+    },
+    "departmentvid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "wtte_recordreport",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "positionvid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRPositionField",
+      "ref": "hbpm_positionhrf7",
+      "entity": "wtte_recordreport",
+      "title": "岗位",
+      "physicalColumn": "—"
+    },
+    "jobvid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbjm_jobhr",
+      "entity": "wtte_recordreport",
+      "title": "职位",
+      "physicalColumn": "—"
+    },
+    "creator": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wtte_recordreport",
+      "title": "创建人",
+      "physicalColumn": "—"
+    },
+    "createtime": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "创建时间",
+      "physicalColumn": "—"
+    },
+    "calculatedate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "操作时间",
+      "physicalColumn": "—"
+    },
+    "attperiod": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attperiodentry",
+      "entity": "wtte_recordreport",
+      "title": "考勤期间",
+      "physicalColumn": "—"
+    },
+    "ascriptionyear": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "期间所属年份",
+      "physicalColumn": "—"
+    },
+    "ascriptionmonth": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "期间所属月份",
+      "physicalColumn": "—"
+    },
+    "owndate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "归属日期",
+      "physicalColumn": "—"
+    },
+    "con_adminorg": {
+      "fieldId": "6wMuJjAe5U",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "6wMuJjAe5U"
+    },
+    "con_attperson": {
+      "fieldId": "byc5z6AIbI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "人员",
+      "physicalColumn": "—",
+      "_fieldApId": "byc5z6AIbI"
+    },
+    "showhistory": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "查看历史",
+      "physicalColumn": "—"
+    },
+    "mode": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "考勤方式",
+      "physicalColumn": "—"
+    },
+    "con_affiliateadminorg": {
+      "fieldId": "ZVcj2POoye",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRMulAdminOrgField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "挂靠行政组织",
+      "physicalColumn": "—",
+      "_fieldApId": "ZVcj2POoye"
+    },
+    "con_attitem": {
+      "fieldId": "WFcx73Fu4s",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "考勤项目",
+      "physicalColumn": "—",
+      "_fieldApId": "WFcx73Fu4s"
+    },
+    "affiliateadminorgvid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HRAdminOrgField",
+      "ref": "haos_adminorghrf7",
+      "entity": "wtte_recordreport",
+      "title": "挂靠行政组织",
+      "physicalColumn": "—"
+    },
+    "empgroup": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_empgroup",
+      "entity": "wtte_recordreport",
+      "title": "考勤档案分组",
+      "physicalColumn": "—"
+    },
+    "dependency": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bd_country",
+      "entity": "wtte_recordreport",
+      "title": "国家/地区",
+      "physicalColumn": "—"
+    },
+    "agreedworkplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "wtte_recordreport",
+      "title": "协议工作地",
+      "physicalColumn": "—"
+    },
+    "workplace": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hbss_workplace",
+      "entity": "wtte_recordreport",
+      "title": "考勤地点",
+      "physicalColumn": "—"
+    },
+    "reckoner": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "bos_user",
+      "entity": "wtte_recordreport",
+      "title": "操作人",
+      "physicalColumn": "—"
+    },
+    "attfilevid": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtp_attfilebase",
+      "entity": "wtte_recordreport",
+      "title": "考勤档案版本",
+      "physicalColumn": "—"
+    },
+    "con_org": {
+      "fieldId": "HAJYMCzbNH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wtte_recordreport",
+      "title": "考勤管理组织",
+      "physicalColumn": "—",
+      "_fieldApId": "HAJYMCzbNH"
+    },
+    "con_empgroup": {
+      "fieldId": "bpcaAog8ix",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "考勤档案分组",
+      "physicalColumn": "—",
+      "_fieldApId": "bpcaAog8ix"
+    },
+    "con_minvalue": {
+      "fieldId": "p8PZI73Y8R",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "最小值",
+      "physicalColumn": "—",
+      "_fieldApId": "p8PZI73Y8R"
+    },
+    "con_maxvalue": {
+      "fieldId": "TymQXfyJWy",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DecimalField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "最大值",
+      "physicalColumn": "—",
+      "_fieldApId": "TymQXfyJWy"
+    },
+    "con_attmain": {
+      "fieldId": "l6r8MNazu5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "wtte_attrecordbase",
+      "entity": "wtte_recordreport",
+      "title": "主表",
+      "physicalColumn": "—",
+      "_fieldApId": "l6r8MNazu5"
+    },
+    "attfilenum": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "档案编号",
+      "physicalColumn": "—"
+    },
+    "textname": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "姓名",
+      "physicalColumn": "—"
+    },
+    "empnumber": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wtte_recordreport",
+      "title": "工号",
+      "physicalColumn": "—"
+    }
+  },
+  "requiredFields": {
+    "wtte_recordreport": [
+      "con_org"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "21YK26C1L50N_lgLSDY5o",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.wtc.wtte.report.attrecord.AttRecordNewRFPlugin",
+      "Description": "kd.wtc.wtte.report.attrecord.AttRecordNewRFPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:09",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "parentTemplateId",
+          "bizappId"
+        ],
+        "fieldId_filled": 13,
+        "fieldId_already": 0,
+        "formRules_count": 1,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 1
+      }
+    }
+  ]
+}

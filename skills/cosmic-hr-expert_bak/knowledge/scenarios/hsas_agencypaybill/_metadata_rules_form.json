@@ -1,0 +1,948 @@
+{
+  "formId": "hsas_agencypaybill",
+  "formName": null,
+  "sceneId": "hsas_agencypaybill",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": true,
+  "parentTemplateId": "0AXRWIGCJ+ID",
+  "bizappId": "/UHMBBGZQ65X",
+  "metaIdTechnical": "0P4D29=TWH8F",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hsas_agencypaybill",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hsas_agencypaybill.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "hsas_agencypaybill",
+      "type": "BillEntity",
+      "title": "薪资代发单",
+      "physicalTable": null,
+      "fieldCount": 17
+    },
+    {
+      "name": "entryentity",
+      "type": "EntryEntity",
+      "title": "代发分录",
+      "physicalTable": null,
+      "fieldCount": 40
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "unpaycount > 0",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "Degree": "100",
+              "FontSize": "12",
+              "Id": "decimallistcolumnap3",
+              "ForeColor": "#E1453E"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "20M0OO1WFKPL"
+        }
+      },
+      "Id": "20LB4HHON3KO",
+      "PreCondition": "unpaycount > 0"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "bdJvQ9RWla",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "单据编号",
+      "physicalColumn": "t_hsas_agencypaybill.fbillno",
+      "_fieldApId": "bdJvQ9RWla"
+    },
+    "billstatus": {
+      "fieldId": "6q69iznvHX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "单据状态",
+      "physicalColumn": "t_hsas_agencypaybill.fbillstatus",
+      "_fieldApId": "6q69iznvHX"
+    },
+    "creator": {
+      "fieldId": "mGJPp5Qux7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hsas_agencypaybill",
+      "title": "创建人",
+      "physicalColumn": "t_hsas_agencypaybill.fcreatorid",
+      "_fieldApId": "mGJPp5Qux7"
+    },
+    "modifier": {
+      "fieldId": "z7HtZmkVaA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "hsas_agencypaybill",
+      "title": "修改人",
+      "physicalColumn": "t_hsas_agencypaybill.fmodifierid",
+      "_fieldApId": "z7HtZmkVaA"
+    },
+    "auditor": {
+      "fieldId": "GnxpBjqGJ5",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hsas_agencypaybill",
+      "title": "审核人",
+      "physicalColumn": "t_hsas_agencypaybill.fauditorid",
+      "_fieldApId": "GnxpBjqGJ5"
+    },
+    "auditdate": {
+      "fieldId": "AcFosbN4Er",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "审核日期",
+      "physicalColumn": "t_hsas_agencypaybill.fauditdate",
+      "_fieldApId": "AcFosbN4Er"
+    },
+    "modifytime": {
+      "fieldId": "ZmbqWNZPUl",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "修改时间",
+      "physicalColumn": "t_hsas_agencypaybill.fmodifytime",
+      "_fieldApId": "ZmbqWNZPUl"
+    },
+    "createtime": {
+      "fieldId": "UoRNfdrXDX",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "创建时间",
+      "physicalColumn": "t_hsas_agencypaybill.fcreatetime",
+      "_fieldApId": "UoRNfdrXDX"
+    },
+    "org": {
+      "fieldId": "MwLyMGIJQa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "hsas_agencypaybill",
+      "title": "算发薪管理组织",
+      "physicalColumn": "t_hsas_agencypaybill.forgid",
+      "_fieldApId": "MwLyMGIJQa"
+    },
+    "barcode": {
+      "fieldId": "8fnH4w28dD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "条形码",
+      "physicalColumn": "t_hsas_agencypaybill.fbarcode",
+      "_fieldApId": "8fnH4w28dD"
+    },
+    "inputdevicetype": {
+      "fieldId": "vcRvWS1cQt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "输入设备",
+      "physicalColumn": "t_hsas_agencypaybill.finputdevicetype",
+      "_fieldApId": "vcRvWS1cQt"
+    },
+    "isexistsworkflow": {
+      "fieldId": "ds9gX9jj7Y",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "是否存在工作流",
+      "physicalColumn": "t_hsas_agencypaybill.fisexistsworkflow",
+      "_fieldApId": "ds9gX9jj7Y"
+    },
+    "auditstatus": {
+      "fieldId": "snD7v1lrWb",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillStatusField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "审批状态",
+      "physicalColumn": "t_hsas_agencypaybill.fauditstatus",
+      "_fieldApId": "snD7v1lrWb"
+    },
+    "eventeffectdate": {
+      "fieldId": "P37ig11JcQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "事务生效日期(废弃)",
+      "physicalColumn": "t_hsas_agencypaybill.feventeffectdate",
+      "_fieldApId": "P37ig11JcQ"
+    },
+    "issubmit": {
+      "fieldId": "rxHyYP8qU1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "是否进行过提交(废弃)",
+      "physicalColumn": "t_hsas_agencypaybill.fissubmit",
+      "_fieldApId": "rxHyYP8qU1"
+    },
+    "billname": {
+      "fieldId": "WXCbOmpr4G",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "单据名称",
+      "physicalColumn": "t_hsas_agencypaybill_l.fbillname",
+      "_fieldApId": "WXCbOmpr4G"
+    },
+    "description": {
+      "fieldId": "m9QjdeLRv3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "hsas_agencypaybill",
+      "title": "备注",
+      "physicalColumn": "t_hsas_agencypaybill_l.fdescription",
+      "_fieldApId": "m9QjdeLRv3"
+    },
+    "paydetail": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": true,
+      "fieldType": "BasedataField",
+      "ref": "hsas_paydetail",
+      "entity": "entryentity",
+      "title": "发放明细",
+      "physicalColumn": "t_hsas_agencypayent.fpaydetailid"
+    },
+    "basedatapropfield": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "姓名",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield1": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "工号",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield2": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "用工关系状态",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield3": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "管理部门",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield4": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "薪资档案分组",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield41": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "所属公司",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield42": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "行政组织",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield43": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "岗位",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield21": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "用工关系类型",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield22": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "实发项目",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield23": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "收款币种",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield24": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "收款金额",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield242": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "账户名",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield243": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "账户关系",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield2431": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "银行账号",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield2432": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "收款银行",
+      "physicalColumn": "—"
+    },
+    "basedatapropfield2436": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "核算期次",
+      "physicalColumn": "—"
+    },
+    "agentpayorg": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "entryentity",
+      "title": "付款资金组织",
+      "physicalColumn": "t_hsas_agencypayent.fagentpayorgid"
+    },
+    "paystate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "付款状态",
+      "physicalColumn": "t_hsas_agencypayent.fpaystate"
+    },
+    "operator": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "entryentity",
+      "title": "添加人",
+      "physicalColumn": "t_hsas_agencypayent.foperatorid"
+    },
+    "operatedate": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "添加时间",
+      "physicalColumn": "t_hsas_agencypayent.foperatedate"
+    },
+    "basedatapropfield7": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataPropField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "算发薪管理组织",
+      "physicalColumn": "—"
+    },
+    "payrollgroup": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsas_payrollgrp",
+      "entity": "entryentity",
+      "title": "薪资核算组",
+      "physicalColumn": "t_hsas_agencypayent.fpayrollgroupid"
+    },
+    "payamount": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "收款金额",
+      "physicalColumn": "—"
+    },
+    "salaryfilehis": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsas_salaryfile",
+      "entity": "entryentity",
+      "title": "档案历史",
+      "physicalColumn": "—"
+    },
+    "paysubjectv": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "HisModelBasedataField",
+      "ref": "hsbs_paysubject",
+      "entity": "entryentity",
+      "title": "支付主体",
+      "physicalColumn": "—"
+    },
+    "perbankcardv": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_perbankcard",
+      "entity": "entryentity",
+      "title": "银行卡",
+      "physicalColumn": "t_hsas_agencypayent.fperbankcardvid"
+    },
+    "paytype": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hsbs_paymethod",
+      "entity": "entryentity",
+      "title": "支付形式",
+      "physicalColumn": "t_hsas_agencypayent.fpaytypeid"
+    },
+    "failreason": {
+      "fieldId": null,
+      "_pending_real_probe": true,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "失败原因",
+      "physicalColumn": "t_hsas_agencypayent.ffailreason"
+    },
+    "totalcount": {
+      "fieldId": "qWDdM5BeoR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "待发总笔数",
+      "physicalColumn": "t_hsas_agencypaybill.ftotalcount",
+      "_fieldApId": "qWDdM5BeoR"
+    },
+    "unpaycount": {
+      "fieldId": "w2oG4TRJ94",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "付款失败",
+      "physicalColumn": "t_hsas_agencypaybill.funpaycount",
+      "_fieldApId": "w2oG4TRJ94"
+    },
+    "feedbackinfo": {
+      "fieldId": "QbLDQRS4bI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "反馈信息",
+      "physicalColumn": "t_hsas_agencypaybill.ffeedbackinfo",
+      "_fieldApId": "QbLDQRS4bI"
+    },
+    "iswriteback": {
+      "fieldId": "FmlsZLmtm4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "添加",
+      "physicalColumn": "—",
+      "_fieldApId": "FmlsZLmtm4"
+    },
+    "paidcount": {
+      "fieldId": "OjAsJ5CikC",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "付款成功",
+      "physicalColumn": "t_hsas_agencypaybill.fpaidcount",
+      "_fieldApId": "OjAsJ5CikC"
+    },
+    "summaryname": {
+      "fieldId": "fY5GEg6uS8",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "单据名称",
+      "physicalColumn": "—",
+      "_fieldApId": "fY5GEg6uS8"
+    },
+    "summarybillno": {
+      "fieldId": "XnCyaeZYBY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "单据编号",
+      "physicalColumn": "—",
+      "_fieldApId": "XnCyaeZYBY"
+    },
+    "summarycreatetime": {
+      "fieldId": "u3yfy7V9Im2BQCCgp4",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "创建时间",
+      "physicalColumn": "—",
+      "_fieldApId": "u3yfy7V9Im2BQCCgp4"
+    },
+    "payrollgrpmul": {
+      "fieldId": "SGVfo0sghT8Zz8xKYa",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "MulBasedataField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "薪资核算组",
+      "physicalColumn": "—",
+      "_fieldApId": "SGVfo0sghT8Zz8xKYa"
+    },
+    "agencypaystatus": {
+      "fieldId": "1CD0x3j6jpnCczt247",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "entryentity",
+      "title": "代发状态",
+      "physicalColumn": "t_hsas_agencypaybill.fagencypaystatus",
+      "_fieldApId": "1CD0x3j6jpnCczt247"
+    }
+  },
+  "requiredFields": {
+    "hsas_agencypaybill": [
+      "billno",
+      "org",
+      "billname"
+    ],
+    "entryentity": [
+      "paydetail",
+      "payrollgrpmul"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "0H+/G119RC+2_moblist_vMq72P4B",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_moblist_Imop3uXO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0P4D29=TWH8F_moblist_xwxiINXr",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_fnPEMP2c",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_ZxNOBBON",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0P4D29=TWH8F_yJ2P2cMp",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_mob_7coBMts2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_mob_CfJ016P4",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0P4D29=TWH8F_mob_mCbvltT2",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0H+/G119RC+2_list_7R6f0bsM",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0AXRWIGCJ+ID_list_YRO8VVng",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "0P4D29=TWH8F_list_SIpZktMh",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.hrbu.HRBUCAApplicationEdit",
+      "Description": null,
+      "Enabled": null,
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseDataImportEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRBaseUeEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.TemplateBillEdit",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.agencypay.AgencyPayBillPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.agencypay.AgencyPaySummaryBillPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.bos.form.plugin.CodeRulePlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRTemplateBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.HRPermCommonList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Description": "kd.hr.hbp.formplugin.web.template.HRHiesButtonSwitchPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsbp.formplugin.web.SWCDataBaseHyperLinkList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.swc.hsas.formplugin.web.agencypay.AgencyPayBillList",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 16:56",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "parentTemplateId",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 27,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 1,
+        "jsPlugins_count": 12,
+        "formPlugins_count": 16
+      }
+    }
+  ]
+}

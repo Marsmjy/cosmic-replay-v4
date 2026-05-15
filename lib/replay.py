@@ -39,6 +39,16 @@ import requests
 
 log = logging.getLogger("cosmic_replay")
 
+# L2 pageId 特征：数字前缀 + "root" + 32hex（菜单级 pageId）
+_L2_PATTERN = re.compile(r'^\d+root[0-9a-f]{32}$')
+
+
+def _is_l2_pageid(pid: str) -> bool:
+    """判断 pageId 是否为 L2（菜单级）pageId。
+    L2 形如 {数字menuId}root{32hex}，而 L3 是纯 {32hex}。
+    """
+    return bool(_L2_PATTERN.match(pid))
+
 
 # =============================================================
 # 异常体系
@@ -284,6 +294,20 @@ class CosmicFormReplay:
         self.page_ids["home_page"] = page_id
         return page_id
 
+    def _is_pageid_likely_stale(self, form_id: str) -> bool:
+        """启发式判定 pageId 是否可能已过期
+
+        检测逻辑：
+        - L2 pageId 绑定到未 loadData 的表单 → 可能过期
+        - form_id 不在 _loaded_forms 中且 pageId 来自兜底 → 可能过期
+        """
+        pid = self.page_ids.get(form_id)
+        if not pid:
+            return True  # 无 pageId 肯定无效
+        if _is_l2_pageid(pid) and form_id not in self._loaded_forms:
+            return True
+        return False
+
     def open_form(self, form_id: str, app_id: str,
                   parent_page_id: str | None = None,
                   lazy: bool = True) -> str:
@@ -524,6 +548,10 @@ class CosmicFormReplay:
                             fid = p.get("formId")
                             pid = p.get("pageId")
                             if isinstance(fid, str) and isinstance(pid, str) and len(pid) >= 16 and fid:
+                                # ⭐ L2 pageId 保护：菜单级 pageId 不应绑定给表单 form_id
+                                if _is_l2_pageid(pid):
+                                    log.debug(f"[harvest/showForm] SKIP L2 pageId for {fid}: {pid[:30]}")
+                                    continue
                                 # 如果该表单已 loadData 且不是当前请求表单，跳过覆盖
                                 if fid in self._loaded_forms and fid != _invoking:
                                     log.debug(f"[harvest/showForm] SKIP {fid}: already loaded, pid={str(pid)[:20]} from sibling {_invoking}")
@@ -544,7 +572,11 @@ class CosmicFormReplay:
                 pid = obj.get("pageId")
                 if (isinstance(fid, str) and isinstance(pid, str)
                         and len(pid) >= 16 and fid and fid not in self.page_ids):
-                    self.page_ids[fid] = pid
+                    # ⭐ L2 pageId 保护：walk 阶段也不将菜单级 pageId 绑给表单
+                    if _is_l2_pageid(pid):
+                        log.debug(f"[harvest/walk] SKIP L2 pageId for {fid}: {pid[:30]}")
+                    else:
+                        self.page_ids[fid] = pid
                 for v in obj.values(): walk(v)
             elif isinstance(obj, list):
                 for x in obj: walk(x)

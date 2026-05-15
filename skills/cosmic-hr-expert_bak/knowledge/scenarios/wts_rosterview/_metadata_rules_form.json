@@ -1,0 +1,168 @@
+{
+  "formId": "wts_rosterview",
+  "formName": null,
+  "sceneId": "wts_rosterview",
+  "isv": "kingdee",
+  "modelType": "DynamicFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "15R5/4TCA97N",
+  "metaIdTechnical": "1CI=WSWCCODE",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wts_rosterview",
+    "createdAt": "2026-05-02",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wts_rosterview.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wts_rosterview",
+      "type": "MainEntity",
+      "title": "排班管理",
+      "physicalTable": null,
+      "fieldCount": 3
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "checkboxreal": {
+      "fieldId": "jexzH32yyA",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wts_rosterview",
+      "title": "实际",
+      "physicalColumn": "—",
+      "_fieldApId": "jexzH32yyA"
+    },
+    "checkboxplan": {
+      "fieldId": "uScsNJW693",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CheckBoxField",
+      "ref": null,
+      "entity": "wts_rosterview",
+      "title": "计划",
+      "physicalColumn": "—",
+      "_fieldApId": "uScsNJW693"
+    },
+    "daterange": {
+      "fieldId": "ZnSdhbhdMb2kQK3oIg",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateRangeField",
+      "ref": null,
+      "entity": "wts_rosterview",
+      "title": "日期范围",
+      "physicalColumn": "—",
+      "_fieldApId": "ZnSdhbhdMb2kQK3oIg"
+    }
+  },
+  "requiredFields": {
+    "wts_rosterview": []
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-05-02 12:07",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "bizappId"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 2
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 3,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 1,
+        "formPlugins_count": 2
+      }
+    }
+  ],
+  "sceneCategory": "derived_view",
+  "jsPlugins": [
+    {
+      "ClassName": "1CI=WSWCCODE_IXybwMAi",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.wtc.wts.formplugin.web.roster.RosterPlugin",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wts.formplugin.web.roster.manage.RosterManageFilterPlugin",
+      "Description": "1",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

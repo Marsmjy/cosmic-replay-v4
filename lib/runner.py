@@ -52,7 +52,7 @@ from typing import Any
 
 from .replay import (
     CosmicError, LoginError, ProtocolError, BusinessError,
-    CosmicFormReplay, login,
+    CosmicFormReplay, login, _is_l2_pageid,
 )
 from .diagnoser import (
     extract_save_errors, summarize_response, format_error_report, has_error_action,
@@ -333,6 +333,72 @@ def _h_open_form(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     return {"page_id": pid}
 
 
+def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
+    """invoke 执行前的 pageId 有效性预验证
+
+    仅对首次使用的 form_id 执行验证，通过 ctx["_validated_forms"] 避免重复。
+    不对 loadData/open_form 步骤做预验证（避免递归）。
+    """
+    ac = step.get("ac", "")
+
+    # 排除不需要预验证的操作
+    _skip_actions = ("loadData", "open_form", "close_form", "startupflow", "doconfirm", "afterConfirm")
+    if ac in _skip_actions:
+        return
+    # toolbar 类操作（itemClick 方法）也跳过
+    if step.get("method") == "itemClick":
+        return
+
+    # 避免重复校验
+    validated = ctx.setdefault("_validated_forms", set())
+    if form_id in validated:
+        return
+
+    # 标记已验证
+    validated.add(form_id)
+
+    # 场景1：pageId 完全缺失 → 自动 open_form + loadData
+    if form_id not in replay.page_ids:
+        try:
+            pid = replay.open_form(form_id, app_id, lazy=False)
+            if pid:
+                replay.load_data(form_id, app_id)
+                log.info(f"[pre-validate] {form_id}: 缺失pageId, 已自动open+load, pid={pid[:20]}...")
+        except Exception as e:
+            log.warning(f"[pre-validate] {form_id}: 自动open失败: {e}, 将由安全网兜底")
+        return
+
+    pid = replay.page_ids[form_id]
+
+    # 场景2：L2 pageId 用于非 toolbar 操作 → 降级
+    _toolbar_actions = {"startupflow", "doconfirm", "afterConfirm", "itemClick"}
+    _is_toolbar = step.get("method") == "itemClick" or ac in _toolbar_actions
+
+    if _is_l2_pageid(pid) and not _is_toolbar:
+        # 尝试从 pending_by_app 获取 L3 pageId
+        pending = replay._pending_by_app.get(app_id)
+        if pending and not _is_l2_pageid(pending):
+            replay.page_ids[form_id] = pending
+            log.info(f"[pre-validate] {form_id}: L2降级→L3 via pending, pid={pending[:20]}...")
+        else:
+            # pending 不可用，重新打开
+            try:
+                new_pid = replay.open_form(form_id, app_id, lazy=False)
+                if new_pid:
+                    log.info(f"[pre-validate] {form_id}: L2替换为新L3, pid={new_pid[:20]}...")
+            except Exception as e:
+                log.warning(f"[pre-validate] {form_id}: L2替换失败: {e}")
+        return
+
+    # 场景3/4：检查是否已 loadData
+    if form_id not in replay._loaded_forms and ac not in ("loadData",):
+        try:
+            replay.load_data(form_id, app_id)
+            log.info(f"[pre-validate] {form_id}: 预热loadData成功")
+        except Exception as e:
+            log.warning(f"[pre-validate] {form_id}: 预热loadData失败: {e}, 将由安全网兜底")
+
+
 @step_handler("invoke")
 def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     action = {
@@ -344,6 +410,29 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     # invalidate_pages: 执行前清除指定表单的旧 pageId（如 saveandeffect 后表单上下文已变）
     for fid in step.get("invalidate_pages", []):
         replay.page_ids.pop(fid, None)
+
+    # ⭐ L2 pageId 有效性检查：防止菜单级 pageId 被误用于表单 loadData/open 操作
+    # 但 toolbar 操作（如 startupflow、itemClick）应保留 L2 pageId，因为 toolbar 在 L2 页面上下文
+    form_id = step["form_id"]
+    pid = replay.page_ids.get(form_id)
+    ac_name = step.get("ac", "")
+    # toolbar 操作使用 L2 pageId 是正确的（原始 HAR 中就是这样）
+    _toolbar_actions = {"startupflow", "doconfirm", "afterConfirm", "itemClick"}
+    _is_toolbar = step.get("method") == "itemClick" or ac_name in _toolbar_actions
+    if pid and _is_l2_pageid(pid) and not _is_toolbar:
+        log.warning(f"[invoke] {form_id}/{ac_name}: detected L2 pageId {pid[:30]}..., will attempt fallback")
+        app_id = step.get("app_id", "")
+        pending = replay._pending_by_app.get(app_id)
+        if pending:
+            log.info(f"[invoke] Using pending pageId from app {app_id}")
+            replay.page_ids[form_id] = pending
+            replay._pending_by_app.pop(app_id, None)
+
+    # ⭐ pageId 有效性预验证
+    _validate_pageid_before_invoke(
+        step["form_id"], step.get("app_id", "bos"), replay, step, ctx
+    )
+
     resp = replay.invoke(step["form_id"], step["app_id"], step["ac"], [action])
 
     ac = step.get("ac", "")
@@ -359,11 +448,15 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
             menu_id = str(args[0].get("menuId", ""))
             if menu_id and replay.s.root_base_id:
                 l2_pid = f"{menu_id}root{replay.s.root_base_id}"
-                target = step.get("target_form") or ctx.get("main_form_id")
-                if target:
-                    old_pid = replay.page_ids.get(target, "(none)")
-                    replay.page_ids[target] = l2_pid
-                    log.info(f"[menuItemClick] L2 pageId for {target}: {l2_pid} (was: {old_pid[:30]})")
+                # 收集所有需要 L2 pageId 的目标表单
+                targets = list(step.get("target_forms") or [])
+                main_target = step.get("target_form") or ctx.get("main_form_id")
+                if main_target and main_target not in targets:
+                    targets.insert(0, main_target)
+                for t in targets:
+                    old_pid = replay.page_ids.get(t, "(none)")
+                    replay.page_ids[t] = l2_pid
+                    log.info(f"[menuItemClick] L2 pageId for {t}: {l2_pid} (was: {old_pid[:30]})")
 
     # saveandeffect / submitandeffect 后，被操作表单的 pageId 通常已失效
     # 但某些场景（如连续新增）服务端保持 pageId 不变，此时需 keep_page: true
@@ -783,6 +876,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 _value = _pf_meta.get("value_id") or _pf_meta.get("value_name", "")
                 if not _value:
                     continue
+                _value = resolve_vars(_value, vars_ns)  # 解析${today}等变量引用
                 _fields = step.get("fields") or {}
                 if _field_key in _fields:
                     _fv = _fields[_field_key]
@@ -845,49 +939,74 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     log.warning(f"[auto-open] failed for {_target_form}: {_e}")
 
         try:
-            resp = handler(step, replay, ctx)
+            # ========= 安全网：invoke 通用重试机制 =========
+            _INVOKE_MAX_RETRIES = 2  # 最大重试次数
+            _RETRYABLE_ERRORS = (
+                "页面未初始化或者已经过期",
+                "获取缓存连接客户端失败",
+                "请求超时",
+                "NullPointerException",
+            )
+
+            _retry_count = 0
+            while True:
+                resp = handler(step, replay, ctx)
+                errs = has_error_action(resp) if resp else []
+
+                # 无错误或已达最大重试次数 → 跳出
+                if not errs or _retry_count >= _INVOKE_MAX_RETRIES:
+                    break
+
+                # 检测是否为可重试错误
+                _should_retry = any(
+                    any(pat in e for pat in _RETRYABLE_ERRORS)
+                    for e in errs
+                )
+
+                # 业务逻辑错误不重试（如数据校验失败等）
+                if not _should_retry:
+                    break
+
+                # 需要 form_id 和 app_id 才能恢复
+                if not _target_form or not _target_app:
+                    break
+
+                _retry_count += 1
+                _wait = min(2 ** _retry_count, 4)  # 指数退避：2s, 4s
+                log.warning(f"[invoke-retry] {step.get('id','?')}: 检测到可重试错误, 第{_retry_count}次重试 (等待{_wait}s)")
+                log.warning(f"[invoke-retry] 原始错误: {errs[0][:100]}")
+
+                # SSE 推送重试信息（如果有 run_event 回调）
+                _run_ev = ctx.get("run_event")
+                if _run_ev:
+                    _run_ev("retry", {
+                        "step_id": step.get("id", ""),
+                        "attempt": _retry_count,
+                        "error": errs[0][:150] if errs else "",
+                    })
+
+                time.sleep(_wait)
+
+                # 恢复流程：pop → open_form → loadData
+                try:
+                    replay.page_ids.pop(_target_form, None)
+                    _fresh_pid = replay.open_form(_target_form, _target_app, lazy=False)
+                    if _fresh_pid:
+                        replay.load_data(_target_form, _target_app)
+                        log.info(f"[invoke-retry] 恢复成功: {_target_form} → {_fresh_pid[:20]}...")
+                    else:
+                        log.error(f"[invoke-retry] open_form 返回空, 中止重试")
+                        break
+                except Exception as _re:
+                    log.error(f"[invoke-retry] 恢复失败: {_re}, 中止重试")
+                    break  # open_form 失败直接中止，避免死循环
+            # ========= 安全网结束 =========
+
             ctx["last_response"] = resp
             ctx["last_step_response"] = resp
             ctx["step_responses"][sid] = resp
             if resp is not None:
                 ctx["response_history"].append(resp)
-
-            # 检测错误 action
-            errs = has_error_action(resp) if resp else []
-
-            # ⭐ 通用安全网：检测 "页面未初始化或者已经过期" / "获取缓存连接客户端失败" 错误
-            # 原因：响应中 showForm 的 pageId 覆盖了已 loadData 的有效 pageId，导致后续请求使用未初始化的 pageId
-            # 修复：移除过期 pageId → 重新 open_form → loadData 初始化 → 重试当前步骤
-            if errs and _target_form and _target_app:
-                _stale_page_detected = any(
-                    "页面未初始化或者已经过期" in e or "获取缓存连接客户端失败" in e
-                    for e in errs
-                )
-                if _stale_page_detected:
-                    log.warning(f"[stale-page] {sid}: pageId for {_target_form} expired, attempting re-open + reload")
-                    try:
-                        # 1. 移除过期 pageId
-                        replay.page_ids.pop(_target_form, None)
-                        # 2. 重新打开表单获取新 pageId
-                        _fresh_pid = replay.open_form(_target_form, _target_app, lazy=False)
-                        log.info(f"[stale-page] re-opened {_target_form} → pageId={_fresh_pid[:20]}...")
-                        # 3. loadData 初始化表单
-                        replay.load_data(_target_form, _target_app)
-                        log.info(f"[stale-page] loadData({_target_form}) OK, retrying step {sid}")
-                        # 4. 重试当前步骤
-                        resp = handler(step, replay, ctx)
-                        ctx["last_response"] = resp
-                        ctx["last_step_response"] = resp
-                        ctx["step_responses"][sid] = resp
-                        if resp is not None:
-                            ctx["response_history"].append(resp)
-                        # 重新检测错误
-                        errs = has_error_action(resp) if resp else []
-                        if not errs:
-                            log.info(f"[stale-page] retry succeeded for {sid}")
-                    except Exception as _retry_e:
-                        log.warning(f"[stale-page] retry failed for {sid}: {_retry_e}")
-                        # errs 保留原始错误，继续走正常错误流程
 
             if errs and not optional:
                 # 进一步尝试从 bos_operationresult 拉详情

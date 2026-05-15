@@ -1,0 +1,224 @@
+{
+  "formId": "hrcs_activityexception",
+  "formName": "异常监控",
+  "sceneId": "hrcs_activityexception",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "15NPDX/GJFOO",
+  "metaIdTechnical": "2M7O85T8I3J6",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "hrcs_activityexception",
+    "createdAt": "2026-04-29",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/hrcs_activityexception.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。",
+    "sceneCategory_set_at": "2026-05-02 (v5+ 审计基线分级·原 tier 不准·活动异常配置)"
+  },
+  "entities": [
+    {
+      "name": "hrcs_activityexception",
+      "type": "BillEntity",
+      "title": "异常监控",
+      "physicalTable": "t_hrcs_activityexception",
+      "fieldCount": 7
+    }
+  ],
+  "formRules": [],
+  "clientRules": [],
+  "listDefaults": [],
+  "fieldProperties": {
+    "createtime": {
+      "fieldId": "CuHDNd4Ndx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "hrcs_activityexception",
+      "title": "异常创建时间",
+      "physicalColumn": "fcreatetime",
+      "_fieldApId": "CuHDNd4Ndx"
+    },
+    "modifytime": {
+      "fieldId": "exJapMGpuO",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "hrcs_activityexception",
+      "title": "最后处理时间",
+      "physicalColumn": "fmodifytime",
+      "_fieldApId": "exJapMGpuO"
+    },
+    "result": {
+      "fieldId": "LgI4sGlYtG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_activityexception",
+      "title": "处理结果",
+      "physicalColumn": "fresult",
+      "_fieldApId": "LgI4sGlYtG"
+    },
+    "activityins": {
+      "fieldId": "6RVAZeyY6k",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BasedataField",
+      "ref": "hrcs_activityins",
+      "entity": "hrcs_activityexception",
+      "title": "活动任务实例",
+      "physicalColumn": "factivityinsid",
+      "_fieldApId": "6RVAZeyY6k"
+    },
+    "creator": {
+      "fieldId": "Fo3hUJglqK",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "hrcs_activityexception",
+      "title": "发起人",
+      "physicalColumn": "fcreatorid",
+      "_fieldApId": "Fo3hUJglqK"
+    },
+    "exceptiontype": {
+      "fieldId": "HNHLdXtfGw",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "hrcs_activityexception",
+      "title": "异常分类",
+      "physicalColumn": "fexceptiontype",
+      "_fieldApId": "HNHLdXtfGw"
+    },
+    "modifier": {
+      "fieldId": "lRfJQAYf8E",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "hrcs_activityexception",
+      "title": "处理人",
+      "physicalColumn": "fmodifierid",
+      "_fieldApId": "lRfJQAYf8E"
+    }
+  },
+  "requiredFields": {
+    "hrcs_activityexception": []
+  },
+  "invisibleFields": [],
+  "_backfill": [
+    {
+      "at": "2026-04-29 11:35",
+      "source": "scripts/backfill_real_listmeta.py",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId"
+        ],
+        "fieldId_filled": 7,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0
+      }
+    },
+    {
+      "at": "2026-05-03 09:22",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 7,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 2
+      }
+    },
+    {
+      "at": "2026-05-03 09:23",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "modelType",
+          "bizappId",
+          "metaIdTechnical",
+          "isv"
+        ],
+        "fieldId_filled": 7,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 0,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 2
+      }
+    }
+  ],
+  "sceneCategory": "config_subform",
+  "jsPlugins": [
+    {
+      "ClassName": "2M7O85T8I3J6_ljlNE8lb",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2M7O85T8I3J6_list_R0sBiLMg",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.activity.ActivityExceptionLogEdit",
+      "Description": "kd.hr.hrcs.formplugin.web.activity.ActivityExceptionLogEdit",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.hr.hrcs.formplugin.web.activity.ActivityExceptionLogPlugin",
+      "Description": "kd.hr.hrcs.formplugin.web.activity.ActivityExceptionLogPlugin",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ]
+}

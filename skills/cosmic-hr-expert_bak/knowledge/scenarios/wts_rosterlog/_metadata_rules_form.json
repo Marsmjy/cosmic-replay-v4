@@ -1,0 +1,582 @@
+{
+  "formId": "wts_rosterlog",
+  "formName": null,
+  "sceneId": "wts_rosterlog",
+  "isv": "kingdee",
+  "modelType": "BillFormModel",
+  "sceneKind": "form",
+  "hasSaveOpKey": false,
+  "parentTemplateId": null,
+  "bizappId": "15R5/4TCA97N",
+  "metaIdTechnical": "2KBLWGCVC9QE",
+  "_pending_real_probe": {
+    "listDefaults": "需通过 listMeta.list 抓取（仅列表态场景有）"
+  },
+  "_meta": {
+    "scene": "wts_rosterlog",
+    "createdAt": "2026-05-03",
+    "generator": "scripts/complete_hrcs_parity.py",
+    "source": [
+      "_shared/_standard_metadata/entity_metadata/wts_rosterlog.md"
+    ],
+    "note": "标品元数据归属切片。fieldId / formRules / clientRules / listDefaults / bizappId / parentTemplateId 必须实环境 listMeta 抓，不允许 LLM 合成。"
+  },
+  "entities": [
+    {
+      "name": "wts_rosterlog",
+      "type": "BillEntity",
+      "title": "排班任务日志",
+      "physicalTable": null,
+      "fieldCount": 30
+    }
+  ],
+  "formRules": [],
+  "clientRules": [
+    {
+      "PreDescription": "进行中",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#276FF5"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "389845HHAO2M"
+        }
+      },
+      "Id": "37MP9M9BNBNB",
+      "PreCondition": "bizstatus = '1'"
+    },
+    {
+      "PreDescription": "未执行",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#999999"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "389845HHANEC"
+        }
+      },
+      "Id": "37MP9M9BNCAL",
+      "PreCondition": "bizstatus = '2'"
+    },
+    {
+      "PreDescription": "成功",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#1BA854"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "389845HHAO2N"
+        }
+      },
+      "Id": "37MP9M9BNBNC",
+      "PreCondition": "bizstatus = '3'"
+    },
+    {
+      "PreDescription": "失败",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#FB2323"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "389845HHANED"
+        }
+      },
+      "Id": "37MPJX8UVWMH",
+      "PreCondition": "bizstatus = '4'"
+    },
+    {
+      "PreDescription": "部分成功",
+      "TrueActions": {
+        "ClientSetFieldfmtAction": {
+          "RET": "251",
+          "DisplayStyles": {
+            "DisplayStyle": {
+              "BackgroundColor": "",
+              "ValueFontSize": "12",
+              "Degree": "100",
+              "ValueBackgroundColor": "#000000",
+              "ValueForeColor": "#FFFFFF",
+              "FontSize": "12",
+              "Id": "combolistcolumnap2",
+              "ForeColor": "#FF991C"
+            }
+          },
+          "ActionType": "ClientSetFieldfmtAction",
+          "Description": "设置字段显示样式",
+          "Id": "389845HHAO2O"
+        }
+      },
+      "Id": "37MPJX8UVX=R",
+      "PreCondition": "bizstatus = '5'"
+    }
+  ],
+  "listDefaults": [],
+  "fieldProperties": {
+    "billno": {
+      "fieldId": "D47cdz3cdD",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "BillNoField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "任务号",
+      "physicalColumn": "t_wts_rosterlog.fbillno",
+      "_fieldApId": "D47cdz3cdD"
+    },
+    "taskstatus": {
+      "fieldId": "hohHvxA8Mu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "任务状态",
+      "physicalColumn": "t_wts_rosterlog.ftaskstatus",
+      "_fieldApId": "hohHvxA8Mu"
+    },
+    "operator": {
+      "fieldId": "7lyd0S8WV0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "UserField",
+      "ref": "bos_user",
+      "entity": "wts_rosterlog",
+      "title": "操作人",
+      "physicalColumn": "t_wts_rosterlog.foperatorid",
+      "_fieldApId": "7lyd0S8WV0"
+    },
+    "allrosternum": {
+      "fieldId": "9B3g27g3QJ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "执行档案数",
+      "physicalColumn": "t_wts_rosterlog.fallrosternum",
+      "_fieldApId": "9B3g27g3QJ"
+    },
+    "succrosternum": {
+      "fieldId": "UmhSbHrVyt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "成功",
+      "physicalColumn": "t_wts_rosterlog.fsuccrosternum",
+      "_fieldApId": "UmhSbHrVyt"
+    },
+    "failrosternum": {
+      "fieldId": "CA1NSisXpP",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "失败",
+      "physicalColumn": "t_wts_rosterlog.ffailrosternum",
+      "_fieldApId": "CA1NSisXpP"
+    },
+    "operatetype": {
+      "fieldId": "OOJpLuVbUQ",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "操作类型",
+      "physicalColumn": "t_wts_rosterlog.foperatetype",
+      "_fieldApId": "OOJpLuVbUQ"
+    },
+    "operateinfo": {
+      "fieldId": "nG6S9AYxKu",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextAreaField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "操作详情",
+      "physicalColumn": "t_wts_rosterlog.foperateinfo",
+      "_fieldApId": "nG6S9AYxKu"
+    },
+    "creator": {
+      "fieldId": "oY1RY8NXtG",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreaterField",
+      "ref": "bos_user",
+      "entity": "wts_rosterlog",
+      "title": "创建人",
+      "physicalColumn": "t_wts_rosterlog.fcreatorid",
+      "_fieldApId": "oY1RY8NXtG"
+    },
+    "startdate": {
+      "fieldId": "85Tv6gR0pW",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "开始日期",
+      "physicalColumn": "t_wts_rosterlog.fstartdate",
+      "_fieldApId": "85Tv6gR0pW"
+    },
+    "enddate": {
+      "fieldId": "xbl118DiD0",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "结束日期",
+      "physicalColumn": "t_wts_rosterlog.fenddate",
+      "_fieldApId": "xbl118DiD0"
+    },
+    "modifier": {
+      "fieldId": "JJzADqLlGK",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifierField",
+      "ref": "bos_user",
+      "entity": "wts_rosterlog",
+      "title": "修改人",
+      "physicalColumn": "t_wts_rosterlog.fmodifierid",
+      "_fieldApId": "JJzADqLlGK"
+    },
+    "modifytime": {
+      "fieldId": "CbVR1JIdgx",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ModifyDateField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "修改时间",
+      "physicalColumn": "t_wts_rosterlog.fmodifytime",
+      "_fieldApId": "CbVR1JIdgx"
+    },
+    "createtime": {
+      "fieldId": "XsrUGKVr2A",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "CreateDateField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "创建时间",
+      "physicalColumn": "t_wts_rosterlog.fcreatetime",
+      "_fieldApId": "XsrUGKVr2A"
+    },
+    "allrosterpersonnum": {
+      "fieldId": "ViOoylDJBt",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "执行的考勤人数",
+      "physicalColumn": "t_wts_rosterlog.fallrosterpersonnum",
+      "_fieldApId": "ViOoylDJBt"
+    },
+    "succrosterpersonnum": {
+      "fieldId": "9TzDC7yctH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "成功考勤人数",
+      "physicalColumn": "t_wts_rosterlog.fsuccrosterpersonnum",
+      "_fieldApId": "9TzDC7yctH"
+    },
+    "failrosterpersonnum": {
+      "fieldId": "2qdRDZisDH",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "失败考勤人数",
+      "physicalColumn": "t_wts_rosterlog.ffailrosterpersonnum",
+      "_fieldApId": "2qdRDZisDH"
+    },
+    "operatedetailtype": {
+      "fieldId": "TxR9A0zap3",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "详细操作类型",
+      "physicalColumn": "t_wts_rosterlog.foperatedetailtype",
+      "_fieldApId": "TxR9A0zap3"
+    },
+    "unexerosternum": {
+      "fieldId": "vuSnn0aqFp",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "未执行档案数",
+      "physicalColumn": "t_wts_rosterlog.funexerosternum",
+      "_fieldApId": "vuSnn0aqFp"
+    },
+    "unexepersonnum": {
+      "fieldId": "cGNX7Umbwv",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "未执行人员数",
+      "physicalColumn": "t_wts_rosterlog.funexepersonnum",
+      "_fieldApId": "cGNX7Umbwv"
+    },
+    "org": {
+      "fieldId": "nL1ElD3ShY",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": true,
+      "fieldType": "OrgField",
+      "ref": "bos_org",
+      "entity": "wts_rosterlog",
+      "title": "考勤管理组织",
+      "physicalColumn": "t_wts_rosterlog.forgid",
+      "_fieldApId": "nL1ElD3ShY"
+    },
+    "bizstatus": {
+      "fieldId": "okTAZ30iV1",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "排班状态",
+      "physicalColumn": "t_wts_rosterlog.fbizstatus",
+      "_fieldApId": "okTAZ30iV1"
+    },
+    "source": {
+      "fieldId": "Z5bBdSzjYf",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "ComboField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "来源",
+      "physicalColumn": "t_wts_rosterlog.fsource",
+      "_fieldApId": "Z5bBdSzjYf"
+    },
+    "description": {
+      "fieldId": "m2moP8Eyzo",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "描述",
+      "physicalColumn": "t_wts_rosterlog_l.fdescription",
+      "_fieldApId": "m2moP8Eyzo"
+    },
+    "excause": {
+      "fieldId": "wUCA07XxJR",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "MuliLangTextField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "任务异常原因",
+      "physicalColumn": "t_wts_rosterlog_l.fexcause",
+      "_fieldApId": "wUCA07XxJR"
+    },
+    "taketimes": {
+      "fieldId": "nRAWiT6F9Q",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "TextField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "耗时",
+      "physicalColumn": "—",
+      "_fieldApId": "nRAWiT6F9Q"
+    },
+    "runrosternum": {
+      "fieldId": "fXQTKCctZN",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "执行档案数",
+      "physicalColumn": "t_wts_rosterlog.frunrosternum",
+      "_fieldApId": "fXQTKCctZN"
+    },
+    "runpersonnum": {
+      "fieldId": "hnTxUpGP2V",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "IntegerField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "执行人数",
+      "physicalColumn": "t_wts_rosterlog.frunpersonnum",
+      "_fieldApId": "hnTxUpGP2V"
+    },
+    "taskstarttime": {
+      "fieldId": "R0krM31Fi7",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "任务开始时间",
+      "physicalColumn": "t_wts_rosterlog.ftaskstarttime",
+      "_fieldApId": "R0krM31Fi7"
+    },
+    "taskendtime": {
+      "fieldId": "lmeBKxU3QTw55qBVUI",
+      "_pending_real_probe": false,
+      "invisible": false,
+      "required": false,
+      "fieldType": "DateTimeField",
+      "ref": null,
+      "entity": "wts_rosterlog",
+      "title": "任务结束时间",
+      "physicalColumn": "t_wts_rosterlog.ftaskendtime",
+      "_fieldApId": "lmeBKxU3QTw55qBVUI"
+    }
+  },
+  "requiredFields": {
+    "wts_rosterlog": [
+      "org"
+    ]
+  },
+  "invisibleFields": [],
+  "jsPlugins": [
+    {
+      "ClassName": "2KBLWGCVC9QE_lEJaxGmO",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    },
+    {
+      "ClassName": "2KBLWGCVC9QE_list_hf8cBsYy",
+      "Description": null,
+      "Enabled": "true",
+      "BizAppId": null
+    }
+  ],
+  "formPlugins": [
+    {
+      "ClassName": "kd.wtc.wts.formplugin.web.roster.log.RosterLogBillEdit",
+      "Description": "1",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    },
+    {
+      "ClassName": "kd.wtc.wts.formplugin.web.roster.log.RosterLogBillList",
+      "Description": "1",
+      "Enabled": "true",
+      "BizAppId": null,
+      "FPK": null
+    }
+  ],
+  "_backfill": [
+    {
+      "at": "2026-05-03 10:03",
+      "source": "scripts/backfill_real_listmeta.py v0.2",
+      "openApi": [
+        "get_form_metadata",
+        "list_operations",
+        "getOperation_per_op"
+      ],
+      "summary": {
+        "topLevel_filled": [
+          "bizappId"
+        ],
+        "fieldId_filled": 30,
+        "fieldId_already": 0,
+        "formRules_count": 0,
+        "clientRules_count": 5,
+        "jsPlugins_count": 2,
+        "formPlugins_count": 2
+      }
+    }
+  ]
+}
