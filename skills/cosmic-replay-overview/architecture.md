@@ -93,6 +93,12 @@ UNIQUE_KEY_HINTS = {
 
 处理：生成 `${vars.test_<field_key>}` + 在 vars 段声明随机值模板
 
+### 智能文本变量
+
+触发条件：`description` / `desc` / `remark` / `memo` / `note` / `comment` / `changedescription` / `changedesc`，或实时元数据、知识库识别为可编辑文本字段。
+
+处理：生成 `${vars.test_description}` / `${vars.test_remark}` 等变量。此类字段不一定追加随机后缀，但必须从 HAR 硬编码值抽到 `vars`，方便导入后统一编辑。
+
 ### B档：环境相关（保留字面量，面板可改）
 
 触发条件：`field_key in ENV_RELATED_FIELDS or ENUM_FIELDS`
@@ -103,6 +109,12 @@ ENUM_FIELDS = {"gender", "certificatetype", "enable", "relationship", ...}
 ```
 
 处理：生成 `pick_fields` 段，前端面板展示可编辑
+
+### 元数据增强链路
+
+HAR 导入时，如果 Web UI 已选择并登录环境，会通过 `MetadataResolver` 调用 `/metadata/getEntityType.do?entityId=<form_id>` 获取实时字段标签、类型、必填、基础资料引用等信息。离线时回落到 `cosmic-hr-expert` 知识库，其中 `kb_loader` 同时支持：
+- `knowledge/scenarios/<form_id>/scene_doc_lite.json`
+- `knowledge/_shared/_standard_metadata/entity_metadata/<form_id>.md`
 
 ### C档：响应回传（跨 step 引用）
 

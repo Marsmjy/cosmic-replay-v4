@@ -159,8 +159,12 @@ def _a_new_check(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
 - 检查 `invalidate_pages` 是否遗漏
 
 ### 2. 变量未被识别（HAR 转换后硬编码）
-**原因**：字段名不在 `UNIQUE_KEY_HINTS` 集合中
-**解决**：在 `har_extractor.py` 的 `UNIQUE_KEY_HINTS` 或 `ENV_RELATED_FIELDS` 中添加
+**原因**：字段名不在变量分类规则中，或实时元数据 / 知识库未命中
+**解决**：
+- 唯一字段：检查 `har_extractor.py` 的 `_UNIQUE_KEY_HINTS` 和 `_classify_key_heuristic`
+- 文本字段：检查 `_TEXT_VARIABLE_KEYS`，`description/remark/memo/note` 应进入 `vars`
+- HR 实体字段：检查 `kb_loader.resolve_scene(form_id)` 是否能从 `cosmic-hr-expert` 的 `scenarios/` 或 `_shared/_standard_metadata/entity_metadata/` 命中
+- 在线环境：确认 preview/extract 传入 `MetadataResolver`，即 `/metadata/getEntityType.do?entityId=` 可访问
 
 ### 3. menuItemClick 后 pageId 错误
 **原因**：L2 pageId 未正确计算或绑定

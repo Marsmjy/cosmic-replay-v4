@@ -16,6 +16,7 @@
 | 6 | completed | 第二阶段：实现环境字段自动解析中心、导入期一键解析、运行期安全兜底与缓存 |
 | 7 | completed | 第三阶段：建立组件处理器注册表、组件覆盖率雷达和未知组件风险提示 |
 | 8 | completed | 第四阶段：建立自动修复计划，支持用户确认后一键应用安全 YAML 补丁 |
+| 9 | completed | 第五阶段前置增强：文本字段变量识别、实时元数据参与变量解析、cosmic-hr-expert 共享实体元数据兜底 |
 
 ## Constraints
 
@@ -52,6 +53,12 @@
   - 后端提供 `/api/cases/{name}/repairs/plan` 和 `/api/cases/{name}/repairs/apply`
   - 应用补丁前会生成 `.yaml.bak` 本地备份
   - 同步补齐基础兼容回归项，当前本地单元测试 `tests/unit tests/test_core.py` 共 183 条通过
+- 第五阶段前置增强已完成：
+  - `description/remark/memo/note/comment` 等文本字段可从 `update_fields`、保存按钮 `post_data`、分录脏数据中抽取为智能变量
+  - `detect_var_placeholders(..., meta_resolver=...)` 已接入实时元数据，导入预览和 YAML 生成共享同一解析增强链路
+  - `kb_loader` 已读取 `skills/cosmic-hr-expert/knowledge/_shared/_standard_metadata/entity_metadata/*.md`
+  - `hbss_enterprise` 这类无独立 scenario 的实体也能获得字段标签/类型，`描述` 字段可稳定识别为 `test_description`
+  - `cosmic-replay-overview` 与 `cosmic-replay-troubleshooter` 已补充变量遗漏定位和修复指引
 
 ## Errors Encountered
 
@@ -64,3 +71,4 @@
 | 导入期环境字段解析返回 `not_found` | 复测 `/api/env-fields/resolve` | 发现 `getLookUpList` 依赖表单初始化；改为使用 HAR 首个 `loadData` 预热表单，并补充 `setLookUpListValue` 响应解析 |
 | 组件雷达对 2 个基准 HAR 报 unsupported | 扫描 8 个 HAR 的组件覆盖率 | 补充 `addsonlogicentity`、`ac=updateValue`、`saveSetting` 处理器，8 个基准 HAR 未覆盖步骤清零 |
 | 自动修复可能误改业务语义 | 设计第四阶段补丁应用策略 | 只有明确定位目标且 `safe_to_apply=true` 的补丁可一键应用；基础资料缺失但无 value_id 时只提示不应用 |
+| `基础资料-用人单位zaa` 的 `description/描述` 未变量化 | 检查生成 YAML 和 `getEntityType.do`/知识库链路 | 将实时元数据传入变量检测，并让 `kb_loader` 读取 cosmic-hr-expert 共享实体元数据；保存 `post_data` 不再只处理唯一字段 |

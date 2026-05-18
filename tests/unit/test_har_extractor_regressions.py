@@ -7,6 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.har_extractor import build_yaml_case, to_yaml
+from lib import kb_loader
 
 
 def test_to_yaml_keeps_multilang_numeric_values_as_strings():
@@ -58,6 +59,28 @@ def test_build_yaml_case_injects_createorg_context_step_for_enterprise_har():
     assert createorg_step["fields"]["createorg"] == "100000"
     assert pick_fields["pick_createorg_id"]["value_id"] == "100000"
     assert pick_fields["pick_createorg_id"]["field_key"] == "createorg"
+
+
+def test_build_yaml_case_extracts_enterprise_description_var():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
+
+    yaml_text = build_yaml_case(har_path, case_name="regression_enterprise")
+    case = yaml.safe_load(yaml_text)
+    save_step = next(step for step in case["steps"] if step["id"] == "click_9")
+    desc_value = save_step["post_data"][1][0]["v"]
+
+    assert case["vars"]["test_description"] == "aaaaaa"
+    assert case["vars_labels"]["test_description"] == "描述"
+    assert desc_value["zh_CN"] == "${vars.test_description}"
+
+
+def test_kb_loader_reads_shared_hr_entity_metadata():
+    scene = kb_loader.resolve_scene("hbss_enterprise")
+    meta = kb_loader.field_meta("hbss_enterprise", "description")
+
+    assert scene["name"] == "用人单位"
+    assert meta["label"] == "描述"
+    assert meta["t"] == "MuliLangTextField"
 
 
 def test_build_yaml_case_keeps_short_numeric_multilang_values_quoted_in_position_har():

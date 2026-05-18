@@ -248,6 +248,26 @@ class TestVariableDetection:
         for e in actions[0]["post_data"][1]:
             if isinstance(e, dict) and "v" in e:
                 assert e["v"] == "${today}" or "today" in vars_map.values()
+
+    def test_detect_description_field_from_save_click_post_data(self):
+        """保存按钮携带的描述字段应被抽取为智能变量"""
+        actions = [{
+            "type": "invoke",
+            "method": "click",
+            "ac": "click",
+            "form_id": "hbss_enterprise",
+            "post_data": [
+                {"description": {"fieldKey": "description"}},
+                [{"k": "description", "v": {"zh_CN": "aaaaaa", "zh_TW": "aaaaaa"}, "r": -1}],
+            ],
+        }]
+        modified, vars_map, vars_labels = detect_var_placeholders(actions)
+
+        value = modified[0]["post_data"][1][0]["v"]
+        assert vars_map["test_description"] == "aaaaaa"
+        assert vars_labels["test_description"] == "描述"
+        assert value["zh_CN"] == "${vars.test_description}"
+        assert value["zh_TW"] == "${vars.test_description}"
     
     def test_classify_key_number(self):
         """编号键分类"""

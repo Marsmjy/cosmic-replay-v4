@@ -98,3 +98,18 @@
   - HAR 字段分类 helper 只存在于内部闭包，测试和外部诊断无法复用。
   - 轻量 YAML 解析、变量引用空白、旧格式错误 action、日志 store 元信息、凭证环境变量覆盖存在边界不一致。
   - 已补齐后 `tests/unit tests/test_core.py` 183 条通过，可作为第五阶段回归样本库的基础门禁。
+
+## Stage 5 Prework Findings
+
+- `基础资料-用人单位zaa` 的漏识别不是执行器问题，而是导入期变量抽取问题：
+  - HAR 保存动作 `click_9.post_data` 中包含 `description={"zh_CN":"aaaaaa","zh_TW":"aaaaaa"}`。
+  - 旧逻辑只对唯一字段白名单处理保存脏数据，普通文本字段不会进入 `maybe_var()`。
+  - 结果是 YAML 中直接写死 `"aaaaaa"`，新导入类似 HAR 会重复出现同类问题。
+- `/feature_sit_hrpro/metadata/getEntityType.do?entityId=` 原本已通过 `MetadataResolver` 接在 preview/extract 后端，但变量检测没有接收 `meta_resolver`，因此在线字段类型只能增强标签和基础资料信息，不能增强变量分类。
+- `cosmic-hr-expert` 原本通过 `kb_loader` 使用 `scenarios/<form_id>`，但 `hbss_enterprise` 只有共享标准实体元数据文件，没有独立 scenario 目录，导致 `main_form_not_in_kb` 误报且字段标签兜底不足。
+- 标准化后的字段信息优先级应为：
+  - 实时元数据 `MetadataResolver(getEntityType.do)`：当前环境最新，优先用于字段类型/标签。
+  - 项目知识库 `cosmic-hr-expert/scenarios`：场景级规则、字段分类和业务菜单。
+  - 共享实体元数据 `cosmic-hr-expert/_shared/_standard_metadata/entity_metadata`：覆盖无 scenario 的标准 HR 实体。
+  - 静态全局字段标签和 key 启发式：最后兜底。
+- `cosmic-replay-troubleshooter` 应覆盖变量遗漏问题，因为这类问题往往不是立即执行报错，而是二次执行数据重复、固定描述污染或跨环境执行失败；需要在导入预览阶段就能定位。

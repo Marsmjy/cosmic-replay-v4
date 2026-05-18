@@ -28,6 +28,7 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
+from lib.kb_loader import field_meta as _kb_field_meta
 from lib.kb_loader import get_field_label as _kb_get_field_label
 
 
@@ -379,6 +380,11 @@ def _resolve_field_label(field_key: str, entity_id: str = None, meta_resolver=No
         if label:
             return label
     key_lower = field_key.lower()
+    if entity_id:
+        meta = _kb_field_meta(entity_id, key_lower)
+        label = (meta or {}).get("label")
+        if label:
+            return label
     # 优先查询知识库
     kb_label = _kb_get_field_label(key_lower)
     if kb_label:
@@ -846,6 +852,18 @@ _HR_UNIQUE_SUFFIXES = {"empnumber", "certificatenumber", "phone"}
 _HR_NAME_FIELDS = {"ba_em_name", "em_name", "staffname"}
 _HR_PHONE_FIELDS = {"phone", "tel", "mobile", "cellphone", "contactphone"}
 _HR_EMAIL_FIELDS = {"email", "peremail", "workemail", "personalemail"}
+_TEXT_VARIABLE_KEYS = {
+    "description",
+    "desc",
+    "remark",
+    "remarks",
+    "memo",
+    "note",
+    "comment",
+    "comments",
+    "changedescription",
+    "changedesc",
+}
 
 
 def _classify_key(key_hint: str) -> str | None:
@@ -871,6 +889,8 @@ def _classify_key_heuristic(key_hint: str) -> str | None:
         return "phone"
     if kl in _HR_EMAIL_FIELDS:
         return "email"
+    if kl in _TEXT_VARIABLE_KEYS or kl.endswith("description") or kl.endswith("remark"):
+        return "text"
     for suffix in _HR_UNIQUE_SUFFIXES:
         if kl.endswith(suffix):
             if "number" in suffix and "certificate" not in kl:
@@ -890,12 +910,14 @@ def _classify_key_heuristic(key_hint: str) -> str | None:
     for hint in _NAME_KEYS:
         if kl.endswith(hint) and len(kl) > len(hint):
             return "name"
+    if kl in _TEXT_VARIABLE_KEYS or kl.endswith("description") or kl.endswith("remark"):
+        return "text"
     return None
 
 
-def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[str, Any]]:
+def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tuple[list[dict], dict[str, Any], dict[str, str]]:
     """扫 updateValue 的值，识别"看起来像测试数据"的值抽成 vars。
-    返回：(修改后的 actions_seq, vars_map)
+    返回：(修改后的 actions_seq, vars_map, vars_labels)
 
     ⭐ 规则7（统一变量引用）：
     连续新增多条记录时，所有保存轮次统一引用同一个 test_number / test_name 变量。
@@ -905,9 +927,6 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     vars_map: dict[str, Any] = {}
     vars_labels: dict[str, str] = {}  # 变量名 → 中文标签
     seen_values: dict[str, str] = {}   # 原始值 → 变量名
-
-    # 字段 key 名暗示"必然唯一"——一定得抽 vars，否则跑第二次必挂"已存在"
-    UNIQUE_KEY_HINTS = _UNIQUE_KEY_HINTS
 
     # ── 连续新增计数器 ──
     save_round = 1
@@ -938,7 +957,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
         # ⭐ kb 一票否决前置
         if _kb is not None and current_form_id:
             try:
-                kb_cls = _kb.classify_field(current_form_id, key_hint)
+                kb_cls = _kb.classify_field(current_form_id, key_hint, meta_resolver=meta_resolver)
                 if kb_cls in ("B", "ignore", "C"):
                     return None
                 # kb_cls == "A" 或 None 时继续走原有启发式，以便细分前缀
@@ -946,6 +965,25 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 pass
 
         return _classify_key_heuristic(key_hint)
+
+    def _text_var_name(key_hint: str) -> str:
+        kl = (key_hint or "text").lower()
+        mapping = {
+            "description": "test_description",
+            "desc": "test_description",
+            "remark": "test_remark",
+            "remarks": "test_remark",
+            "memo": "test_memo",
+            "note": "test_note",
+            "comment": "test_comment",
+            "comments": "test_comment",
+            "changedescription": "test_change_description",
+            "changedesc": "test_change_description",
+        }
+        if kl in mapping:
+            return mapping[kl]
+        safe = re.sub(r"[^a-zA-Z0-9_]", "_", kl).strip("_") or "text"
+        return f"test_{safe}"
 
     def maybe_var(val: Any, key_hint: str = "") -> Any:
         if not isinstance(val, str) or not val:
@@ -1026,6 +1064,19 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 seen_values[val] = vname
                 return f"${{vars.{vname}}}"
 
+            elif key_class == "text":
+                if val in seen_values:
+                    ref = seen_values[val]
+                    return f"${{vars.{ref}}}" if not ref.startswith("$") else ref
+                vname = _text_var_name(key_hint)
+                if vname not in vars_map:
+                    vars_map[vname] = val
+                    label = _resolve_field_label(key_hint, entity_id=current_form_id, meta_resolver=meta_resolver)
+                    if label and label != key_hint:
+                        vars_labels[vname] = label
+                seen_values[val] = vname
+                return f"${{vars.{vname}}}"
+
             else:
                 vname = f"test_{key_hint}"
                 vars_map[vname] = val
@@ -1073,6 +1124,25 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 if new_v != v:
                     e["v"] = new_v
 
+    def rewrite_dirty_entry(entry: dict) -> None:
+        """变量化 save/click/newentry post_data 中携带的脏字段值。"""
+        fk = entry.get("k", "")
+        fv = entry.get("v")
+        if isinstance(fv, dict) and "zh_CN" in fv:
+            new_zh = maybe_var(fv.get("zh_CN"), fk)
+            if new_zh != fv.get("zh_CN"):
+                fv = dict(fv)
+                fv["zh_CN"] = new_zh
+                if "GLang" in fv:
+                    fv["GLang"] = new_zh
+                if "zh_TW" in fv:
+                    fv["zh_TW"] = new_zh
+                entry["v"] = fv
+        elif isinstance(fv, str):
+            new_v = maybe_var(fv, fk)
+            if new_v != fv:
+                entry["v"] = new_v
+
     # 在原地修改，同时追踪 save 轮次
     for action_wrap in actions_seq:
         # ⭐ 更新当前 form_id，供 _classify_key 走 kb 查询
@@ -1090,46 +1160,14 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
             if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
                 for entry in pd[1]:
                     if isinstance(entry, dict):
-                        fk = entry.get("k", "")
-                        fv = entry.get("v")
-                        if fk in UNIQUE_KEY_HINTS:
-                            if isinstance(fv, dict) and "zh_CN" in fv:
-                                new_zh = maybe_var(fv.get("zh_CN"), fk)
-                                if new_zh != fv.get("zh_CN"):
-                                    fv = dict(fv)
-                                    fv["zh_CN"] = new_zh
-                                    if "GLang" in fv:
-                                        fv["GLang"] = new_zh
-                                    if "zh_TW" in fv:
-                                        fv["zh_TW"] = new_zh
-                                    entry["v"] = fv
-                            elif isinstance(fv, str):
-                                new_v = maybe_var(fv, fk)
-                                if new_v != fv:
-                                    entry["v"] = new_v
+                        rewrite_dirty_entry(entry)
         
         if ac in _SAVE_ACS:
             pd = action_wrap.get("post_data") or [{}, []]
             if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
                 for entry in pd[1]:
                     if isinstance(entry, dict):
-                        fk = entry.get("k", "")
-                        fv = entry.get("v")
-                        if fk in UNIQUE_KEY_HINTS:
-                            if isinstance(fv, dict) and "zh_CN" in fv:
-                                new_zh = maybe_var(fv.get("zh_CN"), fk)
-                                if new_zh != fv.get("zh_CN"):
-                                    fv = dict(fv)
-                                    fv["zh_CN"] = new_zh
-                                    if "GLang" in fv:
-                                        fv["GLang"] = new_zh
-                                    if "zh_TW" in fv:
-                                        fv["zh_TW"] = new_zh
-                                    entry["v"] = fv
-                            elif isinstance(fv, str):
-                                new_v = maybe_var(fv, fk)
-                                if new_v != fv:
-                                    entry["v"] = new_v
+                        rewrite_dirty_entry(entry)
             # save 步骤处理完脏字段后，推进轮次
             if action_wrap.get("keep_page"):
                 save_round += 1
@@ -1143,23 +1181,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
             if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
                 for entry in pd[1]:
                     if isinstance(entry, dict):
-                        fk = entry.get("k", "")
-                        fv = entry.get("v")
-                        if fk in UNIQUE_KEY_HINTS:
-                            if isinstance(fv, dict) and "zh_CN" in fv:
-                                new_zh = maybe_var(fv.get("zh_CN"), fk)
-                                if new_zh != fv.get("zh_CN"):
-                                    fv = dict(fv)
-                                    fv["zh_CN"] = new_zh
-                                    if "GLang" in fv:
-                                        fv["GLang"] = new_zh
-                                    if "zh_TW" in fv:
-                                        fv["zh_TW"] = new_zh
-                                    entry["v"] = fv
-                            elif isinstance(fv, str):
-                                new_v = maybe_var(fv, fk)
-                                if new_v != fv:
-                                    entry["v"] = new_v
+                        rewrite_dirty_entry(entry)
         # ⭐ 规则5补充：也处理 merge 后的 update_fields 类型
         elif action_wrap.get("type") == "update_fields":
             fields = action_wrap.get("fields")
@@ -2600,7 +2622,7 @@ def build_yaml_case(
             s["id"] = f"{sid}_{_id_seen[sid]}" if _id_seen[sid] > 1 else sid
 
     # 抽 vars
-    _, vars_map, vars_labels = detect_var_placeholders(cleaned)
+    _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
     # _date_replaced 是内部标记，不输出
     vars_map.pop("_date_replaced", None)
 
@@ -3036,7 +3058,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)
-    _, detected_vars, detected_labels = detect_var_placeholders(preview_copy)
+    _, detected_vars, detected_labels = detect_var_placeholders(preview_copy, meta_resolver=meta_resolver)
     detected_vars.pop("_date_replaced", None)
 
     # ⭐ step.description 反查业务名：与左侧"执行步骤"的「...」内文字严格对齐

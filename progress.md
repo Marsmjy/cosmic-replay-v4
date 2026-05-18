@@ -85,3 +85,21 @@
   - `Credentials.username_env/password_env`
   - `LogStore.buffer_size`
   - HAR 字段分类 helper 的测试入口
+
+## 2026-05-18 第五阶段前置增强
+
+- 修复 `基础资料-用人单位zaa` 暴露的文本字段变量遗漏：
+  - `description/描述` 可从保存按钮 `post_data` 中抽取为 `${vars.test_description}`
+  - 同类 `remark/memo/note/comment/changedesc` 字段纳入文本变量识别
+  - 保存、点击、分录新增携带的脏字段统一走变量检测，不再只处理唯一字段
+- 打通实时元数据与变量检测：
+  - `build_yaml_case()` 与 `preview_har()` 将 `meta_resolver` 传入 `detect_var_placeholders()`
+  - `kb_loader.classify_field()` 可在变量分类时读取 `/metadata/getEntityType.do?entityId=` 返回的字段类型
+- 增强 `cosmic-hr-expert` 离线知识库使用：
+  - `kb_loader` 现在扫描 `_shared/_standard_metadata/entity_metadata/*.md`
+  - `hbss_enterprise` 没有独立 scenario 时仍可读取字段标签、类型和数据库字段
+  - `main_form_not_in_kb` 对 `hbss_enterprise` 这类已存在共享实体元数据的表单不再误报
+- 更新项目技能文档：
+  - `cosmic-replay-overview` 补充文本变量、元数据增强链路和定位步骤
+  - `cosmic-replay-troubleshooter` 新增“HAR 导入变量遗漏”修复类型
+- 本地 ignored 用例 `cases/基础资料-用人单位zaa.yaml` 已定点修补 `test_description`，保留原有 `pick_fields` 环境配置。

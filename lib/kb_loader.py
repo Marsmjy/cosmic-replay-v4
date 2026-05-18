@@ -30,6 +30,7 @@ from typing import Any
 
 _SCENE_ROOT: Path | None = None
 _SCENE_INDEX: dict[str, Path] | None = None  # form_id → scenario 目录
+_ENTITY_METADATA_INDEX: dict[str, Path] | None = None  # entity_id → shared entity metadata md
 _SCENE_CACHE: dict[str, dict[str, Any] | None] = {}  # form_id → 场景摘要 or None
 _CLOUD_INDEX: dict[str, str] | None = None  # form_id → cloud 名称
 _LOADED = False
@@ -42,7 +43,7 @@ def _kb_root() -> Path:
 
 def _init_indices() -> None:
     """扫描 scenarios/ 目录构建 form_id → 场景目录的倒排索引。只做一次。"""
-    global _SCENE_ROOT, _SCENE_INDEX, _CLOUD_INDEX, _LOADED
+    global _SCENE_ROOT, _SCENE_INDEX, _ENTITY_METADATA_INDEX, _CLOUD_INDEX, _LOADED
     if _LOADED:
         return
     _LOADED = True
@@ -54,6 +55,13 @@ def _init_indices() -> None:
             if entry.is_dir():
                 _SCENE_INDEX[entry.name] = entry
         _SCENE_ROOT = scenarios_dir
+
+    _ENTITY_METADATA_INDEX = {}
+    entity_dir = _kb_root() / "_shared" / "_standard_metadata" / "entity_metadata"
+    if entity_dir.is_dir():
+        for f in entity_dir.glob("*.md"):
+            if f.is_file():
+                _ENTITY_METADATA_INDEX[f.stem] = f
 
     # cloud 索引（辅助：判断 form_id 属于哪个云）
     _CLOUD_INDEX = {}
@@ -74,7 +82,7 @@ def _init_indices() -> None:
 def all_form_ids() -> set[str]:
     """返回所有知识库覆盖的 form_id（供回流检测用）"""
     _init_indices()
-    return set(_SCENE_INDEX or {})
+    return set(_SCENE_INDEX or {}) | set(_ENTITY_METADATA_INDEX or {})
 
 
 # ---------- 场景信息 ----------
@@ -88,6 +96,10 @@ def _load_scene(form_id: str) -> dict[str, Any] | None:
         return _SCENE_CACHE[form_id]
 
     if not _SCENE_INDEX or form_id not in _SCENE_INDEX:
+        if _ENTITY_METADATA_INDEX and form_id in _ENTITY_METADATA_INDEX:
+            summary = _load_entity_metadata_md(_ENTITY_METADATA_INDEX[form_id], form_id)
+            _SCENE_CACHE[form_id] = summary
+            return summary
         _SCENE_CACHE[form_id] = None
         return None
 
@@ -138,6 +150,70 @@ def _load_scene(form_id: str) -> dict[str, Any] | None:
             pass
 
     _SCENE_CACHE[form_id] = summary
+    return summary
+
+
+def _load_entity_metadata_md(path: Path, form_id: str) -> dict[str, Any] | None:
+    """加载 cosmic-hr-expert 共享实体元数据 markdown。
+
+    这些文件覆盖了大量没有独立 scenario 目录的 HR 标准实体。只解析字段表，
+    作为 HAR 变量识别和字段标签的离线增强来源。
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        return None
+
+    summary: dict[str, Any] = {
+        "name": "",
+        "domain": "",
+        "menu_paths": [],
+        "main_entity": form_id,
+        "physical_table": "",
+        "fields": {},
+    }
+
+    first = next((line.strip() for line in text.splitlines() if line.strip().startswith("# ")), "")
+    if first:
+        title = first.lstrip("#").strip()
+        if "—" in title:
+            _, _, name = title.partition("—")
+            summary["name"] = name.strip()
+
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("**归属**:"):
+            summary["domain"] = s.split(":", 1)[1].strip()
+        elif s.startswith("- **数据库表**:"):
+            summary["physical_table"] = s.split("`", 2)[1] if "`" in s else s.split(":", 1)[1].strip()
+
+    def _required_flag(raw: str) -> int:
+        marker = (raw or "").strip().lower()
+        if marker in {"1", "true", "yes", "y", "是", "必填", "required"}:
+            return 1
+        return 0
+
+    fields: dict[str, dict] = {}
+    for line in text.splitlines():
+        s = line.strip()
+        if not s.startswith("|") or "---" in s or "字段Key" in s:
+            continue
+        cells = [cell.strip() for cell in s.strip("|").split("|")]
+        if len(cells) < 6:
+            continue
+        key, label, ftype, column, required, ref = cells[:6]
+        if not key or key == "字段Key":
+            continue
+        fields[key] = {
+            "label": label,
+            "t": ftype,
+            "req": _required_flag(required),
+            "lk": 0,
+            "ref": "" if ref == "" else ref,
+            "mf": "",
+            "col": "" if column == "—" else column,
+        }
+    summary["fields"] = fields
     return summary
 
 

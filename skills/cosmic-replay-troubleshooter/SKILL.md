@@ -216,7 +216,8 @@ UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname", "billno"
 ├─ 字段值不对?
 │   ├─ 日期字段? → 检查 date pick_fields 后置注入 (类型D)
 │   ├─ 基础资料 ID? → 检查 config/envs/*.yaml 环境配置
-│   └─ 硬编码值? → 检查 UNIQUE_KEY_HINTS 是否覆盖该字段名
+│   ├─ 描述/备注仍是硬编码? → 检查 _TEXT_VARIABLE_KEYS + MetadataResolver + cosmic-hr-expert shared entity_metadata
+│   └─ 硬编码值? → 检查 _classify_key_heuristic 是否覆盖该字段名
 │
 ├─ "数据已存在" / "名称重复"?
 │   └─ 字段名不在 UNIQUE_KEY_HINTS → har_extractor 未变量化 → 手动添加变量
@@ -227,6 +228,42 @@ UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname", "billno"
 └─ 其他业务错误?
     └─ 查 advisor 修复建议 (result.fixes) → 按建议修改 YAML
 ```
+
+### 类型V：HAR 导入变量遗漏
+
+**症状**：导入 YAML 中字段值仍在 `post_data` 或 `fields` 中硬编码，例如：
+
+```yaml
+post_data:
+  - description:
+      fieldKey: description
+  - [{"k": "description", "v": {"zh_CN": "aaaaaa", "zh_TW": "aaaaaa"}, "r": -1}]
+```
+
+**正确结果**：
+
+```yaml
+vars:
+  test_description: aaaaaa
+vars_labels:
+  test_description: 描述
+post_data:
+  - description:
+      fieldKey: description
+  - [{"k": "description", "v": {"zh_CN": "${vars.test_description}", "zh_TW": "${vars.test_description}"}, "r": -1}]
+```
+
+**诊断步骤**：
+1. 检查 `preview.metadata_status`：`online` 表示已尝试调用 `/metadata/getEntityType.do?entityId=...`。
+2. 检查 `lib/har_extractor.py` 的 `detect_var_placeholders(..., meta_resolver=...)` 是否收到 resolver。
+3. 检查字段是否命中 `_TEXT_VARIABLE_KEYS` 或 `_classify_key_heuristic()`。
+4. 检查 `lib/kb_loader.py resolve_scene(form_id)` 是否能命中 `skills/cosmic-hr-expert/knowledge/_shared/_standard_metadata/entity_metadata/<form_id>.md`。
+5. 若元数据命中但仍未变量化，补充对应字段分类测试到 `tests/unit/test_har_extractor.py` 和 HAR 回归测试。
+
+**修复原则**：
+- 自由输入文本字段抽到 `vars`，但不强制随机化。
+- 唯一字段抽到 `vars`，必须带 `${rand:N}` 或 `${timestamp}`。
+- 基础资料/枚举抽到 `pick_fields`，不要混入普通 `vars` 面板。
 
 ### 类型A：pageId 过期/缺失
 

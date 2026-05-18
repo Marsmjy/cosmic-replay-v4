@@ -26,7 +26,7 @@
 | `lib/advisor.py` | ~448 | 修复建议：错误分析 + YAML 补丁生成 |
 | `lib/config.py` | ~346 | 两层配置：webui.yaml + envs/*.yaml |
 | `lib/cosmic_login.py` | ~490 | 苍穹登录：RSA 加密 + 多重兜底 |
-| `lib/kb_loader.py` | ~363 | 知识库懒加载：场景元数据 + 字段分类 |
+| `lib/kb_loader.py` | ~363 | 知识库懒加载：场景元数据 + shared entity_metadata 字段分类 |
 | `lib/field_resolver.py` | - | 基础资料跨环境解析 |
 | `lib/task_manager.py` | - | 任务管理与报告生成 |
 | `lib/db/dao.py` | - | 数据访问对象（SQLite） |
@@ -56,8 +56,10 @@ replay.py (协议层: PageId 状态机) ← diagnoser.py ← advisor.py
 
 ### 2. 变量三档识别（HAR→YAML）
 - A档（必变）：number/code/name → 变量化 `${vars.test_number}`
+- 智能文本变量：description/remark/memo/note → 变量化 `${vars.test_description}` 等，便于导入后编辑
 - B档（基础资料）：org/position → 保留字面量，前端面板可改
 - C档（响应回传）：pkValue/processInstId → 跨 step 引用
+- 增强来源：在线 `MetadataResolver(getEntityType.do)` + `skills/cosmic-hr-expert/knowledge/_shared/_standard_metadata/entity_metadata`
 
 ### 3. SSE 实时推送
 执行过程通过 Server-Sent Events 流式推送：
@@ -86,7 +88,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 | 登录失败 | lib/cosmic_login.py + config/envs/*.yaml |
 | pageId 404/过期 | lib/replay.py 的 page_ids 缓存和 _pending_by_app |
 | 保存报错 | lib/diagnoser.py + lib/advisor.py |
-| HAR 转换变量遗漏 | lib/har_extractor.py 的 UNIQUE_KEY_HINTS |
+| HAR 转换变量遗漏 | lib/har_extractor.py 的 `_classify_key_heuristic` / `_TEXT_VARIABLE_KEYS` / MetadataResolver |
 | 前端不刷新 | lib/webui/static/index.html 的 Alpine.js 响应式 |
 | 用例格式错误 | 参考 cases/新增一条行政组织.yaml |
 | invoke 重试/安全网 | lib/runner.py 的 _RETRYABLE_ERRORS + invoke-retry 循环 |

@@ -184,7 +184,28 @@ run_history -> failure_analysis -> advisor -> repair_plan -> user confirm -> upd
 2. 修复计划 API 烟测通过：可生成 `repair_plan` 并应用安全补丁。
 3. 语法检查通过。
 
-## 第五阶段建议
+## 已完成：第五阶段前置增强
+
+### 1. 元数据驱动变量识别
+
+目标：让新 HAR 导入时先用金蝶实时元数据和 HR 知识库补齐字段语义，再做变量抽取。
+
+已实现：
+
+1. `detect_var_placeholders()` 接收 `meta_resolver`，导入预览和 YAML 生成都能使用 `/metadata/getEntityType.do?entityId=` 的实时字段类型。
+2. `description/remark/memo/note/comment/changedesc` 等文本字段进入智能变量识别。
+3. 保存、点击、分录新增携带的 `post_data` 脏字段统一走变量检测，不再只处理编号/名称等唯一字段。
+4. `kb_loader` 读取 `cosmic-hr-expert/_shared/_standard_metadata/entity_metadata/*.md`，覆盖没有独立 scenario 的 HR 标准实体。
+5. `hbss_enterprise.description` 可解析为标签 `描述`、类型 `MuliLangTextField`，生成 YAML 中输出 `test_description` 和 `vars_labels.test_description=描述`。
+6. `cosmic-replay-overview` 与 `cosmic-replay-troubleshooter` 已补充变量遗漏排查链路。
+
+验证：
+
+1. 目标单测覆盖保存按钮 `description` 变量抽取。
+2. 企业 HAR 生成 YAML 时 `click_9.post_data.description.zh_CN` 变为 `${vars.test_description}`。
+3. 共享实体元数据可解析 `hbss_enterprise`。
+
+## 第六阶段建议
 
 ### 1. 回归样本库
 
