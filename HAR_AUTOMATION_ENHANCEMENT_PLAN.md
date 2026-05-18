@@ -205,17 +205,51 @@ run_history -> failure_analysis -> advisor -> repair_plan -> user confirm -> upd
 2. 企业 HAR 生成 YAML 时 `click_9.post_data.description.zh_CN` 变为 `${vars.test_description}`。
 3. 共享实体元数据可解析 `hbss_enterprise`。
 
-## 第六阶段建议
+## 已完成：第六阶段
 
 ### 1. 回归样本库
 
 目标：保证新规则不影响历史成功 YAML。
 
+已实现：
+
+1. `tests/fixtures/har_regression/manifest.json` 固化当前 8 类 HAR 样本。
+2. `tests/fixtures/har_regression/baselines/*.json` 保存无敏感值结构基线。
+3. `lib/har_regression.py` 统一生成 snapshot、比较 snapshot、输出影响等级。
+4. `scripts/har_regression_report.py compare --fail-on-diff` 可在每次解析规则变更后快速判断影响面。
+5. 新增单测覆盖值脱敏、差异分级和 8 类基线一致性。
+
+影响等级：
+
+1. `none`：无变化，可继续。
+2. `info`：来源或低风险信息变化。
+3. `review`：变量、环境字段、断言等变化，需要人工确认。
+4. `breaking`：主表单、步骤结构、未知组件或阻塞质量项变化，建议先修复或真实环境试跑。
+
+使用：
+
+```bash
+./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff
+./venv/bin/python scripts/har_regression_report.py snapshot --update-baseline
+```
+
+注意：
+
+1. HAR 原文仍不提交仓库。
+2. 只有确认解析规则变化符合预期时，才更新 baseline。
+3. 高风险变更后仍建议执行真实环境写库验证。
+
+## 第七阶段建议
+
+### 1. Web UI 接入影响报告
+
+目标：让非开发使用者导入新 HAR 后也能看到“和基准样本相比可能影响什么”。
+
 建议：
 
-1. 每个新 HAR 类型保留原始 HAR、生成 YAML、成功 run_id、失败样例。
-2. 单测覆盖解析结果，集成测试按需执行 API 闭环。
-3. 建立“规则变更影响面”报告：哪些 HAR 生成 YAML 发生变化、变化是否合理。
+1. 导入预览页展示与最相似基准样本的结构差异。
+2. 批量任务报告增加变量/环境字段/组件风险聚合。
+3. 提供“生成回归样本”按钮，将新 HAR 加入本地样本库并生成脱敏基线。
 
 ## 后续方向
 

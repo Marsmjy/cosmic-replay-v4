@@ -1,0 +1,323 @@
+{
+  "business_type": "HR 基础资料",
+  "case": {
+    "assertion_count": 2,
+    "assertions": [
+      {
+        "step": "click_9",
+        "type": "no_save_failure"
+      },
+      {
+        "step": "click_9",
+        "type": "no_error_actions"
+      }
+    ],
+    "main_form_id": "hbss_enterprise",
+    "name": "regression_06_enterprise",
+    "pick_fields": [
+      {
+        "app_id": "hbss",
+        "auto_resolve": false,
+        "env_sensitive": "medium",
+        "field_key": "createorg",
+        "form_id": "hbss_enterprise",
+        "label": "创建组织",
+        "name": "pick_createorg_id",
+        "resolve_by": "",
+        "resolve_status": "manual",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 6
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 6
+        }
+      },
+      {
+        "app_id": "hbss",
+        "auto_resolve": true,
+        "env_sensitive": "low",
+        "field_key": "lawentity",
+        "form_id": "hbss_enterprise",
+        "label": "关联法律实体",
+        "name": "pick_lawentity_id",
+        "resolve_by": "value_name",
+        "resolve_status": "pending",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 19
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 5
+        }
+      }
+    ],
+    "step_count": 12,
+    "steps": [
+      {
+        "ac": "refresh",
+        "app_id": "hbss",
+        "args_count": 2,
+        "form_id": "hbss_basedatalist",
+        "id": "click_tblrefresh",
+        "key": "toolbarap",
+        "method": "itemClick",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "entryRowClick",
+        "app_id": "hbss",
+        "args_count": 2,
+        "form_id": "hbss_basedatalist",
+        "id": "entryRowClick_2",
+        "key": "billlistap",
+        "method": "entryRowClick",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "entryRowClick",
+        "app_id": "hbss",
+        "args_count": 2,
+        "form_id": "hbss_basedatalist",
+        "id": "entryRowClick_3",
+        "key": "billlistap",
+        "method": "hyperLinkClick",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "loadData",
+        "app_id": "hbss",
+        "args_count": 0,
+        "form_id": "hbss_enterprise",
+        "id": "load_enterprise",
+        "key": "",
+        "method": "loadData",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "selectTab",
+        "app_id": "hbss",
+        "args_count": 1,
+        "form_id": "hbss_appgridhome",
+        "id": "selectTab_5",
+        "key": "_submaintab_",
+        "method": "selectTab",
+        "optional": true,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "new",
+        "app_id": "hbss",
+        "args_count": 2,
+        "form_id": "hbss_enterprise",
+        "id": "click_tblnew",
+        "key": "toolbarap",
+        "method": "itemClick",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "ac": "loadData",
+        "app_id": "hbss",
+        "args_count": 0,
+        "form_id": "hbss_enterprise",
+        "id": "load_enterprise_2",
+        "key": "",
+        "method": "loadData",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
+        "app_id": "hbss",
+        "fields": [
+          {
+            "field_key": "createorg",
+            "value_shape": {
+              "kind": "literal",
+              "length": 6
+            }
+          }
+        ],
+        "form_id": "hbss_enterprise",
+        "id": "fill_createorg_ctx",
+        "optional": false,
+        "type": "update_fields"
+      },
+      {
+        "app_id": "hbss",
+        "fields": [
+          {
+            "field_key": "name",
+            "value_shape": {
+              "kind": "multilang",
+              "locales": [
+                "zh_CN",
+                "zh_TW"
+              ],
+              "zh_CN": {
+                "kind": "template",
+                "tokens": [
+                  "${vars.*}"
+                ]
+              }
+            }
+          },
+          {
+            "field_key": "number",
+            "value_shape": {
+              "kind": "template",
+              "tokens": [
+                "${vars.*}"
+              ]
+            }
+          }
+        ],
+        "form_id": "hbss_enterprise",
+        "id": "fill_number",
+        "optional": false,
+        "type": "update_fields"
+      },
+      {
+        "app_id": "hbss",
+        "field_key": "lawentity",
+        "form_id": "hbss_enterprise",
+        "id": "pick_lawentity",
+        "optional": false,
+        "type": "pick_basedata",
+        "value_id_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "ac": "click",
+        "app_id": "hbss",
+        "args_count": 0,
+        "form_id": "hbss_enterprise",
+        "id": "click_9",
+        "key": "btnsave",
+        "method": "click",
+        "optional": false,
+        "post_data_fields": [
+          {
+            "field_key": "description",
+            "value_shape": {
+              "kind": "multilang",
+              "locales": [
+                "zh_CN",
+                "zh_TW"
+              ],
+              "zh_CN": {
+                "kind": "template",
+                "tokens": [
+                  "${vars.*}"
+                ]
+              }
+            }
+          }
+        ],
+        "type": "invoke"
+      },
+      {
+        "ac": "commonSearch",
+        "app_id": "hbss",
+        "args_count": 3,
+        "form_id": "hbss_enterprise",
+        "id": "commonSearch_11",
+        "key": "filtercontainerap",
+        "method": "commonSearch",
+        "optional": true,
+        "post_data_fields": [],
+        "type": "invoke"
+      }
+    ],
+    "target_forms": [],
+    "vars": [
+      {
+        "label": "描述",
+        "name": "test_description",
+        "value_shape": {
+          "kind": "literal",
+          "length": 6
+        }
+      },
+      {
+        "label": "名称",
+        "name": "test_name",
+        "value_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "label": "编号",
+        "name": "test_number",
+        "value_shape": {
+          "kind": "template",
+          "tokens": [
+            "${rand:*}"
+          ]
+        }
+      }
+    ]
+  },
+  "preview": {
+    "components": {
+      "coverage_percent": 88,
+      "handler_ids": [
+        "list_navigation",
+        "form_load",
+        "field_update",
+        "generic_safe_invoke",
+        "portal_navigation",
+        "create_record",
+        "basedata_selector",
+        "lookup_query"
+      ],
+      "partial_steps": 3,
+      "risk_level": "medium",
+      "supported_steps": 10,
+      "total_steps": 13,
+      "unsupported_steps": 0
+    },
+    "detected_vars": [
+      "test_description",
+      "test_name",
+      "test_number"
+    ],
+    "main_form_id": "hbss_enterprise",
+    "pick_field_keys": [
+      "createorg",
+      "lawentity"
+    ],
+    "quality": {
+      "blocking": false,
+      "grade": "A",
+      "issue_codes": [],
+      "score": 100
+    }
+  },
+  "sample_id": "06_enterprise",
+  "schema_version": 1,
+  "source_har": "preview_1778835335_基础资料-用人单位.har",
+  "source_sha256": "80b61e12486c83f9549d32b33ae9a14c1c4483d842aeca75064c7f12e7fe15d8",
+  "summary_hash": "b1773e7bd3f2a737aabf3c655da4ad334c3f5a4d158b2b09f5c0b01e1cf4a45e",
+  "title": "基础资料-用人单位"
+}

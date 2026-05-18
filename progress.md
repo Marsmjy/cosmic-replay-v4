@@ -103,3 +103,28 @@
   - `cosmic-replay-overview` 补充文本变量、元数据增强链路和定位步骤
   - `cosmic-replay-troubleshooter` 新增“HAR 导入变量遗漏”修复类型
 - 本地 ignored 用例 `cases/基础资料-用人单位zaa.yaml` 已定点修补 `test_description`，保留原有 `pick_fields` 环境配置。
+
+## 2026-05-18 第六阶段
+
+- 完成“回归样本库 / 影响报告”第一版：
+  - 新增 `lib/har_regression.py`
+  - 新增 `scripts/har_regression_report.py`
+  - 新增 `tests/fixtures/har_regression/manifest.json`
+  - 新增 8 个结构基线 `tests/fixtures/har_regression/baselines/*.json`
+- 基线设计原则：
+  - HAR 原文继续不入库，避免敏感信息泄露
+  - 不保存 YAML 业务实值，只保存变量名、字段 key、value shape、步骤签名、质量评分和组件覆盖率
+  - 变更影响分为 `none / info / review / breaking`
+  - `main_form_id`、步骤结构、未知组件、阻塞质量项按高风险处理
+- 新增测试覆盖：
+  - 摘要不会泄露变量值、基础资料 value_id/value_name、字段填写值
+  - 主表单变化识别为 breaking
+  - 新增变量识别为 review
+  - 本地存在 8 个 ignored HAR 时，当前解析结果必须与基线一致
+  - 企业样本必须持续保留 `test_description`
+- 验证：
+  - `./venv/bin/python scripts/har_regression_report.py snapshot --update-baseline`
+  - `./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff`：8/8 OK，changed=0
+  - `pytest -q tests/unit/test_har_regression.py`：5 passed
+  - `pytest -q tests/unit tests/test_core.py`：191 passed
+  - `python -m py_compile lib/har_regression.py scripts/har_regression_report.py ...`：通过

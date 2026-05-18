@@ -17,6 +17,7 @@
 | 7 | completed | 第三阶段：建立组件处理器注册表、组件覆盖率雷达和未知组件风险提示 |
 | 8 | completed | 第四阶段：建立自动修复计划，支持用户确认后一键应用安全 YAML 补丁 |
 | 9 | completed | 第五阶段前置增强：文本字段变量识别、实时元数据参与变量解析、cosmic-hr-expert 共享实体元数据兜底 |
+| 10 | completed | 第六阶段：建立 8 类 HAR 回归样本库和规则变更影响报告门禁 |
 
 ## Constraints
 
@@ -59,6 +60,12 @@
   - `kb_loader` 已读取 `skills/cosmic-hr-expert/knowledge/_shared/_standard_metadata/entity_metadata/*.md`
   - `hbss_enterprise` 这类无独立 scenario 的实体也能获得字段标签/类型，`描述` 字段可稳定识别为 `test_description`
   - `cosmic-replay-overview` 与 `cosmic-replay-troubleshooter` 已补充变量遗漏定位和修复指引
+- 第六阶段已完成回归样本库：
+  - `tests/fixtures/har_regression/manifest.json` 固化 8 类 HAR 样本清单
+  - `tests/fixtures/har_regression/baselines/*.json` 保存无敏感值结构基线
+  - `lib/har_regression.py` 可生成基线、对比当前解析结果、输出影响等级
+  - `scripts/har_regression_report.py compare --fail-on-diff` 可作为解析规则变更门禁
+  - 单测覆盖值脱敏、差异分级、8 类样本基线一致性和企业 `test_description` 变量保留
 
 ## Errors Encountered
 

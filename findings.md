@@ -113,3 +113,19 @@
   - 共享实体元数据 `cosmic-hr-expert/_shared/_standard_metadata/entity_metadata`：覆盖无 scenario 的标准 HR 实体。
   - 静态全局字段标签和 key 启发式：最后兜底。
 - `cosmic-replay-troubleshooter` 应覆盖变量遗漏问题，因为这类问题往往不是立即执行报错，而是二次执行数据重复、固定描述污染或跨环境执行失败；需要在导入预览阶段就能定位。
+
+## Stage 6 Findings
+
+- 直接把完整生成 YAML 当作回归基线不合适：
+  - YAML 中可能包含录制环境的基础资料内码、组织名、测试人名等敏感或环境相关值。
+  - 完整 YAML diff 噪声较大，不利于快速判断“解析规则变化是否危险”。
+- 更稳的基线格式是“结构摘要”：
+  - 变量只记录变量名、标签和值形态，不记录实际模板前缀或字面量。
+  - 基础资料只记录字段 key、标签、环境敏感级别、解析状态和值形态，不记录真实 `value_id/value_name`。
+  - 步骤只记录 id/type/form/ac/method/key、optional、字段 key 和值形态。
+  - preview 只记录质量评分、风险 code、组件覆盖率和 handler 列表。
+- 影响分级比简单 diff 更有用：
+  - `breaking`：主表单、步骤结构、阻塞质量项、未知组件等可能影响执行的变化。
+  - `review`：变量、环境字段、断言等需要人工确认但不一定失败的变化。
+  - `info`：HAR 源哈希等来源信息变化。
+- 当前 8 个基准 HAR 已形成第一版基线，`compare --fail-on-diff` 可作为后续解析规则变更前的轻量门禁；真实环境写库试跑仍作为高风险变更后的二级验证。
