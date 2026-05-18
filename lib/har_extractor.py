@@ -84,6 +84,72 @@ _CORE_TOOLBAR_KEYS = {"toolbarap", "tbmain", "toolbar"}
 # 这类 save 按钮的 ac 是 click 而非 saveandeffect，但属于业务核心操作
 _SAVE_BUTTON_KEYS = {"btnsave", "btnsaveandnew", "btnsaveaddnew", "btnsavenew"}
 
+# ⭐ 无门户导航时，用于连接“列表/树 → 卡片/表单”的上下文步骤。
+# 这类步骤如果被裁掉，新增场景可能丢失默认上下文（如 createorg / tree focus）。
+_CONTEXT_BRIDGE_ACS = {
+    "refresh",
+    "entryRowClick",
+    "hyperLinkClick",
+    "loadData",
+    "selectTab",
+    "postExpandNodes",
+    "commonSearch",
+}
+
+# ⭐ 多语言文本字段的语言 key。值即使看起来像数字，也必须按字符串输出。
+_MULTILANG_KEYS = {"zh_CN", "zh_TW", "en_US", "GLang"}
+
+# ⭐ 离线上下文补偿提示：
+# 某些表单的关键字段并不会在 HAR 中显式 setItem，而是由新增上下文隐式带出。
+# 当 API 回放缺失这层客户端上下文时，需要按 form_id 补偿生成步骤。
+_CONTEXT_FIELD_HINTS = {
+    "hbpm_positionhr": {
+        "adminorg": "pick_basedata",
+    },
+    "hbss_enterprise": {
+        "createorg": "update_fields",
+    },
+}
+
+# ⭐ 非业务主链路导航表单：
+# apphome/快捷卡片/后台任务侧栏用于浏览器端布局和入口导航，环境缺少对应 AppIdName
+# 时不应阻断已经能直接打开的业务主表单（如 haos_adminorgdetail、hbpm_positionhr）。
+_NAVIGATION_FORM_IDS = {
+    "bos_card_quicklaunch",
+    "gbs_bgtasklistsidebar",
+    "gbs_bgtaskdetailsidebar",
+    "hom_wbcalendar",
+    "hom_wbwaitin",
+    "hom_wbwarning",
+}
+
+_AUTO_RESOLVE_FIELD_HINTS = {
+    "adminorg",
+    "adminorgtype",
+    "ba_e_enterprise",
+    "ba_po_adminorg",
+    "ba_po_position",
+    "changedesc",
+    "changereason",
+    "changescene",
+    "city",
+    "country",
+    "countryregion",
+    "enterprise",
+    "job",
+    "jobgradescm",
+    "joblevelscm",
+    "lawentity",
+    "org",
+    "otclassify",
+    "parentorg",
+    "position",
+    "positiontype",
+    "province",
+    "structproject",
+    "workplace",
+}
+
 
 # 值类型识别（从 HAR 里的值反推是什么形式）
 _RX_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -786,7 +852,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
 
     # 字段 key 名暗示"必然唯一"——一定得抽 vars，否则跑第二次必挂"已存在"
     UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname",
-                        "billno", "orderno"}
+                        "billno", "orderno", "email", "peremail"}
     NUMBER_KEYS = {"number", "code", "billno", "orderno"}
     NAME_KEYS = {"name", "simplename", "fullname"}
     # ⭐ 排除列表：后缀命中 NAME_KEYS 但不是实际名称字段的 key
@@ -795,6 +861,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     HR_UNIQUE_SUFFIXES = {"empnumber", "certificatenumber", "phone"}
     HR_NAME_FIELDS = {"ba_em_name", "em_name", "staffname"}
     HR_PHONE_FIELDS = {"phone", "tel", "mobile", "cellphone", "contactphone"}
+    HR_EMAIL_FIELDS = {"email", "peremail", "workemail", "personalemail"}
 
     # ── 连续新增计数器 ──
     save_round = 1
@@ -838,12 +905,16 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 return "number"
             if kl in NAME_KEYS:
                 return "name"
+            if kl in HR_EMAIL_FIELDS:
+                return "email"
             return "unique"
         # HR 特定字段精确匹配
         if kl in HR_NAME_FIELDS:
             return "name"
         if kl in HR_PHONE_FIELDS:
             return "phone"
+        if kl in HR_EMAIL_FIELDS:
+            return "email"
         # 后缀匹配：empnumber → number，certificatenumber → cert
         for suffix in HR_UNIQUE_SUFFIXES:
             if kl.endswith(suffix):
@@ -861,6 +932,8 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
         # ⭐ 排除非名称类字段（如 ename 属性名称不变量化）
         if kl in _CLASSIFY_KEY_EXCLUSIONS:
             return None
+        if "email" in kl:
+            return "email"
         for hint in NAME_KEYS:
             if kl.endswith(hint) and len(kl) > len(hint):
                 return "name"
@@ -931,6 +1004,17 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
                 vname = "test_cert_no"
                 if vname not in vars_map:
                     vars_map[vname] = f"CERT${{rand:10}}"
+                seen_values[val] = vname
+                return f"${{vars.{vname}}}"
+
+            elif key_class == "email":
+                vname = "test_email"
+                if vname not in vars_map:
+                    local, at, domain = val.partition("@")
+                    safe_local = re.sub(r"[^A-Za-z0-9._-]", "", local) or "qa"
+                    safe_local = safe_local[:12]
+                    safe_domain = domain or "example.com"
+                    vars_map[vname] = f"{safe_local}${{rand:6}}@{safe_domain}"
                 seen_values[val] = vname
                 return f"${{vars.{vname}}}"
 
@@ -1681,6 +1765,359 @@ def infer_main_form(steps: list[dict]) -> str:
     return max(freq, key=freq.get) if freq else ""
 
 
+def _find_context_bridge_start(steps: list[dict], main_form: str) -> int | None:
+    """在无 portal/menu 导航时，保留 main_form 前的列表/树上下文桥接步骤。
+
+    典型模式：
+    - basedatalist refresh -> entryRowClick -> hyperLinkClick -> main_form loadData
+    - apphome treeMenuClick -> main_form loadData
+
+    如果这里直接裁到 main_form，会丢失“从哪个列表/树节点进入”的上下文，导致
+    新增时默认组织、树焦点等服务端隐式上下文缺失。
+    """
+    if not main_form:
+        return None
+
+    first_main_idx = next(
+        (i for i, s in enumerate(steps) if s.get("form_id") == main_form),
+        None,
+    )
+    if first_main_idx is None:
+        return None
+    if first_main_idx == 0:
+        return 0
+
+    start = first_main_idx
+    for j in range(first_main_idx - 1, -1, -1):
+        prev = steps[j]
+        prev_type = prev.get("type", "")
+        prev_form = prev.get("form_id", "") or ""
+        prev_ac = prev.get("ac", "") or ""
+
+        if prev_form.startswith(("home_page", "bos_portal", "portal_", "gpt_")):
+            break
+
+        if prev_type == "open_form":
+            start = j
+            continue
+        if prev_type == "invoke" and prev_ac in _CONTEXT_BRIDGE_ACS:
+            start = j
+            continue
+        break
+
+    return start
+
+
+def _has_context_bridge_into_main_form(steps: list[dict], main_form: str) -> bool:
+    """判断 main_form 是否由前一步列表/树导航自然带出。
+
+    若是这种场景，再静态插入 open_form(main_form) 会拿到脱离上下文的新 pageId，
+    反而破坏原始 HAR 的进入链路。
+    """
+    if not main_form:
+        return False
+
+    for i, step in enumerate(steps):
+        if step.get("form_id") != main_form:
+            continue
+        if i == 0:
+            return False
+        prev = steps[i - 1]
+        if prev.get("form_id") == main_form:
+            return False
+        if prev.get("type") != "invoke":
+            return False
+
+        prev_ac = prev.get("ac", "")
+        prev_method = prev.get("method", "")
+        if prev_ac == "entryRowClick" and prev_method in (
+            "hyperLinkClick",
+            "entryRowClick",
+            "entryRowDoubleClick",
+        ):
+            return True
+        return False
+
+    return False
+
+
+def _extract_treeview_focus(step: dict) -> tuple[str, str]:
+    """从 addnew/new 请求中提取树焦点上下文。"""
+    post_data = step.get("post_data")
+    containers = post_data if isinstance(post_data, list) else [post_data]
+    for item in containers:
+        if not isinstance(item, dict):
+            continue
+        treeview = item.get("treeview")
+        if not isinstance(treeview, dict):
+            continue
+        focus = treeview.get("focus")
+        if not isinstance(focus, dict):
+            continue
+        value_id = str(focus.get("id") or "").strip()
+        value_name = str(focus.get("text") or focus.get("name") or "").strip()
+        if value_id or value_name:
+            return value_id, value_name
+    return "", ""
+
+
+def _extract_common_search_defaults(steps: list[dict], form_id: str) -> dict[str, str]:
+    """从 commonSearch 参数中提取环境上下文默认值（如 useorg.id=100000）。"""
+    found: dict[str, str] = {}
+    for step in steps:
+        if step.get("form_id") != form_id or step.get("ac") != "commonSearch":
+            continue
+        args = step.get("args") or []
+        if not isinstance(args, list):
+            continue
+        for group in args:
+            if not isinstance(group, list):
+                continue
+            for cond in group:
+                if not isinstance(cond, dict):
+                    continue
+                fields = cond.get("FieldName") or []
+                values = cond.get("Value") or []
+                if not isinstance(fields, list) or not isinstance(values, list):
+                    continue
+                non_empty = next((str(v).strip() for v in values if str(v).strip()), "")
+                if not non_empty:
+                    continue
+                for fname in fields:
+                    fname = str(fname or "").strip().lower()
+                    if fname and fname not in found:
+                        found[fname] = non_empty
+    return found
+
+
+def _step_sets_field(step: dict, field_key: str) -> bool:
+    """判断 step 是否已经显式设置过目标字段。"""
+    field_key = field_key.lower()
+    if step.get("type") == "pick_basedata":
+        return str(step.get("field_key") or "").lower() == field_key
+    if step.get("type") == "update_fields":
+        fields = step.get("fields") or {}
+        if isinstance(fields, dict):
+            return any(str(k).lower() == field_key for k in fields)
+    return False
+
+
+def _find_context_insertion_pos(steps: list[dict], main_form: str, new_idx: int) -> int:
+    """优先插到新增后的首个 loadData 之后，保证新页面已初始化。"""
+    for idx in range(new_idx + 1, len(steps)):
+        step = steps[idx]
+        if (step.get("form_id") == main_form and step.get("type") == "invoke"
+                and step.get("ac") == "loadData"):
+            return idx + 1
+    return new_idx + 1
+
+
+def _mark_context_bridge_steps_required(steps: list[dict], main_form: str) -> None:
+    """列表/树跳卡片前的桥接步骤不能是 optional。"""
+    if not main_form:
+        return
+
+    first_main_idx = next(
+        (i for i, s in enumerate(steps) if s.get("form_id") == main_form),
+        None,
+    )
+    if first_main_idx is None or first_main_idx <= 0:
+        return
+
+    for idx in range(first_main_idx):
+        step = steps[idx]
+        if step.get("type") != "invoke":
+            continue
+        if step.get("ac") not in {"refresh", "entryRowClick"}:
+            continue
+        step.pop("optional", None)
+
+
+def _is_navigation_form(form_id: str, main_form: str) -> bool:
+    """判断表单是否属于非主业务链路的导航/装饰表单。"""
+    if not form_id or form_id == main_form:
+        return False
+    if form_id.endswith("_apphome"):
+        return True
+    if form_id.startswith(("bos_card_", "gbs_bgtask")):
+        return True
+    return form_id in _NAVIGATION_FORM_IDS
+
+
+def _mark_navigation_steps_optional(steps: list[dict], main_form: str) -> None:
+    """将非主表单的导航/装饰步骤降级为 optional。
+
+    这些步骤可能依赖浏览器端首页应用服务（如 homs_apphome），在 API 回放中缺失时
+    不应阻断后续已具备独立入口的业务主表单执行；主表单自身永远不在此处降级。
+    """
+    if not main_form:
+        return
+    for step in steps:
+        if _is_navigation_form(str(step.get("form_id") or ""), main_form):
+            step["optional"] = True
+
+
+def _pick_field_auto_resolve_meta(
+    field_key: str,
+    value_id: Any,
+    value_name: Any,
+    env_sensitive: str,
+    field_type: str | None = None,
+) -> dict[str, Any]:
+    """生成环境字段自动解析元信息。"""
+    field_key_l = str(field_key or "").lower()
+    value_id_s = str(value_id or "").strip()
+    value_name_s = str(value_name or "").strip()
+    field_type_s = str(field_type or "")
+
+    is_basedata = field_type_s in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp")
+    looks_env = (
+        env_sensitive in ("high", "medium")
+        or field_key_l in _AUTO_RESOLVE_FIELD_HINTS
+        or field_key_l.endswith(("org", "position", "entity", "city", "country"))
+    )
+    can_resolve = bool(
+        value_name_s
+        and value_id_s
+        and value_name_s != value_id_s
+        and not value_id_s.startswith("${")
+        and not value_name_s.startswith("${")
+        and (is_basedata or looks_env)
+    )
+
+    return {
+        "auto_resolve": can_resolve,
+        "resolve_by": "value_name" if can_resolve else "",
+        "resolve_status": "pending" if can_resolve else "manual",
+    }
+
+
+def _infer_context_field_modes(main_form: str, meta_resolver=None) -> dict[str, str]:
+    """推断需要由上下文补偿的字段及其写入方式。"""
+    modes: dict[str, str] = {}
+
+    hinted = _CONTEXT_FIELD_HINTS.get(main_form, {})
+    for field_key, mode in hinted.items():
+        modes[str(field_key).lower()] = mode
+
+    if not meta_resolver or not main_form:
+        return modes
+
+    fields = meta_resolver.get_entity_fields(main_form) or {}
+    for field_key, meta in fields.items():
+        key_lower = str(field_key or "").lower()
+        if not key_lower or meta is None:
+            continue
+        field_type = str(getattr(meta, "type", "") or "")
+        required = bool(getattr(meta, "required", False))
+        if field_type == "MainOrgProp" or key_lower == "createorg":
+            modes.setdefault(key_lower, "update_fields")
+            continue
+        if (required and (
+                key_lower in {"adminorg", "org", "useorg"}
+                or "AdminOrgFieldProp" in field_type
+        )):
+            modes.setdefault(key_lower, "pick_basedata")
+    return modes
+
+
+def _inject_context_field_steps(
+    steps: list[dict],
+    main_form: str,
+    meta_resolver=None,
+) -> list[dict]:
+    """用 HAR 中可见的上下文线索补全隐式字段。
+
+    目标覆盖两类典型缺口：
+    1. treeview.focus 隐式决定的组织字段（如 adminorg）
+    2. MainOrgProp 由客户端自动带出的主组织字段（如 createorg）
+    """
+    if not steps or not main_form:
+        return steps
+
+    new_idx = next(
+        (i for i, s in enumerate(steps)
+         if s.get("form_id") == main_form
+         and s.get("type") == "invoke"
+         and s.get("ac") in ("new", "addnew")),
+        None,
+    )
+    if new_idx is None:
+        return steps
+
+    new_step = steps[new_idx]
+    tree_focus_id, tree_focus_name = _extract_treeview_focus(new_step)
+    search_defaults = _extract_common_search_defaults(steps, main_form)
+    field_modes = _infer_context_field_modes(main_form, meta_resolver=meta_resolver)
+    if not field_modes:
+        return steps
+
+    existing_fields = {
+        str(field_key).lower()
+        for step in steps
+        for field_key in (
+            [step.get("field_key")]
+            if step.get("type") == "pick_basedata"
+            else list((step.get("fields") or {}).keys()) if step.get("type") == "update_fields"
+            else []
+        )
+        if field_key
+    }
+
+    insertion_pos = _find_context_insertion_pos(steps, main_form, new_idx)
+    injected: list[dict] = []
+    app_id = str(new_step.get("app_id") or "bos")
+
+    for field_key, mode in field_modes.items():
+        if field_key in existing_fields:
+            continue
+
+        if mode == "pick_basedata":
+            value_id = tree_focus_id or search_defaults.get(f"{field_key}.id", "")
+            value_name = tree_focus_name
+            if not value_id:
+                continue
+            injected.append({
+                "type": "pick_basedata",
+                "id": f"pick_{_sanitize(field_key) or field_key}_ctx",
+                "form_id": main_form,
+                "app_id": app_id,
+                "field_key": field_key,
+                "value_id": str(value_id),
+                "value_name": value_name,
+                "_tier": "core",
+                "_is_auto_inserted": True,
+            })
+            continue
+
+        if mode == "update_fields":
+            candidate_keys = [f"{field_key}.id"]
+            if field_key == "createorg":
+                candidate_keys.extend(["useorg.id", "org.id", "adminorg.id"])
+            value_id = next((search_defaults.get(k, "") for k in candidate_keys if search_defaults.get(k, "")), "")
+            if not value_id:
+                value_id = tree_focus_id
+            if not value_id:
+                continue
+            injected.append({
+                "type": "update_fields",
+                "id": f"fill_{_sanitize(field_key) or field_key}_ctx",
+                "form_id": main_form,
+                "app_id": app_id,
+                "fields": {field_key: str(value_id)},
+                "_tier": "core",
+                "_is_auto_inserted": True,
+            })
+
+    if not injected:
+        return steps
+
+    out = list(steps)
+    for offset, step in enumerate(injected):
+        out.insert(insertion_pos + offset, step)
+    return out
+
+
 # ---------- YAML 输出 ----------
 
 def to_yaml(data: Any, indent: int = 0) -> str:
@@ -1695,7 +2132,7 @@ def to_yaml(data: Any, indent: int = 0) -> str:
                 lines.append(f"{pad}{ks}:")
                 lines.append(to_yaml(v, indent + 1))
             else:
-                lines.append(f"{pad}{ks}: {_yaml_scalar(v)}")
+                lines.append(f"{pad}{ks}: {_yaml_scalar(v, key=k)}")
         return "\n".join(lines)
     if isinstance(data, list):
         if not data:
@@ -1725,7 +2162,7 @@ def _yaml_key(k: Any) -> str:
     return ks
 
 
-def _yaml_scalar(v: Any) -> str:
+def _yaml_scalar(v: Any, key: Any | None = None) -> str:
     if v is None:
         return "null"
     if isinstance(v, bool):
@@ -1738,6 +2175,10 @@ def _yaml_scalar(v: Any) -> str:
     # 以 ${ 开头的占位符不加引号
     if s.startswith("${") and s.endswith("}"):
         return s
+    # 多语言文本里的纯数字必须保持字符串，否则 YAML 反序列化会变成 int，
+    # 运行时再写回文本字段时会触发 ClassCastException。
+    if key in _MULTILANG_KEYS and s and _RX_INTEGER.match(s):
+        return json.dumps(s, ensure_ascii=False)
     # ⭐ 规则1：纯数字字符串必须加引号，否则 YAML 解析器会转成整数
     # Java 服务端通过 beanutils 反射调用，需要 String 类型匹配方法签名
     if s and _RX_INTEGER.match(s) and len(s) >= 6:
@@ -1936,11 +2377,6 @@ def build_yaml_case(
         if s.get("ac") in ("menuItemClick", "appItemClick"):
             cut_idx = i
             break
-    if cut_idx is None and main_form:
-        for i, s in enumerate(raw_steps):
-            if s.get("form_id") == main_form:
-                cut_idx = i
-                break
     if cut_idx is not None and cut_idx > 0:
         # 回溯：如果 cut_idx 前面有 bos_portal_* 的 open_form，也保留
         portal_start = cut_idx
@@ -1952,6 +2388,14 @@ def build_yaml_case(
                 break
         trimmed_skipped = portal_start
         raw_steps = raw_steps[portal_start:]
+    elif cut_idx is None:
+        # 没有 menu/app 入口时，不要粗暴裁到 main_form。
+        # 要保留 main_form 前的列表/树上下文桥接步骤，否则“列表跳卡片后新增”类 HAR
+        # 会丢失服务端隐式上下文，导致必填字段无法自动带出。
+        bridge_start = _find_context_bridge_start(raw_steps, main_form)
+        if bridge_start is not None and bridge_start > 0:
+            trimmed_skipped = bridge_start
+            raw_steps = raw_steps[bridge_start:]
 
     # 过滤 noise 类步骤
     noise_count = sum(1 for s in raw_steps if s.get("_tier") == "noise")
@@ -1983,6 +2427,9 @@ def build_yaml_case(
         if s.get("optional") and s.get("ac") in ("afterConfirm", "doConfirm", "save", "submit"):
             s.pop("optional", None)
 
+    # 列表/树进入卡片的桥接步骤一旦失败，后面的默认组织/上下文都会失真，不能 optional。
+    _mark_context_bridge_steps_required(cleaned, main_form)
+
     # ⭐ 规则14 已禁用 — 静态插入 loadData 缺乏运行时上下文，可能干扰 pageId 状态
     # 等效保护由 runner.py 的安全网重试（invoke_retry）和 pageId 预验证（_validate_pageid_before_invoke）提供
     # cleaned = insert_loaddata_on_form_change(cleaned)
@@ -2009,6 +2456,7 @@ def build_yaml_case(
 
     # 推断主表单（在 release 清理 + 门户截断后重新推断，结果更准确）
     main_form = infer_main_form(cleaned)
+    _mark_context_bridge_steps_required(cleaned, main_form)
 
     # ⭐ 规则13：menuItemClick → 自动绑定 target_form + target_forms + 移除冗余 open_form
     # 苍穹菜单导航：menuItemClick 创建 L2 pageId ({menuId}root{baseId})，
@@ -2094,7 +2542,8 @@ def build_yaml_case(
     # ⭐ 规则13 例外：如果已有 menuItemClick + target_form 绑定了主表单的 L2 pageId，
     #   不再注入 open_form（open_form 的 getConfig 会获取错误的独立 pageId）
     _has_menu_target = any(s.get("target_form") == main_form for s in cleaned)
-    if main_form and cleaned and not _has_menu_target:
+    _has_context_bridge = _has_context_bridge_into_main_form(cleaned, main_form)
+    if main_form and cleaned and not _has_menu_target and not _has_context_bridge:
         has_open = any(s.get("type") == "open_form" and s.get("form_id") == main_form
                        for s in cleaned)
         if not has_open:
@@ -2119,6 +2568,14 @@ def build_yaml_case(
                         insert_pos = idx + 1
                         break
             cleaned.insert(insert_pos, inject_step)
+
+    # 用 HAR 中已有的上下文线索补足隐式字段，避免浏览器自动带出的值在 API 回放中丢失。
+    cleaned = _inject_context_field_steps(
+        cleaned,
+        main_form,
+        meta_resolver=meta_resolver,
+    )
+    _mark_navigation_steps_optional(cleaned, main_form)
 
     # ⭐ step ID 去重：同名 ID 加数字后缀
     _id_counts: dict[str, int] = {}
@@ -2152,6 +2609,8 @@ def build_yaml_case(
         "position": "职位",
         "org": "组织",
         "dept": "部门",
+        "createorg": "创建组织",
+        "useorg": "使用组织",
     }
     _PF_ENUM_FIELDS = {
         "gender": "性别",
@@ -2195,6 +2654,7 @@ def build_yaml_case(
             label = _resolve_field_label(field_key, entity_id=s.get("form_id") or main_form, meta_resolver=meta_resolver)
         # ⭐ 实时元数据增强 env_sensitive 分级
         step_form_id = s.get("form_id") or main_form
+        field_type = None
         if meta_resolver and step_form_id:
             field_type = meta_resolver.get_field_type(step_form_id, field_key)
             if field_type:
@@ -2203,16 +2663,46 @@ def build_yaml_case(
                 elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
                     env_sensitive = "low"
         if step_id not in pick_fields_map:
+            auto_meta = _pick_field_auto_resolve_meta(
+                field_key, raw_value_id, s.get("value_name", "") or "", env_sensitive, field_type
+            )
             pick_fields_map[step_id] = OrderedDict([
                 ("value_id", str(raw_value_id)),
                 ("value_name", s.get("value_name", "") or ""),
                 ("label", label),
                 ("env_sensitive", env_sensitive),
                 ("field_key", field_key),
+                ("form_id", step_form_id),
+                ("app_id", s.get("app_id", "")),
+                ("auto_resolve", auto_meta["auto_resolve"]),
+                ("resolve_by", auto_meta["resolve_by"]),
+                ("resolve_status", auto_meta["resolve_status"]),
             ])
 
-    # --- 从 update_fields 步骤中提取日期类环境敏感字段 ---
-    # 与 preview_har() 保持一致：update_fields 中的日期字段也应出现在 pick_fields 中
+    # --- 从 addnew/new 步骤中提取 treeview.focus（环境上下文组织） ---
+    for s in cleaned:
+        if s.get("type") != "invoke" or s.get("ac") not in ("new", "addnew"):
+            continue
+        focus_id, focus_name = _extract_treeview_focus(s)
+        if not focus_id and not focus_name:
+            continue
+        step_id = f"env_{s.get('id', 'addnew')}_treeview_focus"
+        if step_id in pick_fields_map:
+            continue
+        pick_fields_map[step_id] = OrderedDict([
+            ("value_id", str(focus_id)),
+            ("value_name", focus_name),
+            ("label", "新增上下文组织"),
+            ("env_sensitive", "high"),
+            ("field_key", "treeview.focus.id"),
+            ("form_id", s.get("form_id", "")),
+            ("app_id", s.get("app_id", "")),
+            ("auto_resolve", False),
+            ("resolve_by", ""),
+            ("resolve_status", "manual"),
+        ])
+
+    # --- 从 update_fields 步骤中提取环境相关字段和日期字段 ---
     for s in cleaned:
         if s.get("type") != "update_fields":
             continue
@@ -2222,6 +2712,31 @@ def build_yaml_case(
         step_form_id = s.get("form_id") or main_form
         for fk in fields:
             fk_lower = fk.lower()
+            if fk_lower in _PF_ENV_RELATED_FIELDS:
+                step_id = f"pick_{fk_lower}_id"
+                if step_id in pick_fields_map:
+                    continue
+                fv = fields[fk]
+                display_val = ""
+                if isinstance(fv, dict):
+                    display_val = fv.get("zh_CN", "") or str(fv)
+                elif isinstance(fv, str):
+                    display_val = fv
+                elif fv is not None:
+                    display_val = str(fv)
+                pick_fields_map[step_id] = OrderedDict([
+                    ("value_id", display_val),
+                    ("value_name", display_val),
+                    ("label", _PF_ENV_RELATED_FIELDS[fk_lower]),
+                    ("env_sensitive", "medium"),
+                    ("field_key", fk_lower),
+                    ("form_id", step_form_id),
+                    ("app_id", s.get("app_id", "")),
+                    ("auto_resolve", False),
+                    ("resolve_by", ""),
+                    ("resolve_status", "manual"),
+                ])
+                continue
             if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
                 step_id = f"date_{fk}"
                 if step_id in pick_fields_map:
@@ -2241,6 +2756,11 @@ def build_yaml_case(
                     ("label", label),
                     ("env_sensitive", "medium"),
                     ("field_key", fk),
+                    ("form_id", step_form_id),
+                    ("app_id", s.get("app_id", "")),
+                    ("auto_resolve", False),
+                    ("resolve_by", ""),
+                    ("resolve_status", "manual"),
                 ])
     # 注：detect_var_placeholders 对 update_fields 中的日期字段使用 ${today}
     # 内联替换，不生成 vars 变量，因此日期字段无需从 vars_map 去重
@@ -2290,6 +2810,8 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["value_id"] = pf_cfg["value_id"]
                 if "value_name" in pf_cfg:
                     pick_fields_map[pf_id]["value_name"] = pf_cfg["value_name"]
+                if "auto_resolve" in pf_cfg:
+                    pick_fields_map[pf_id]["auto_resolve"] = bool(pf_cfg["auto_resolve"])
 
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:
@@ -2497,9 +3019,15 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         by_tier[s.get("_tier", "ui_reaction")] = by_tier.get(s.get("_tier", "ui_reaction"), 0) + 1
 
     main_form = infer_main_form(raw_steps)
+    preview_steps = _inject_context_field_steps(
+        list(raw_steps),
+        main_form,
+        meta_resolver=meta_resolver,
+    )
+    _mark_navigation_steps_optional(preview_steps, main_form)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
-    preview_copy = copy.deepcopy(raw_steps)
+    preview_copy = copy.deepcopy(preview_steps)
     _, detected_vars, detected_labels = detect_var_placeholders(preview_copy)
     detected_vars.pop("_date_replaced", None)
 
@@ -2539,6 +3067,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "position": "职位",
         "org": "组织",
         "dept": "部门",
+        "createorg": "创建组织",
+        "useorg": "使用组织",
     }
     _ENUM_FIELDS = {
         "gender": "性别",
@@ -2557,7 +3087,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     pick_fields: list[dict] = []
     _seen_pick_ids: set = set()
 
-    for s in raw_steps:
+    for s in preview_steps:
         if s.get("type") == "pick_basedata":
             field_key = s.get("field_key", "")
             value_id = s.get("value_id", "")
@@ -2588,6 +3118,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
             # ⭐ 实时元数据增强 env_sensitive 分级
             step_form_id = s.get("form_id") or main_form
+            field_type = None
             if meta_resolver and step_form_id:
                 field_type = meta_resolver.get_field_type(step_form_id, field_key)
                 if field_type:
@@ -2602,6 +3133,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 or _ENUM_FIELDS.get(field_key)
                 or _resolve_field_label(field_key, entity_id=step_form_id, meta_resolver=meta_resolver)
             )
+            auto_meta = _pick_field_auto_resolve_meta(
+                field_key, value_id, s.get("value_name", "") or "", env_sensitive, field_type
+            )
 
             pick_fields.append({
                 "id": step_id,
@@ -2610,16 +3144,69 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "env_sensitive": env_sensitive,
                 "value_id": str(value_id),
                 "value_name": s.get("value_name", "") or "",
+                "form_id": step_form_id,
+                "app_id": s.get("app_id", ""),
+                "auto_resolve": auto_meta["auto_resolve"],
+                "resolve_by": auto_meta["resolve_by"],
+                "resolve_status": auto_meta["resolve_status"],
+            })
+
+        elif s.get("type") == "invoke" and s.get("ac") in ("new", "addnew"):
+            focus_id, focus_name = _extract_treeview_focus(s)
+            if not focus_id and not focus_name:
+                continue
+            step_id = f"env_{s.get('id', 'addnew')}_treeview_focus"
+            if step_id in _seen_pick_ids:
+                continue
+            _seen_pick_ids.add(step_id)
+            pick_fields.append({
+                "id": step_id,
+                "field_key": "treeview.focus.id",
+                "label": "新增上下文组织",
+                "env_sensitive": "high",
+                "value_id": str(focus_id),
+                "value_name": focus_name,
+                "form_id": s.get("form_id", ""),
+                "app_id": s.get("app_id", ""),
+                "auto_resolve": False,
+                "resolve_by": "",
+                "resolve_status": "manual",
             })
 
         elif s.get("type") == "update_fields":
-            # 处理 update_fields 中包含环境敏感日期字段
+            # 处理 update_fields 中的环境字段和日期字段
             fields = s.get("fields")
             if not isinstance(fields, dict):
                 continue
             step_form_id = s.get("form_id") or main_form
             for fk in fields:
                 fk_lower = fk.lower()
+                if fk_lower in _ENV_RELATED_FIELDS:
+                    step_id = f"pick_{fk_lower}_id"
+                    if step_id in _seen_pick_ids:
+                        continue
+                    _seen_pick_ids.add(step_id)
+                    fv = fields[fk]
+                    if isinstance(fv, dict):
+                        display_val = fv.get("zh_CN", "") or str(fv)
+                    elif isinstance(fv, str):
+                        display_val = fv
+                    else:
+                        display_val = str(fv) if fv is not None else ""
+                    pick_fields.append({
+                        "id": step_id,
+                        "field_key": fk_lower,
+                        "label": _ENV_RELATED_FIELDS[fk_lower],
+                        "env_sensitive": "medium",
+                        "value_id": display_val,
+                        "value_name": display_val,
+                        "form_id": step_form_id,
+                        "app_id": s.get("app_id", ""),
+                        "auto_resolve": False,
+                        "resolve_by": "",
+                        "resolve_status": "manual",
+                    })
+                    continue
                 if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
                     step_id = f"date_{fk}"
                     if step_id in _seen_pick_ids:
@@ -2643,6 +3230,11 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         "env_sensitive": "medium",
                         "value_id": display_val,
                         "value_name": display_val,
+                        "form_id": step_form_id,
+                        "app_id": s.get("app_id", ""),
+                        "auto_resolve": False,
+                        "resolve_by": "",
+                        "resolve_status": "manual",
                     })
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
@@ -2687,11 +3279,32 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "tier": s.get("_tier"),
                 "form_id": s.get("form_id"),
                 "ac": s.get("ac"),
+                "optional": bool(s.get("optional")),
                 "brief": _step_brief(s),
             }
-            for s in raw_steps
+            for s in preview_steps
         ],
     }
+    try:
+        from lib.har_quality import assess_preview_quality
+        preview["quality"] = assess_preview_quality(
+            main_form_id=main_form,
+            tier_counts=by_tier,
+            steps=preview_copy,
+            detected_vars=var_items,
+            pick_fields=pick_fields,
+        )
+    except Exception as e:
+        log.warning("HAR 质量评估失败（非致命）: %s", e)
+        preview["quality"] = {
+            "score": 0,
+            "grade": "E",
+            "blocking": True,
+            "summary": f"质量评估失败: {type(e).__name__}: {e}",
+            "dimensions": [],
+            "issues": [],
+            "checks": {},
+        }
     return preview
 
 

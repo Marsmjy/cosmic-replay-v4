@@ -657,6 +657,8 @@ def _merge_env_into_case(case: dict, env_id: str | None) -> dict:
         vars_ns["_basedata"] = env.basedata
     # 签名配置
     case.setdefault("sign_required", env.sign_required)
+    # 仅供运行期诊断/缓存使用，不写入 YAML。
+    case["_runtime_env_id"] = env_id
     return case
 
 
@@ -822,6 +824,73 @@ async def _global_exc_handler(request: Request, exc: Exception):
 # ============================================================
 # Endpoint: HAR
 # ============================================================
+def _create_replay_for_env(env_id: str):
+    """为在线环境字段解析创建轻量 replay。"""
+    env_cfg = CONFIG.get_env(env_id) or CONFIG.default_env()
+    if not env_cfg:
+        raise HTTPException(400, f"环境不存在: {env_id}")
+    if not env_cfg.credentials.is_configured():
+        raise HTTPException(400, f"环境未配置凭证: {env_id}")
+
+    login_session = SESSION_MGR.get_or_create(
+        env_id=env_id,
+        base_url=env_cfg.base_url,
+        username=env_cfg.credentials.resolve_username(),
+        password=env_cfg.credentials.resolve_password(),
+        datacenter_id=env_cfg.datacenter_id,
+    )
+    if not login_session:
+        raise HTTPException(502, f"环境登录失败: {env_id}")
+
+    from lib.replay import CosmicFormReplay, CosmicSession
+
+    sess = CosmicSession(
+        base_url=env_cfg.base_url.rstrip("/"),
+        cookie=login_session["cookie"],
+        user_id=login_session.get("user_id", ""),
+        account_id=login_session.get("account_id", ""),
+        csrf_token=login_session.get("csrf_token", ""),
+    )
+    replay = CosmicFormReplay(sess, sign_required=bool(env_cfg.sign_required))
+    replay.init_root()
+    return replay
+
+
+def _prime_replay_form_from_har(replay, har_file: str, form_id: str, app_id: str) -> bool:
+    """使用 HAR 中同表单的首个 loadData 初始化在线解析上下文。"""
+    if not har_file:
+        return False
+    har_path = har_upload_dir() / Path(har_file).name
+    if not har_path.exists():
+        return False
+    try:
+        steps = har_extractor.extract_steps(har_extractor.load_har(har_path))
+        steps = har_extractor.dedup_open_forms(steps)
+        steps = har_extractor.relocate_premature_open_forms(steps)
+        steps = har_extractor.lower_set_item_to_pick_basedata(steps)
+        steps = har_extractor.merge_consecutive_update_values(steps)
+    except Exception:
+        return False
+
+    for step in steps:
+        if step.get("form_id") != form_id or step.get("app_id") != app_id:
+            continue
+        if step.get("type") != "invoke" or step.get("ac") != "loadData":
+            continue
+        action = {
+            "key": step.get("key", ""),
+            "methodName": step.get("method", ""),
+            "args": step.get("args", []),
+            "postData": step.get("post_data", [{}, []]),
+        }
+        try:
+            replay.invoke(form_id, app_id, "loadData", [action])
+            return True
+        except Exception:
+            return False
+    return False
+
+
 @APP.post("/api/har/preview")
 async def api_har_preview(request: Request):
     """上传 HAR，返回预览（不落盘）
@@ -908,6 +977,103 @@ async def api_har_preview(request: Request):
             status_code=500,
             content={"ok": False, "error": f"{type(e).__name__}: {e}", "metadata_status": "offline"},
         )
+
+
+@APP.post("/api/env-fields/resolve")
+def api_resolve_env_fields(body: dict = Body(...)):
+    """批量解析 HAR 预览中的环境字段。
+
+    只解析显式标记 auto_resolve=true 的基础资料字段；歧义/失败时返回诊断，
+    不会静默修改业务语义。
+    """
+    env_id = body.get("env_id") or CONFIG.webui.default_env
+    har_file = body.get("har_file") or ""
+    fields = body.get("fields") or []
+    if not isinstance(fields, list):
+        raise HTTPException(400, "fields 必须是数组")
+
+    replay = None
+    try:
+        from lib.field_resolver import FieldResolver, ResolveResult
+
+        replay = _create_replay_for_env(env_id)
+        resolver = FieldResolver(replay, env_id=env_id)
+        resolved_fields = []
+        opened_forms: set[tuple[str, str]] = set()
+        for item in fields:
+            if not isinstance(item, dict):
+                continue
+            step_id = item.get("id") or item.get("step_id") or ""
+            field_key = str(item.get("field_key") or "").strip()
+            value_name = str(item.get("value_name") or "").strip()
+            value_id = str(item.get("value_id") or "").strip()
+            form_id = str(item.get("form_id") or "").strip()
+            app_id = str(item.get("app_id") or "").strip()
+
+            base = {
+                "step_id": step_id,
+                "field_key": field_key,
+                "value_id": value_id,
+                "value_name": value_name,
+                "label": item.get("label", field_key),
+                "env_sensitive": item.get("env_sensitive", "medium"),
+                "auto_resolve": bool(item.get("auto_resolve")),
+            }
+
+            if not item.get("auto_resolve"):
+                resolved_fields.append({
+                    **base,
+                    "resolve_status": "manual",
+                    "effective_value_id": value_id,
+                    "message": "未启用自动解析",
+                })
+                continue
+            if not (form_id and app_id and field_key and value_name):
+                resolved_fields.append({
+                    **base,
+                    "resolve_status": "skipped",
+                    "effective_value_id": value_id,
+                    "message": "缺少 form_id/app_id/field_key/value_name，无法解析",
+                })
+                continue
+
+            form_key = (form_id, app_id)
+            if form_key not in opened_forms:
+                try:
+                    replay.open_form(form_id, app_id)
+                except Exception:
+                    # 个别字段可能来自运行中弹窗/列表态，预打开失败时仍尝试按 root 上下文解析。
+                    pass
+                _prime_replay_form_from_har(replay, har_file, form_id, app_id)
+                opened_forms.add(form_key)
+
+            result = resolver.resolve_basedata_result(
+                form_id,
+                app_id,
+                field_key,
+                value_name,
+                original_value_id=value_id,
+            )
+            data = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
+            effective_value_id = data.get("resolved_value_id") if data.get("status") == "resolved" else value_id
+            resolved_fields.append({
+                **base,
+                "resolve_status": data.get("status"),
+                "resolved_value_id": data.get("resolved_value_id", ""),
+                "resolved_value_name": data.get("resolved_value_name", ""),
+                "effective_value_id": effective_value_id or value_id,
+                "confidence": data.get("confidence", "low"),
+                "message": data.get("message", ""),
+                "candidates": data.get("candidates", []),
+            })
+
+        return {"ok": True, "env_id": env_id, "fields": resolved_fields}
+    finally:
+        if replay is not None:
+            try:
+                replay.close()
+            except Exception:
+                pass
 
 
 @APP.post("/api/har/extract")

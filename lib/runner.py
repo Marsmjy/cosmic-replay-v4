@@ -58,6 +58,8 @@ from .diagnoser import (
     extract_save_errors, summarize_response, format_error_report, has_error_action,
 )
 from .advisor import analyze_errors, format_fixes
+from .failure_analysis import classify_run_failure
+from .field_resolver import FieldResolver, ResolveResult
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -479,6 +481,7 @@ def _h_update_fields(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
 
 @step_handler("pick_basedata")
 def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
+    _auto_resolve_pick_basedata_step(step, replay, ctx)
     return replay.pick_basedata(
         step["form_id"], step["app_id"],
         step["field_key"], str(step["value_id"]),
@@ -661,13 +664,33 @@ def _apply_pick_fields(case: dict):
             inject_vid = pf_meta.get("value_id", "")
             inject_vname = pf_meta.get("value_name", "")
             if inject_vid or inject_vname:
+                applied = False
                 for step in steps:
                     if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
                         if inject_vid:
                             step["value_id"] = str(inject_vid)
                         if inject_vname:
                             step["value_name"] = str(inject_vname)
+                        step["_env_field_id"] = pf_id
+                        step["_env_field_meta"] = pf_meta
+                        step["auto_resolve"] = bool(pf_meta.get("auto_resolve"))
                         log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
+                        applied = True
+                # MainOrgProp 等上下文字段可能以 update_fields 形式补偿写入；
+                # 允许沿用 pick_* 配置面板去覆盖这些字段，保持 UI/配置方式一致。
+                for step in steps:
+                    if step.get("type") != "update_fields":
+                        continue
+                    fields = step.get("fields") or {}
+                    if field_key not in fields:
+                        continue
+                    new_value = inject_vid or inject_vname
+                    if new_value:
+                        fields[field_key] = str(new_value)
+                        log.debug(f"[pick inject->update_fields] {pf_id} → step[{step.get('id', '')}].fields[{field_key}]={new_value}")
+                        applied = True
+                if not applied:
+                    log.debug(f"[pick inject] {pf_id} 未找到匹配 step，field_key={field_key}")
 
         # enum_* / bool_* / num_* -> 替换 update_fields 或 pick_basedata 步骤中的对应字段
         elif pf_id.startswith("enum_") or pf_id.startswith("bool_") or pf_id.startswith("num_"):
@@ -687,6 +710,76 @@ def _apply_pick_fields(case: dict):
                 if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
                     step["value_id"] = value
                     break
+
+
+def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
+    """按当前环境自动解析 pick_basedata 的 value_id。
+
+    安全策略：仅在 pick_fields 明确标记 auto_resolve 且 value_name 可用时触发；
+    解析成功才覆盖 value_id，解析失败/歧义时保留原始值。
+    """
+    if not step.get("auto_resolve"):
+        return
+
+    pf_id = step.get("_env_field_id") or step.get("id") or ""
+    pf_meta = step.get("_env_field_meta") or {}
+    value_name = str(step.get("value_name") or pf_meta.get("value_name") or "").strip()
+    original_value_id = str(step.get("value_id") or "").strip()
+    field_key = str(step.get("field_key") or pf_meta.get("field_key") or "").strip()
+    form_id = str(step.get("form_id") or "").strip()
+    app_id = str(step.get("app_id") or "").strip()
+
+    if not value_name or not field_key or not form_id or not app_id:
+        return
+    if value_name == original_value_id or value_name.startswith("${"):
+        return
+
+    env_resolution = ctx.setdefault("env_resolution", {})
+    cached = env_resolution.get(pf_id)
+    if cached and cached.get("status") == "resolved" and cached.get("resolved_value_id"):
+        step["value_id"] = cached["resolved_value_id"]
+        return
+
+    resolver: FieldResolver = ctx.setdefault(
+        "field_resolver",
+        FieldResolver(replay, env_id=str(ctx.get("env_id") or "")),
+    )
+    result = resolver.resolve_basedata_result(
+        form_id,
+        app_id,
+        field_key,
+        value_name,
+        original_value_id=original_value_id,
+    )
+    result_dict = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
+    if result.status == "resolved" and result.resolved_value_id:
+        step["value_id"] = result.resolved_value_id
+        result_dict["effective_value_id"] = result.resolved_value_id
+    else:
+        result_dict["effective_value_id"] = original_value_id
+    result_dict["step_id"] = pf_id
+    result_dict["label"] = pf_meta.get("label", field_key)
+    result_dict["env_sensitive"] = pf_meta.get("env_sensitive", "medium")
+    result_dict["value_id"] = step.get("value_id", original_value_id)
+    result_dict["value_name"] = value_name
+    env_resolution[pf_id] = result_dict
+
+    run_ev = ctx.get("run_event")
+    if run_ev:
+        run_ev("env_fields_resolved", {"fields": [{
+            "step_id": pf_id,
+            "field_key": field_key,
+            "value_id": str(step.get("value_id", original_value_id)),
+            "value_name": value_name,
+            "label": pf_meta.get("label", field_key),
+            "env_sensitive": pf_meta.get("env_sensitive", "medium"),
+            "status": "pending",
+            "resolve_status": result_dict.get("status"),
+            "resolved_value_id": result_dict.get("resolved_value_id", ""),
+            "confidence": result_dict.get("confidence", "low"),
+            "message": result_dict.get("message", ""),
+            "candidates": result_dict.get("candidates", []),
+        }]})
 
 
 # =============================================================
@@ -763,6 +856,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "label": pf_meta.get("label", pf_id),
             "env_sensitive": pf_meta.get("env_sensitive", "medium"),
             "status": "pending",
+            "auto_resolve": bool(pf_meta.get("auto_resolve")),
+            "resolve_status": pf_meta.get("resolve_status", ""),
+            "resolve_by": pf_meta.get("resolve_by", ""),
         })
 
     emit("case_start", {
@@ -852,6 +948,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "last_response": None,
         "last_step_response": None,
         "response_history": [],   # advisor 用，累积所有响应
+        "env_resolution": {},
+        "run_event": emit,
+        "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
         "main_form_id": main_form,  # ⭐ 供 menuItemClick L2 pageId 自动绑定
         # ⭐ step_id → 中文业务描述，供断言/日志生成人话
         "step_descriptions": {
@@ -947,10 +1046,59 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 "请求超时",
                 "NullPointerException",
             )
+            _RETRYABLE_PROTOCOL_ERRORS = (
+                "HTTP 502",
+                "HTTP 503",
+                "HTTP 504",
+                "Bad Gateway",
+                "Gateway Timeout",
+                "Read timed out",
+                "Connection aborted",
+                "请求超时",
+            )
 
             _retry_count = 0
             while True:
-                resp = handler(step, replay, ctx)
+                try:
+                    resp = handler(step, replay, ctx)
+                except ProtocolError as _pe:
+                    _err_text = str(_pe)
+                    _should_retry = any(pat in _err_text for pat in _RETRYABLE_PROTOCOL_ERRORS)
+                    if not _should_retry or _retry_count >= _INVOKE_MAX_RETRIES:
+                        raise
+
+                    _retry_count += 1
+                    _wait = min(2 ** _retry_count, 4)
+                    log.warning(
+                        f"[invoke-retry] {step.get('id','?')}: 检测到协议瞬态错误, "
+                        f"第{_retry_count}次重试 (等待{_wait}s)"
+                    )
+                    log.warning(f"[invoke-retry] 原始协议错误: {_err_text[:120]}")
+
+                    _run_ev = ctx.get("run_event")
+                    if _run_ev:
+                        _run_ev("retry", {
+                            "step_id": step.get("id", ""),
+                            "attempt": _retry_count,
+                            "error": _err_text[:150],
+                        })
+
+                    time.sleep(_wait)
+                    if _target_form and _target_app:
+                        try:
+                            replay.page_ids.pop(_target_form, None)
+                            # open_form 自身的瞬态错误交给下一轮 handler 重试，避免重复打开。
+                            if stype != "open_form":
+                                _fresh_pid = replay.open_form(_target_form, _target_app, lazy=False)
+                                if _fresh_pid:
+                                    replay.load_data(_target_form, _target_app)
+                                    log.info(
+                                        f"[invoke-retry] 协议错误恢复成功: "
+                                        f"{_target_form} → {_fresh_pid[:20]}..."
+                                    )
+                        except Exception as _re:
+                            log.warning(f"[invoke-retry] 协议错误恢复失败，将直接重试原步骤: {_re}")
+                    continue
                 errs = has_error_action(resp) if resp else []
 
                 # 无错误或已达最大重试次数 → 跳出
@@ -1100,6 +1248,11 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     # 7. 失败时生成修复建议
     if not result.passed:
+        try:
+            emit("failure_analysis", classify_run_failure(result.steps, result.assertions, case))
+        except Exception as e:
+            log.warning(f"failure_analysis 执行异常，跳过归因: {e}")
+
         # 收集所有错误：step 级别的 + 断言提取出的
         all_errors: list[str] = []
         for s in result.steps:
@@ -1135,7 +1288,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 log.warning(f"advisor 执行异常，跳过建议: {e}")
 
     result.end_ts = time.time()
-    env_fields = _build_env_fields(case, result)
+    env_fields = _build_env_fields(case, result, ctx.get("env_resolution", {}))
     if env_fields:
         emit("env_fields_resolved", {"fields": env_fields})
     emit("case_done", {
@@ -1272,8 +1425,9 @@ def _build_display_vars(
     return results
 
 
-def _build_env_fields(case: dict, result) -> list[dict]:
+def _build_env_fields(case: dict, result, env_resolution: dict | None = None) -> list[dict]:
     """收集所有 pick_basedata 步骤的执行结果，构造 env_fields 列表。"""
+    env_resolution = env_resolution or {}
     pick_fields = case.get("pick_fields") or {}
     raw_steps = case.get("steps") or []
     # 建立 step_id -> 原始 step 的映射
@@ -1285,15 +1439,23 @@ def _build_env_fields(case: dict, result) -> list[dict]:
             continue
         step_id = result_step.get("id")
         raw = raw_step_map.get(step_id, {})
-        meta = pick_fields.get(step_id) or {}
+        env_step_id = raw.get("_env_field_id") or step_id
+        meta = pick_fields.get(env_step_id) or pick_fields.get(step_id) or {}
+        resolved = env_resolution.get(env_step_id) or env_resolution.get(step_id) or {}
         env_fields.append({
-            "step_id": step_id,
+            "step_id": env_step_id,
             "field_key": raw.get("field_key", ""),
             "value_id": str(raw.get("value_id", "")),
             "value_name": raw.get("value_name", ""),
             "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
             "env_sensitive": meta.get("env_sensitive", "medium"),
             "status": "ok" if result_step.get("ok") else "fail",
+            "auto_resolve": bool(meta.get("auto_resolve")),
+            "resolve_status": resolved.get("status") or meta.get("resolve_status", ""),
+            "resolved_value_id": resolved.get("resolved_value_id", ""),
+            "confidence": resolved.get("confidence", ""),
+            "message": resolved.get("message", ""),
+            "candidates": resolved.get("candidates", []),
         })
     return env_fields
 
