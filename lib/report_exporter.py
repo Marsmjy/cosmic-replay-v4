@@ -1,11 +1,21 @@
 """执行报告 HTML 导出模块
 
 将报告数据渲染为独立 HTML 文件，可离线查看。
-使用 Tailwind CSS（CDN）+ Chart.js（CDN）实现深色主题可视化报告。
+使用本地静态资源内嵌 Tailwind runtime 与 Chart.js，避免内网/离线环境图表不可用。
 """
 import json
 from string import Template
 from datetime import datetime
+from pathlib import Path
+
+
+_STATIC_DIR = Path(__file__).parent / "webui" / "static"
+
+
+def _read_static_asset(name: str) -> str:
+    """Read a bundled browser asset for standalone report export."""
+    content = (_STATIC_DIR / name).read_text(encoding="utf-8")
+    return content.replace("</script", "<\\/script")
 
 
 _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
@@ -14,8 +24,8 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>执行报告 - ${task_id}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>${tailwind_js}</script>
+  <script>${chart_js}</script>
   <style>
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     .card { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(71, 85, 105, 0.5); }
@@ -292,5 +302,7 @@ def export_html(report_data: dict) -> str:
         generated_at=generated_at,
         export_time=export_time,
         report_json=report_json,
+        tailwind_js=_read_static_asset("tailwind.js"),
+        chart_js=_read_static_asset("chart.umd.min.js"),
     )
     return html

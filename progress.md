@@ -159,9 +159,15 @@
   - Header、Dashboard、用例详情、批量运行、日志详情、报告弹窗增加响应式布局
   - 表格改为局部横向滚动容器，移动端不再产生页面级横向滚动
   - 增加键盘 `focus-visible` 和 `prefers-reduced-motion` 支持
+- 落实设计系统化与离线资源建议：
+  - 新增本地 `chart.umd.min.js`，Web UI 不再依赖 jsDelivr
+  - 导出 HTML 报告内嵌本地 Tailwind runtime 与 Chart.js，离线打开不丢图表
+  - 新增第一版轻量设计系统 class：按钮、状态卡、状态图标、状态徽标、表格容器
+  - Dashboard 高频按钮、主用例表格、执行成功/失败状态卡已迁移到统一 class
 - 验证：
   - Desktop dashboard Playwright smoke：通过
   - Mobile dashboard Playwright smoke：页面级横向滚动消除，表格局部滚动
   - HAR preview Playwright smoke：企业 HAR 可预览，`描述` 字段识别为 `test_description`
-  - `pytest -q tests/unit tests/test_core.py`：191 passed
+  - `pytest -q tests/unit tests/test_core.py`：192 passed
   - `scripts/har_regression_report.py compare --fail-on-diff`：8 samples, changed 0
+  - `tests/unit/test_report_exporter.py`：覆盖导出报告无 CDN 引用

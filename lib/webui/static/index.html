@@ -7,7 +7,7 @@
   <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <script src="/static/tailwind.js"></script>
   <script defer src="/static/alpine.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/chart.umd.min.js"></script>
   <style>
     /* === 宇宙主题核心样式 === */
     :root {
@@ -390,7 +390,7 @@
         <h1 class="text-3xl font-bold mb-1" style="background: linear-gradient(135deg, #06B6D4, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">用例库</h1>
         <p class="text-sm text-slate-400">管理和执行HAR回放测试用例</p>
       </div>
-      <button @click="openHarWizard()" class="btn-primary flex items-center gap-2">
+      <button @click="openHarWizard()" class="btn btn-primary btn-md">
         <span class="text-lg">+</span> 导入 HAR 新建用例
       </button>
     </div>
@@ -428,9 +428,9 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button @click="openHarWizard()" class="btn-secondary text-xs">📥 导入HAR</button>
-          <button @click="view='batch'" class="btn-secondary text-xs">⚡ 批量运行</button>
-          <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn-secondary text-xs">📊 查看报告</button>
+          <button @click="openHarWizard()" class="btn btn-secondary btn-sm">📥 导入HAR</button>
+          <button @click="view='batch'" class="btn btn-secondary btn-sm">⚡ 批量运行</button>
+          <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn btn-secondary btn-sm">📊 查看报告</button>
         </div>
       </div>
     </div>
@@ -448,7 +448,7 @@
           <option value="steps">按步骤</option>
         </select>
         <button @click="caseSortDir = caseSortDir==='asc' ? 'desc' : 'asc'; casePage=1"
-                class="btn-secondary px-3 text-xs"
+                class="btn btn-secondary btn-sm px-3"
                 x-text="caseSortDir==='asc' ? '↑' : '↓'"></button>
       </div>
     </div>
@@ -461,11 +461,11 @@
         <div class="flex-1"></div>
         <button @click="dashSelectAll()" class="text-xs text-cyan-400 hover:text-cyan-300 px-2 py-1">全选</button>
         <button @click="dashSelected = new Set()" class="text-xs text-slate-400 hover:text-slate-200 px-2 py-1">取消</button>
-        <button @click="batchDeleteCases()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded shadow-lg shadow-rose-900/30 hover:-translate-y-0.5 transition-all">批量删除</button>
+        <button @click="batchDeleteCases()" class="btn btn-danger btn-sm">批量删除</button>
       </div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+    <div class="table-shell scrollbar-thin">
       <table class="w-full min-w-[980px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
@@ -543,11 +543,11 @@
                 <template x-if="lastResults[c.name]!=='running'">
                   <div class="inline-flex gap-1">
                     <button @click="openCase(c.name)"
-                            class="border border-slate-700 hover:border-slate-600 hover:bg-slate-800/50 text-sky-400 hover:text-sky-300 px-2 py-1 rounded text-xs transition-all">编辑</button>
+                            class="btn btn-secondary btn-sm text-sky-400">编辑</button>
                     <button @click="runCase(c.name)"
-                            class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded text-xs shadow-lg shadow-sky-900/30 hover:shadow-xl hover:shadow-sky-900/40 hover:-translate-y-0.5 transition-all">▶ 运行</button>
+                            class="btn btn-primary btn-sm">▶ 运行</button>
                     <button @click="deleteCase(c.name)"
-                            class="text-rose-400/70 hover:text-rose-400 hover:bg-rose-900/20 px-2 py-1 rounded text-xs transition-all">✖</button>
+                            class="btn btn-danger btn-sm px-2">✖</button>
                   </div>
                 </template>
               </td>
@@ -566,7 +566,7 @@
       <div class="text-5xl mb-4">📦</div>
       <h3 class="text-lg font-semibold text-slate-300 mb-2">暂无用例</h3>
       <p class="text-sm text-slate-500 mb-6">开始前需要从 HAR 文件导入测试用例</p>
-      <button @click="openHarWizard()" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-2.5 rounded-lg shadow-lg shadow-sky-900/30 hover:shadow-xl hover:shadow-sky-900/40 hover:-translate-y-0.5 transition-all">
+      <button @click="openHarWizard()" class="btn btn-primary btn-md px-6">
         📥 导入 HAR
       </button>
     </div>
@@ -715,9 +715,9 @@
           </div>
 
           <div x-show="summary && summary?.passed"
-               class="bg-emerald-950/20 border border-emerald-800/60 rounded-lg p-4 mb-3">
+               class="status-card status-card-success mb-3">
             <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-semibold shrink-0">✓</div>
+              <div class="status-icon bg-emerald-500 text-white">✓</div>
               <div class="flex-1">
                 <div class="text-emerald-100 font-medium">这条用例已通过执行验证</div>
                 <div class="text-sm text-slate-400 mt-1">
@@ -729,9 +729,9 @@
           </div>
 
           <div x-show="summary && !summary?.passed"
-               class="bg-rose-950/20 border border-rose-800/60 rounded-lg p-4 mb-3">
+               class="status-card status-card-danger mb-3">
             <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-semibold shrink-0">!</div>
+              <div class="status-icon bg-rose-500 text-white">!</div>
               <div class="flex-1 min-w-0">
                 <div class="text-rose-100 font-medium">这次没有跑通，系统已定位下一步</div>
                 <div class="text-sm text-slate-400 mt-1">
@@ -744,16 +744,16 @@
                   <button x-show="safeRepairCount() > 0"
                           @click="applySafeRepairsAndRerun()"
                           :disabled="repairApplying"
-                          class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
+                          class="btn btn-success btn-sm disabled:bg-slate-700">
                     <span x-text="repairApplying ? '处理中...' : `应用 ${safeRepairCount()} 条安全修复并重跑`"></span>
                   </button>
                   <button x-show="repairPlan.length > 0 && safeRepairCount() === 0"
                           @click="document.getElementById('repair-plan-panel')?.scrollIntoView({behavior:'smooth', block:'start'})"
-                          class="border border-amber-800 text-amber-200 hover:bg-amber-950 px-3 py-1.5 rounded text-sm">
+                          class="btn btn-secondary btn-sm border-amber-800 text-amber-200 hover:bg-amber-950">
                     查看需确认的修复项
                   </button>
                   <button @click="detailTab='yaml'"
-                          class="border border-slate-700 text-slate-300 hover:bg-slate-800 px-3 py-1.5 rounded text-sm">
+                          class="btn btn-secondary btn-sm text-slate-300">
                     查看 YAML
                   </button>
                 </div>
@@ -1764,7 +1764,7 @@
     </div>
 
 
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+    <div class="table-shell scrollbar-thin">
       <table class="w-full min-w-[720px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
@@ -1894,7 +1894,7 @@
     </div>
 
     <!-- 用例结果表格 -->
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+    <div class="table-shell scrollbar-thin">
       <table class="w-full min-w-[860px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>

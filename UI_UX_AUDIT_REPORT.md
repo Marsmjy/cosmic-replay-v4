@@ -52,20 +52,24 @@ Date: 2026-05-18
 - 用例详情、日志详情、报告图表区域增加响应式单列/双列布局。
 - 增加 `focus-visible` 样式，改善键盘操作可见性。
 - 增加 `prefers-reduced-motion` 支持，减少动效对敏感用户的影响。
+- 建立第一版轻量设计系统 class：`btn`、`status-card`、`status-icon`、`status-badge`、`table-shell`。
+- 将 Dashboard 高频按钮、执行成功/失败状态卡、主用例表格迁移到轻量设计系统 class。
+- 将 Web UI 的 Chart.js 从外部 CDN 改为本地 `/static/chart.umd.min.js`。
+- 将导出 HTML 报告所需的 Tailwind runtime 与 Chart.js 内嵌，保证报告离线可打开。
 
 ## Recommended Next Steps
 
-1. 建立轻量设计 token：颜色、间距、圆角、阴影、状态色和按钮层级统一落到 CSS class。
-2. 抽象状态组件：成功、失败、需确认、可优化、未知风险统一为一套 `status-card`。
-3. 重构表格体验：移动端保留横向滚动，桌面端增加 sticky header、行状态徽标和批量操作浮层。
-4. 本地化 Chart.js：避免内网/离线环境下报告图表受 CDN 影响。
-5. 增加 UI smoke tests：覆盖 dashboard、HAR preview、case detail failure、batch report、mobile viewport。
-6. 继续减少 emoji 依赖：关键动作和状态逐步改为一致的 SVG/icon class，保留少量品牌化点缀。
+1. 继续扩大轻量设计系统覆盖面：把设置页、日志页、报告弹窗中的按钮和状态徽标逐步迁移。
+2. 抽象状态组件：成功、失败、需确认、可优化、未知风险统一为一套 `status-card` 语义。
+3. 重构表格体验：桌面端增加 sticky header、行状态徽标和批量操作浮层。
+4. 增加 UI smoke tests：覆盖 dashboard、HAR preview、case detail failure、batch report、mobile viewport。
+5. 继续减少 emoji 依赖：关键动作和状态逐步改为一致的 SVG/icon class，保留少量品牌化点缀。
 
 ## Verification
 
 - Desktop dashboard smoke：通过。
 - Mobile dashboard smoke：页面级横向滚动已消除，表格在局部容器内滚动。
 - HAR preview smoke：企业 HAR 可进入预览，`描述` 字段识别为 `test_description`。
-- Unit/core tests：191 passed。
+- Report exporter unit smoke：导出 HTML 不再引用 CDN，Chart.js 内嵌可用。
+- Unit/core tests：192 passed。
 - HAR regression impact：8 samples, changed 0, overall impact none。

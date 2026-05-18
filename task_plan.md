@@ -81,6 +81,8 @@
   - Dashboard、用例详情、批量运行、日志详情和报告弹窗增加响应式布局
   - 表格改为局部横向滚动，避免移动端页面整体溢出
   - 增加 `focus-visible` 与 `prefers-reduced-motion` 基础可访问性支持
+  - 建立第一版轻量设计系统 class，并迁移 Dashboard 高频按钮、主表格和执行成功/失败状态卡
+  - Web UI 使用本地 Chart.js，导出报告内嵌 Tailwind runtime 与 Chart.js，减少内网/CDN 依赖
 
 ## Errors Encountered
 
