@@ -38,3 +38,23 @@
   - `/api/har/preview` 对岗位 HAR 返回 `metadata_status=online`
   - `/api/env-fields/resolve` 对岗位 HAR 前 3 个字段返回精确解析
   - 8 个基准 HAR 离线 YAML 生成均可解析，未发现兼容性回归
+
+## 2026-05-18 第三阶段
+
+- 完成“组件处理器注册表 / 组件雷达”：
+  - 新增 `lib/component_registry.py`
+  - `preview_har()` 输出 `components` 报告，并为每个 step 增加组件标签
+  - `assess_preview_quality()` 接入组件覆盖率、未知组件和部分支持组件风险
+  - Web UI HAR 导入页新增“组件雷达”卡片和 step 组件标签
+- 已覆盖并登记的处理器：
+  - 表单打开、表单加载、字段更新、基础资料选择、地理级联、基础资料查询
+  - 树上下文、树导航、列表导航、门户导航
+  - 保存/提交/审核、新增/修改态、弹窗确认、分录表格、后台任务
+  - 业务模型结构操作、用户偏好设置、通用低风险动作
+- 发现并处理：
+  - `业务模型添加一个基础资料附表` 暴露 `addsonlogicentity` 与 `ac=updateValue/method=click`
+  - `新增入职0512测试` 暴露 `saveSetting`
+  - 已补充 handler，8 个基准 HAR 的 `unsupported_steps` 均为 0
+- 验证结果：
+  - `pytest -q tests/unit/test_component_registry.py tests/unit/test_env_field_resolution.py tests/unit/test_har_extractor_regressions.py tests/unit/test_quality_and_failure_analysis.py`：23 passed
+  - 8 个基准 HAR 组件覆盖率扫描：全部 `unsupported=0`

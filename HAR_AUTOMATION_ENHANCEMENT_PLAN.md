@@ -91,34 +91,62 @@ quality:
 2. 8 个基准 HAR 离线 YAML 生成均通过。
 3. 19 条单元回归通过。
 
-## 第三阶段建议
+## 已完成：第三阶段
 
 ### 1. 组件插件化
 
 目标：遇到新 HAR 类型时，不继续堆 if/else。
 
-建议抽象：
+已实现第一步：组件处理器注册表和组件雷达。
+
+抽象：
 
 ```text
 ComponentHandler
-  can_handle(step, context)
-  normalize(step, context)
-  quality_checks(step, context)
-  repair_hints(error, context)
+  classify(step)
+  handler_id
+  component
+  category
+  support_level: supported / partial / unsupported
+  risk
+  suggestion
 ```
 
-优先插件：
+入口：
+
+1. `lib/component_registry.py`：组件处理器注册表。
+2. `preview.components`：组件覆盖率报告。
+3. `preview.steps[*].component`：每个 step 的组件标签。
+4. `quality.checks.component_*`：质量评分中的组件覆盖指标。
+5. Web UI “组件雷达”：展示覆盖率、主要组件和未覆盖步骤。
+
+当前已登记组件：
 
 1. 基础资料选择器。
-2. 多语言文本。
-3. 单据体/分录行。
+2. 字段更新。
+3. 表单打开/加载。
 4. 树控件。
-5. 弹窗确认。
-6. 附件上传。
-7. 流程启动/确认。
-8. 后台任务回查。
+5. 列表桥接导航。
+6. 门户/应用导航。
+7. 弹窗确认。
+8. 单据体/分录行。
+9. 保存/提交/审核。
+10. 新增/修改态。
+11. 国家、省市、电话区号级联。
+12. 后台任务/侧边栏。
+13. 用户偏好/首页设置。
+14. 业务模型结构操作。
+15. 通用低风险动作。
 
-### 2. 自动修复闭环
+验证：
+
+1. 8 个基准 HAR 的组件雷达均为 `unsupported=0`。
+2. 组件注册表、preview、质量评分回归共 23 条测试通过。
+3. 该阶段只做诊断和标记，不改变 YAML 生成行为，兼容历史成功用例。
+
+## 第四阶段建议
+
+### 1. 自动修复闭环
 
 目标：失败后不只是提示，还能生成补丁。
 
@@ -134,7 +162,7 @@ run_history -> failure_analysis -> advisor -> patch proposal -> user confirm -> 
 2. 唯一字段重复：更新 `vars` 模板。
 3. 导航服务不可达：将非主导航步骤标记 optional。
 
-### 3. 回归样本库
+### 2. 回归样本库
 
 目标：保证新规则不影响历史成功 YAML。
 

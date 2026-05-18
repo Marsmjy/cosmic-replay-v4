@@ -3267,11 +3267,33 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     log.debug("[preview_har dedup] var_items AFTER: %s", [v['name'] for v in var_items])
 
+    try:
+        from lib.component_registry import analyze_component_coverage
+        component_report = analyze_component_coverage(preview_copy)
+    except Exception as e:
+        log.warning("HAR 组件分析失败（非致命）: %s", e)
+        component_report = {
+            "summary": {
+                "total_steps": len(preview_copy),
+                "supported_steps": 0,
+                "partial_steps": 0,
+                "unsupported_steps": len(preview_copy),
+                "coverage_percent": 0,
+                "risk_level": "high",
+            },
+            "handlers": [],
+            "components": [],
+            "unsupported": [],
+            "steps": [],
+        }
+    component_steps = component_report.get("steps") or []
+
     preview = {
         "main_form_id": main_form,
         "tier_counts": by_tier,
         "detected_vars": var_items,
         "pick_fields": pick_fields,
+        "components": component_report,
         "steps": [
             {
                 "id": s.get("id"),
@@ -3280,9 +3302,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "form_id": s.get("form_id"),
                 "ac": s.get("ac"),
                 "optional": bool(s.get("optional")),
+                "component": (component_steps[i] or {}).get("component", "") if i < len(component_steps) else "",
+                "component_handler": (component_steps[i] or {}).get("handler_id", "") if i < len(component_steps) else "",
+                "component_support": (component_steps[i] or {}).get("support_level", "") if i < len(component_steps) else "",
                 "brief": _step_brief(s),
             }
-            for s in preview_steps
+            for i, s in enumerate(preview_steps)
         ],
     }
     try:
@@ -3293,6 +3318,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             steps=preview_copy,
             detected_vars=var_items,
             pick_fields=pick_fields,
+            component_report=component_report,
         )
     except Exception as e:
         log.warning("HAR 质量评估失败（非致命）: %s", e)

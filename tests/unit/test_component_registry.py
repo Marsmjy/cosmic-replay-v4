@@ -1,0 +1,77 @@
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from lib.component_registry import analyze_component_coverage, classify_step
+from lib.har_extractor import preview_har
+from lib.har_quality import assess_preview_quality
+
+
+def test_component_registry_classifies_common_steps():
+    steps = [
+        {"id": "open_demo", "type": "open_form", "form_id": "demo"},
+        {"id": "fill_number", "type": "update_fields", "fields": {"number": "N1"}},
+        {"id": "pick_org", "type": "pick_basedata", "field_key": "adminorg"},
+        {"id": "save", "type": "invoke", "ac": "save", "form_id": "demo"},
+    ]
+
+    report = analyze_component_coverage(steps)
+
+    assert report["summary"]["total_steps"] == 4
+    assert report["summary"]["unsupported_steps"] == 0
+    assert report["summary"]["coverage_percent"] == 100
+    assert {s["handler_id"] for s in report["steps"]} == {
+        "open_form",
+        "field_update",
+        "basedata_selector",
+        "persistence_action",
+    }
+
+
+def test_component_registry_reports_unknown_actions():
+    match = classify_step({
+        "id": "mystery",
+        "type": "invoke",
+        "ac": "brandNewAction",
+        "method": "doSomething",
+    })
+
+    assert match.handler_id == "unknown_action"
+    assert match.support_level == "unsupported"
+    assert match.risk == "medium"
+
+
+def test_quality_uses_component_report_for_compatibility_risk():
+    component_report = analyze_component_coverage([
+        {"id": "mystery", "type": "invoke", "ac": "brandNewAction"},
+        {"id": "save", "type": "invoke", "ac": "save"},
+    ])
+
+    quality = assess_preview_quality(
+        main_form_id="demo_form",
+        tier_counts={"core": 2, "ui_reaction": 0, "noise": 0},
+        steps=[
+            {"id": "mystery", "type": "invoke", "ac": "brandNewAction"},
+            {"id": "save", "type": "invoke", "ac": "save"},
+        ],
+        detected_vars=[{"name": "number"}],
+        pick_fields=[],
+        component_report=component_report,
+    )
+
+    codes = {issue["code"] for issue in quality["issues"]}
+    assert "unsupported_components" in codes
+    assert quality["checks"]["component_unsupported_count"] == 1
+
+
+def test_preview_har_includes_component_radar():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har"
+
+    preview = preview_har(har_path)
+
+    assert preview["components"]["summary"]["total_steps"] == len(preview["steps"])
+    assert preview["components"]["summary"]["coverage_percent"] >= 80
+    assert preview["quality"]["checks"]["component_coverage_percent"] >= 80
+    assert all("component" in step for step in preview["steps"])

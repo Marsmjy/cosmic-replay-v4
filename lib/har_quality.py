@@ -47,6 +47,7 @@ _PERSISTENCE_HINTS = (
 
 _KNOWN_ACS = {
     "addnew",
+    "addsonlogicentity",
     "afterConfirm",
     "appItemClick",
     "audit",
@@ -79,6 +80,7 @@ _KNOWN_ACS = {
     "refresh",
     "release",
     "save",
+    "saveSetting",
     "saveandeffect",
     "selectTab",
     "setItemByIdFromClient",
@@ -127,6 +129,7 @@ def assess_preview_quality(
     steps: list[dict],
     detected_vars: list[dict],
     pick_fields: list[dict],
+    component_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """基于 HAR preview 结果生成质量评分。"""
     issues: list[Issue] = []
@@ -166,6 +169,10 @@ def assess_preview_quality(
         and s.get("ac")
         and str(s.get("ac")) not in _KNOWN_ACS
     })
+    component_summary = (component_report or {}).get("summary") or {}
+    component_coverage = int(component_summary.get("coverage_percent", 100) or 0)
+    unsupported_components = int(component_summary.get("unsupported_steps", 0) or 0)
+    partial_components = int(component_summary.get("partial_steps", 0) or 0)
 
     if not main_form_id:
         add_issue(
@@ -219,6 +226,36 @@ def assess_preview_quality(
             "unknown_actions",
             "发现未登记的苍穹动作类型：" + ", ".join(unknown_acs[:8]),
             "如果执行失败点落在这些动作上，应为对应组件补充处理器或降级策略。",
+        )
+
+    if unsupported_components:
+        examples = [
+            str(item.get("step_id") or item.get("ac") or "-")
+            for item in (component_report or {}).get("unsupported", [])[:5]
+        ]
+        add_issue(
+            "compatibility",
+            "high" if unsupported_components >= 3 else "medium",
+            "unsupported_components",
+            f"组件雷达发现 {unsupported_components} 个未覆盖步骤。",
+            "优先为这些步骤补充组件处理器：" + ", ".join(examples),
+        )
+
+    if component_coverage < 80:
+        add_issue(
+            "compatibility",
+            "medium",
+            "component_coverage_low",
+            f"组件覆盖率仅 {component_coverage}%。",
+            "导入新 HAR 前建议先处理未知组件，避免执行期才暴露协议差异。",
+        )
+    elif partial_components >= 10:
+        add_issue(
+            "compatibility",
+            "low",
+            "partial_components_many",
+            f"有 {partial_components} 个步骤依赖通用/部分支持组件。",
+            "若这些步骤处于主链路，应逐步沉淀为专用组件处理器。",
         )
 
     if not detected_vars and persistence_steps:
@@ -318,6 +355,10 @@ def assess_preview_quality(
             "medium_env_field_count": medium_env_count,
             "persistence_step_count": len(persistence_steps),
             "unknown_actions": unknown_acs,
+            "component_coverage_percent": component_coverage,
+            "component_unsupported_count": unsupported_components,
+            "component_partial_count": partial_components,
+            "component_risk_level": component_summary.get("risk_level", "low"),
         },
     }
 

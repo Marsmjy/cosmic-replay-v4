@@ -14,6 +14,7 @@
 | 4 | completed | 通过单测、脚本和样例回放验证修复效果与回归兼容性 |
 | 5 | completed | 输出完整分析报告、问题诊断方法、修复步骤和预防措施 |
 | 6 | completed | 第二阶段：实现环境字段自动解析中心、导入期一键解析、运行期安全兜底与缓存 |
+| 7 | completed | 第三阶段：建立组件处理器注册表、组件覆盖率雷达和未知组件风险提示 |
 
 ## Constraints
 
@@ -35,6 +36,13 @@
   - Web UI 提供“一键解析当前环境”能力，后端使用 HAR `loadData` 初始化表单上下文
   - 运行期只在解析成功时覆盖 `value_id`，失败时保留原值，保证历史 YAML 兼容
   - 成功解析结果写入本地 `data/env_field_cache.json`，并已忽略版本管理
+- 第三阶段已完成组件雷达：
+  - `lib/component_registry.py` 提供金蝶组件处理器注册表
+  - HAR preview 返回 `components.summary/handlers/unsupported/steps`
+  - 每个 preview step 增加 `component/component_handler/component_support`
+  - 导入质量评分接入组件覆盖率、未知组件和部分支持组件风险
+  - Web UI 展示组件覆盖率、主要组件和未覆盖步骤
+  - 8 个基准 HAR 组件雷达均达到 `unsupported=0`
 
 ## Errors Encountered
 
@@ -45,3 +53,4 @@
 | `请按要求填写“创建组织”` | 抓取企业新增 `loadData` 响应并试验多种注入方式 | 对 `MainOrgProp(createorg)` 自动补 `update_fields(createorg=<context id>)` |
 | `邮箱重复` | 复现入职新增流程 | 将 `peremail` 识别为动态变量 `${vars.test_email}` |
 | 导入期环境字段解析返回 `not_found` | 复测 `/api/env-fields/resolve` | 发现 `getLookUpList` 依赖表单初始化；改为使用 HAR 首个 `loadData` 预热表单，并补充 `setLookUpListValue` 响应解析 |
+| 组件雷达对 2 个基准 HAR 报 unsupported | 扫描 8 个 HAR 的组件覆盖率 | 补充 `addsonlogicentity`、`ac=updateValue`、`saveSetting` 处理器，8 个基准 HAR 未覆盖步骤清零 |
