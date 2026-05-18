@@ -59,6 +59,7 @@ from .diagnoser import (
 )
 from .advisor import analyze_errors, format_fixes
 from .failure_analysis import classify_run_failure
+from .repair_planner import build_repair_plan
 from .field_resolver import FieldResolver, ResolveResult
 
 
@@ -116,7 +117,7 @@ def _parse_yaml_light(text: str) -> dict:
     def _scalar(v: str) -> Any:
         v = v.strip()
         if not v: return ""
-        if v in ("null", "~", "Null", "NULL"): return None
+        if v in ("null", "~", "none", "Null", "NULL", "None", "NONE"): return None
         if v in ("true", "True", "TRUE"): return True
         if v in ("false", "False", "FALSE"): return False
         # 内联 JSON
@@ -281,6 +282,7 @@ def _resolve_str(s: str, vars_ns: dict) -> Any:
 
 
 def _resolve_ref(ref: str, vars_ns: dict) -> Any:
+    ref = ref.strip()
     if ref.startswith("vars."):
         key = ref[5:]
         return vars_ns.get(key, f"${{UNRESOLVED:{ref}}}")
@@ -1248,8 +1250,10 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     # 7. 失败时生成修复建议
     if not result.passed:
+        failure_analysis = None
         try:
-            emit("failure_analysis", classify_run_failure(result.steps, result.assertions, case))
+            failure_analysis = classify_run_failure(result.steps, result.assertions, case)
+            emit("failure_analysis", failure_analysis)
         except Exception as e:
             log.warning(f"failure_analysis 执行异常，跳过归因: {e}")
 
@@ -1266,26 +1270,30 @@ def run_case(case: dict, on_event=None) -> RunResult:
             if e not in seen:
                 seen.add(e)
                 dedup.append(e)
+        fix_payload: list[dict[str, Any]] = []
         if dedup:
             try:
                 result.fixes = analyze_errors(dedup, ctx.get("response_history", []))
-                # 推送修复建议事件
-                emit("fixes_ready", {
-                    "fixes": [
-                        {
-                            "diagnosis": f.diagnosis,
-                            "error_type": f.error_type,
-                            "field_caption": f.field_caption,
-                            "field_key": f.field_key,
-                            "suggested_value": f.suggested_value,
-                            "patch_yaml": f.patch_yaml,
-                            "confidence": f.confidence,
-                        }
-                        for f in result.fixes
-                    ],
-                })
+                fix_payload = [
+                    {
+                        "diagnosis": f.diagnosis,
+                        "error_type": f.error_type,
+                        "field_caption": f.field_caption,
+                        "field_key": f.field_key,
+                        "suggested_value": f.suggested_value,
+                        "patch_yaml": f.patch_yaml,
+                        "confidence": f.confidence,
+                    }
+                    for f in result.fixes
+                ]
             except Exception as e:
                 log.warning(f"advisor 执行异常，跳过建议: {e}")
+        try:
+            repair_plan = build_repair_plan(case, failure_analysis, fix_payload)
+            if fix_payload or repair_plan:
+                emit("fixes_ready", {"fixes": fix_payload, "repair_plan": repair_plan})
+        except Exception as e:
+            log.warning(f"repair_planner 执行异常，跳过自动修复计划: {e}")
 
     result.end_ts = time.time()
     env_fields = _build_env_fields(case, result, ctx.get("env_resolution", {}))

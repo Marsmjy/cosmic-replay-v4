@@ -58,3 +58,30 @@
 - 验证结果：
   - `pytest -q tests/unit/test_component_registry.py tests/unit/test_env_field_resolution.py tests/unit/test_har_extractor_regressions.py tests/unit/test_quality_and_failure_analysis.py`：23 passed
   - 8 个基准 HAR 组件覆盖率扫描：全部 `unsupported=0`
+
+## 2026-05-18 第四阶段
+
+- 完成“自动修复闭环”第一版：
+  - 新增 `lib/repair_planner.py`
+  - runner 失败时除 `failure_analysis` 和 `fixes` 外，额外生成 `repair_plan`
+  - Web UI 运行结果页新增“自动修复计划”，支持一键应用安全补丁
+  - 后端新增 `/api/cases/{name}/repairs/plan` 和 `/api/cases/{name}/repairs/apply`
+- 支持的修复操作：
+  - `mark_step_optional`：非主导航服务失败时，将对应步骤标记 optional
+  - `refresh_unique_var`：唯一字段重复时，为变量追加 `${rand:6}`
+  - `insert_missing_field`：必填字段缺失时，在保存前插入 `update_fields` 或 `pick_basedata`
+- 安全策略：
+  - 只有 `safe_to_apply=true` 才能从前端一键应用
+  - 基础资料字段没有明确 value_id 时不自动应用
+  - 应用前写 `.yaml.bak` 本地备份
+- 验证结果：
+  - `pytest -q tests/unit tests/test_core.py`：183 passed
+  - `python3 -m py_compile lib/repair_planner.py lib/runner.py lib/webui/server.py lib/advisor.py lib/har_extractor.py lib/replay.py lib/config.py lib/webui/log_store.py`：通过
+  - `/api/cases/{name}/repairs/plan` 与 `/api/cases/{name}/repairs/apply` 临时用例烟测通过
+- 同步补齐历史单测兼容项：
+  - 轻量 YAML 解析 `None`
+  - `${ vars.name }` 类空白引用解析
+  - 旧格式 `showErrMsg.args`
+  - `Credentials.username_env/password_env`
+  - `LogStore.buffer_size`
+  - HAR 字段分类 helper 的测试入口

@@ -144,25 +144,49 @@ ComponentHandler
 2. 组件注册表、preview、质量评分回归共 23 条测试通过。
 3. 该阶段只做诊断和标记，不改变 YAML 生成行为，兼容历史成功用例。
 
-## 第四阶段建议
+## 已完成：第四阶段
 
 ### 1. 自动修复闭环
 
 目标：失败后不只是提示，还能生成补丁。
 
-流程：
+已实现第一版：
 
 ```text
-run_history -> failure_analysis -> advisor -> patch proposal -> user confirm -> update YAML -> rerun
+run_history -> failure_analysis -> advisor -> repair_plan -> user confirm -> update YAML -> rerun
 ```
 
-建议先支持三类高频补丁：
+支持三类高频补丁：
 
 1. 缺必填字段：插入 `update_fields` 或 `pick_basedata`。
-2. 唯一字段重复：更新 `vars` 模板。
+2. 唯一字段重复：更新 `vars` 模板并追加 `${rand:6}`。
 3. 导航服务不可达：将非主导航步骤标记 optional。
 
-### 2. 回归样本库
+安全策略：
+
+1. 不静默修改 YAML，必须用户点击“应用”。
+2. 只有 `safe_to_apply=true` 的补丁能一键应用。
+3. 基础资料缺失但没有明确 `value_id` 时，只提示不应用。
+4. 应用前写 `.yaml.bak` 本地备份。
+5. 主业务表单步骤不会被自动 optional。
+
+入口：
+
+1. `lib/repair_planner.py`：结构化修复计划。
+2. runner `fixes_ready.repair_plan`：执行失败后的实时修复计划。
+3. `/api/cases/{name}/repairs/plan`：按当前 YAML 和失败信息生成计划。
+4. `/api/cases/{name}/repairs/apply`：应用用户确认的单条修复。
+5. Web UI “自动修复计划”卡片：展示并应用安全补丁。
+
+验证：
+
+1. 本地单元测试 `tests/unit tests/test_core.py` 共 183 条通过。
+2. 修复计划 API 烟测通过：可生成 `repair_plan` 并应用安全补丁。
+3. 语法检查通过。
+
+## 第五阶段建议
+
+### 1. 回归样本库
 
 目标：保证新规则不影响历史成功 YAML。
 

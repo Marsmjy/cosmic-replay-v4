@@ -732,6 +732,9 @@ def has_error_action(resp: Any) -> list[str]:
         if not isinstance(cmd, dict): continue
         a = cmd.get("a")
         if a in ("showErrMsg",):
+            for item in cmd.get("args", []):
+                if item:
+                    errors.append(str(item)[:150])
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
                     t = p.get("errorTitle") or ""

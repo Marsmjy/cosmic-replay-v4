@@ -15,6 +15,7 @@
 | 5 | completed | 输出完整分析报告、问题诊断方法、修复步骤和预防措施 |
 | 6 | completed | 第二阶段：实现环境字段自动解析中心、导入期一键解析、运行期安全兜底与缓存 |
 | 7 | completed | 第三阶段：建立组件处理器注册表、组件覆盖率雷达和未知组件风险提示 |
+| 8 | completed | 第四阶段：建立自动修复计划，支持用户确认后一键应用安全 YAML 补丁 |
 
 ## Constraints
 
@@ -43,6 +44,14 @@
   - 导入质量评分接入组件覆盖率、未知组件和部分支持组件风险
   - Web UI 展示组件覆盖率、主要组件和未覆盖步骤
   - 8 个基准 HAR 组件雷达均达到 `unsupported=0`
+- 第四阶段已完成自动修复闭环第一版：
+  - `lib/repair_planner.py` 将失败归因和 advisor 建议转换为结构化修复计划
+  - 支持三类安全补丁：导航步骤 optional、唯一变量随机化、必填字段插入
+  - runner 在失败时推送 `repair_plan`
+  - Web UI 展示“自动修复计划”，仅 `safe_to_apply=true` 的补丁可一键应用
+  - 后端提供 `/api/cases/{name}/repairs/plan` 和 `/api/cases/{name}/repairs/apply`
+  - 应用补丁前会生成 `.yaml.bak` 本地备份
+  - 同步补齐基础兼容回归项，当前本地单元测试 `tests/unit tests/test_core.py` 共 183 条通过
 
 ## Errors Encountered
 
@@ -54,3 +63,4 @@
 | `邮箱重复` | 复现入职新增流程 | 将 `peremail` 识别为动态变量 `${vars.test_email}` |
 | 导入期环境字段解析返回 `not_found` | 复测 `/api/env-fields/resolve` | 发现 `getLookUpList` 依赖表单初始化；改为使用 HAR 首个 `loadData` 预热表单，并补充 `setLookUpListValue` 响应解析 |
 | 组件雷达对 2 个基准 HAR 报 unsupported | 扫描 8 个 HAR 的组件覆盖率 | 补充 `addsonlogicentity`、`ac=updateValue`、`saveSetting` 处理器，8 个基准 HAR 未覆盖步骤清零 |
+| 自动修复可能误改业务语义 | 设计第四阶段补丁应用策略 | 只有明确定位目标且 `safe_to_apply=true` 的补丁可一键应用；基础资料缺失但无 value_id 时只提示不应用 |

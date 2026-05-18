@@ -19,7 +19,7 @@ sys.path.insert(0, str(SKILL_ROOT))
 from lib.har_extractor import (
     load_har, is_business_request, smart_name, _sanitize,
     detect_var_placeholders, AC_TIER,
-    generate_step_description, _form_short, _extract_value_prefix,
+    generate_step_description, _form_short, _extract_value_prefix, _classify_key,
 )
 
 

@@ -475,6 +475,66 @@ def api_save_case_yaml(name: str, body: dict = Body(...)):
     return {"ok": True, "name": name, "size": len(content)}
 
 
+@APP.post("/api/cases/{name:path}/repairs/plan")
+def api_case_repair_plan(name: str, body: dict = Body(...)):
+    """根据失败归因和 advisor 输出生成结构化修复计划。"""
+    p = case_path_from_name(name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {name}")
+    case = load_yaml(p)
+    if not isinstance(case, dict):
+        raise HTTPException(400, "YAML 顶层必须是 dict")
+    from lib.repair_planner import build_repair_plan
+
+    repairs = build_repair_plan(
+        case,
+        body.get("failure_analysis") or {},
+        body.get("fixes") or [],
+    )
+    return {"ok": True, "name": name, "repair_plan": repairs}
+
+
+@APP.post("/api/cases/{name:path}/repairs/apply")
+def api_apply_case_repair(name: str, body: dict = Body(...)):
+    """应用用户确认过的结构化修复。"""
+    p = case_path_from_name(name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {name}")
+    case = load_yaml(p)
+    if not isinstance(case, dict):
+        raise HTTPException(400, "YAML 顶层必须是 dict")
+
+    repair = body.get("repair") or {}
+    if not isinstance(repair, dict):
+        raise HTTPException(400, "repair 必须是对象")
+
+    from lib.repair_planner import apply_repair
+    import yaml
+
+    new_case, applied, message = apply_repair(case, repair)
+    if not applied:
+        return JSONResponse(status_code=409, content={
+            "ok": False,
+            "applied": False,
+            "message": message,
+        })
+
+    backup_path = p.with_suffix(p.suffix + ".bak")
+    try:
+        backup_path.write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+    except Exception:
+        pass
+    new_yaml = yaml.dump(new_case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    p.write_text(new_yaml, encoding="utf-8")
+    return {
+        "ok": True,
+        "applied": True,
+        "message": message,
+        "name": name,
+        "yaml": new_yaml,
+    }
+
+
 @APP.delete("/api/cases/{name}")
 def api_delete_case(name: str):
     p = case_path_from_name(name)

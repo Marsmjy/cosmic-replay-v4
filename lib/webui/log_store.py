@@ -51,6 +51,7 @@ class LogStore:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         (self.log_dir / "runs").mkdir(parents=True, exist_ok=True)
 
+        self.buffer_size = buffer_size
         self.buffer: deque[LogEntry] = deque(maxlen=buffer_size)
         self.retention_days = retention_days
         self._lock = threading.Lock()

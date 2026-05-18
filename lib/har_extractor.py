@@ -837,6 +837,62 @@ def _extract_row_index(post_data: list) -> int:
 
 # ---------- 值→占位符 ----------
 
+_UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname",
+                     "billno", "orderno", "email", "peremail"}
+_NUMBER_KEYS = {"number", "code", "billno", "orderno"}
+_NAME_KEYS = {"name", "simplename", "fullname"}
+_CLASSIFY_KEY_EXCLUSIONS = {"ename", "classtypeid"}
+_HR_UNIQUE_SUFFIXES = {"empnumber", "certificatenumber", "phone"}
+_HR_NAME_FIELDS = {"ba_em_name", "em_name", "staffname"}
+_HR_PHONE_FIELDS = {"phone", "tel", "mobile", "cellphone", "contactphone"}
+_HR_EMAIL_FIELDS = {"email", "peremail", "workemail", "personalemail"}
+
+
+def _classify_key(key_hint: str) -> str | None:
+    """将字段 key 分类为 number/name/phone/cert/unique 或 None。"""
+    return _classify_key_heuristic(key_hint)
+
+
+def _classify_key_heuristic(key_hint: str) -> str | None:
+    kl = (key_hint or "").lower()
+    if not kl:
+        return None
+    if kl in _UNIQUE_KEY_HINTS:
+        if kl in _NUMBER_KEYS:
+            return "number"
+        if kl in _NAME_KEYS:
+            return "name"
+        if kl in _HR_EMAIL_FIELDS:
+            return "email"
+        return "unique"
+    if kl in _HR_NAME_FIELDS:
+        return "name"
+    if kl in _HR_PHONE_FIELDS:
+        return "phone"
+    if kl in _HR_EMAIL_FIELDS:
+        return "email"
+    for suffix in _HR_UNIQUE_SUFFIXES:
+        if kl.endswith(suffix):
+            if "number" in suffix and "certificate" not in kl:
+                return "number"
+            if "certificate" in kl:
+                return "cert"
+            if suffix in ("phone", "tel", "mobile"):
+                return "phone"
+            return "unique"
+    for hint in _NUMBER_KEYS:
+        if kl.endswith(hint) and len(kl) > len(hint):
+            return "number"
+    if kl in _CLASSIFY_KEY_EXCLUSIONS:
+        return None
+    if "email" in kl:
+        return "email"
+    for hint in _NAME_KEYS:
+        if kl.endswith(hint) and len(kl) > len(hint):
+            return "name"
+    return None
+
+
 def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[str, Any]]:
     """扫 updateValue 的值，识别"看起来像测试数据"的值抽成 vars。
     返回：(修改后的 actions_seq, vars_map)
@@ -851,17 +907,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
     seen_values: dict[str, str] = {}   # 原始值 → 变量名
 
     # 字段 key 名暗示"必然唯一"——一定得抽 vars，否则跑第二次必挂"已存在"
-    UNIQUE_KEY_HINTS = {"number", "code", "simplename", "name", "fullname",
-                        "billno", "orderno", "email", "peremail"}
-    NUMBER_KEYS = {"number", "code", "billno", "orderno"}
-    NAME_KEYS = {"name", "simplename", "fullname"}
-    # ⭐ 排除列表：后缀命中 NAME_KEYS 但不是实际名称字段的 key
-    _CLASSIFY_KEY_EXCLUSIONS = {"ename", "classtypeid"}
-    # HR 特定字段：需要随机化以避免重复
-    HR_UNIQUE_SUFFIXES = {"empnumber", "certificatenumber", "phone"}
-    HR_NAME_FIELDS = {"ba_em_name", "em_name", "staffname"}
-    HR_PHONE_FIELDS = {"phone", "tel", "mobile", "cellphone", "contactphone"}
-    HR_EMAIL_FIELDS = {"email", "peremail", "workemail", "personalemail"}
+    UNIQUE_KEY_HINTS = _UNIQUE_KEY_HINTS
 
     # ── 连续新增计数器 ──
     save_round = 1
@@ -899,45 +945,7 @@ def detect_var_placeholders(actions_seq: list[dict]) -> tuple[list[dict], dict[s
             except Exception:
                 pass
 
-        # 精确匹配
-        if kl in UNIQUE_KEY_HINTS:
-            if kl in NUMBER_KEYS:
-                return "number"
-            if kl in NAME_KEYS:
-                return "name"
-            if kl in HR_EMAIL_FIELDS:
-                return "email"
-            return "unique"
-        # HR 特定字段精确匹配
-        if kl in HR_NAME_FIELDS:
-            return "name"
-        if kl in HR_PHONE_FIELDS:
-            return "phone"
-        if kl in HR_EMAIL_FIELDS:
-            return "email"
-        # 后缀匹配：empnumber → number，certificatenumber → cert
-        for suffix in HR_UNIQUE_SUFFIXES:
-            if kl.endswith(suffix):
-                if "number" in suffix and "certificate" not in kl:
-                    return "number"
-                if "certificate" in kl:
-                    return "cert"
-                if suffix in ("phone", "tel", "mobile"):
-                    return "phone"
-                return "unique"
-        # 后缀匹配通用 key hints
-        for hint in NUMBER_KEYS:
-            if kl.endswith(hint) and len(kl) > len(hint):
-                return "number"
-        # ⭐ 排除非名称类字段（如 ename 属性名称不变量化）
-        if kl in _CLASSIFY_KEY_EXCLUSIONS:
-            return None
-        if "email" in kl:
-            return "email"
-        for hint in NAME_KEYS:
-            if kl.endswith(hint) and len(kl) > len(hint):
-                return "name"
-        return None
+        return _classify_key_heuristic(key_hint)
 
     def maybe_var(val: Any, key_hint: str = "") -> Any:
         if not isinstance(val, str) or not val:

@@ -77,3 +77,24 @@
   - 业务模型结构操作
 - 8 个基准 HAR 扫描结果均为 `unsupported=0`；部分样例仍有较多 `partial`，主要来自门户导航、分录表格、弹窗确认、通用低风险动作，这些是后续迁移为专用 handler 的优先队列。
 - 质量评分已接入组件雷达，新增 HAR 若出现未知 ac/method，会在导入预览阶段暴露为 compatibility 风险，而不是等执行失败后才定位。
+
+## Stage 4 Findings
+
+- 自动修复必须区分“可建议”和“可应用”：
+  - 导航 apphome/侧栏失败可以安全 optional，但主业务表单不能自动 optional。
+  - 唯一值重复可以安全追加随机后缀，但已有 `${rand}` 或 `${timestamp}` 时不重复修改。
+  - 必填字段缺失只有在能推断字段 key、主表单 app_id 和安全值时才一键插入。
+  - 基础资料缺失如果没有明确 `value_id`，只展示计划，不一键应用。
+- 结构化修复计划比 YAML 片段更适合前端和 API：
+  - `operation` 描述修复动作。
+  - `target` 描述修改位置。
+  - `payload` 描述写入内容。
+  - `safe_to_apply` 决定是否展示一键应用按钮。
+- 第一版修复闭环已覆盖三类高频问题：
+  - `navigation_service_unavailable -> mark_step_optional`
+  - `business_duplicate / duplicate -> refresh_unique_var`
+  - `missing_required -> insert_missing_field`
+- 更宽的本地单元测试曾暴露历史兼容缺口：
+  - HAR 字段分类 helper 只存在于内部闭包，测试和外部诊断无法复用。
+  - 轻量 YAML 解析、变量引用空白、旧格式错误 action、日志 store 元信息、凭证环境变量覆盖存在边界不一致。
+  - 已补齐后 `tests/unit tests/test_core.py` 183 条通过，可作为第五阶段回归样本库的基础门禁。

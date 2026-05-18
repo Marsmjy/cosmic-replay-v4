@@ -878,6 +878,44 @@
             </div>
           </div>
 
+          <div x-show="repairPlan.length > 0"
+               class="bg-slate-900 border border-emerald-900/40 rounded-lg overflow-hidden mb-3">
+            <div class="px-4 py-3 border-b border-slate-800 bg-emerald-950/20">
+              <div class="text-emerald-200 font-medium flex items-center gap-2">
+                <span>自动修复计划</span>
+                <span class="text-xs text-slate-400" x-text="`(${repairPlan.length} 条)`"></span>
+              </div>
+              <div class="text-xs text-slate-500 mt-1">只会应用标记为安全的补丁；应用前请确认业务语义。</div>
+            </div>
+            <div class="divide-y divide-slate-800">
+              <template x-for="(rp, i) in repairPlan" :key="rp.id || i">
+                <div class="p-4 space-y-2">
+                  <div class="flex items-start gap-3">
+                    <span class="text-sm bg-slate-800 rounded px-2 py-0.5 mono" x-text="'#' + (i+1)"></span>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-slate-100" x-text="rp.title"></div>
+                      <div class="text-xs text-slate-500 mt-1" x-text="rp.reason"></div>
+                      <div class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                        <code class="text-sky-400" x-text="rp.operation"></code>
+                        <span class="px-1.5 py-0.5 rounded text-[10px]"
+                              :class="rp.safe_to_apply ? 'bg-emerald-900/60 text-emerald-300' : 'bg-slate-800 text-slate-400'"
+                              x-text="rp.safe_to_apply ? '可一键应用' : '需手工确认'"></span>
+                        <span class="text-slate-500" x-text="'置信度: ' + (rp.confidence || '-')"></span>
+                      </div>
+                    </div>
+                    <button @click="applyRepair(rp)"
+                            :disabled="!rp.safe_to_apply || rp.applied"
+                            class="px-3 py-1.5 rounded text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white">
+                      <span x-text="rp.applied ? '已应用' : '应用'"></span>
+                    </button>
+                  </div>
+                  <pre class="bg-slate-950 border border-slate-800 rounded p-3 text-xs mono whitespace-pre-wrap overflow-x-auto"
+                       x-text="rp.preview"></pre>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- 步骤详情 -->
           <div x-show="selectedStep && selectedPhase()"
                class="bg-slate-900 border border-slate-800 rounded-lg p-4">
@@ -2573,6 +2611,7 @@ function app() {
     phases: [],
     summary: null,
     fixes: [],
+    repairPlan: [],
     failureAnalysis: null,
     running: false,
     selectedStep: null,
@@ -2842,6 +2881,7 @@ function app() {
         this.phases = ar.phases;
         this.summary = ar.summary;
         this.fixes = ar.fixes;
+        this.repairPlan = ar.repairPlan || [];
         this.failureAnalysis = ar.failureAnalysis || null;
         this.running = ar.running;
         this.resolved_vars = ar.resolved_vars || {};
@@ -2850,6 +2890,7 @@ function app() {
         this.phases = [];
         this.summary = null;
         this.fixes = [];
+        this.repairPlan = [];
         this.failureAnalysis = null;
         this.running = false;
         this.resolved_vars = {};
@@ -2991,6 +3032,7 @@ function app() {
       this.phases = ar.phases;
       this.summary = ar.summary;
       this.fixes = ar.fixes;
+      this.repairPlan = ar.repairPlan || [];
       this.failureAnalysis = ar.failureAnalysis || null;
       this.running = ar.running;
       this.envFields = ar.envFields || [];
@@ -3017,6 +3059,7 @@ function app() {
         phases: [],
         summary: null,
         fixes: [],
+        repairPlan: [],
         failureAnalysis: null,
         running: true,
         sse: null,
@@ -3027,6 +3070,7 @@ function app() {
       this.phases = record.phases;
       this.summary = null;
       this.fixes = record.fixes;
+      this.repairPlan = record.repairPlan;
       this.failureAnalysis = null;
       this.running = true;
       this.resolved_vars = {};
@@ -3161,8 +3205,12 @@ function app() {
         const d = JSON.parse(ev.data);
         record.fixes.length = 0;   // 保留引用
         (d.fixes || []).forEach(f => record.fixes.push(f));
+        record.repairPlan = d.repair_plan || [];
         // 当前如果正在看这个 case，同步 this.fixes
-        if (this.currentCase?.name === name) this.fixes = record.fixes;
+        if (this.currentCase?.name === name) {
+          this.fixes = record.fixes;
+          this.repairPlan = record.repairPlan;
+        }
       });
       es.addEventListener('failure_analysis', (ev) => {
         const d = JSON.parse(ev.data);
@@ -3317,6 +3365,29 @@ function app() {
     copyPatch(txt) {
       navigator.clipboard.writeText(txt);
       this.showToast('已复制到剪贴板');
+    },
+
+    async applyRepair(repair) {
+      if (!this.currentCase?.name || !repair?.safe_to_apply) return;
+      try {
+        const resp = await fetch(`/api/cases/${encodeURIComponent(this.currentCase.name)}/repairs/apply`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({repair}),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          this.showToast('应用失败: ' + (data.message || data.detail || resp.status));
+          return;
+        }
+        repair.applied = true;
+        this.yamlSource = data.yaml || this.yamlSource;
+        this.yamlDirty = false;
+        await this.loadCases();
+        this.showToast(data.message || '修复已应用');
+      } catch (e) {
+        this.showToast('应用失败: ' + e.message);
+      }
     },
 
     // ======== HAR 向导 ========
@@ -3980,6 +4051,7 @@ function app() {
         this.phases = [];
         this.summary = null;
         this.fixes = [];
+        this.repairPlan = [];
         this.failureAnalysis = null;
         this.resolved_vars = {};
         this.running = false;
@@ -4037,6 +4109,7 @@ function app() {
             }
             case 'fixes_ready':
               this.fixes = d.fixes || [];
+              this.repairPlan = d.repair_plan || [];
               break;
             case 'failure_analysis':
               this.failureAnalysis = d;
