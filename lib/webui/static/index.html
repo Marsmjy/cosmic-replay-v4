@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>COSMIC REPLAY v4</title>
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
   <script src="/static/tailwind.js"></script>
   <script defer src="/static/alpine.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -708,7 +709,54 @@
               <div>
                 <div class="font-semibold text-lg" x-text="summary?.passed ? 'PASS' : 'FAIL'"></div>
                 <div class="text-xs text-slate-400"
-                     x-text="`${summary?.step_ok}/${summary?.step_count} 步通过 · 断言 ${summary?.assertion_ok}/${summary?.assertion_ok + summary?.assertion_fail} · 用时 ${summary?.duration_s}s`"></div>
+                     x-text="`${summary?.step_ok || 0}/${summary?.step_count || 0} 步通过 · 断言 ${summary?.assertion_ok || 0}/${(summary?.assertion_ok || 0) + (summary?.assertion_fail || 0)} · 用时 ${summary?.duration_s || 0}s`"></div>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="summary && summary?.passed"
+               class="bg-emerald-950/20 border border-emerald-800/60 rounded-lg p-4 mb-3">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-semibold shrink-0">✓</div>
+              <div class="flex-1">
+                <div class="text-emerald-100 font-medium">这条用例已通过执行验证</div>
+                <div class="text-sm text-slate-400 mt-1">
+                  保存/断言链路已跑通，可以作为当前环境的有效自动化用例使用。
+                  <span x-show="currentRunId()" class="mono text-xs text-slate-500 ml-1" x-text="'run_id: ' + currentRunId()"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="summary && !summary?.passed"
+               class="bg-rose-950/20 border border-rose-800/60 rounded-lg p-4 mb-3">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-semibold shrink-0">!</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-rose-100 font-medium">这次没有跑通，系统已定位下一步</div>
+                <div class="text-sm text-slate-400 mt-1">
+                  <span x-show="failedPhase()">失败位置：</span>
+                  <span class="text-slate-200" x-text="failedPhase()?.label || '执行初始化/连接阶段'"></span>
+                  <span x-show="failedPhase()?.detail" class="text-slate-500 mono text-xs ml-1" x-text="failedPhase()?.detail"></span>
+                </div>
+                <div class="text-sm text-slate-300 mt-2" x-show="failureAnalysis?.root_cause" x-text="failureAnalysis?.root_cause"></div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <button x-show="safeRepairCount() > 0"
+                          @click="applySafeRepairsAndRerun()"
+                          :disabled="repairApplying"
+                          class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-3 py-1.5 rounded text-sm">
+                    <span x-text="repairApplying ? '处理中...' : `应用 ${safeRepairCount()} 条安全修复并重跑`"></span>
+                  </button>
+                  <button x-show="repairPlan.length > 0 && safeRepairCount() === 0"
+                          @click="document.getElementById('repair-plan-panel')?.scrollIntoView({behavior:'smooth', block:'start'})"
+                          class="border border-amber-800 text-amber-200 hover:bg-amber-950 px-3 py-1.5 rounded text-sm">
+                    查看需确认的修复项
+                  </button>
+                  <button @click="detailTab='yaml'"
+                          class="border border-slate-700 text-slate-300 hover:bg-slate-800 px-3 py-1.5 rounded text-sm">
+                    查看 YAML
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -879,6 +927,7 @@
           </div>
 
           <div x-show="repairPlan.length > 0"
+               id="repair-plan-panel"
                class="bg-slate-900 border border-emerald-900/40 rounded-lg overflow-hidden mb-3">
             <div class="px-4 py-3 border-b border-slate-800 bg-emerald-950/20">
               <div class="text-emerald-200 font-medium flex items-center gap-2">
@@ -907,6 +956,11 @@
                             :disabled="!rp.safe_to_apply || rp.applied"
                             class="px-3 py-1.5 rounded text-xs bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white">
                       <span x-text="rp.applied ? '已应用' : '应用'"></span>
+                    </button>
+                    <button @click="applyRepairAndRerun(rp)"
+                            :disabled="!rp.safe_to_apply || rp.applied || repairApplying"
+                            class="px-3 py-1.5 rounded text-xs border border-sky-700 text-sky-200 hover:bg-sky-950 disabled:border-slate-700 disabled:text-slate-500">
+                      应用并重跑
                     </button>
                   </div>
                   <pre class="bg-slate-950 border border-slate-800 rounded p-3 text-xs mono whitespace-pre-wrap overflow-x-auto"
@@ -1236,8 +1290,66 @@
         <span>离线模式，使用本地知识库</span>
       </div>
 
+      <!-- 用户侧主结论：默认只回答“能不能生成、下一步做什么” -->
+      <div class="border rounded-2xl p-4"
+           :class="harReadiness().cardClass">
+        <div class="flex flex-col lg:flex-row items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-semibold text-lg shrink-0"
+               :class="harReadiness().iconClass"
+               x-text="harReadiness().icon"></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-base font-semibold text-slate-100" x-text="harReadiness().title"></span>
+              <span class="text-xs px-2 py-0.5 rounded-full" :class="harReadiness().badgeClass" x-text="harReadiness().badge"></span>
+            </div>
+            <div class="text-sm text-slate-400" x-text="harReadiness().detail"></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+              <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500">变量</div>
+                <div class="text-lg text-slate-100" x-text="harVarConfig.length"></div>
+              </div>
+              <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500">环境字段</div>
+                <div class="text-lg text-slate-100" x-text="harEnvStats().total"></div>
+              </div>
+              <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500">需确认</div>
+                <div class="text-lg" :class="harEnvStats().needConfirm ? 'text-amber-300' : 'text-emerald-300'" x-text="harEnvStats().needConfirm"></div>
+              </div>
+              <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                <div class="text-xs text-slate-500">未知组件</div>
+                <div class="text-lg" :class="(harPreview?.components?.summary?.unsupported_steps || 0) ? 'text-rose-300' : 'text-emerald-300'"
+                     x-text="harPreview?.components?.summary?.unsupported_steps || 0"></div>
+              </div>
+            </div>
+          </div>
+          <div class="w-full lg:w-72 shrink-0 space-y-2">
+            <label class="block text-xs text-slate-500">用例名</label>
+            <input type="text" x-model="harCaseName"
+                   class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 mono text-sm"
+                   placeholder="用例文件名">
+            <div class="flex gap-2">
+              <button @click="resolveHarEnvFields()"
+                      x-show="harEnvStats().pending > 0 && metadataStatus === 'online'"
+                      :disabled="harResolvingFields"
+                      class="flex-1 px-3 py-2 rounded text-sm border border-sky-800 text-sky-200 hover:bg-sky-950 disabled:opacity-50">
+                <span x-text="harResolvingFields ? '解析中...' : '先解析字段'"></span>
+              </button>
+              <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
+                      class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-3 py-2 rounded text-sm">
+                生成 YAML
+              </button>
+            </div>
+            <button @click="harAdvancedOpen = !harAdvancedOpen"
+                    class="w-full text-xs text-slate-400 hover:text-slate-200 py-1">
+              <span x-text="harAdvancedOpen ? '收起高级诊断' : '查看高级诊断'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- ⭐ HAR 导入质量评分 -->
-      <div x-show="harPreview?.quality"
+      <div x-show="harAdvancedOpen && harPreview?.quality"
            class="bg-slate-950 border rounded-lg p-4"
            :class="harPreview?.quality?.blocking ? 'border-amber-700/60' : 'border-emerald-800/60'">
         <div class="flex items-start gap-4">
@@ -1292,7 +1404,7 @@
         </div>
       </div>
 
-	      <div class="grid grid-cols-4 gap-3">
+	      <div x-show="harAdvancedOpen" class="grid grid-cols-4 gap-3">
 	        <div class="bg-slate-950 border border-slate-800 rounded p-3">
 	          <div class="text-xs text-slate-400">主表单</div>
 	          <div class="mono text-sm mt-1" x-text="harPreview?.main_form_id || '未识别'"></div>
@@ -1312,7 +1424,7 @@
 	      </div>
 
 	      <!-- 第三阶段：组件雷达 -->
-	      <div x-show="harPreview?.components"
+	      <div x-show="harAdvancedOpen && harPreview?.components"
 	           class="bg-slate-950 border border-cyan-900/50 rounded-lg p-4">
 	        <div class="flex items-start justify-between gap-4">
 	          <div>
@@ -1501,7 +1613,8 @@
         </div>
       </div>
 
-      <div class="space-y-1 max-h-72 overflow-y-auto scrollbar-thin border border-slate-800 rounded-lg p-2">
+      <div x-show="harAdvancedOpen"
+           class="space-y-1 max-h-72 overflow-y-auto scrollbar-thin border border-slate-800 rounded-lg p-2">
         <template x-for="(s, i) in harPreview?.steps || []" :key="i">
           <div class="flex items-start gap-2 px-2 py-1 rounded hover:bg-slate-800/50 text-sm">
             <span class="w-2 h-2 rounded-full mt-1.5"
@@ -1535,12 +1648,16 @@
 
       <div class="flex items-center justify-between pt-2 border-t border-slate-800">
         <div class="text-xs text-slate-400">
-          默认只保留核心 step + UI 联动（UI 联动会标 optional）。噪声全部过滤。
+          默认已保留核心 step 并过滤噪声；高级诊断仅在排查时查看。
         </div>
         <div class="flex gap-2">
           <button @click="harStep=1" class="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100">← 返回</button>
-          <button @click="harStep=3" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded text-sm shadow-lg shadow-sky-900/30 hover:-translate-y-0.5 transition-all">
-            下一步 →
+          <button @click="harStep=3" class="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100">
+            只改名称
+          </button>
+          <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
+                  class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-4 py-1.5 rounded text-sm shadow-lg shadow-emerald-900/20 hover:-translate-y-0.5 transition-all">
+            生成 YAML
           </button>
         </div>
       </div>
@@ -1727,7 +1844,8 @@
   </div>
 
   <!-- 任务详情视图 -->
-  <div x-show="batchView==='detail' && taskDetail">
+  <template x-if="batchView==='detail' && taskDetail">
+  <div>
     <!-- 头部：返回 + 任务名 + 状态 -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
@@ -1842,6 +1960,7 @@
       </button>
     </div>
   </div>
+  </template>
 
   </div><!-- end batchSubTab==='run' -->
 
@@ -2614,6 +2733,7 @@ function app() {
     repairPlan: [],
     failureAnalysis: null,
     running: false,
+    repairApplying: false,
     selectedStep: null,
     resolved_vars: [],
     envFields: [],
@@ -2635,6 +2755,7 @@ function app() {
 	    harPickFields: [],    // ⭐ 环境相关字段（从 preview 初始化，用户可编辑）
 	    harResolvingFields: false,
 	    metadataStatus: 'offline',  // ⭐ 元数据增强状态: online/offline/degraded
+	    harAdvancedOpen: false,
 	    dropHover: false,
 
     // Dashboard 增强
@@ -3362,12 +3483,108 @@ function app() {
       return '';
     },
 
+    harEnvStats() {
+      const fields = this.harPickFields || [];
+      const isNeedConfirm = (pf) => {
+        const status = pf.resolve_status || 'pending';
+        return status === 'ambiguous' || status === 'not_found' || status === 'error' || (pf.env_sensitive === 'high' && !pf.value_id);
+      };
+      return {
+        total: fields.length,
+        auto: fields.filter(pf => pf.auto_resolve).length,
+        resolved: fields.filter(pf => pf.resolve_status === 'resolved').length,
+        pending: fields.filter(pf => pf.auto_resolve && (!pf.resolve_status || pf.resolve_status === 'pending')).length,
+        needConfirm: fields.filter(isNeedConfirm).length,
+      };
+    },
+
+    harReadiness() {
+      const score = this.harPreview?.quality?.score || 0;
+      const blocking = !!this.harPreview?.quality?.blocking;
+      const unsupported = this.harPreview?.components?.summary?.unsupported_steps || 0;
+      const env = this.harEnvStats();
+      if (blocking || unsupported > 0) {
+        return {
+          level: 'blocked',
+          icon: '!',
+          title: '建议先确认风险',
+          detail: unsupported > 0
+            ? `发现 ${unsupported} 个未知组件，仍可生成 YAML，但建议先查看高级诊断。`
+            : '主链路或保存动作存在高风险，仍可生成 YAML，但建议先确认提示项。',
+          badge: '需处理',
+          cardClass: 'border-rose-700/70 bg-rose-950/20',
+          badgeClass: 'bg-rose-900/60 text-rose-200',
+          iconClass: 'bg-rose-500 text-white',
+        };
+      }
+      if (env.needConfirm > 0) {
+        return {
+          level: 'review',
+          icon: '?',
+          title: '可生成，但有环境字段需确认',
+          detail: `${env.needConfirm} 个环境字段需要确认 value_id；确认后跨环境执行更稳。`,
+          badge: '需确认',
+          cardClass: 'border-amber-700/70 bg-amber-950/20',
+          badgeClass: 'bg-amber-900/60 text-amber-200',
+          iconClass: 'bg-amber-500 text-slate-950',
+        };
+      }
+      if (env.pending > 0 && this.metadataStatus === 'online') {
+        return {
+          level: 'resolve',
+          icon: '~',
+          title: '建议先一键解析环境字段',
+          detail: `${env.pending} 个字段可用当前环境自动解析；也可以直接生成，运行时仍会兜底解析。`,
+          badge: '可优化',
+          cardClass: 'border-sky-700/70 bg-sky-950/20',
+          badgeClass: 'bg-sky-900/60 text-sky-200',
+          iconClass: 'bg-sky-500 text-white',
+        };
+      }
+      if (score >= 85) {
+        return {
+          level: 'ready',
+          icon: '✓',
+          title: '已解析，可直接生成 YAML',
+          detail: '变量、环境字段和核心步骤已完成识别；生成后即可运行验证。',
+          badge: '可执行',
+          cardClass: 'border-emerald-700/70 bg-emerald-950/20',
+          badgeClass: 'bg-emerald-900/60 text-emerald-200',
+          iconClass: 'bg-emerald-500 text-white',
+        };
+      }
+      return {
+        level: 'review',
+        icon: '?',
+        title: '已解析，建议快速确认',
+        detail: '解析结果可生成 YAML；如执行失败，系统会自动归因并给出修复建议。',
+        badge: '可生成',
+        cardClass: 'border-slate-700 bg-slate-950/60',
+        badgeClass: 'bg-slate-800 text-slate-300',
+        iconClass: 'bg-slate-600 text-white',
+      };
+    },
+
+    safeRepairCount() {
+      return (this.repairPlan || []).filter(rp => rp.safe_to_apply && !rp.applied).length;
+    },
+
+    failedPhase() {
+      return this.phases.find(p => p.status === 'fail' && !String(p.id || '').startsWith('assert:'))
+        || this.phases.find(p => p.status === 'fail')
+        || null;
+    },
+
+    currentRunId() {
+      return this.currentCase?.name ? (this.activeRuns[this.currentCase.name]?.runId || '') : '';
+    },
+
     copyPatch(txt) {
       navigator.clipboard.writeText(txt);
       this.showToast('已复制到剪贴板');
     },
 
-    async applyRepair(repair) {
+    async applyRepair(repair, opts = {}) {
       if (!this.currentCase?.name || !repair?.safe_to_apply) return;
       try {
         const resp = await fetch(`/api/cases/${encodeURIComponent(this.currentCase.name)}/repairs/apply`, {
@@ -3384,9 +3601,44 @@ function app() {
         this.yamlSource = data.yaml || this.yamlSource;
         this.yamlDirty = false;
         await this.loadCases();
-        this.showToast(data.message || '修复已应用');
+        if (!opts.silent) this.showToast(data.message || '修复已应用');
+        return true;
       } catch (e) {
         this.showToast('应用失败: ' + e.message);
+      }
+      return false;
+    },
+
+    async applyRepairAndRerun(repair) {
+      if (this.repairApplying) return;
+      this.repairApplying = true;
+      try {
+        const ok = await this.applyRepair(repair, {silent: true});
+        if (!ok) return;
+        this.showToast('修复已应用，正在重新执行');
+        await this.runCase(this.currentCase.name);
+      } finally {
+        this.repairApplying = false;
+      }
+    },
+
+    async applySafeRepairsAndRerun() {
+      if (!this.currentCase?.name || this.repairApplying) return;
+      const repairs = (this.repairPlan || []).filter(rp => rp.safe_to_apply && !rp.applied);
+      if (!repairs.length) {
+        this.showToast('没有可一键应用的安全修复');
+        return;
+      }
+      this.repairApplying = true;
+      try {
+        for (const repair of repairs) {
+          const ok = await this.applyRepair(repair, {silent: true});
+          if (!ok) return;
+        }
+        this.showToast(`已应用 ${repairs.length} 条安全修复，正在重新执行`);
+        await this.runCase(this.currentCase.name);
+      } finally {
+        this.repairApplying = false;
       }
     },
 
@@ -3401,6 +3653,7 @@ function app() {
 	      this.harPickFields = [];
 	      this.harResolvingFields = false;
 	      this.metadataStatus = 'offline';
+	      this.harAdvancedOpen = false;
 	      this.dropHover = false;
 	    },
 
@@ -3440,6 +3693,7 @@ function app() {
         this.harPickFields = (data.preview.pick_fields || []).map(pf => ({...pf}))
             .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
         this.harCaseName = file.name.replace(/\.har$/i, '');
+        this.harAdvancedOpen = false;
 	        this.harStep = 2;
 	      } catch (e) {
 	        this.showToast('上传失败: ' + e.message);

@@ -128,3 +128,22 @@
   - `pytest -q tests/unit/test_har_regression.py`：5 passed
   - `pytest -q tests/unit tests/test_core.py`：191 passed
   - `python -m py_compile lib/har_regression.py scripts/har_regression_report.py ...`：通过
+
+## 2026-05-18 第七阶段
+
+- 按用户视角完成 UI 产品化收口：
+  - 导入 HAR 后先显示“导入验收结论”，回答“是否可生成 YAML / 是否需确认环境字段 / 是否有未知组件”
+  - 预览页支持直接编辑用例名并生成 YAML，不再必须进入第三步
+  - 质量评分、组件雷达、主表单/step 统计和原始步骤列表改为默认折叠的“高级诊断”
+  - 变量配置和环境字段配置保留在主路径，避免隐藏用户真正需要确认的内容
+- 优化执行结果页：
+  - 执行成功时展示“已通过执行验证”和 run_id
+  - 执行失败时前置展示失败位置、自动归因根因和下一步动作
+  - 自动修复计划新增“应用并重跑”
+  - 失败总览新增“应用 N 条安全修复并重跑”
+- 顺手修复 UI 初始化噪声：
+  - 批量任务详情区从 `x-show` 改为 `x-if`，避免 `taskDetail=null` 时 Alpine 表达式误报
+  - 增加 favicon 指向 `/static/logo.svg`，避免浏览器默认请求 `/favicon.ico` 产生无关 404
+- 验证：
+  - Playwright + 本机 Chrome 导入企业 HAR 前端烟测：验收结论、生成 YAML、高级诊断、变量、环境字段均可见，无相关 console error
+  - Playwright 模拟执行失败状态：失败位置、下一步建议、应用安全修复并重跑均可见，无 console error
