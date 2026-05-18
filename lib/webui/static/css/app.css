@@ -16,6 +16,7 @@ html, body {
   --text-muted: #64748b;
   --border-color: #334155;
   --accent-color: #0ea5e9;
+  color-scheme: dark;
 }
 
 /* 亮色主题 */
@@ -29,12 +30,23 @@ html, body {
   --text-muted: #94a3b8;
   --border-color: #e2e8f0;
   --accent-color: #0ea5e9;
+  color-scheme: light;
 }
 
 body {
   font-family: -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: var(--bg-primary);
+  background:
+    radial-gradient(900px circle at 12% -10%, rgba(14, 165, 233, 0.14), transparent 42%),
+    radial-gradient(760px circle at 88% 8%, rgba(99, 102, 241, 0.12), transparent 38%),
+    linear-gradient(180deg, var(--bg-primary), #070b16 70%);
   color: var(--text-primary);
+}
+
+body.theme-light {
+  background:
+    radial-gradient(900px circle at 12% -10%, rgba(14, 165, 233, 0.12), transparent 42%),
+    radial-gradient(760px circle at 88% 8%, rgba(99, 102, 241, 0.10), transparent 38%),
+    linear-gradient(180deg, #f8fafc, #e2e8f0 70%);
 }
 
 /* ============= 输入框样式修复 ============= */
@@ -56,6 +68,16 @@ select:focus {
   border-color: var(--accent-color) !important;
   outline: none;
   box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
 /* placeholder 样式 */
@@ -259,6 +281,42 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   width: 20px;
   height: 20px;
   fill: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .nav-item {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  .stat-card {
+    padding: 18px 12px;
+    min-width: 0;
+  }
+
+  .stat-value {
+    font-size: 34px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .env-selector {
+    padding: 7px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* 亮色主题下的面板背景调整 */

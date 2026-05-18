@@ -147,3 +147,21 @@
 - 验证：
   - Playwright + 本机 Chrome 导入企业 HAR 前端烟测：验收结论、生成 YAML、高级诊断、变量、环境字段均可见，无相关 console error
   - Playwright 模拟执行失败状态：失败位置、下一步建议、应用安全修复并重跑均可见，无 console error
+
+## 2026-05-18 第八阶段
+
+- 完成整体 UI/UX 行业标准审计：
+  - 对照 Ant Design、IBM Carbon、Microsoft Fluent、GitLab Pajamas、NN/g 可用性启发式
+  - 新增 `UI_UX_AUDIT_REPORT.md`，沉淀当前 UI 优势、主要差距和后续优化路线
+- 完成低风险 UI 基础优化：
+  - 修复亮色主题 `body.theme-light` 背景选择器
+  - 统一暗/亮主题背景层次，保持现有宇宙品牌风格
+  - Header、Dashboard、用例详情、批量运行、日志详情、报告弹窗增加响应式布局
+  - 表格改为局部横向滚动容器，移动端不再产生页面级横向滚动
+  - 增加键盘 `focus-visible` 和 `prefers-reduced-motion` 支持
+- 验证：
+  - Desktop dashboard Playwright smoke：通过
+  - Mobile dashboard Playwright smoke：页面级横向滚动消除，表格局部滚动
+  - HAR preview Playwright smoke：企业 HAR 可预览，`描述` 字段识别为 `test_description`
+  - `pytest -q tests/unit tests/test_core.py`：191 passed
+  - `scripts/har_regression_report.py compare --fail-on-diff`：8 samples, changed 0

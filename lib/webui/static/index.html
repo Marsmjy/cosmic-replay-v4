@@ -246,7 +246,7 @@
       --color-text: #0F172A;
       --color-muted: #475569;
     }
-    .theme-light body {
+    body.theme-light {
       background: radial-gradient(ellipse at top, rgba(99,102,241,0.08) 0%, transparent 50%),
                   linear-gradient(to bottom, #F8FAFC, #E2E8F0);
     }
@@ -325,14 +325,14 @@
 
 <!-- ============= 顶栏 - v4 宇宙主题 ============= -->
 <header class="nav-glass sticky top-0 z-20">
-  <div class="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-3 flex flex-wrap lg:flex-nowrap items-center gap-3 lg:gap-6">
     <!-- Logo -->
     <div class="flex items-center cursor-pointer group" @click="view='dashboard'">
-      <img src="/static/logo.svg" alt="COSMIC REPLAY" class="h-10 transition-transform group-hover:scale-105">
+      <img src="/static/logo.svg" alt="COSMIC REPLAY" class="h-9 md:h-10 transition-transform group-hover:scale-105">
     </div>
     
     <!-- 导航 -->
-    <nav class="flex items-center gap-1 text-sm">
+    <nav class="flex flex-wrap items-center gap-1 text-sm order-3 w-full sm:order-none sm:w-auto">
       <a class="nav-item" :class="{ 'active': view==='import_har' }" @click="openHarWizard()">导入 HAR</a>
       <a class="nav-item" :class="{ 'active': view==='dashboard' }" @click="view='dashboard'">用例</a>
       <a class="nav-item" :class="{ 'active': view==='batch' }" @click="view='batch'">批量运行</a>
@@ -344,10 +344,10 @@
       </a>
     </nav>
     
-    <div class="flex-1"></div>
+    <div class="hidden lg:block flex-1"></div>
     
     <!-- 环境选择器 -->
-    <div class="env-selector">
+    <div class="env-selector ml-auto lg:ml-0">
       <span class="env-dot"></span>
       <span class="text-xs font-medium" x-text="currentEnvObj()?.name || currentEnv"></span>
       <select x-model="currentEnv" @change="confirmEnvChange()"
@@ -380,12 +380,12 @@
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-6 py-6 relative z-10">
+<main class="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-6 relative z-10">
 
   <!-- ========== Dashboard - v4 宇宙主题 ========== -->
   <section x-show="view==='dashboard'" class="fadein">
     <!-- 标题区 -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
         <h1 class="text-3xl font-bold mb-1" style="background: linear-gradient(135deg, #06B6D4, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">用例库</h1>
         <p class="text-sm text-slate-400">管理和执行HAR回放测试用例</p>
@@ -396,7 +396,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
       <div class="stat-card">
         <div class="stat-value" x-text="filteredCases().length"></div>
         <div class="stat-label">用例总数</div>
@@ -419,7 +419,7 @@
 
     <!-- 快速操作 -->
     <div class="glass-card p-4 mb-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <span class="text-2xl">⚡</span>
           <div>
@@ -427,7 +427,7 @@
             <div class="text-xs text-slate-400">常用功能快捷入口</div>
           </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <button @click="openHarWizard()" class="btn-secondary text-xs">📥 导入HAR</button>
           <button @click="view='batch'" class="btn-secondary text-xs">⚡ 批量运行</button>
           <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn-secondary text-xs">📊 查看报告</button>
@@ -437,10 +437,10 @@
 
     <!-- 搜索和筛选 -->
     <div class="glass-card p-4 mb-4">
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col md:flex-row md:items-center gap-3">
         <input type="text" x-model="caseSearch" @input="casePage=1" placeholder="搜索用例名称、表单、标签..." 
                class="input-glass flex-1 focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-500 focus:bg-slate-900/70 placeholder:text-slate-500">
-        <select x-model="caseSort" @change="casePage=1" class="input-glass w-32 text-xs">
+        <select x-model="caseSort" @change="casePage=1" class="input-glass w-full md:w-40 text-xs">
           <option value="created_at">按创建时间</option>
           <option value="name">按名称</option>
           <option value="mtime">按修改时间</option>
@@ -465,8 +465,8 @@
       </div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-      <table class="w-full text-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+      <table class="w-full min-w-[980px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
             <th class="text-left px-3 py-2 w-10">
@@ -571,7 +571,7 @@
       </button>
     </div>
     <!-- 分页控件 -->
-    <div class="flex items-center justify-between mt-6 px-2 py-3 border-t border-slate-800" x-show="casePageCount > 1">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 px-2 py-3 border-t border-slate-800" x-show="casePageCount > 1">
       <span class="text-sm text-slate-400">
         共 <span class="font-medium text-slate-300" x-text="filteredCases().length"></span> 条，
         第 <span class="font-medium text-slate-300" x-text="casePage"></span>/<span class="font-medium text-slate-300" x-text="casePageCount"></span> 页
@@ -639,8 +639,8 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-12 gap-4 h-[calc(100vh-260px)]">
-      <div class="col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-4 overflow-hidden flex flex-col">
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 xl:h-[calc(100vh-260px)]">
+      <div class="xl:col-span-5 bg-slate-900 border border-slate-800 rounded-lg p-4 overflow-hidden flex flex-col max-h-[48vh] xl:max-h-none">
         <div class="text-xs text-slate-400 uppercase mb-3">执行步骤</div>
         <div class="space-y-1.5 flex-1 overflow-y-auto scrollbar-thin pr-2">
           <template x-for="p in phases" :key="p.id">
@@ -672,7 +672,7 @@
         </div>
       </div>
 
-      <div class="col-span-7 space-y-3 overflow-y-auto scrollbar-thin">
+      <div class="xl:col-span-7 space-y-3 overflow-y-auto scrollbar-thin">
         <!-- ⭐ Tab 切换：运行结果 | 变量面板 | YAML 编辑器 -->
         <div class="flex gap-1 border-b border-slate-800">
           <button class="px-4 py-2 text-sm -mb-px border-b-2"
@@ -1370,7 +1370,7 @@
                     x-text="harPreview?.quality?.blocking ? '建议确认后生成' : '适合直接生成'"></span>
             </div>
             <div class="text-sm text-slate-400" x-text="harPreview?.quality?.summary"></div>
-            <div class="grid grid-cols-4 gap-2 mt-3">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
               <template x-for="d in harPreview?.quality?.dimensions || []" :key="d.name">
                 <div class="bg-slate-900 rounded px-2 py-1.5">
                   <div class="flex justify-between text-xs mb-1">
@@ -1404,7 +1404,7 @@
         </div>
       </div>
 
-	      <div x-show="harAdvancedOpen" class="grid grid-cols-4 gap-3">
+	      <div x-show="harAdvancedOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 	        <div class="bg-slate-950 border border-slate-800 rounded p-3">
 	          <div class="text-xs text-slate-400">主表单</div>
 	          <div class="mono text-sm mt-1" x-text="harPreview?.main_form_id || '未识别'"></div>
@@ -1448,7 +1448,7 @@
 	            <div class="text-xs text-slate-500">组件覆盖率</div>
 	          </div>
 	        </div>
-	        <div class="grid grid-cols-4 gap-2 mt-3">
+	        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
 	          <div class="bg-slate-900 rounded px-3 py-2">
 	            <div class="text-xs text-slate-500">总步骤</div>
 	            <div class="text-lg text-slate-200" x-text="harPreview?.components?.summary?.total_steps || 0"></div>
@@ -1708,9 +1708,9 @@
 
   <!-- 用例列表视图 -->
   <div x-show="batchView==='list'">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <h1 class="text-2xl font-semibold">批量运行</h1>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <button @click="batchPagedCases.forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
                 class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
           选当页
@@ -1764,8 +1764,8 @@
     </div>
 
 
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-      <table class="w-full text-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+      <table class="w-full min-w-[720px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
             <th class="text-left px-4 py-2 w-10"></th>
@@ -1821,7 +1821,7 @@
     </div>
 
     <!-- 分页控件 -->
-    <div class="flex items-center justify-between mt-6 px-2 py-3 border-t border-slate-800" x-show="batchPageCount > 1">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 px-2 py-3 border-t border-slate-800" x-show="batchPageCount > 1">
       <span class="text-sm text-slate-400">
         共 <span class="font-medium text-slate-300" x-text="cases.length"></span> 条，
         第 <span class="font-medium text-slate-300" x-text="batchPage"></span>/<span class="font-medium text-slate-300" x-text="batchPageCount"></span> 页
@@ -1847,8 +1847,8 @@
   <template x-if="batchView==='detail' && taskDetail">
   <div>
     <!-- 头部：返回 + 任务名 + 状态 -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div class="flex items-center gap-3 min-w-0">
         <button @click="batchView='list'; batchSubTab='history'; loadTaskHistory()" class="text-slate-400 hover:text-slate-100 text-lg">←</button>
         <h1 class="text-2xl font-semibold" x-text="taskDetail.name || '批量执行'"></h1>
       </div>
@@ -1894,8 +1894,8 @@
     </div>
 
     <!-- 用例结果表格 -->
-    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-      <table class="w-full text-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto scrollbar-thin">
+      <table class="w-full min-w-[860px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
             <th class="text-left px-4 py-2 w-12">#</th>
@@ -2336,9 +2336,9 @@
         <span class="text-xs text-slate-500" x-text="`共 ${runHistory.length} 条`"></span>
       </div>
 
-      <div class="grid grid-cols-12 gap-3">
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-3">
         <!-- 左：列表 -->
-        <div class="col-span-5 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+        <div class="xl:col-span-5 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
           <div class="max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin">
             <template x-for="r in runHistory" :key="r.run_id">
               <div :id="'run-' + r.run_id"
@@ -2365,7 +2365,7 @@
           </div>
         </div>
         <!-- 右：详情（左右分栏布局） -->
-        <div class="col-span-7 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex flex-col">
+        <div class="xl:col-span-7 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex flex-col">
           <div x-show="!selectedRunId" class="text-slate-500 text-sm py-12 text-center flex-1 flex items-center justify-center">
             ← 点左侧一条历史查看执行详情
           </div>
@@ -2411,9 +2411,9 @@
                 </div>
               </div>
               <!-- 主体区域：左右分栏 -->
-              <div class="flex-1 flex overflow-hidden">
+              <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
                 <!-- 左侧：步骤列表 -->
-                <div class="w-2/5 border-r border-slate-800 overflow-y-auto scrollbar-thin p-2 space-y-1">
+                <div class="w-full md:w-2/5 border-b md:border-b-0 md:border-r border-slate-800 overflow-y-auto scrollbar-thin p-2 space-y-1 max-h-72 md:max-h-none">
                   <div class="text-xs text-slate-400 uppercase mb-2 px-1">执行步骤</div>
                   <template x-for="p in historyPhases" :key="p.id">
                     <div class="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-slate-800/50 cursor-pointer"
@@ -2438,7 +2438,7 @@
                   </template>
                 </div>
                 <!-- 右侧：步骤详情 -->
-                <div class="w-3/5 overflow-y-auto scrollbar-thin p-3">
+                <div class="w-full md:w-3/5 overflow-y-auto scrollbar-thin p-3">
                   <div x-show="!selectedHistoryStep" class="text-slate-500 text-sm py-8 text-center">
                     ← 点击左侧步骤查看接口详情
                   </div>
@@ -2514,7 +2514,7 @@
         <div class="overflow-y-auto flex-1 min-h-0">
         <!-- 关键指标卡片 -->
         <div class="px-6 py-5 border-b border-slate-700/50">
-          <div class="grid grid-cols-4 gap-5">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
             <div class="bg-gray-800/80 rounded-xl p-4 text-center border border-gray-700/50">
               <div class="text-2xl font-bold text-white" x-text="currentReport?.summary?.total_cases || 0"></div>
               <div class="text-xs text-gray-400 mt-1.5">总用例</div>
@@ -2539,7 +2539,7 @@
         <!-- 错误分类 -->
         <div x-show="currentReport?.error_breakdown && Object.values(currentReport.error_breakdown).some(v => v > 0)" class="px-6 py-4 border-b border-slate-700/50">
           <h4 class="text-sm font-medium text-gray-300 mb-3">错误分类</h4>
-          <div class="grid grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="bg-amber-900/30 border border-amber-700/50 rounded-lg p-3 text-center">
               <div class="text-lg font-bold text-amber-400" x-text="currentReport?.error_breakdown?.business || 0"></div>
               <div class="text-xs text-gray-400">业务断言</div>
@@ -2561,7 +2561,7 @@
 
         <!-- 图表区域 -->
         <div class="px-6 py-5 border-b border-slate-700/50">
-          <div class="grid grid-cols-2 gap-5 mb-5">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             <!-- 通过/失败饼图 -->
             <div class="bg-gray-800/50 rounded-xl p-4">
               <h4 class="text-xs text-gray-400 mb-2">通过/失败分布</h4>
@@ -2602,7 +2602,7 @@
             <div class="text-sm text-gray-400 mb-3">
               平均步骤耗时: <span class="text-white font-medium" x-text="(currentReport?.performance?.avg_step_duration_s || 0).toFixed(3) + 's'"></span>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- 最慢用例 -->
               <div>
                 <div class="text-xs text-red-400 mb-2 font-medium">最慢 Top 3</div>
@@ -2638,7 +2638,8 @@
         <!-- 用例详情列表 -->
         <div class="px-6 py-5">
           <div class="text-sm font-medium text-slate-300 mb-3">用例执行详情</div>
-          <table class="w-full text-sm">
+          <div class="overflow-x-auto scrollbar-thin">
+          <table class="w-full min-w-[620px] text-sm">
             <thead class="text-xs text-slate-500">
               <tr>
                 <th class="text-left py-2">用例</th>
@@ -2668,6 +2669,7 @@
               </template>
             </tbody>
           </table>
+          </div>
         </div>
         
         <!-- 错误汇总 -->
