@@ -34,6 +34,14 @@ class CaseResult:
     error: str = ""
     error_category: str = ""  # business / technical / environment / framework / ""(无错误)
     phases: list[dict] = field(default_factory=list)  # 执行阶段详情
+    assertions: list[dict] = field(default_factory=list)
+    failure_analysis: dict = field(default_factory=dict)
+    repair_plan: list[dict] = field(default_factory=list)
+    env_fields: list[dict] = field(default_factory=list)
+    write_status: str = "not_checked"  # verified / unverified / failed / not_applicable / not_checked
+    write_evidence: dict = field(default_factory=dict)
+    next_action: str = "none"  # none / auto_repair / manual_confirm / ai_agent
+    ai_reason: str = ""
     
     def to_dict(self) -> dict:
         return {
@@ -45,7 +53,15 @@ class CaseResult:
             "duration_s": self.duration_s,
             "error": self.error,
             "error_category": self.error_category,
-            "phases": self.phases[:5] if self.phases else [],  # 只保留前5个关键阶段
+            "phases": self.phases[:20] if self.phases else [],
+            "assertions": self.assertions[:10] if self.assertions else [],
+            "failure_analysis": self.failure_analysis,
+            "repair_plan": self.repair_plan,
+            "env_fields": self.env_fields[:20] if self.env_fields else [],
+            "write_status": self.write_status,
+            "write_evidence": self.write_evidence,
+            "next_action": self.next_action,
+            "ai_reason": self.ai_reason,
         }
 
 
@@ -144,6 +160,10 @@ class ExecutionReport:
     avg_step_duration_s: float = 0.0
     slowest_cases: list = field(default_factory=list)  # [{"name": "xxx", "duration_s": 13.9}, ...]
     fastest_cases: list = field(default_factory=list)   # [{"name": "xxx", "duration_s": 1.2}, ...]
+
+    # 产品化验收
+    acceptance: dict = field(default_factory=dict)
+    action_queues: dict = field(default_factory=dict)
     
     def __post_init__(self):
         if not self.report_id:
@@ -177,6 +197,8 @@ class ExecutionReport:
                 "slowest_cases": self.slowest_cases,
                 "fastest_cases": self.fastest_cases,
             },
+            "acceptance": self.acceptance,
+            "action_queues": self.action_queues,
         }
 
 
@@ -266,6 +288,8 @@ class TaskManager:
         report.pass_rate = (report.passed_cases / report.total_cases) if report.total_cases > 0 else 0
         
         # 用例详情
+        for result in task.results:
+            enrich_case_result(result)
         report.case_results = [r.to_dict() for r in task.results]
         
         # 错误汇总
@@ -304,6 +328,8 @@ class TaskManager:
         sorted_by_duration = sorted(task.results, key=lambda r: r.duration_s, reverse=True)
         report.slowest_cases = [{"name": r.name, "duration_s": r.duration_s} for r in sorted_by_duration[:3]]
         report.fastest_cases = [{"name": r.name, "duration_s": r.duration_s} for r in sorted_by_duration[-3:]]
+        report.acceptance = build_acceptance_summary(task.results)
+        report.action_queues = build_action_queues(task.results)
         
         # 保存报告
         with self._lock:
@@ -327,3 +353,163 @@ class TaskManager:
 
 # 全局任务管理器实例
 TASK_MANAGER = TaskManager(max_tasks=100)
+
+
+def enrich_case_result(result: CaseResult) -> None:
+    """Attach write verification and next-action metadata to a case result."""
+    result.write_status, result.write_evidence = infer_write_status(result)
+    if result.passed and result.write_status == "unverified":
+        result.next_action = "ai_agent"
+        result.ai_reason = "执行 PASS 但保存/提交响应缺少明确入库证据，需排查 pageId 链路或补入库断言。"
+    elif not result.passed:
+        safe_repairs = [r for r in result.repair_plan or [] if r.get("safe_to_apply")]
+        needs_confirm = [r for r in result.repair_plan or [] if not r.get("safe_to_apply")]
+        category = (result.failure_analysis or {}).get("category") or result.error_category
+        if safe_repairs:
+            result.next_action = "auto_repair"
+        elif needs_confirm:
+            result.next_action = "manual_confirm"
+        elif category in {"pageid_context", "unknown", "assertion_anchor_missing"}:
+            result.next_action = "ai_agent"
+            result.ai_reason = f"系统规则未生成安全修复，失败类型为 {category or 'unknown'}。"
+        else:
+            result.next_action = "manual_confirm"
+    else:
+        result.next_action = "none"
+
+
+def infer_write_status(result: CaseResult) -> tuple[str, dict]:
+    """Infer whether a passed case has enough evidence that data was written."""
+    write_phases = [p for p in result.phases or [] if _is_write_phase(p)]
+    evidence = {
+        "write_step_count": len(write_phases),
+        "checked": bool(write_phases),
+        "signals": [],
+    }
+    if not write_phases:
+        return "not_applicable", evidence
+    if not result.passed:
+        evidence["signals"].append("case_failed")
+        return "failed", evidence
+
+    for phase in write_phases:
+        response = phase.get("response")
+        text = _response_text(response)
+        compact_text = "".join(text.split()).lower()
+        if _is_empty_response(response, text):
+            evidence["signals"].append(f"{phase.get('id', '')}:empty_response")
+            continue
+        if _contains_any(
+            compact_text,
+            (
+                "pkvalue",
+                '"fid"',
+                "billid",
+                '"id":',
+                "saveresult",
+                '"success":true',
+                "'success':true",
+                "保存成功",
+                "操作成功",
+            ),
+        ):
+            evidence["signals"].append(f"{phase.get('id', '')}:write_token")
+            return "verified", evidence
+        if _contains_any(
+            compact_text,
+            ("bos_operationresult", "showfieldtips", '"success":false', "'success':false"),
+        ):
+            evidence["signals"].append(f"{phase.get('id', '')}:failure_dialog")
+            return "failed", evidence
+        evidence["signals"].append(f"{phase.get('id', '')}:non_empty_response")
+    return "unverified", evidence
+
+
+def build_acceptance_summary(results: list[CaseResult]) -> dict:
+    total = len(results)
+    passed = sum(1 for r in results if r.passed)
+    failed = total - passed
+    write_unverified = sum(1 for r in results if r.write_status == "unverified")
+    write_verified = sum(1 for r in results if r.write_status == "verified")
+    auto_repairable = sum(1 for r in results if r.next_action == "auto_repair")
+    manual_confirm = sum(1 for r in results if r.next_action == "manual_confirm")
+    ai_required = sum(1 for r in results if r.next_action == "ai_agent")
+    status = "ready" if failed == 0 and write_unverified == 0 else (
+        "needs_ai" if ai_required else "needs_repair"
+    )
+    if total == 0:
+        title = "暂无执行结果"
+    elif status == "ready":
+        title = "本次批量执行已通过验收"
+    elif ai_required:
+        title = "本次批量执行需要 AI 诊断介入"
+    else:
+        title = "本次批量执行存在待修复项"
+    return {
+        "status": status,
+        "title": title,
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "write_verified": write_verified,
+        "write_unverified": write_unverified,
+        "auto_repairable": auto_repairable,
+        "manual_confirm": manual_confirm,
+        "ai_required": ai_required,
+        "summary_text": (
+            f"共 {total} 条，通过 {passed} 条，失败 {failed} 条；"
+            f"入库已验证 {write_verified} 条，入库未验证 {write_unverified} 条；"
+            f"可自动修复 {auto_repairable} 条，需确认 {manual_confirm} 条，需 AI 诊断 {ai_required} 条。"
+        ),
+    }
+
+
+def build_action_queues(results: list[CaseResult]) -> dict:
+    queues = {"auto_repair": [], "manual_confirm": [], "ai_agent": [], "write_unverified": []}
+    for result in results:
+        item = {
+            "name": result.name,
+            "run_id": result.run_id,
+            "error": result.error,
+            "write_status": result.write_status,
+            "reason": result.ai_reason or (result.failure_analysis or {}).get("root_cause", ""),
+        }
+        if result.next_action in queues:
+            queues[result.next_action].append(item)
+        if result.write_status == "unverified":
+            queues["write_unverified"].append(item)
+    return queues
+
+
+def _is_write_phase(phase: dict) -> bool:
+    text = " ".join(
+        str(phase.get(k) or "") for k in ("id", "label", "detail")
+    ).lower()
+    req_text = _response_text(phase.get("resolved_request")).lower()
+    return _contains_any(
+        text + " " + req_text,
+        ("save", "submit", "保存", "提交", "btnsave", "saveandeffect", "submitandeffect"),
+    )
+
+
+def _response_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:
+        return str(value)
+
+
+def _is_empty_response(response: Any, text: str) -> bool:
+    if response is None:
+        return True
+    if response == [] or response == {}:
+        return True
+    return text.strip() in {"", "[]", "{}"}
+
+
+def _contains_any(text: str, patterns: tuple[str, ...]) -> bool:
+    return any(pattern in text for pattern in patterns)

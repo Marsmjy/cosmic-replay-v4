@@ -2512,6 +2512,87 @@
         
         <!-- 可滚动内容区 -->
         <div class="overflow-y-auto flex-1 min-h-0">
+        <!-- 验收结论 -->
+        <div class="px-6 py-5 border-b border-slate-700/50">
+          <div class="status-card"
+               :class="{
+                 'status-card-success': currentReport?.acceptance?.status === 'ready',
+                 'status-card-danger': currentReport?.acceptance?.status === 'needs_ai',
+                 'status-card-warning': currentReport?.acceptance?.status === 'needs_repair',
+                 'status-card-info': !currentReport?.acceptance?.status
+               }">
+            <div class="flex flex-col lg:flex-row lg:items-start gap-4">
+              <div class="status-icon"
+                   :class="{
+                     'bg-emerald-500 text-white': currentReport?.acceptance?.status === 'ready',
+                     'bg-rose-500 text-white': currentReport?.acceptance?.status === 'needs_ai',
+                     'bg-amber-500 text-slate-950': currentReport?.acceptance?.status === 'needs_repair',
+                     'bg-sky-500 text-white': !currentReport?.acceptance?.status
+                   }"
+                   x-text="reportAcceptanceIcon()"></div>
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="text-base font-semibold text-slate-100" x-text="currentReport?.acceptance?.title || '批量验收结论'"></div>
+                  <span class="status-badge bg-slate-800 text-slate-300" x-text="reportAcceptanceBadge()"></span>
+                </div>
+                <div class="text-sm text-slate-400 mt-1" x-text="currentReport?.acceptance?.summary_text || '暂无验收摘要'"></div>
+                <div class="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">失败</div>
+                    <div class="text-lg" :class="(currentReport?.acceptance?.failed || 0) ? 'text-rose-300' : 'text-emerald-300'" x-text="currentReport?.acceptance?.failed || 0"></div>
+                  </div>
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">入库已验证</div>
+                    <div class="text-lg text-emerald-300" x-text="currentReport?.acceptance?.write_verified || 0"></div>
+                  </div>
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">入库未验证</div>
+                    <div class="text-lg" :class="(currentReport?.acceptance?.write_unverified || 0) ? 'text-amber-300' : 'text-slate-300'" x-text="currentReport?.acceptance?.write_unverified || 0"></div>
+                  </div>
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">可自动修复</div>
+                    <div class="text-lg text-sky-300" x-text="currentReport?.acceptance?.auto_repairable || 0"></div>
+                  </div>
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">需确认</div>
+                    <div class="text-lg text-amber-300" x-text="currentReport?.acceptance?.manual_confirm || 0"></div>
+                  </div>
+                  <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
+                    <div class="text-xs text-slate-500">AI 诊断</div>
+                    <div class="text-lg" :class="(currentReport?.acceptance?.ai_required || 0) ? 'text-rose-300' : 'text-slate-300'" x-text="currentReport?.acceptance?.ai_required || 0"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="reportQueue('ai_agent').length || reportQueue('auto_repair').length || reportQueue('manual_confirm').length"
+               class="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-4">
+            <div x-show="reportQueue('auto_repair').length" class="bg-sky-950/20 border border-sky-800/60 rounded-lg p-3">
+              <div class="text-sm font-medium text-sky-200 mb-2">可自动修复</div>
+              <template x-for="item in reportQueue('auto_repair')" :key="item.name">
+                <div class="text-xs text-slate-300 truncate py-1" x-text="item.name" :title="item.error || item.name"></div>
+              </template>
+            </div>
+            <div x-show="reportQueue('manual_confirm').length" class="bg-amber-950/20 border border-amber-800/60 rounded-lg p-3">
+              <div class="text-sm font-medium text-amber-200 mb-2">需人工确认</div>
+              <template x-for="item in reportQueue('manual_confirm')" :key="item.name">
+                <div class="text-xs text-slate-300 truncate py-1" x-text="item.name" :title="item.error || item.name"></div>
+              </template>
+            </div>
+            <div x-show="reportQueue('ai_agent').length" class="bg-rose-950/20 border border-rose-800/60 rounded-lg p-3">
+              <div class="text-sm font-medium text-rose-200 mb-2">需 AI Agent 诊断</div>
+              <template x-for="item in reportQueue('ai_agent')" :key="item.name">
+                <div class="flex items-center gap-2 py-1">
+                  <span class="text-xs text-slate-300 truncate flex-1" x-text="item.name" :title="item.reason || item.error || item.name"></span>
+                  <a :href="agentEvidenceUrl(item.name)" target="_blank"
+                     class="text-xs text-rose-200 border border-rose-800 rounded px-2 py-0.5 hover:bg-rose-950">证据包</a>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
         <!-- 关键指标卡片 -->
         <div class="px-6 py-5 border-b border-slate-700/50">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
@@ -2639,11 +2720,13 @@
         <div class="px-6 py-5">
           <div class="text-sm font-medium text-slate-300 mb-3">用例执行详情</div>
           <div class="overflow-x-auto scrollbar-thin">
-          <table class="w-full min-w-[620px] text-sm">
+          <table class="w-full min-w-[860px] text-sm">
             <thead class="text-xs text-slate-500">
               <tr>
                 <th class="text-left py-2">用例</th>
                 <th @click="sortReportCases('status')" class="text-center py-2 w-16 cursor-pointer hover:text-sky-400">状态 ↕</th>
+                <th class="text-center py-2 w-24">入库证据</th>
+                <th class="text-left py-2 w-28">下一步</th>
                 <th class="text-right py-2 w-20">步骤</th>
                 <th @click="sortReportCases('duration')" class="text-right py-2 w-20 cursor-pointer hover:text-sky-400">耗时 ↕</th>
               </tr>
@@ -2662,6 +2745,20 @@
                   <td class="text-center py-2">
                     <span x-show="r.passed" class="text-emerald-400">PASS</span>
                     <span x-show="!r.passed" class="text-rose-400">FAIL</span>
+                  </td>
+                  <td class="text-center py-2">
+                    <span class="status-badge"
+                          :class="writeStatusClass(r.write_status)"
+                          x-text="writeStatusLabel(r.write_status)"></span>
+                  </td>
+                  <td class="py-2 text-xs">
+                    <a x-show="r.next_action === 'ai_agent'"
+                       :href="agentEvidenceUrl(r.name)"
+                       target="_blank"
+                       class="text-rose-300 hover:text-rose-200 underline">AI 证据包</a>
+                    <span x-show="r.next_action !== 'ai_agent'"
+                          class="text-slate-400"
+                          x-text="nextActionLabel(r.next_action)"></span>
                   </td>
                   <td class="text-right py-2 text-xs text-slate-400" x-text="r.step_ok + '/' + r.step_count"></td>
                   <td class="text-right py-2 text-xs text-slate-400" x-text="r.duration_s.toFixed(1) + 's'"></td>
@@ -3971,6 +4068,60 @@ function app() {
     exportReport() {
       if (!this.currentReport?.task_id) return;
       window.open(`/api/tasks/${this.currentReport.task_id}/report/export?format=html`, '_blank');
+    },
+
+    reportQueue(name) {
+      return this.currentReport?.action_queues?.[name] || [];
+    },
+
+    reportAcceptanceIcon() {
+      const status = this.currentReport?.acceptance?.status;
+      if (status === 'ready') return '✓';
+      if (status === 'needs_ai') return '!';
+      if (status === 'needs_repair') return '~';
+      return '?';
+    },
+
+    reportAcceptanceBadge() {
+      const status = this.currentReport?.acceptance?.status;
+      if (status === 'ready') return '可交付';
+      if (status === 'needs_ai') return '需 AI 诊断';
+      if (status === 'needs_repair') return '需修复';
+      return '待验收';
+    },
+
+    writeStatusLabel(status) {
+      return {
+        verified: '已验证',
+        unverified: '未验证',
+        failed: '失败',
+        not_applicable: '不适用',
+        not_checked: '未检查',
+      }[status || 'not_checked'] || status;
+    },
+
+    writeStatusClass(status) {
+      return {
+        verified: 'bg-emerald-900/60 text-emerald-300',
+        unverified: 'bg-amber-900/60 text-amber-300',
+        failed: 'bg-rose-900/60 text-rose-300',
+        not_applicable: 'bg-slate-800 text-slate-400',
+        not_checked: 'bg-slate-800 text-slate-400',
+      }[status || 'not_checked'] || 'bg-slate-800 text-slate-400';
+    },
+
+    nextActionLabel(action) {
+      return {
+        none: '无需处理',
+        auto_repair: '可自动修复',
+        manual_confirm: '需确认',
+        ai_agent: 'AI 诊断',
+      }[action || 'none'] || action;
+    },
+
+    agentEvidenceUrl(caseName) {
+      if (!this.currentReport?.task_id || !caseName) return '#';
+      return `/api/tasks/${encodeURIComponent(this.currentReport.task_id)}/agent-evidence/${encodeURIComponent(caseName)}`;
     },
 
     async loadReportTrend() {

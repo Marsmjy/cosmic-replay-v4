@@ -171,3 +171,33 @@
   - `pytest -q tests/unit tests/test_core.py`：192 passed
   - `scripts/har_regression_report.py compare --fail-on-diff`：8 samples, changed 0
   - `tests/unit/test_report_exporter.py`：覆盖导出报告无 CDN 引用
+
+## 2026-05-19 第九阶段
+
+- 完成批量执行报告验收化：
+  - `ExecutionReport` 增加 `acceptance` 和 `action_queues`
+  - `CaseResult` 增加断言、失败归因、修复计划、环境字段、入库状态、入库证据、下一步动作和 AI 原因
+  - 报告生成时自动识别 `write_status=verified/unverified/not_applicable/failed`
+  - 执行 PASS 但保存/提交响应为空或缺少写入信号时，进入 `ai_agent` 队列，不再被误判为完全交付
+- 优化批量任务事件采集：
+  - `step_start/step_ok/step_fail` 写入阶段明细
+  - `assertion_ok/assertion_fail` 写入断言结果
+  - `failure_analysis/fixes_ready/env_fields_resolved` 写入报告上下文
+- 优化批量报告 UI：
+  - 报告弹窗新增“验收结论”
+  - 新增自动修复、人工确认、AI Agent 三类行动队列
+  - 用例明细新增“入库证据”“下一步”和“AI 证据包”
+- 优化导出报告：
+  - HTML 报告同步展示验收结论、入库证据和下一步动作
+  - 保持离线资源内嵌，不引入 CDN 回归
+- 建立 AI Agent 修复证据包：
+  - 新增 `lib/agent_evidence.py`
+  - 新增 `/api/tasks/{task_id}/agent-evidence/{case_name}`
+  - 证据包包含 YAML、最近运行事件、失败事件、报告上下文、推荐技能、修复护栏和期望输出格式
+- 优化 `cosmic-replay-troubleshooter`：
+  - 新增“执行 PASS 但入库未验证（假成功）”排障类型
+  - 新增“AI Agent 修复升级协议”
+  - 明确 AI 修复不得删除 pageId 链路、不得放宽断言、不得更新回归基线掩盖问题
+- 验证：
+  - `./venv/bin/python -m pytest -q tests/unit tests/test_core.py`：196 passed
+  - `./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff`：8 samples, changed 0

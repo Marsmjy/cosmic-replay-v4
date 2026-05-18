@@ -46,6 +46,27 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
     </div>
 
     <!-- 关键指标卡片 -->
+    <div class="card rounded-lg p-6 mb-8" id="acceptance-section">
+      <div class="flex flex-col md:flex-row md:items-start gap-4">
+        <div id="acceptance-icon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0"></div>
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <h2 class="text-lg font-semibold text-white" id="acceptance-title"></h2>
+            <span class="text-xs rounded-full px-2 py-0.5 bg-slate-800 text-slate-300" id="acceptance-badge"></span>
+          </div>
+          <p class="text-sm text-gray-400" id="acceptance-summary"></p>
+          <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mt-4">
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">失败</div><div class="text-lg font-bold text-rose-300" id="acc-failed"></div></div>
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">入库已验证</div><div class="text-lg font-bold text-emerald-300" id="acc-write-ok"></div></div>
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">入库未验证</div><div class="text-lg font-bold text-amber-300" id="acc-write-risk"></div></div>
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">可自动修复</div><div class="text-lg font-bold text-sky-300" id="acc-auto"></div></div>
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">需确认</div><div class="text-lg font-bold text-amber-300" id="acc-manual"></div></div>
+            <div class="bg-gray-950/40 rounded-lg p-3 border border-gray-800"><div class="text-xs text-gray-500">AI 诊断</div><div class="text-lg font-bold text-rose-300" id="acc-ai"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       <div class="card rounded-lg p-4 text-center">
         <div class="text-xs text-gray-400 mb-1">总用例</div>
@@ -112,6 +133,8 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
             <tr>
               <th class="text-left px-6 py-3">用例名称</th>
               <th class="text-center px-4 py-3">状态</th>
+              <th class="text-center px-4 py-3">入库证据</th>
+              <th class="text-left px-4 py-3">下一步</th>
               <th class="text-right px-4 py-3">步骤</th>
               <th class="text-right px-4 py-3">耗时</th>
               <th class="text-left px-4 py-3">错误信息</th>
@@ -143,6 +166,28 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
       const errors = REPORT_DATA.errors || [];
       const errorBreakdown = REPORT_DATA.error_breakdown || {};
       const performance = REPORT_DATA.performance || {};
+      const acceptance = REPORT_DATA.acceptance || {};
+
+      // 验收结论
+      const accStatus = acceptance.status || 'unknown';
+      const accIcon = document.getElementById('acceptance-icon');
+      const accStyle = {
+        ready: ['✓', 'bg-emerald-600 text-white', '可交付'],
+        needs_ai: ['!', 'bg-rose-600 text-white', '需 AI 诊断'],
+        needs_repair: ['~', 'bg-amber-500 text-gray-950', '需修复'],
+        unknown: ['?', 'bg-sky-600 text-white', '待验收'],
+      }[accStatus] || ['?', 'bg-sky-600 text-white', '待验收'];
+      accIcon.textContent = accStyle[0];
+      accIcon.className += ' ' + accStyle[1];
+      document.getElementById('acceptance-title').textContent = acceptance.title || '批量验收结论';
+      document.getElementById('acceptance-badge').textContent = accStyle[2];
+      document.getElementById('acceptance-summary').textContent = acceptance.summary_text || '暂无验收摘要';
+      document.getElementById('acc-failed').textContent = acceptance.failed || 0;
+      document.getElementById('acc-write-ok').textContent = acceptance.write_verified || 0;
+      document.getElementById('acc-write-risk').textContent = acceptance.write_unverified || 0;
+      document.getElementById('acc-auto').textContent = acceptance.auto_repairable || 0;
+      document.getElementById('acc-manual').textContent = acceptance.manual_confirm || 0;
+      document.getElementById('acc-ai').textContent = acceptance.ai_required || 0;
 
       // 填充指标卡片
       document.getElementById('stat-total').textContent = summary.total_cases || 0;
@@ -245,6 +290,8 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
         return '<tr class="border-t border-slate-700/50 hover:bg-slate-800/30">' +
           '<td class="px-6 py-3 text-gray-200">' + escapeHtml(r.name) + '</td>' +
           '<td class="text-center px-4 py-3"><span class="' + statusClass + ' font-medium">' + statusText + '</span></td>' +
+          '<td class="text-center px-4 py-3"><span class="' + writeStatusClass(r.write_status) + '">' + writeStatusLabel(r.write_status) + '</span></td>' +
+          '<td class="px-4 py-3 text-xs text-gray-300">' + nextActionLabel(r.next_action) + '</td>' +
           '<td class="text-right px-4 py-3 text-gray-400">' + (r.step_ok || 0) + '/' + (r.step_count || 0) + '</td>' +
           '<td class="text-right px-4 py-3 text-gray-400">' + (r.duration_s || 0).toFixed(1) + 's</td>' +
           '<td class="px-4 py-3 text-xs text-rose-400 max-w-xs truncate">' + errorText + '</td>' +
@@ -273,6 +320,35 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function writeStatusLabel(status) {
+      return {
+        verified: '已验证',
+        unverified: '未验证',
+        failed: '失败',
+        not_applicable: '不适用',
+        not_checked: '未检查'
+      }[status || 'not_checked'] || status;
+    }
+
+    function writeStatusClass(status) {
+      return 'inline-block rounded-full px-2 py-0.5 text-xs ' + ({
+        verified: 'bg-emerald-900/70 text-emerald-300',
+        unverified: 'bg-amber-900/70 text-amber-300',
+        failed: 'bg-rose-900/70 text-rose-300',
+        not_applicable: 'bg-slate-800 text-slate-400',
+        not_checked: 'bg-slate-800 text-slate-400'
+      }[status || 'not_checked'] || 'bg-slate-800 text-slate-400');
+    }
+
+    function nextActionLabel(action) {
+      return {
+        none: '无需处理',
+        auto_repair: '可自动修复',
+        manual_confirm: '需确认',
+        ai_agent: 'AI 诊断'
+      }[action || 'none'] || action;
     }
   </script>
 </body>

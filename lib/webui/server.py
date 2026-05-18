@@ -100,6 +100,7 @@ from lib.config import Config, CONFIG_DIR
 from lib.runner import run_case, load_yaml
 from lib import har_extractor
 from lib.report_exporter import export_html
+from lib.agent_evidence import build_repair_evidence_package, save_repair_evidence_package
 from lib.session_manager import SESSION_MGR
 from lib.webui.log_store import LogStore, install_global_capture
 from lib.notifier import EmailNotifier
@@ -1344,17 +1345,68 @@ def api_start_task(task_id: str):
                 
                 def capture_event(evt_type, payload):
                     sess.emit(evt_type, payload)
+                    def _phase_id(step_id: str) -> str:
+                        return "step:" + str(step_id or "")
+
+                    def _phase(step_id: str) -> dict:
+                        pid = _phase_id(step_id)
+                        existing = next((p for p in result.phases if p.get("id") == pid), None)
+                        if existing is not None:
+                            return existing
+                        created = {"id": pid, "label": step_id, "detail": "", "status": "pending"}
+                        result.phases.append(created)
+                        return created
+
+                    if evt_type == "step_start":
+                        p = _phase(payload.get("id", ""))
+                        p.update({
+                            "label": payload.get("label") or payload.get("id") or "",
+                            "detail": payload.get("detail") or "",
+                            "status": "running",
+                            "optional": payload.get("optional", False),
+                            "resolved_request": payload.get("resolved_request"),
+                        })
                     if evt_type == "step_ok":
                         result.step_ok += 1
                         result.step_count += 1
+                        p = _phase(payload.get("id", ""))
+                        p.update({
+                            "status": "ok",
+                            "duration_ms": payload.get("duration_ms"),
+                            "response": payload.get("response"),
+                        })
                     elif evt_type == "step_fail":
                         result.step_count += 1
+                        p = _phase(payload.get("id", ""))
+                        p.update({
+                            "status": "fail",
+                            "duration_ms": payload.get("duration_ms"),
+                            "error": payload.get("error") or "; ".join(payload.get("errors") or []),
+                            "errors": payload.get("errors") or ([payload.get("error")] if payload.get("error") else []),
+                            "response": payload.get("response"),
+                        })
                         if not result.error:
                             result.error = payload.get("error", "步骤失败")
+                    elif evt_type in ("assertion_ok", "assertion_fail"):
+                        result.assertions.append({
+                            "type": payload.get("type", ""),
+                            "ok": evt_type == "assertion_ok",
+                            "msg": payload.get("msg", ""),
+                            "step": payload.get("step", ""),
+                            "step_label": payload.get("step_label", ""),
+                        })
+                    elif evt_type == "failure_analysis":
+                        result.failure_analysis = payload or {}
+                    elif evt_type == "fixes_ready":
+                        result.repair_plan = payload.get("repair_plan") or []
+                    elif evt_type == "env_fields_resolved":
+                        result.env_fields = payload.get("fields") or result.env_fields
                 
                 try:
                     run_result = run_case(case, on_event=capture_event)
                     result.passed = run_result.passed
+                    if not result.assertions:
+                        result.assertions = run_result.assertions
                     if not run_result.passed and not result.error:
                         failed_steps = [s for s in run_result.steps if not s.get("ok") and not s.get("optional")]
                         if failed_steps:
@@ -1493,6 +1545,45 @@ def api_export_report(task_id: str, format: str = "html"):
         )
 
     raise HTTPException(400, "Unsupported format")
+
+
+@APP.get("/api/tasks/{task_id}/agent-evidence/{case_name:path}")
+def api_task_agent_evidence(task_id: str, case_name: str):
+    """生成 AI Agent 修复证据包。"""
+    report = TASK_MANAGER.get_report_by_task(task_id)
+    if report:
+        report_data = report.to_dict()
+    else:
+        try:
+            report_data = REPORT_DAO.get_by_task_id(task_id)
+        except Exception:
+            report_data = None
+    if not report_data:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    case_result = next(
+        (item for item in report_data.get("case_results", []) if item.get("name") == case_name),
+        None,
+    )
+    if not case_result:
+        raise HTTPException(status_code=404, detail=f"Case not found in report: {case_name}")
+
+    run_id = case_result.get("run_id") or ""
+    run_events = LOG_STORE.read_run(run_id) if run_id else []
+    package = build_repair_evidence_package(
+        task_id=task_id,
+        case_name=case_name,
+        report_data=report_data,
+        case_path=case_path_from_name(case_name),
+        run_events=run_events,
+        skill_root=SKILL_ROOT,
+    )
+    evidence_path = save_repair_evidence_package(
+        package,
+        skill_path("logs/agent_evidence"),
+    )
+    package["evidence_path"] = str(evidence_path.relative_to(SKILL_ROOT))
+    return package
 
 
 @APP.get("/api/reports")

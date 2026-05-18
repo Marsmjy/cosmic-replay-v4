@@ -20,6 +20,7 @@
 | 10 | completed | 第六阶段：建立 8 类 HAR 回归样本库和规则变更影响报告门禁 |
 | 11 | completed | 第七阶段：用户侧产品化收口，优化导入验收结论、直接生成 YAML 和失败后修复重跑体验 |
 | 12 | completed | 第八阶段：整体 UI/UX 行业标准审计与低风险响应式、主题、可访问性基础优化 |
+| 13 | completed | 第九阶段：批量执行报告验收化，并建立 AI Agent 修复证据包与 troubleshooter 精准修复协议 |
 
 ## Constraints
 
@@ -83,6 +84,15 @@
   - 增加 `focus-visible` 与 `prefers-reduced-motion` 基础可访问性支持
   - 建立第一版轻量设计系统 class，并迁移 Dashboard 高频按钮、主表格和执行成功/失败状态卡
   - Web UI 使用本地 Chart.js，导出报告内嵌 Tailwind runtime 与 Chart.js，减少内网/CDN 依赖
+- 第九阶段已完成批量报告和 AI 修复升级：
+  - 批量报告增加 `acceptance` 验收结论，直接区分通过、失败、入库未验证、需人工确认和需 AI 修复
+  - `CaseResult` 增加断言、失败归因、修复计划、环境字段、写入状态、写入证据和下一步动作
+  - 批量任务执行时采集 step、断言、环境字段、失败分析和修复计划事件，用于生成更完整的报告
+  - Web UI 批量报告弹窗展示“验收结论”和行动队列，用户能直接进入自动修复、人工确认或 AI 证据包
+  - 导出 HTML 报告同步展示验收结论、入库证据和下一步动作
+  - 新增 `lib/agent_evidence.py` 与 `/api/tasks/{task_id}/agent-evidence/{case_name}`，为外部 AI agent 生成修复证据包
+  - `cosmic-replay-troubleshooter` 新增“假成功 / 入库未验证”和“AI Agent 修复升级协议”，强调不得破坏已成功用例
+  - 新增单测覆盖批量报告验收、入库未验证判定、AI 证据包生成和证据包 API
 
 ## Errors Encountered
 
@@ -96,3 +106,4 @@
 | 组件雷达对 2 个基准 HAR 报 unsupported | 扫描 8 个 HAR 的组件覆盖率 | 补充 `addsonlogicentity`、`ac=updateValue`、`saveSetting` 处理器，8 个基准 HAR 未覆盖步骤清零 |
 | 自动修复可能误改业务语义 | 设计第四阶段补丁应用策略 | 只有明确定位目标且 `safe_to_apply=true` 的补丁可一键应用；基础资料缺失但无 value_id 时只提示不应用 |
 | `基础资料-用人单位zaa` 的 `description/描述` 未变量化 | 检查生成 YAML 和 `getEntityType.do`/知识库链路 | 将实时元数据传入变量检测，并让 `kb_loader` 读取 cosmic-hr-expert 共享实体元数据；保存 `post_data` 不再只处理唯一字段 |
+| 执行 PASS 但无法证明数据入库 | 批量报告只看 passed/failed，无法表达 pageId 链路假成功 | 新增 `write_status=unverified`、入库证据、行动队列和 AI 证据包，PASS 但保存响应空或缺少写入信号时不再视为可交付 |

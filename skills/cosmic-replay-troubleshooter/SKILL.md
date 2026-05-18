@@ -13,6 +13,8 @@ triggers:
   - pick_fields
   - save失败
   - 入库失败
+  - 假成功
+  - AI证据包
   - 排故
   - invoke失败
 ---
@@ -364,9 +366,96 @@ pick_fields:
 
 **修复**: 编辑 `config/envs/*.yaml` 或 Web UI → 配置 → 环境列表。
 
+### 类型G：执行 PASS 但入库未验证（假成功）
+
+**症状**：
+- 执行结果是 PASS，但用户在业务系统查不到数据。
+- save/click 保存步骤响应为空数组 `[]` 或缺少 `pkValue` / `fid` / `billId` 等写库 token。
+- 断言只用了 `no_error_actions`，没有 `no_save_failure` 或入库回查断言。
+- 批量报告中 `write_status = unverified`，`next_action = ai_agent`。
+
+**根因候选**：
+1. PageId 链路不对，保存请求打到了 L2/root/list 上下文，服务端返回空响应。
+2. HAR 解析遗漏了列表→编辑态桥接步骤，导致表单上下文不是录制时的上下文。
+3. 保存动作被标记为 optional 或断言盲区未覆盖字段级错误。
+4. 数据实际被写到另一个组织/实体上下文，当前唯一字段回查不到。
+
+**诊断步骤**：
+1. 打开批量报告 → 查看“入库未验证”和“AI 证据包”。
+2. 在 evidence package 中检查：
+   - `problem_summary.write_status`
+   - `problem_summary.write_evidence.signals`
+   - `run_artifacts.failed_events`
+   - 保存步骤的 `resolved_request` 与 `response`
+3. 若保存响应为 `[]`：
+   - 检查 `target_forms` 是否缺失。
+   - 检查保存步骤是否使用 L2 pageId。
+   - 检查 `_pending_by_app` 是否被 L2 屏蔽。
+4. 若保存响应非空但无写库 token：
+   - 补充保存后唯一字段回查断言，或增强 `no_save_failure`。
+   - 不要直接把此类用例标为成功。
+
+**修复原则**：
+- PASS 不是交付标准，必须有入库证据。
+- 优先补 pageId 链路、target_forms、保存断言或回查断言。
+- 不允许通过删除保存步骤、删除断言、标 optional 来“修绿”。
+
 ---
 
-## 六、经验教训
+## 六、AI Agent 修复升级协议
+
+当内置 repair_planner 不能生成安全修复，或出现 `write_status=unverified` 的假成功风险时，系统会生成 AI Agent 证据包：
+
+```text
+GET /api/tasks/{task_id}/agent-evidence/{case_name}
+```
+
+### 证据包内容
+
+| 字段 | 含义 |
+|------|------|
+| `problem_summary` | 失败/假成功摘要、入库证据、失败归因、AI 原因 |
+| `case_artifacts.yaml` | 当前 YAML 用例全文 |
+| `run_artifacts.events` | 最近一次 run 的事件流，最多 300 条 |
+| `run_artifacts.failed_events` | step_fail/assertion_fail/case_error |
+| `report_context.acceptance` | 批量验收结论 |
+| `skills_to_use` | overview、troubleshooter、pageId、assertion、HR expert 知识入口 |
+| `guardrails` | 修复红线 |
+| `expected_agent_output` | agent 必须输出的诊断、补丁、测试和回滚计划 |
+
+### Agent 修复流程
+
+1. 先读 `skills_to_use` 中的 overview 与 troubleshooter。
+2. 只基于 evidence package 中的 HAR/YAML/run events 诊断，不凭空猜业务字段。
+3. 判断问题类型：
+   - HAR 解析变量遗漏
+   - pageId / target_forms 链路错误
+   - 保存断言盲区
+   - 环境字段缺失或跨环境 value_id 错误
+   - 业务校验错误
+4. 输出最小补丁：
+   - 优先改当前 YAML。
+   - 只有确认是通用规则缺陷时才改 `har_extractor.py` / `runner.py` / `repair_planner.py`。
+5. 必跑验证：
+   - `./venv/bin/python -m pytest -q tests/unit tests/test_core.py`
+   - `./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff`
+6. 输出影响说明：
+   - 是否影响 8 类基准 HAR。
+   - 是否需要用户确认环境字段。
+   - 是否需要真实环境写库回查。
+
+### Agent 红线
+
+1. 不得删除 `menuItemClick`、`target_forms`、`pick_fields` 或保存断言来绕过问题。
+2. 不得把写库步骤标为 optional，除非它明确不是主业务保存。
+3. 不得修改已经成功的 YAML 用例来适配新 HAR。
+4. 不得更新 HAR baseline 掩盖规则回归。
+5. 不得在无入库证据时宣称修复完成。
+6. 通用代码修复必须保持向后兼容，并通过 8 类 HAR 回归影响报告。
+
+---
+
+## 七、经验教训
 
 ### Rule 14 废弃教训
 
@@ -383,7 +472,7 @@ pick_fields:
 
 ---
 
-## 七、关键文件索引
+## 八、关键文件索引
 
 | 文件 | 行号范围 | 函数/内容 | 排查用途 |
 |------|----------|-----------|----------|
@@ -401,10 +490,12 @@ pick_fields:
 | `lib/har_extractor.py` | 1986-1988 | 规则14（已禁用） | 静态 loadData 插入（注释状态） |
 | `lib/har_extractor.py` | 788-789 | `UNIQUE_KEY_HINTS` | 唯一标识字段名单 |
 | `lib/advisor.py` | - | `analyze_errors()` | 错误分析+修复建议生成 |
+| `lib/agent_evidence.py` | - | `build_repair_evidence_package()` | AI Agent 修复证据包 |
+| `lib/task_manager.py` | - | `infer_write_status()` / `build_acceptance_summary()` | 批量验收与假成功识别 |
 
 ---
 
-## 八、日志分析指南
+## 九、日志分析指南
 
 ### 日志存储位置
 
@@ -447,7 +538,7 @@ grep "case_error\|step_fail" logs/runs/<run_id>.jsonl
 
 ---
 
-## 九、常见修复方案速查
+## 十、常见修复方案速查
 
 ### 修复1：安全网未覆盖新错误模式
 
@@ -491,12 +582,14 @@ pick_fields:
 
 ---
 
-## 十、红线规则
+## 十一、红线规则
 
 1. **不要静态插入 loadData** → Rule 14 教训：运行时防护已覆盖
 2. **不要删 menuItemClick** → 页面上下文起点，L2 pageId 来源
 3. **不要硬编码 pageId** → 动态值，由 replay 状态机管理
 4. **PASS 不等于数据落库** → 检查 save 步骤的断言用 `no_save_failure` 而非 `no_error_actions`
-5. **改代码后必须重启 Web UI** → Python 模块启动时一次性加载
-6. **业务错误不要改框架** → 先查 advisor 建议，修改 YAML 数据
-7. **ac=click + key=btnsave 不要改成 saveandeffect** → 某些表单保存就是 click
+5. **入库未验证必须升级处理** → `write_status=unverified` 不允许作为成功交付
+6. **改代码后必须重启 Web UI** → Python 模块启动时一次性加载
+7. **业务错误不要改框架** → 先查 advisor 建议，修改 YAML 数据
+8. **ac=click + key=btnsave 不要改成 saveandeffect** → 某些表单保存就是 click
+9. **Agent 只能做最小补丁** → 必须提供 evidence、diff、测试和回滚计划

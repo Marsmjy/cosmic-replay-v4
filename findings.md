@@ -162,3 +162,27 @@
 - 导出报告需要比 Web UI 更强的离线能力：
   - Web UI 可通过 `/static` 加载本地资源。
   - 导出的 HTML 文件离开服务后仍要能打开，因此 Tailwind runtime 和 Chart.js 更适合内嵌。
+
+## Stage 9 Findings
+
+- 用户真正关心的是“这批用例能不能交付”，不是单纯通过率：
+  - 执行失败需要知道能不能自动修。
+  - 执行 PASS 也需要知道有没有保存/提交的入库证据。
+  - 没有入库证据的 PASS 应该进入待修复状态，而不是被当成成功闭环。
+- 批量执行报告应从统计报表升级成验收工作台：
+  - `acceptance.status` 给出整批结论。
+  - `action_queues.auto_repair` 聚合可一键安全修复项。
+  - `action_queues.manual_confirm` 聚合需要用户确认的环境字段或业务语义。
+  - `action_queues.ai_agent` 聚合系统自动修不了、需要 agent 深度定位的问题。
+- pageId 链路错误最危险的形态是“假成功”：
+  - 某些保存响应为空数组或缺少主键、成功标记、写入 token。
+  - 断言只检查“无报错”时，可能无法证明数据真的入库。
+  - 报告层必须暴露 `write_status=unverified`，并提示补充入库断言或排查 pageId 链路。
+- AI Agent 不应该直接接管全部修复，应先拿到最小证据包：
+  - YAML 原文、运行事件、失败事件、批量报告上下文和技能引用足够定位多数问题。
+  - 证据包内置护栏能降低误改风险，尤其是不得删除 `menuItemClick`、`target_forms`、`pick_fields`、`no_save_failure`。
+  - 期望输出必须包含诊断、diff、测试清单、回滚方案和确认信号，避免“黑盒式修复”。
+- `cosmic-replay-troubleshooter` 需要服务于其他 agent，而不是只给人读：
+  - 新增触发词和类型化故障分类，让 agent 能快速进入正确排障分支。
+  - 将假成功、pageId、断言盲区和变量遗漏串成统一修复协议。
+  - 明确回归基线只能用于发现影响，不能作为掩盖解析退化的手段。

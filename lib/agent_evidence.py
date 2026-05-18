@@ -1,0 +1,106 @@
+"""Evidence package builder for AI-assisted Cosmic Replay repair.
+
+The package is intentionally read-only: it gathers the failing case, report
+metadata, run events, and guardrails so an external agent can propose a minimal
+patch without touching known-good cases.
+"""
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+def build_repair_evidence_package(
+    *,
+    task_id: str,
+    case_name: str,
+    report_data: dict[str, Any],
+    case_path: Path,
+    run_events: list[dict[str, Any]],
+    skill_root: Path,
+) -> dict[str, Any]:
+    case_result = _find_case_result(report_data, case_name)
+    yaml_text = case_path.read_text(encoding="utf-8") if case_path.exists() else ""
+    run_id = case_result.get("run_id", "")
+    package = {
+        "schema_version": "1.0",
+        "created_at": datetime.now().isoformat(),
+        "task_id": task_id,
+        "case_name": case_name,
+        "run_id": run_id,
+        "problem_summary": {
+            "passed": case_result.get("passed"),
+            "error": case_result.get("error", ""),
+            "error_category": case_result.get("error_category", ""),
+            "write_status": case_result.get("write_status", "not_checked"),
+            "write_evidence": case_result.get("write_evidence", {}),
+            "next_action": case_result.get("next_action", ""),
+            "ai_reason": case_result.get("ai_reason", ""),
+            "failure_analysis": case_result.get("failure_analysis", {}),
+        },
+        "case_artifacts": {
+            "case_path": str(case_path),
+            "yaml": yaml_text,
+        },
+        "run_artifacts": {
+            "events_count": len(run_events),
+            "events": run_events[-300:],
+            "failed_events": [
+                event for event in run_events
+                if event.get("type") in {"step_fail", "assertion_fail", "case_error"}
+            ],
+        },
+        "report_context": {
+            "acceptance": report_data.get("acceptance", {}),
+            "action_queues": report_data.get("action_queues", {}),
+            "case_result": case_result,
+        },
+        "skills_to_use": [
+            str(skill_root / "skills" / "cosmic-replay-overview" / "skill.md"),
+            str(skill_root / "skills" / "cosmic-replay-troubleshooter" / "SKILL.md"),
+            str(skill_root / "skills" / "cosmic-replay-troubleshooter" / "references" / "pageid-chain-debugging.md"),
+            str(skill_root / "skills" / "cosmic-replay-troubleshooter" / "references" / "assertion-blindspots.md"),
+            str(skill_root / "skills" / "cosmic-hr-expert" / "SKILL.md"),
+        ],
+        "guardrails": [
+            "只允许对当前 case 或通用解析/执行规则做最小补丁。",
+            "不得删除 menuItemClick、target_forms、pick_fields 或 no_save_failure 断言来绕过问题。",
+            "不得修改已成功回归样本的 YAML baseline，除非影响报告明确为 none/review 且有理由。",
+            "修复后必须运行 HAR 回归 compare --fail-on-diff 和相关单测。",
+            "如果缺少入库证据，优先补入库验证或 pageId 链路，不要把 PASS 当作成功。",
+        ],
+        "expected_agent_output": {
+            "diagnosis_json": "根因、证据、风险等级、影响范围",
+            "patch_diff": "最小代码或 YAML 补丁",
+            "tests_to_run": [
+                "./venv/bin/python -m pytest -q tests/unit tests/test_core.py",
+                "./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff",
+            ],
+            "rollback_plan": "如何回滚本次补丁",
+            "needs_human_confirmation": "是否需要用户确认环境字段或业务字段",
+        },
+    }
+    return package
+
+
+def save_repair_evidence_package(package: dict[str, Any], output_dir: Path) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    task_id = _safe_name(package.get("task_id", "task"))
+    case_name = _safe_name(package.get("case_name", "case"))
+    path = output_dir / f"{task_id}_{case_name}.json"
+    path.write_text(json.dumps(package, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    return path
+
+
+def _find_case_result(report_data: dict[str, Any], case_name: str) -> dict[str, Any]:
+    for item in report_data.get("case_results") or []:
+        if item.get("name") == case_name:
+            return item
+    return {"name": case_name}
+
+
+def _safe_name(value: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in str(value))
+    return safe[:120] or "item"
