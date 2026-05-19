@@ -2741,7 +2741,19 @@
 
         <!-- 用例详情列表 -->
         <div class="px-6 py-5">
-          <div class="text-sm font-medium text-slate-300 mb-3">用例执行详情</div>
+          <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 mb-3">
+            <div>
+              <div class="text-sm font-medium text-slate-300">用例执行详情</div>
+              <div class="text-xs text-slate-500 mt-1">
+                入库证据是系统自动判定：有保存主键、成功 token 或后置查询回读证据才会显示“已验证”。
+              </div>
+            </div>
+            <div x-show="currentReport?.acceptance?.write_unverified"
+                 class="text-xs rounded-lg border border-amber-800/60 bg-amber-950/20 text-amber-100 px-3 py-2 max-w-xl">
+              <span class="font-medium">如何变成已验证：</span>
+              <span>补入库断言或修复 pageId 链路后重新运行；不能手工改状态，系统检测到写入证据后会自动变为已验证。</span>
+            </div>
+          </div>
           <div class="overflow-x-auto scrollbar-thin">
           <table class="w-full min-w-[860px] text-sm">
             <thead class="text-xs text-slate-500">
@@ -2770,15 +2782,22 @@
                     <span x-show="!r.passed" class="text-rose-400">FAIL</span>
                   </td>
                   <td class="text-center py-2">
-                    <span class="status-badge"
+                    <span class="status-badge cursor-help"
                           :class="writeStatusClass(r.write_status)"
+                          :title="writeStatusHelp(r)"
                           x-text="writeStatusLabel(r.write_status)"></span>
+                    <div x-show="r.write_status === 'unverified'"
+                         class="text-[10px] text-amber-400 mt-1"
+                         x-text="writeEvidenceSummary(r)"></div>
                   </td>
                   <td class="py-2 text-xs">
-                    <a x-show="r.next_action === 'ai_agent'"
-                       :href="agentEvidenceUrl(r.name)"
-                       target="_blank"
-                       class="text-rose-300 hover:text-rose-200 underline">AI 证据包</a>
+                    <div x-show="r.next_action === 'ai_agent'" class="flex flex-wrap items-center gap-2">
+                      <button @click="copyAgentRepairPrompt(r)"
+                              class="text-rose-100 bg-rose-600 hover:bg-rose-500 rounded px-2 py-1">复制AI指令</button>
+                      <a :href="agentEvidenceUrl(r.name)"
+                         target="_blank"
+                         class="text-rose-300 hover:text-rose-200 underline">证据包</a>
+                    </div>
                     <span x-show="r.next_action !== 'ai_agent'"
                           class="text-slate-400"
                           x-text="nextActionLabel(r.next_action)"></span>
@@ -4144,6 +4163,22 @@ function app() {
         not_applicable: 'bg-slate-800 text-slate-400',
         not_checked: 'bg-slate-800 text-slate-400',
       }[status || 'not_checked'] || 'bg-slate-800 text-slate-400';
+    },
+
+    writeStatusHelp(row) {
+      const status = row?.write_status || 'not_checked';
+      if (status === 'verified') return '已验证：保存/提交响应包含主键、成功 token，或已有后置查询回读证据。';
+      if (status === 'unverified') return '未验证：用例执行 PASS，但缺少明确写入证据。补入库断言或修复 pageId 链路后重新运行，系统会自动变为已验证。';
+      if (status === 'failed') return '失败：保存/提交阶段失败，不能视为入库成功。';
+      if (status === 'not_applicable') return '不适用：本用例未识别到保存/提交类写库步骤。';
+      return '未检查：当前报告没有足够执行证据。';
+    },
+
+    writeEvidenceSummary(row) {
+      const signals = row?.write_evidence?.signals || [];
+      if (signals.some(s => String(s).includes('empty_response'))) return '保存响应为空';
+      if (signals.some(s => String(s).includes('non_empty_response'))) return '响应非空但无主键';
+      return '缺少写入 token';
     },
 
     nextActionLabel(action) {
