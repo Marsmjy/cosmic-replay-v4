@@ -8,7 +8,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.field_resolver import EnvFieldCache, FieldResolver
 from lib.har_extractor import build_yaml_case, preview_har
-from lib.runner import _auto_resolve_pick_basedata_step
+from lib.runner import _apply_pick_fields, _auto_resolve_pick_basedata_step
+from lib.webui.server import _apply_pick_field_manual_update
 
 
 class FakeReplay:
@@ -106,6 +107,53 @@ def test_auto_resolve_pick_basedata_step_overrides_value_id_and_emits_status():
     assert field["resolved_value_id"] == "new-id"
 
 
+def test_manual_pick_field_value_id_is_injected_without_value_name():
+    case = {
+        "pick_fields": {
+            "pick_adminorgtype_id": {
+                "field_key": "adminorgtype",
+                "value_id": "1010",
+                "value_name": "",
+                "auto_resolve": False,
+                "resolve_status": "manual",
+            }
+        },
+        "steps": [
+            {
+                "id": "pick_adminorgtype",
+                "type": "pick_basedata",
+                "field_key": "adminorgtype",
+                "value_id": "1020",
+                "value_name": "公司",
+            }
+        ],
+    }
+
+    _apply_pick_fields(case)
+
+    step = case["steps"][0]
+    assert step["value_id"] == "1010"
+    assert step["value_name"] == ""
+    assert step["auto_resolve"] is False
+
+
+def test_manual_pick_field_update_disables_auto_resolve_and_clears_stale_name():
+    item = {
+        "value_id": "1020",
+        "value_name": "公司",
+        "auto_resolve": True,
+        "resolve_status": "pending",
+    }
+
+    _apply_pick_field_manual_update(item, "1010", manual_override=True)
+
+    assert item["value_id"] == "1010"
+    assert item["value_name"] == ""
+    assert item["auto_resolve"] is False
+    assert item["resolve_status"] == "manual"
+    assert item["manual_override"] is True
+
+
 def test_generated_pick_fields_carry_auto_resolve_metadata():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har"
 
@@ -119,6 +167,32 @@ def test_generated_pick_fields_carry_auto_resolve_metadata():
     assert adminorg["resolve_status"] == "pending"
     assert adminorg["form_id"] == "hbpm_positionhr"
     assert adminorg["app_id"] == "hbpm"
+
+
+def test_manual_har_pick_field_override_disables_auto_resolve():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="manual_adminorgtype",
+        pick_field_overrides={
+            "pick_adminorgtype_id": {
+                "value_id": "1010",
+                "value_name": "公司",
+                "auto_resolve": False,
+                "resolve_status": "manual",
+                "manual_override": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    adminorgtype = case["pick_fields"]["pick_adminorgtype_id"]
+
+    assert str(adminorgtype["value_id"]) == "1010"
+    assert adminorgtype["value_name"] == ""
+    assert adminorgtype["auto_resolve"] is False
+    assert adminorgtype["resolve_status"] == "manual"
+    assert adminorgtype["manual_override"] is True
 
 
 def test_preview_pick_fields_carry_auto_resolve_metadata():

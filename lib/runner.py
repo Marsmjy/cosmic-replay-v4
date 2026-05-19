@@ -630,12 +630,8 @@ def _apply_pick_fields(case: dict):
                             fields[field_key] = value
             continue
 
-        value = pf_meta.get("value_name", "")
-        if not value:
-            continue
-
         # env_*_treeview_focus -> 更新 addnew 步骤的 post_data 中 treeview.focus.id
-        elif pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
+        if pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
             # 优先使用 value_id（数字ID），fallback 到 value_name
             inject_value = pf_meta.get("value_id") or pf_meta.get("value_name", "")
             if not inject_value:
@@ -673,6 +669,8 @@ def _apply_pick_fields(case: dict):
                             step["value_id"] = str(inject_vid)
                         if inject_vname:
                             step["value_name"] = str(inject_vname)
+                        elif pf_meta.get("manual_override") or pf_meta.get("resolve_status") == "manual":
+                            step["value_name"] = ""
                         step["_env_field_id"] = pf_id
                         step["_env_field_meta"] = pf_meta
                         step["auto_resolve"] = bool(pf_meta.get("auto_resolve"))
@@ -697,6 +695,7 @@ def _apply_pick_fields(case: dict):
         # enum_* / bool_* / num_* -> 替换 update_fields 或 pick_basedata 步骤中的对应字段
         elif pf_id.startswith("enum_") or pf_id.startswith("bool_") or pf_id.startswith("num_"):
             field_key = pf_id.split("_", 1)[1]  # 去掉前缀
+            value = pf_meta.get("value_name") or pf_meta.get("value_id", "")
             if not value:
                 continue
             # 在 update_fields 步骤中查找并替换对应字段

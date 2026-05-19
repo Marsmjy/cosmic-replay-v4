@@ -2836,12 +2836,25 @@ def build_yaml_case(
     if pick_field_overrides:
         for pf_id, pf_cfg in pick_field_overrides.items():
             if isinstance(pf_cfg, dict) and pf_id in pick_fields_map:
+                current_value_id = str(pick_fields_map[pf_id].get("value_id", ""))
+                current_value_name = str(pick_fields_map[pf_id].get("value_name", "") or "")
+                incoming_value_id = str(pf_cfg.get("value_id", current_value_id))
+                manual_override = bool(pf_cfg.get("manual_override") or pf_cfg.get("user_overridden"))
+                if incoming_value_id != current_value_id and pf_cfg.get("resolve_status") == "manual":
+                    manual_override = True
                 if "value_id" in pf_cfg:
-                    pick_fields_map[pf_id]["value_id"] = pf_cfg["value_id"]
+                    pick_fields_map[pf_id]["value_id"] = incoming_value_id
                 if "value_name" in pf_cfg:
-                    pick_fields_map[pf_id]["value_name"] = pf_cfg["value_name"]
+                    incoming_value_name = str(pf_cfg["value_name"] or "")
+                    if manual_override and incoming_value_name == current_value_name and incoming_value_id != current_value_id:
+                        incoming_value_name = ""
+                    pick_fields_map[pf_id]["value_name"] = incoming_value_name
                 if "auto_resolve" in pf_cfg:
                     pick_fields_map[pf_id]["auto_resolve"] = bool(pf_cfg["auto_resolve"])
+                if manual_override:
+                    pick_fields_map[pf_id]["auto_resolve"] = False
+                    pick_fields_map[pf_id]["resolve_status"] = "manual"
+                    pick_fields_map[pf_id]["manual_override"] = True
 
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:

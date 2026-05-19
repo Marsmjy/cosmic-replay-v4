@@ -1210,10 +1210,15 @@ def api_pick_field_update(body: dict = Body(...)):
     """更新已生成YAML中的pick_field值"""
     case_name = body.get("case_name")
     step_id = body.get("step_id")
-    value_id = body.get("value_id")
+    value_id = str(body.get("value_id") or "").strip()
+    value_name_provided = "value_name" in body
+    value_name = str(body.get("value_name") or "").strip()
+    manual_override = bool(body.get("manual_override", True))
 
     if not case_name or not step_id:
         raise HTTPException(400, "缺少 case_name 或 step_id")
+    if not value_id:
+        raise HTTPException(400, "缺少 value_id")
 
     p = case_path_from_name(case_name)
     if not p.exists():
@@ -1233,13 +1238,23 @@ def api_pick_field_update(body: dict = Body(...)):
     if isinstance(pick_fields, dict):
         # dict 格式：键为 step_id（如 pick_gender_id）
         if step_id in pick_fields and isinstance(pick_fields[step_id], dict):
-            pick_fields[step_id]["value_id"] = value_id
+            _apply_pick_field_manual_update(
+                pick_fields[step_id],
+                value_id,
+                value_name if value_name_provided else None,
+                manual_override=manual_override,
+            )
             found = True
     elif isinstance(pick_fields, list):
         # list 格式：每项有 id 字段
         for item in pick_fields:
             if isinstance(item, dict) and item.get("id") == step_id:
-                item["value_id"] = value_id
+                _apply_pick_field_manual_update(
+                    item,
+                    value_id,
+                    value_name if value_name_provided else None,
+                    manual_override=manual_override,
+                )
                 found = True
                 break
     else:
@@ -1254,6 +1269,27 @@ def api_pick_field_update(body: dict = Body(...)):
     p.write_text(new_content, encoding="utf-8")
 
     return {"ok": True, "step_id": step_id, "value_id": value_id}
+
+
+def _apply_pick_field_manual_update(
+    item: dict,
+    value_id: str,
+    value_name: str | None = None,
+    *,
+    manual_override: bool = True,
+) -> None:
+    """Apply a user-maintained env field value without stale auto-resolve metadata."""
+    old_value_id = str(item.get("value_id") or "")
+    old_value_name = str(item.get("value_name") or "")
+    item["value_id"] = value_id
+    if value_name is not None:
+        item["value_name"] = value_name
+    elif old_value_name and old_value_name != value_id and old_value_id != value_id:
+        item["value_name"] = ""
+    if manual_override:
+        item["auto_resolve"] = False
+        item["resolve_status"] = "manual"
+        item["manual_override"] = True
 
 
 # ============================================================

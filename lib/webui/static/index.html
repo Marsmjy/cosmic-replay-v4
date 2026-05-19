@@ -1121,7 +1121,7 @@
                              class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
                              x-init="$el.value = pf.value_id"
                              :data-orig="pf.value_id"
-                             @input="let idx = harPickFields.findIndex(h => h.id === pf.step_id); if(idx !== -1) harPickFields[idx].value_id = $el.value"
+                             @input="let idx = harPickFields.findIndex(h => h.id === pf.step_id); if(idx !== -1) { harPickFields[idx].value_id = $el.value; markHarPickFieldManual(harPickFields[idx]); }"
                              @keydown.enter="savePickFieldValue(pf.step_id, $el.value)"
                              @blur="if($el.value !== ($el.dataset.orig || '')) savePickFieldValue(pf.step_id, $el.value)">
                       <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
@@ -1579,6 +1579,7 @@
               <!-- 可编辑输入框：始终绑定 value_id，确保编辑值同步到 harPickFields -->
               <span class="text-xs text-slate-500 shrink-0">值:</span>
               <input type="text" x-model="pf.value_id"
+                     @input="markHarPickFieldManual(pf)"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
                      :placeholder="pf.value_name || 'value_id'">
               <!-- value_name 显示 -->
@@ -3867,7 +3868,9 @@ function app() {
         pickFieldOverrides[pf.id] = {
           value_id: pf.value_id,
           value_name: pf.value_name,
-          auto_resolve: !!pf.auto_resolve,
+          auto_resolve: !!pf.auto_resolve && !pf.manual_override && !pf.user_overridden,
+          resolve_status: pf.resolve_status || '',
+          manual_override: !!pf.manual_override || !!pf.user_overridden,
         };
       }
       try {
@@ -4072,6 +4075,17 @@ function app() {
 
     reportQueue(name) {
       return this.currentReport?.action_queues?.[name] || [];
+    },
+
+    markHarPickFieldManual(pf) {
+      if (!pf) return;
+      pf.manual_override = true;
+      pf.user_overridden = true;
+      pf.auto_resolve = false;
+      pf.resolve_status = 'manual';
+      if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) {
+        pf.value_name = '';
+      }
     },
 
     reportAcceptanceIcon() {
@@ -5580,6 +5594,7 @@ function app() {
       const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId);
       if (pfIdx !== -1) {
         this.harPickFields[pfIdx].value_id = newValue;
+        this.markHarPickFieldManual(this.harPickFields[pfIdx]);
       }
       var caseName = this.currentCase && this.currentCase.name;
       if (!caseName) { this.showToast('✓ 本地已更新（远程保存跳过：预览阶段）'); return; }
@@ -5587,7 +5602,7 @@ function app() {
         var resp = await fetch('/api/pick-field-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ case_name: caseName, step_id: stepId, value_id: newValue })
+          body: JSON.stringify({ case_name: caseName, step_id: stepId, value_id: newValue, manual_override: true })
         });
         var data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || '保存失败');
