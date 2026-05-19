@@ -728,6 +728,16 @@
             </div>
           </div>
 
+          <!-- ⚠️ 环境 Bug 提示（最显眼，置于失败面板上方）-->
+          <div x-show="summary && !summary?.passed"
+               class="bg-amber-950/40 border-2 border-amber-500/70 rounded-lg px-4 py-3 mb-3 flex items-start gap-3 shadow-lg shadow-amber-900/20">
+            <div class="text-amber-300 text-2xl leading-none mt-0.5 select-none">⚠️</div>
+            <div class="text-sm text-amber-50 leading-relaxed">
+              <span class="text-amber-200 font-semibold">温馨提示：</span>
+              用例执行失败<span class="text-amber-100 font-medium">不一定是自动化脚本问题</span>，也可能是<span class="text-amber-100 font-medium">被测环境本身存在 Bug</span>。建议先核实被测系统状态，再决定下一步操作。
+            </div>
+          </div>
+
           <div x-show="summary && !summary?.passed"
                class="status-card status-card-danger mb-3">
             <div class="flex items-start gap-3">
@@ -752,15 +762,6 @@
                           class="btn btn-secondary btn-sm border-amber-800 text-amber-200 hover:bg-amber-950">
                     查看需确认的修复项
                   </button>
-                  <button x-show="currentRunId()"
-                          @click="copySingleRunAgentRepairPrompt()"
-                          class="btn btn-secondary btn-sm border-rose-700 text-rose-100 hover:bg-rose-950">
-                    复制 AI 修复指令
-                  </button>
-                  <button @click="detailTab='yaml'"
-                          class="btn btn-secondary btn-sm text-slate-300">
-                    查看 YAML
-                  </button>
                 </div>
               </div>
             </div>
@@ -777,19 +778,12 @@
                 <div class="text-sm text-slate-400 mt-1" x-text="singleRunDiagnosisText()"></div>
                 <div class="text-xs text-slate-500 mt-2 break-words" x-show="singleRunDiagnosisReason()" x-text="singleRunDiagnosisReason()"></div>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
                 <button type="button"
                         @click="copySingleRunAgentRepairPrompt()"
                         class="w-full rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   复制 AI 修复指令
                 </button>
-                <template x-if="currentRunId()">
-                  <a :href="singleRunAgentEvidenceUrl(currentCase?.name, currentRunId())"
-                     target="_blank"
-                     class="w-full rounded-lg border border-rose-800 px-4 py-2.5 text-center text-sm font-semibold text-rose-100 transition hover:bg-rose-950">
-                    打开证据包
-                  </a>
-                </template>
               </div>
             </div>
           </div>
