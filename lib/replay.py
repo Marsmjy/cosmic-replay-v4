@@ -724,23 +724,44 @@ def find_form_in_response(resp: Any, form_id: str) -> dict | None:
     return None
 
 
+def _iter_action_commands(node: Any):
+    """Yield action command dicts, including nested sendDynamicFormAction payloads."""
+    if isinstance(node, dict):
+        if "a" in node:
+            yield node
+        for key in ("p", "actions", "args"):
+            child = node.get(key)
+            if isinstance(child, (list, dict)):
+                yield from _iter_action_commands(child)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _iter_action_commands(item)
+
+
 def has_error_action(resp: Any) -> list[str]:
-    """扫响应顶层错误消息（showErrMsg / ShowNotificationMsg / showMessage 带错误态 / showConfirm 超时）。返回错误文本列表。"""
+    """扫响应错误消息（含嵌套 action），返回错误文本列表。"""
     errors = []
     if not isinstance(resp, list): return errors
-    for cmd in resp:
-        if not isinstance(cmd, dict): continue
+    seen = set()
+
+    def add_error(text: str) -> None:
+        text = str(text or "")[:150]
+        if text and text not in seen:
+            seen.add(text)
+            errors.append(text)
+
+    for cmd in _iter_action_commands(resp):
         a = cmd.get("a")
         if a in ("showErrMsg",):
             for item in cmd.get("args", []):
                 if item:
-                    errors.append(str(item)[:150])
+                    add_error(str(item))
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
                     t = p.get("errorTitle") or ""
                     i = p.get("errorInfo") or ""
                     if t or i:
-                        errors.append(f"{t} | {str(i)[:150]}")
+                        add_error(f"{t} | {str(i)[:150]}")
         if a == "ShowNotificationMsg":
             # P0-2 优化：苍穹 Notification 的 type 字段是可靠信号
             #   - type=0  → info/success（真实 HAR 证实：saveandeffect 成功返回 type=0 "保存并生效成功"）
@@ -758,12 +779,12 @@ def has_error_action(resp: Any) -> list[str]:
                     if ntype == 0:
                         continue
                     # 成功类 / 信息通知类不算错误（type 缺失场景的兜底）
-                    success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "完成",
+                    success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "已完成",
                                   "已设置", "已清空", "已更新", "已调整", "已同步",
                                   "属于非", "自动", "将关闭")
                     if any(kw in content for kw in success_kw):
                         continue
-                    errors.append(f"[Notification] {content[:150]}")
+                    add_error(f"[Notification] {content[:150]}")
         if a == "showConfirm":
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
@@ -771,17 +792,17 @@ def has_error_action(resp: Any) -> list[str]:
                     msg = p.get("msg") or ""
                     # pagetimeout / 会话超时 = 表单会话失效，是真错误
                     if cid == "pagetimeout" or "会话超时" in msg or "超时" in msg:
-                        errors.append(f"[Timeout] {msg[:150]}")
+                        add_error(f"[Timeout] {msg[:150]}")
         if a == "showFormValidMsg":
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
                     msg = p.get("msg") or p.get("message") or ""
                     if msg:
-                        errors.append(f"[Validation] {str(msg)[:150]}")
+                        add_error(f"[Validation] {str(msg)[:150]}")
         if a == "showMessage":
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
                     msg = p.get("msg") or p.get("message")
                     if msg and ("失败" in str(msg) or "错误" in str(msg) or "不能" in str(msg)):
-                        errors.append(str(msg))
+                        add_error(str(msg))
     return errors

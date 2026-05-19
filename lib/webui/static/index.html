@@ -2993,6 +2993,7 @@ function app() {
     errorBadgeCount: 0,        // 未查看的 error 数
     runHistory: [],
     selectedRunId: '',
+    currentDetailRunId: '',
     selectedRunEvents: [],
     historyPhases: [],
     historyVars: [],
@@ -3151,6 +3152,7 @@ function app() {
       this.selectedStep = null;
       this.detailTab = 'result';
       this.view = 'case_detail';
+      this.currentDetailRunId = '';
 
       // 如果有活跃/已完成 run，恢复它的状态（不清空）
       const ar = this.activeRuns[name];
@@ -3732,7 +3734,8 @@ function app() {
     },
 
     currentRunId() {
-      return this.currentCase?.name ? (this.activeRuns[this.currentCase.name]?.runId || '') : '';
+      const activeRunId = this.currentCase?.name ? (this.activeRuns[this.currentCase.name]?.runId || '') : '';
+      return activeRunId || this.currentDetailRunId || this.selectedRunId || '';
     },
 
     copyPatch(txt) {
@@ -4670,6 +4673,7 @@ function app() {
     async viewRunDetail(runId, caseName) {
       await this.openCase(caseName);
       this.detailTab = 'result';
+      this.currentDetailRunId = runId;
 
       // 从后端加载历史事件流并回放
       try {

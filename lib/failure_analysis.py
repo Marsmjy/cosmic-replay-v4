@@ -199,6 +199,22 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if "无根组织" in text or "根组织初始化" in text:
+        return _result(
+            "environment_business_prerequisite",
+            "high",
+            False,
+            "当前环境缺少组织管理根行政组织初始化，新增行政组织被业务规则拦截。",
+            text,
+            [
+                "先在目标环境执行组织管理根行政组织生成调度计划，或选择已完成根组织初始化的数据中心。",
+                "不要通过删除 addnew/menuItemClick 或保存断言绕过该问题；根组织未初始化时后续字段会级联缺失。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _MISSING_PATTERNS):
         field = _extract_field_caption(text)
         return _result(

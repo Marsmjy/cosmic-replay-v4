@@ -123,6 +123,7 @@ _NAVIGATION_FORM_IDS = {
     "hom_wbwaitin",
     "hom_wbwarning",
     "hom_activityoverview",
+    "hbp_reviselogpage",
 }
 
 _AUTO_RESOLVE_FIELD_HINTS = {

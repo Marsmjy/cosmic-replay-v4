@@ -95,3 +95,33 @@ def test_task_manager_report_contains_acceptance_and_queues():
     assert data["acceptance"]["failed"] == 1
     assert data["acceptance"]["ai_required"] == 1
     assert data["action_queues"]["ai_agent"][0]["name"] == "case_a"
+
+
+def test_report_hydration_applies_manual_write_confirmation(monkeypatch):
+    from lib.webui import server
+
+    monkeypatch.setattr(
+        server,
+        "_case_write_verification",
+        lambda name: {"manual_confirmed": True, "reason": "人工确认"} if name == "case_a" else {},
+    )
+    report = {
+        "case_results": [{
+            "name": "case_a",
+            "passed": True,
+            "write_status": "unverified",
+            "write_evidence": {"signals": ["save:empty_response"]},
+            "next_action": "ai_agent",
+            "ai_reason": "缺少明确入库证据",
+        }],
+        "acceptance": {},
+        "action_queues": {},
+    }
+
+    hydrated = server._apply_manual_write_confirmations(report)
+
+    row = hydrated["case_results"][0]
+    assert row["write_status"] == "manual_verified"
+    assert row["next_action"] == "none"
+    assert hydrated["acceptance"]["status"] == "ready"
+    assert hydrated["action_queues"]["ai_agent"] == []

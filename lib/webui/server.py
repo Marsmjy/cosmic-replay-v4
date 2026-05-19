@@ -1382,6 +1382,103 @@ def api_confirm_case_write(name: str, body: dict = Body(default={})):
     return {"ok": True, "name": name, "write_verification": case["write_verification"]}
 
 
+def _case_write_verification(case_name: str) -> dict:
+    """Read persisted manual write verification from the YAML case file."""
+    try:
+        p = case_path_from_name(case_name)
+        if not p.exists():
+            return {}
+        case = load_yaml(p)
+        if isinstance(case, dict):
+            data = case.get("write_verification") or {}
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+    return {}
+
+
+def _refresh_report_acceptance(report_data: dict) -> None:
+    """Rebuild report acceptance/action queues from case_results dicts."""
+    rows = report_data.get("case_results") or []
+    total = len(rows)
+    passed = sum(1 for r in rows if r.get("passed"))
+    failed = total - passed
+    write_unverified = sum(1 for r in rows if r.get("write_status") == "unverified")
+    write_verified = sum(1 for r in rows if r.get("write_status") in {"verified", "manual_verified"})
+    auto_repairable = sum(1 for r in rows if r.get("next_action") == "auto_repair")
+    manual_confirm = sum(1 for r in rows if r.get("next_action") == "manual_confirm")
+    ai_required = sum(1 for r in rows if r.get("next_action") == "ai_agent")
+    status = "ready" if failed == 0 and write_unverified == 0 else ("needs_ai" if ai_required else "needs_repair")
+    if total == 0:
+        title = "暂无执行结果"
+    elif status == "ready":
+        title = "本次批量执行已通过验收"
+    elif ai_required:
+        title = "本次批量执行需要 AI 诊断介入"
+    else:
+        title = "本次批量执行存在待修复项"
+
+    report_data["acceptance"] = {
+        **(report_data.get("acceptance") or {}),
+        "status": status,
+        "title": title,
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "write_verified": write_verified,
+        "write_unverified": write_unverified,
+        "auto_repairable": auto_repairable,
+        "manual_confirm": manual_confirm,
+        "ai_required": ai_required,
+        "summary_text": (
+            f"共 {total} 条，通过 {passed} 条，失败 {failed} 条；"
+            f"入库已验证 {write_verified} 条，入库未验证 {write_unverified} 条；"
+            f"可自动修复 {auto_repairable} 条，需确认 {manual_confirm} 条，需 AI 诊断 {ai_required} 条。"
+        ),
+    }
+
+    queues = {"auto_repair": [], "manual_confirm": [], "ai_agent": [], "write_unverified": []}
+    for row in rows:
+        item = {
+            "name": row.get("name", ""),
+            "run_id": row.get("run_id", ""),
+            "error": row.get("error", ""),
+            "write_status": row.get("write_status", ""),
+            "reason": row.get("ai_reason") or (row.get("failure_analysis") or {}).get("root_cause", ""),
+        }
+        action = row.get("next_action")
+        if action in queues:
+            queues[action].append(item)
+        if row.get("write_status") == "unverified":
+            queues["write_unverified"].append(item)
+    report_data["action_queues"] = queues
+
+
+def _apply_manual_write_confirmations(report_data: dict) -> dict:
+    """Hydrate report rows from persisted YAML confirmations before returning a report."""
+    rows = report_data.get("case_results") or []
+    changed = False
+    for row in rows:
+        if not (row.get("passed") and row.get("write_status") == "unverified"):
+            continue
+        verification = _case_write_verification(str(row.get("name") or ""))
+        if not verification.get("manual_confirmed"):
+            continue
+        row["write_status"] = "manual_verified"
+        row["write_verification"] = verification
+        row["next_action"] = "none"
+        row["ai_reason"] = ""
+        evidence = row.setdefault("write_evidence", {})
+        signals = evidence.setdefault("signals", [])
+        if "manual_confirmed" not in signals:
+            signals.append("manual_confirmed")
+        evidence["manual_confirmed"] = True
+        changed = True
+    if changed:
+        _refresh_report_acceptance(report_data)
+    return report_data
+
+
 def _apply_pick_field_manual_update(
     item: dict,
     value_id: str,
@@ -1659,12 +1756,12 @@ def api_get_task_report(task_id: str):
     """获取任务执行报告"""
     report = TASK_MANAGER.get_report_by_task(task_id)
     if report:
-        return report.to_dict()
+        return _apply_manual_write_confirmations(report.to_dict())
     # fallback 到数据库
     try:
         db_report = REPORT_DAO.get_by_task_id(task_id)
         if db_report:
-            return db_report
+            return _apply_manual_write_confirmations(db_report)
     except Exception:
         pass
     raise HTTPException(404, f"报告不存在: {task_id}")
@@ -1676,7 +1773,7 @@ def api_export_report(task_id: str, format: str = "html"):
     # 获取报告数据（内存或数据库）
     report = TASK_MANAGER.get_report_by_task(task_id)
     if report:
-        report_data = report.to_dict()
+        report_data = _apply_manual_write_confirmations(report.to_dict())
     else:
         try:
             report_data = REPORT_DAO.get_by_task_id(task_id)
@@ -1684,6 +1781,7 @@ def api_export_report(task_id: str, format: str = "html"):
             report_data = None
         if not report_data:
             raise HTTPException(status_code=404, detail="Report not found")
+        report_data = _apply_manual_write_confirmations(report_data)
 
     if format == "html":
         html_content = export_html(report_data)
@@ -1700,7 +1798,7 @@ def api_task_agent_evidence(task_id: str, case_name: str):
     """生成 AI Agent 修复证据包。"""
     report = TASK_MANAGER.get_report_by_task(task_id)
     if report:
-        report_data = report.to_dict()
+        report_data = _apply_manual_write_confirmations(report.to_dict())
     else:
         try:
             report_data = REPORT_DAO.get_by_task_id(task_id)
@@ -1708,6 +1806,7 @@ def api_task_agent_evidence(task_id: str, case_name: str):
             report_data = None
     if not report_data:
         raise HTTPException(status_code=404, detail="Report not found")
+    report_data = _apply_manual_write_confirmations(report_data)
 
     case_result = next(
         (item for item in report_data.get("case_results", []) if item.get("name") == case_name),
@@ -1742,12 +1841,12 @@ def api_list_reports(limit: int = 20):
     for task in TASK_MANAGER.list_tasks(limit):
         rpt = TASK_MANAGER.get_report_by_task(task["task_id"])
         if rpt:
-            reports.append(rpt.to_dict())
+            reports.append(_apply_manual_write_confirmations(rpt.to_dict()))
     if reports:
         return reports
     # fallback 数据库
     try:
-        return REPORT_DAO.list_recent(limit)
+        return [_apply_manual_write_confirmations(r) for r in REPORT_DAO.list_recent(limit)]
     except Exception:
         return []
 

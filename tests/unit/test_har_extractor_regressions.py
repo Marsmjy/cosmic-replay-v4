@@ -149,3 +149,17 @@ def test_build_yaml_case_marks_onboard_activity_overview_optional():
 
     assert overview_steps
     assert all(step.get("optional") is True for step in overview_steps)
+
+
+def test_build_yaml_case_marks_revision_log_page_optional():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779169429_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(har_path, case_name="regression_adminorg")
+    case = yaml.safe_load(yaml_text)
+    revision_steps = [
+        step for step in case["steps"]
+        if step.get("form_id") == "hbp_reviselogpage"
+    ]
+
+    assert revision_steps
+    assert all(step.get("optional") is True for step in revision_steps)

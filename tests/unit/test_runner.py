@@ -22,6 +22,7 @@ from lib.runner import (
     load_yaml, _parse_yaml_light, resolve_vars, _resolve_str, _resolve_ref,
     STEP_HANDLERS, ASSERTION_HANDLERS,
 )
+from lib.replay import has_error_action
 
 
 class TestYAMLParsing:
@@ -77,7 +78,31 @@ env:
         yaml_file.write_text('name: {"zh_CN": "中文", "en_US": "English"}', encoding="utf-8")
         result = load_yaml(yaml_file)
         assert result["name"]["zh_CN"] == "中文"
-    
+
+
+class TestReplayErrorDetection:
+    """苍穹响应错误识别"""
+
+    def test_has_error_action_detects_nested_notification(self):
+        resp = [{
+            "a": "sendDynamicFormAction",
+            "p": [{
+                "pageId": "root123",
+                "actions": [{
+                    "a": "ShowNotificationMsg",
+                    "p": [{
+                        "type": 1,
+                        "content": "无根组织，请先完成根组织初始化！",
+                    }],
+                }],
+            }],
+        }]
+        assert has_error_action(resp) == ["[Notification] 无根组织，请先完成根组织初始化！"]
+
+
+class TestYAMLLightParsing:
+    """轻量 YAML 解析测试"""
+
     def test_parse_yaml_light_empty_string(self):
         """空字符串解析"""
         result = _parse_yaml_light("")

@@ -95,3 +95,19 @@ def test_classify_run_failure_uses_first_non_optional_failure():
 
     assert analysis["category"] == "business_missing_required"
     assert analysis["field_caption"] == "编码"
+
+
+def test_failure_analysis_classifies_missing_root_org_prerequisite():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "click_addnew",
+            "type": "invoke",
+            "ok": False,
+            "error": "[Notification] 无根组织，请先完成根组织初始化！",
+        }],
+        assertions=[],
+        case={"main_form_id": "haos_adminorgdetail"},
+    )
+
+    assert analysis["category"] == "environment_business_prerequisite"
+    assert "根行政组织初始化" in analysis["root_cause"]
