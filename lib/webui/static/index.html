@@ -2537,6 +2537,11 @@
                   <span class="status-badge bg-slate-800 text-slate-300" x-text="reportAcceptanceBadge()"></span>
                 </div>
                 <div class="text-sm text-slate-400 mt-1" x-text="currentReport?.acceptance?.summary_text || '暂无验收摘要'"></div>
+                <div x-show="reportQueue('ai_agent').length"
+                     class="mt-3 rounded-lg border border-rose-800/60 bg-rose-950/25 px-3 py-2 text-sm text-rose-100">
+                  <span class="font-medium">下一步：</span>
+                  <span>点击下方「复制 AI 修复指令」，把内容发给 Codex/AI Agent；需要完整上下文时再打开「证据包」。</span>
+                </div>
                 <div class="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
                   <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
                     <div class="text-xs text-slate-500">失败</div>
@@ -2581,13 +2586,30 @@
                 <div class="text-xs text-slate-300 truncate py-1" x-text="item.name" :title="item.error || item.name"></div>
               </template>
             </div>
-            <div x-show="reportQueue('ai_agent').length" class="bg-rose-950/20 border border-rose-800/60 rounded-lg p-3">
-              <div class="text-sm font-medium text-rose-200 mb-2">需 AI Agent 诊断</div>
+            <div x-show="reportQueue('ai_agent').length" class="bg-rose-950/20 border border-rose-800/60 rounded-lg p-3 lg:col-span-3">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                <div>
+                  <div class="text-sm font-medium text-rose-200">需 AI Agent 诊断</div>
+                  <div class="text-xs text-slate-400 mt-1">系统已准备好修复上下文。先复制指令给 AI，再按 AI 输出的补丁和测试结果确认修复。</div>
+                </div>
+                <button x-show="reportQueue('ai_agent').length === 1"
+                        @click="copyAgentRepairPrompt(reportQueue('ai_agent')[0])"
+                        class="text-xs px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white">
+                  复制 AI 修复指令
+                </button>
+              </div>
               <template x-for="item in reportQueue('ai_agent')" :key="item.name">
-                <div class="flex items-center gap-2 py-1">
-                  <span class="text-xs text-slate-300 truncate flex-1" x-text="item.name" :title="item.reason || item.error || item.name"></span>
+                <div class="flex flex-col md:flex-row md:items-center gap-2 py-2 border-t border-rose-900/40 first:border-t-0">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm text-slate-200 truncate" x-text="item.name" :title="item.name"></div>
+                    <div class="text-xs text-slate-500 truncate" x-text="item.reason || item.error || '需要排查入库证据、pageId 链路或断言盲区'"></div>
+                  </div>
+                  <button @click="copyAgentRepairPrompt(item)"
+                          class="text-xs text-white bg-rose-600 hover:bg-rose-500 rounded px-3 py-1.5">
+                    复制 AI 修复指令
+                  </button>
                   <a :href="agentEvidenceUrl(item.name)" target="_blank"
-                     class="text-xs text-rose-200 border border-rose-800 rounded px-2 py-0.5 hover:bg-rose-950">证据包</a>
+                     class="text-xs text-rose-100 border border-rose-800 rounded px-3 py-1.5 hover:bg-rose-950 text-center">打开证据包</a>
                 </div>
               </template>
             </div>
@@ -4136,6 +4158,38 @@ function app() {
     agentEvidenceUrl(caseName) {
       if (!this.currentReport?.task_id || !caseName) return '#';
       return `/api/tasks/${encodeURIComponent(this.currentReport.task_id)}/agent-evidence/${encodeURIComponent(caseName)}`;
+    },
+
+    agentRepairPrompt(item) {
+      const caseName = item?.name || '';
+      const evidenceUrl = `${location.origin}${this.agentEvidenceUrl(caseName)}`;
+      const reason = item?.reason || item?.error || '执行 PASS 但缺少明确入库证据，可能存在 pageId 链路或断言盲区问题。';
+      return [
+        '请作为 cosmic-replay AI 修复 Agent 介入处理下面这个用例。',
+        '',
+        `用例：${caseName}`,
+        `任务：${this.currentReport?.task_id || ''}`,
+        `环境：${this.currentReport?.env || ''}`,
+        `问题：${reason}`,
+        `证据包：${evidenceUrl}`,
+        '',
+        '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
+        '1. 先读取证据包、YAML、运行事件和失败/入库证据。',
+        '2. 判断是 HAR 解析变量遗漏、环境字段覆盖、pageId 链路错误、断言盲区，还是执行器问题。',
+        '3. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '4. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '5. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+      ].join('\n');
+    },
+
+    async copyAgentRepairPrompt(item) {
+      const prompt = this.agentRepairPrompt(item);
+      try {
+        await navigator.clipboard.writeText(prompt);
+        this.showToast('已复制 AI 修复指令，发给 Codex/AI Agent 即可');
+      } catch (e) {
+        this.showToast('复制失败，请打开证据包后手动复制');
+      }
     },
 
     async loadReportTrend() {
