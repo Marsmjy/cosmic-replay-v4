@@ -766,6 +766,33 @@
             </div>
           </div>
 
+          <div x-show="singleRunNeedsAgent()"
+               class="bg-rose-950/20 border border-rose-800/70 rounded-lg p-4 mb-3">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-rose-100 font-medium flex items-center gap-2">
+                  <span>需 AI Agent 诊断</span>
+                  <span class="status-badge bg-rose-900/70 text-rose-100" x-text="singleRunDiagnosisBadge()"></span>
+                </div>
+                <div class="text-sm text-slate-400 mt-1" x-text="singleRunDiagnosisText()"></div>
+                <div class="text-xs text-slate-500 mt-2 truncate" x-show="singleRunDiagnosisReason()" x-text="singleRunDiagnosisReason()"></div>
+              </div>
+              <div class="flex flex-col sm:flex-row md:flex-col gap-2 md:w-44 shrink-0">
+                <button x-show="currentRunId()"
+                        @click="copySingleRunAgentRepairPrompt()"
+                        class="btn btn-danger btn-sm">
+                  复制 AI 修复指令
+                </button>
+                <a x-show="currentRunId()"
+                   :href="singleRunAgentEvidenceUrl(currentCase?.name, currentRunId())"
+                   target="_blank"
+                   class="btn btn-secondary btn-sm text-center border-rose-800 text-rose-100 hover:bg-rose-950">
+                  打开证据包
+                </a>
+              </div>
+            </div>
+          </div>
+
           <div x-show="failureAnalysis && !summary?.passed"
                class="bg-slate-900 border border-amber-800/60 rounded-lg overflow-hidden mb-3">
             <div class="px-4 py-3 border-b border-slate-800 bg-amber-950/30">
@@ -2888,6 +2915,7 @@ function app() {
     fixes: [],
     repairPlan: [],
     failureAnalysis: null,
+    singleRunDiagnosis: null,
     running: false,
     repairApplying: false,
     selectedStep: null,
@@ -3162,6 +3190,7 @@ function app() {
         this.fixes = ar.fixes;
         this.repairPlan = ar.repairPlan || [];
         this.failureAnalysis = ar.failureAnalysis || null;
+        this.singleRunDiagnosis = ar.singleRunDiagnosis || null;
         this.running = ar.running;
         this.resolved_vars = ar.resolved_vars || {};
         this.envFields = ar.envFields || [];
@@ -3171,6 +3200,7 @@ function app() {
         this.fixes = [];
         this.repairPlan = [];
         this.failureAnalysis = null;
+        this.singleRunDiagnosis = null;
         this.running = false;
         this.resolved_vars = {};
         this.envFields = [];
@@ -3313,6 +3343,7 @@ function app() {
       this.fixes = ar.fixes;
       this.repairPlan = ar.repairPlan || [];
       this.failureAnalysis = ar.failureAnalysis || null;
+      this.singleRunDiagnosis = ar.singleRunDiagnosis || null;
       this.running = ar.running;
       this.envFields = ar.envFields || [];
       // 不重复订阅 SSE（它已在后台跑）
@@ -3340,6 +3371,7 @@ function app() {
         fixes: [],
         repairPlan: [],
         failureAnalysis: null,
+        singleRunDiagnosis: null,
         running: true,
         sse: null,
         resolved_vars: [],
@@ -3351,6 +3383,7 @@ function app() {
       this.fixes = record.fixes;
       this.repairPlan = record.repairPlan;
       this.failureAnalysis = null;
+      this.singleRunDiagnosis = null;
       this.running = true;
       this.resolved_vars = {};
       this.envFields = [];
@@ -3524,6 +3557,7 @@ function app() {
           this.summary = d;
           this.running = false;
         }
+        this.loadSingleRunDiagnosis(name, record.runId);
       });
       es.addEventListener('case_error', (ev) => {
         const d = JSON.parse(ev.data);
@@ -3735,7 +3769,7 @@ function app() {
 
     currentRunId() {
       const activeRunId = this.currentCase?.name ? (this.activeRuns[this.currentCase.name]?.runId || '') : '';
-      return activeRunId || this.currentDetailRunId || this.selectedRunId || '';
+      return this.currentDetailRunId || activeRunId || this.selectedRunId || '';
     },
 
     copyPatch(txt) {
@@ -4281,6 +4315,53 @@ function app() {
       return `/api/runs/${encodeURIComponent(runId)}/agent-evidence/${encodeURIComponent(caseName)}`;
     },
 
+    async loadSingleRunDiagnosis(caseName, runId) {
+      if (!caseName || !runId) return null;
+      try {
+        const resp = await fetch(`/api/runs/${encodeURIComponent(runId)}/diagnosis/${encodeURIComponent(caseName)}`);
+        if (!resp.ok) throw new Error('加载单次诊断失败');
+        const data = await resp.json();
+        const record = this.activeRuns[caseName];
+        if (record) record.singleRunDiagnosis = data;
+        if (this.currentCase?.name === caseName && this.currentRunId() === runId) {
+          this.singleRunDiagnosis = data;
+        }
+        return data;
+      } catch (e) {
+        console.warn(e);
+        return null;
+      }
+    },
+
+    singleRunNeedsAgent() {
+      if (!this.summary || !this.currentRunId()) return false;
+      if (!this.summary.passed) return true;
+      const status = this.singleRunDiagnosis?.write_status || '';
+      return this.singleRunDiagnosis?.next_action === 'ai_agent' || status === 'unverified';
+    },
+
+    singleRunDiagnosisBadge() {
+      if (!this.summary?.passed) return '执行失败';
+      const status = this.singleRunDiagnosis?.write_status || '';
+      if (status === 'unverified') return '入库未验证';
+      return this.singleRunDiagnosis?.next_action === 'ai_agent' ? '需排查' : '诊断';
+    },
+
+    singleRunDiagnosisText() {
+      if (!this.summary?.passed) {
+        return '系统已准备好本次运行上下文。复制指令给 AI，可直接排查失败步骤、YAML、pageId 链路和环境字段。';
+      }
+      return '这次执行 PASS，但保存/提交响应缺少明确入库证据。复制指令给 AI，可排查 pageId 链路或补充入库断言。';
+    },
+
+    singleRunDiagnosisReason() {
+      return this.singleRunDiagnosis?.ai_reason
+        || this.singleRunDiagnosis?.failure_analysis?.root_cause
+        || this.failureAnalysis?.root_cause
+        || this.summary?.error
+        || '';
+    },
+
     agentRepairPrompt(item) {
       const caseName = item?.name || '';
       const evidenceUrl = `${location.origin}${this.agentEvidenceUrl(caseName)}`;
@@ -4307,18 +4388,24 @@ function app() {
       const caseName = this.currentCase?.name || '';
       const runId = this.currentRunId();
       const failed = this.failedPhase();
-      const reason = this.failureAnalysis?.root_cause
+      const reason = this.singleRunDiagnosisReason()
+        || this.failureAnalysis?.root_cause
         || (failed?.errors || []).join('; ')
         || this.summary?.error
         || '单次执行失败，需结合运行事件、YAML 和失败响应定位根因。';
       const evidenceUrl = `${location.origin}${this.singleRunAgentEvidenceUrl(caseName, runId)}`;
+      const intro = this.summary?.passed
+        ? '请作为 cosmic-replay AI 修复 Agent 介入处理下面这个单次执行入库证据未验证用例。'
+        : '请作为 cosmic-replay AI 修复 Agent 介入处理下面这个单次执行失败用例。';
       return [
-        '请作为 cosmic-replay AI 修复 Agent 介入处理下面这个单次执行失败用例。',
+        intro,
         '',
         `用例：${caseName}`,
         `run_id：${runId}`,
         `环境：${this.currentEnv || ''}`,
-        `失败位置：${failed?.label || '未知'}`,
+        `诊断类型：${this.singleRunDiagnosisBadge()}`,
+        `失败位置：${failed?.label || (this.summary?.passed ? '入库证据验证' : '未知')}`,
+        `入库状态：${this.singleRunDiagnosis?.write_status || 'not_checked'}`,
         `问题：${reason}`,
         `技术证据包：${evidenceUrl}`,
         '',
@@ -4688,6 +4775,7 @@ function app() {
         this.fixes = [];
         this.repairPlan = [];
         this.failureAnalysis = null;
+        this.singleRunDiagnosis = null;
         this.resolved_vars = {};
         this.running = false;
 
@@ -4759,6 +4847,7 @@ function app() {
               break;
           }
         }
+        await this.loadSingleRunDiagnosis(caseName, runId);
       } catch (e) {
         this.showToast('加载运行详情失败: ' + e.message);
       }

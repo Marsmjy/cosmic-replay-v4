@@ -129,3 +129,45 @@ def test_single_run_agent_evidence_endpoint_builds_report_context(tmp_path, monk
     assert data["problem_summary"]["next_action"] == "ai_agent"
     assert data["problem_summary"]["failure_analysis"]["root_cause"] == "流程概览页刷新失败"
     assert data["report_context"]["acceptance"]["status"] == "needs_ai"
+
+
+def test_single_run_diagnosis_flags_passed_empty_save_response(monkeypatch):
+    from lib.webui import server
+
+    monkeypatch.setattr(server, "_case_write_verification", lambda _name: {})
+    monkeypatch.setattr(server.LOG_STORE, "read_run", lambda _run_id: [
+        {
+            "type": "step_start",
+            "data": {
+                "id": "click_save",
+                "label": "保存",
+                "detail": "demo/save key=tbmain method=itemClick",
+            },
+        },
+        {
+            "type": "step_ok",
+            "data": {
+                "id": "click_save",
+                "duration_ms": 88,
+                "response": [],
+            },
+        },
+        {
+            "type": "case_done",
+            "data": {
+                "passed": True,
+                "duration_s": 1.2,
+                "step_count": 1,
+                "step_ok": 1,
+            },
+        },
+    ])
+
+    response = TestClient(server.APP).get("/api/runs/run_empty_save/diagnosis/demo_case")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["passed"] is True
+    assert data["write_status"] == "unverified"
+    assert data["next_action"] == "ai_agent"
+    assert "入库证据" in data["ai_reason"]

@@ -47,7 +47,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 
 # ⭐ 导入任务管理器
-from lib.task_manager import TASK_MANAGER, CaseResult, ExecutionTask
+from lib.task_manager import TASK_MANAGER, CaseResult, ExecutionTask, enrich_case_result
 # ⭐ 导入任务 DAO（持久化）
 from lib.db.dao import TaskDAO, ReportDAO
 
@@ -867,6 +867,15 @@ def api_run_detail(run_id: str):
     return {"run_id": run_id, "events": events}
 
 
+@APP.get("/api/runs/{run_id}/diagnosis/{case_name:path}")
+def api_run_diagnosis(run_id: str, case_name: str):
+    """返回单次用例运行的 AI 诊断摘要，供详情页直接展示下一步。"""
+    events = LOG_STORE.read_run(run_id)
+    if not events:
+        raise HTTPException(404, f"run_id 不存在或无记录: {run_id}")
+    return _case_result_from_run_events(run_id, case_name, events)
+
+
 @APP.get("/api/runs/{run_id}/agent-evidence/{case_name:path}")
 def api_run_agent_evidence(run_id: str, case_name: str):
     """为单次用例执行生成 AI Agent 修复证据包。"""
@@ -875,16 +884,17 @@ def api_run_agent_evidence(run_id: str, case_name: str):
         raise HTTPException(404, f"run_id 不存在或无记录: {run_id}")
 
     case_result = _case_result_from_run_events(run_id, case_name, events)
+    needs_ai = (case_result.get("next_action") == "ai_agent") or (not case_result.get("passed"))
     report_data = {
         "task_id": f"run_{run_id}",
         "env": case_result.get("env", ""),
         "acceptance": {
-            "status": "needs_ai" if not case_result.get("passed") else "single_run",
-            "title": "单次执行需要 AI 诊断" if not case_result.get("passed") else "单次执行证据包",
-            "summary_text": case_result.get("error", ""),
+            "status": "needs_ai" if needs_ai else "single_run",
+            "title": "单次执行需要 AI 诊断" if needs_ai else "单次执行证据包",
+            "summary_text": case_result.get("ai_reason") or case_result.get("error", ""),
         },
         "action_queues": {
-            "ai_agent": [case_result] if not case_result.get("passed") else [],
+            "ai_agent": [case_result] if needs_ai else [],
         },
         "case_results": [case_result],
     }
@@ -906,6 +916,59 @@ def api_run_agent_evidence(run_id: str, case_name: str):
 
 def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]) -> dict:
     """Build a report-like case result from single-run SSE events."""
+    phases: list[dict] = []
+    assertions: list[dict] = []
+
+    def phase_for(step_id: str) -> dict:
+        existing = next((p for p in phases if p.get("id") == step_id), None)
+        if existing is not None:
+            return existing
+        phase = {"id": step_id, "label": step_id, "detail": "", "status": "running", "errors": []}
+        phases.append(phase)
+        return phase
+
+    for event in events:
+        data = event.get("data") or {}
+        event_type = event.get("type")
+        if event_type == "step_start":
+            step_id = data.get("id", "")
+            if not step_id:
+                continue
+            phase = phase_for(step_id)
+            phase.update({
+                "label": data.get("label") or step_id,
+                "detail": data.get("detail") or "",
+                "status": "running",
+                "resolved_request": data.get("resolved_request"),
+            })
+        elif event_type == "step_ok":
+            step_id = data.get("id", "")
+            if not step_id:
+                continue
+            phase = phase_for(step_id)
+            phase.update({
+                "status": "ok",
+                "duration_ms": data.get("duration_ms"),
+                "response": data.get("response"),
+            })
+        elif event_type == "step_fail":
+            step_id = data.get("id", "")
+            if not step_id:
+                continue
+            phase = phase_for(step_id)
+            phase.update({
+                "status": "fail",
+                "duration_ms": data.get("duration_ms"),
+                "errors": data.get("errors") or ([data.get("error")] if data.get("error") else []),
+                "response": data.get("response"),
+            })
+        elif event_type in {"assertion_ok", "assertion_fail"}:
+            assertions.append({
+                "type": data.get("type", ""),
+                "ok": event_type == "assertion_ok",
+                "msg": data.get("msg", ""),
+            })
+
     summary = next(
         (event.get("data") or {} for event in reversed(events) if event.get("type") == "case_done"),
         {},
@@ -935,19 +998,25 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
             error = payload.get("error") or ("; ".join(str(item) for item in errors[:3]) if errors else "")
 
     passed = bool(summary.get("passed")) if summary else False
-    return {
-        "name": case_name,
-        "passed": passed,
-        "run_id": run_id,
-        "error": error,
-        "error_category": failure_analysis.get("category", ""),
-        "failure_analysis": failure_analysis,
-        "env_fields": env_fields_event.get("fields") or [],
-        "write_status": "not_checked" if passed else "failed",
-        "write_evidence": {"signals": ["single_run_failed"] if not passed else ["single_run_passed"]},
-        "next_action": "none" if passed else "ai_agent",
-        "ai_reason": failure_analysis.get("root_cause") or error,
-    }
+    result = CaseResult(
+        name=case_name,
+        passed=passed,
+        run_id=run_id,
+        step_ok=int(summary.get("step_ok") or 0),
+        step_count=int(summary.get("step_count") or len(phases)),
+        duration_s=float(summary.get("duration_s") or 0),
+        error=error,
+        error_category=failure_analysis.get("category", ""),
+        phases=phases,
+        assertions=assertions,
+        failure_analysis=failure_analysis,
+        env_fields=env_fields_event.get("fields") or [],
+        write_verification=_case_write_verification(case_name),
+    )
+    enrich_case_result(result)
+    if not result.ai_reason:
+        result.ai_reason = failure_analysis.get("root_cause") or error
+    return result.to_dict()
 
 
 # ============================================================
