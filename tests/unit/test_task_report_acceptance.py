@@ -50,6 +50,32 @@ def test_acceptance_summary_routes_unverified_pass_to_ai_agent():
     assert summary["ai_required"] == 1
 
 
+def test_manual_write_confirmation_suppresses_ai_action():
+    result = CaseResult(
+        name="case_manual_confirmed",
+        passed=True,
+        write_verification={"manual_confirmed": True},
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+    summary = build_acceptance_summary([result])
+
+    assert result.write_status == "manual_verified"
+    assert result.next_action == "none"
+    assert result.write_evidence["manual_confirmed"] is True
+    assert summary["status"] == "ready"
+    assert summary["write_verified"] == 1
+    assert summary["ai_required"] == 0
+
+
 def test_task_manager_report_contains_acceptance_and_queues():
     manager = TaskManager()
     task = manager.create_task(["case_a"], env_id="sit")

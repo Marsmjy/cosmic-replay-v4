@@ -40,6 +40,7 @@ class CaseResult:
     env_fields: list[dict] = field(default_factory=list)
     write_status: str = "not_checked"  # verified / unverified / failed / not_applicable / not_checked
     write_evidence: dict = field(default_factory=dict)
+    write_verification: dict = field(default_factory=dict)
     next_action: str = "none"  # none / auto_repair / manual_confirm / ai_agent
     ai_reason: str = ""
     
@@ -60,6 +61,7 @@ class CaseResult:
             "env_fields": self.env_fields[:20] if self.env_fields else [],
             "write_status": self.write_status,
             "write_evidence": self.write_evidence,
+            "write_verification": self.write_verification,
             "next_action": self.next_action,
             "ai_reason": self.ai_reason,
         }
@@ -358,6 +360,17 @@ TASK_MANAGER = TaskManager(max_tasks=100)
 def enrich_case_result(result: CaseResult) -> None:
     """Attach write verification and next-action metadata to a case result."""
     result.write_status, result.write_evidence = infer_write_status(result)
+    if (
+        result.passed
+        and result.write_status == "unverified"
+        and (result.write_verification or {}).get("manual_confirmed")
+    ):
+        result.write_status = "manual_verified"
+        result.write_evidence.setdefault("signals", []).append("manual_confirmed")
+        result.write_evidence["manual_confirmed"] = True
+        result.next_action = "none"
+        result.ai_reason = ""
+        return
     if result.passed and result.write_status == "unverified":
         result.next_action = "ai_agent"
         result.ai_reason = "执行 PASS 但保存/提交响应缺少明确入库证据，需排查 pageId 链路或补入库断言。"
@@ -430,7 +443,7 @@ def build_acceptance_summary(results: list[CaseResult]) -> dict:
     passed = sum(1 for r in results if r.passed)
     failed = total - passed
     write_unverified = sum(1 for r in results if r.write_status == "unverified")
-    write_verified = sum(1 for r in results if r.write_status == "verified")
+    write_verified = sum(1 for r in results if r.write_status in {"verified", "manual_verified"})
     auto_repairable = sum(1 for r in results if r.next_action == "auto_repair")
     manual_confirm = sum(1 for r in results if r.next_action == "manual_confirm")
     ai_required = sum(1 for r in results if r.next_action == "ai_agent")

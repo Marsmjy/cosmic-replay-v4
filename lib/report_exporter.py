@@ -323,11 +323,12 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
     }
 
     function writeStatusLabel(status) {
-      return {
-        verified: '已验证',
-        unverified: '未验证',
-        failed: '失败',
-        not_applicable: '不适用',
+        return {
+          verified: '已验证',
+          manual_verified: '人工确认',
+          unverified: '未验证',
+          failed: '失败',
+          not_applicable: '不适用',
         not_checked: '未检查'
       }[status || 'not_checked'] || status;
     }
@@ -335,6 +336,7 @@ _HTML_TEMPLATE = Template(r"""<!DOCTYPE html>
     function writeStatusClass(status) {
       return 'inline-block rounded-full px-2 py-0.5 text-xs ' + ({
         verified: 'bg-emerald-900/70 text-emerald-300',
+        manual_verified: 'bg-sky-900/70 text-sky-300',
         unverified: 'bg-amber-900/70 text-amber-300',
         failed: 'bg-rose-900/70 text-rose-300',
         not_applicable: 'bg-slate-800 text-slate-400',

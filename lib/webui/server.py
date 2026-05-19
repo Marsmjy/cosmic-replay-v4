@@ -1271,6 +1271,34 @@ def api_pick_field_update(body: dict = Body(...)):
     return {"ok": True, "step_id": step_id, "value_id": value_id}
 
 
+@APP.post("/api/cases/{name:path}/write-confirmation")
+def api_confirm_case_write(name: str, body: dict = Body(default={})):
+    """人工确认当前用例已真实入库，后续 PASS 但缺少自动证据时不再提示 AI。"""
+    p = case_path_from_name(name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {name}")
+
+    case = load_yaml(p)
+    if not isinstance(case, dict):
+        raise HTTPException(500, "用例解析失败")
+
+    reason = str(body.get("reason") or "用户已人工确认该用例执行后数据真实入库").strip()
+    case["write_verification"] = {
+        "manual_confirmed": True,
+        "confirmed_at": datetime.now().isoformat(timespec="seconds"),
+        "confirmed_by": "user",
+        "reason": reason,
+        "scope": "same_case_pass_with_unverified_write_evidence",
+    }
+
+    import yaml
+    p.write_text(
+        yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False),
+        encoding="utf-8",
+    )
+    return {"ok": True, "name": name, "write_verification": case["write_verification"]}
+
+
 def _apply_pick_field_manual_update(
     item: dict,
     value_id: str,
@@ -1378,6 +1406,7 @@ def api_start_task(task_id: str):
                 
                 start_time = time.time()
                 result = CaseResult(name=case_name, passed=False, run_id=run_id)
+                result.write_verification = case.get("write_verification") or {}
                 
                 def capture_event(evt_type, payload):
                     sess.emit(evt_type, payload)

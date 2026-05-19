@@ -2789,6 +2789,13 @@
                     <div x-show="r.write_status === 'unverified'"
                          class="text-[10px] text-amber-400 mt-1"
                          x-text="writeEvidenceSummary(r)"></div>
+                    <button x-show="r.write_status === 'unverified'"
+                            @click="confirmWriteManually(r)"
+                            class="mt-1 text-[10px] px-2 py-0.5 rounded border border-amber-700 text-amber-200 hover:bg-amber-950">
+                      人工确认已入库
+                    </button>
+                    <div x-show="r.write_status === 'manual_verified'"
+                         class="text-[10px] text-slate-400 mt-1">以后同用例不再提示</div>
                   </td>
                   <td class="py-2 text-xs">
                     <div x-show="r.next_action === 'ai_agent'" class="space-y-1">
@@ -4151,6 +4158,7 @@ function app() {
     writeStatusLabel(status) {
       return {
         verified: '已验证',
+        manual_verified: '人工确认',
         unverified: '未验证',
         failed: '失败',
         not_applicable: '不适用',
@@ -4161,6 +4169,7 @@ function app() {
     writeStatusClass(status) {
       return {
         verified: 'bg-emerald-900/60 text-emerald-300',
+        manual_verified: 'bg-sky-900/60 text-sky-300',
         unverified: 'bg-amber-900/60 text-amber-300',
         failed: 'bg-rose-900/60 text-rose-300',
         not_applicable: 'bg-slate-800 text-slate-400',
@@ -4171,6 +4180,7 @@ function app() {
     writeStatusHelp(row) {
       const status = row?.write_status || 'not_checked';
       if (status === 'verified') return '已验证：保存/提交响应包含主键、成功 token，或已有后置查询回读证据。';
+      if (status === 'manual_verified') return '人工确认：用户已确认该用例真实入库；后续同用例 PASS 时不再提示 AI 诊断。';
       if (status === 'unverified') return '未验证：用例执行 PASS，但缺少明确写入证据。补入库断言或修复 pageId 链路后重新运行，系统会自动变为已验证。';
       if (status === 'failed') return '失败：保存/提交阶段失败，不能视为入库成功。';
       if (status === 'not_applicable') return '不适用：本用例未识别到保存/提交类写库步骤。';
@@ -4191,6 +4201,66 @@ function app() {
         manual_confirm: '需确认',
         ai_agent: 'AI 诊断',
       }[action || 'none'] || action;
+    },
+
+    async confirmWriteManually(row) {
+      if (!row?.name) return;
+      const ok = confirm('确认这条用例的数据已经真实入库吗？确认后，后续同一用例执行 PASS 且仅缺少自动入库证据时，将显示“人工确认”，不再建议 AI 修复。');
+      if (!ok) return;
+      try {
+        const resp = await fetch(`/api/cases/${encodeURIComponent(row.name)}/write-confirmation`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            reason: '用户在批量报告中人工确认该用例执行后数据真实入库',
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.detail || data.error || resp.status);
+        }
+        row.write_status = 'manual_verified';
+        row.write_verification = data.write_verification || {};
+        row.next_action = 'none';
+        row.ai_reason = '';
+        this.refreshReportAcceptanceLocal();
+        this.showToast('已人工确认入库，后续同用例不再提示未验证');
+      } catch (e) {
+        this.showToast('人工确认失败: ' + (e.message || e));
+      }
+    },
+
+    refreshReportAcceptanceLocal() {
+      if (!this.currentReport?.case_results) return;
+      const cases = this.currentReport.case_results;
+      const total = cases.length;
+      const passed = cases.filter(r => r.passed).length;
+      const failed = total - passed;
+      const writeVerified = cases.filter(r => ['verified', 'manual_verified'].includes(r.write_status)).length;
+      const writeUnverified = cases.filter(r => r.write_status === 'unverified').length;
+      const autoRepairable = cases.filter(r => r.next_action === 'auto_repair').length;
+      const manualConfirm = cases.filter(r => r.next_action === 'manual_confirm').length;
+      const aiRequired = cases.filter(r => r.next_action === 'ai_agent').length;
+      const status = failed === 0 && writeUnverified === 0 ? 'ready' : (aiRequired ? 'needs_ai' : 'needs_repair');
+      this.currentReport.acceptance = {
+        ...(this.currentReport.acceptance || {}),
+        status,
+        title: total === 0 ? '暂无执行结果' : (status === 'ready' ? '本次批量执行已通过验收' : (aiRequired ? '本次批量执行需要 AI 诊断介入' : '本次批量执行存在待修复项')),
+        total,
+        passed,
+        failed,
+        write_verified: writeVerified,
+        write_unverified: writeUnverified,
+        auto_repairable: autoRepairable,
+        manual_confirm: manualConfirm,
+        ai_required: aiRequired,
+        summary_text: `共 ${total} 条，通过 ${passed} 条，失败 ${failed} 条；入库已验证 ${writeVerified} 条，入库未验证 ${writeUnverified} 条；可自动修复 ${autoRepairable} 条，需确认 ${manualConfirm} 条，需 AI 诊断 ${aiRequired} 条。`,
+      };
+      this.currentReport.action_queues = {
+        ...(this.currentReport.action_queues || {}),
+        ai_agent: cases.filter(r => r.next_action === 'ai_agent').map(r => ({name: r.name, run_id: r.run_id, error: r.error, write_status: r.write_status, reason: r.ai_reason || ''})),
+        write_unverified: cases.filter(r => r.write_status === 'unverified').map(r => ({name: r.name, run_id: r.run_id, error: r.error, write_status: r.write_status, reason: r.ai_reason || ''})),
+      };
     },
 
     agentEvidenceUrl(caseName) {
