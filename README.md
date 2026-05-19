@@ -9,7 +9,7 @@
 
 ## 项目定位
 
-上传浏览器 HAR → 自动生成 YAML 测试用例 → 直接运行验证业务流。
+上传浏览器 HAR → 自动生成 YAML 测试用例 → 直接运行验证业务流 → 批量报告判断是否可交付。
 
 苍穹平台没有开放运行期业务数据 OpenAPI，纯手工回归测试成本高。本工具直接回放 `batchInvokeAction.do` 协议，3-5 秒一条用例。
 
@@ -55,8 +55,61 @@ cp .env.example .env
       ↓
 Web UI → HAR 导入 → 选择刚保存的 HAR
       ↓
-自动生成 YAML → 点执行 → 验证入库
+确认智能变量和环境字段 → 生成 YAML
+      ↓
+点执行 / 批量执行 → 查看验收报告
 ```
+
+---
+
+## 使用主流程
+
+### 1. HAR 导入验收
+
+导入 HAR 后，页面会先给出“导入验收结论”：
+
+- 是否能生成 YAML
+- 识别到哪些智能用例变量，例如编号、名称、描述、手机号、邮箱
+- 识别到哪些环境相关字段，例如组织、行政组织、职位、枚举/基础资料
+- 是否存在未知组件或需要人工确认的字段
+
+环境相关字段可以在预览页直接修改。手工修改后，系统会把该字段标记为人工值，后续运行不会再被自动解析缓存覆盖。
+
+### 2. YAML 生成与用例详情
+
+点击生成 YAML 后，变量面板中的“智能用例变量”和“环境相关字段”以 YAML 为准展示。如果你在预览页改过环境字段，生成后的用例详情会保持一致。
+
+环境字段保存规则：
+
+- 自动解析值：适合跨环境按名称重新解析基础资料内码。
+- 手工维护值：适合你明确知道目标内码，例如把行政组织类型从 `1020` 改成 `1010`。
+- 手工值优先级最高，运行期不会再被 `auto_resolve` 覆盖。
+
+### 3. 执行与批量验收报告
+
+执行完成后，报告不只看 PASS/FAIL，还会判断“入库证据”：
+
+| 状态 | 含义 | 下一步 |
+|------|------|--------|
+| 已验证 | 保存/提交响应包含主键、成功 token，或已有后置查询回读证据 | 可交付 |
+| 人工确认 | 用户已确认该用例真实入库 | 后续同用例 PASS 时不再提示 AI |
+| 未验证 | 用例 PASS，但缺少明确写入证据，例如保存响应为空 | 补断言、修 pageId，或让 AI 修复 |
+| 失败 | 保存/提交或断言失败 | 查看失败分析和修复计划 |
+| 不适用 | 未识别到保存/提交类写库步骤 | 按普通流程查看 |
+
+如果你已在环境中确认数据真实入库，可以点击“人工确认已入库”。系统会把确认写入当前 YAML 的 `write_verification`，后续同一用例执行 PASS 且仅缺少自动入库证据时，会显示“人工确认”，不再提示 AI 诊断。
+
+### 4. AI 修复入口
+
+当报告显示“需 AI 诊断”时，点击“让AI修复”会复制一段完整修复指令，里面包含：
+
+- 用例名、任务 ID、环境
+- 问题原因
+- 技术证据包链接
+- 修复要求和安全护栏
+- 必跑测试命令
+
+把复制内容发给 Codex/AI Agent 即可。技术证据包主要给 AI/研发使用，普通使用者不需要手工阅读。
 
 ---
 
@@ -75,7 +128,9 @@ cp -r skills/cosmic-replay-troubleshooter ~/.qoderwork/skills/
 cp skills/cosmic-replay-troubleshooter/SKILL.md .cursor/rules/
 ```
 
-Skill 包含完整的故障因果链和修复方案（变量识别漏报 / pageId 追踪断裂 / save 不落库等），AI 读完后能自动诊断并给出 YAML 补丁。
+Skill 包含完整的故障因果链和修复方案（变量识别漏报 / 环境字段覆盖 / pageId 追踪断裂 / save 不落库 / PASS 但入库未验证等），AI 读完后能自动诊断并给出最小补丁。
+
+批量报告中的“让AI修复”会生成一段可直接交给 Agent 的提示词，并附带 `/api/tasks/{task_id}/agent-evidence/{case_name}` 证据包。
 
 ---
 
@@ -86,9 +141,10 @@ Skill 包含完整的故障因果链和修复方案（变量识别漏报 / pageI
 | `TypeError: unsupported operand type(s) for` | Python < 3.10 | 升级到 Python 3.10+ |
 | `RSA 加密库不可用` | 缺 pycryptodome | `pip install pycryptodome` |
 | `找不到 cosmic-login skill` | 环境变量未设 | 用 `./start.sh` 启动（自动处理），或手动 `export COSMIC_LOGIN_SCRIPT=项目路径/lib/cosmic_login.py` |
-| save 返回空 `[]` 且 PASS | pageId 追踪断裂 | 重启 Web UI 后重试 |
+| save 返回空 `[]` 且 PASS | 缺少自动入库证据，可能是 pageId 链路或断言盲区 | 先确认数据是否真实入库；已入库可点“人工确认已入库”，未入库点“让AI修复” |
 | `XXX 已存在` | 编码/名称没随机化 | 检查 YAML 的 vars 段是否用了 `${rand:N}` |
-| PASS 但数据未入库 | 断言用错了 | save 步骤把 `no_error_actions` 改成 `no_save_failure` |
+| PASS 但数据未入库 | 断言或 pageId 链路有问题 | 查看批量报告“入库证据”，让 AI 按证据包修复 |
+| 预览页改了环境字段，运行时又变回旧值 | 旧版本会被 auto_resolve 缓存覆盖 | 升级到当前版本；手工修改字段会自动关闭 auto_resolve |
 
 ---
 
@@ -100,6 +156,12 @@ cosmic-replay-v4/
 │   ├── har_extractor.py      # HAR解析 + 变量识别核心
 │   ├── runner.py             # 执行引擎（三层防护架构）
 │   ├── replay.py             # 苍穹协议回放API
+│   ├── field_resolver.py     # 环境相关字段跨环境解析
+│   ├── component_registry.py # HAR 组件雷达
+│   ├── har_regression.py     # 8类HAR回归影响报告
+│   ├── task_manager.py       # 批量任务与验收报告
+│   ├── agent_evidence.py     # AI修复证据包
+│   ├── report_exporter.py    # 离线HTML报告导出
 │   ├── cosmic_login.py       # 苍穹RSA登录
 │   └── webui/                # Web UI 服务
 ├── cases/            # YAML 测试用例资产
@@ -124,9 +186,10 @@ cosmic-replay-v4/
 | 症状 | 排查方向 |
 |------|---------|
 | 变量没识别 / 硬编码值 | 模式 A — 检查 `UNIQUE_KEY_HINTS` / `ENV_RELATED_FIELDS` |
+| 环境字段手工值未生效 | 检查 `pick_fields` 是否为 `manual_override=true` 且 `auto_resolve=false` |
 | pageId 不对 / 404 | 模式 B — 检查 `menuItemClick` 步骤 / `_pending_by_app` 链路 |
 | save 返回空 `[]` | 模式 B-4 — `L2 pageId` 屏蔽了 `_pending_by_app` |
-| PASS 但数据未入库 | 模式 C — 断言换 `no_save_failure`，检查字段缺失 |
+| PASS 但入库未验证 | 模式 G — 查看批量报告入库证据；必要时生成 AI 证据包 |
 | 启动时报找不到脚本 | 模式 D — `_find_login_script()` / `_load_dotenv()` |
 
 完整排故见 `docs/troubleshooting.md` 或 `skills/cosmic-replay-troubleshooter/SKILL.md`。

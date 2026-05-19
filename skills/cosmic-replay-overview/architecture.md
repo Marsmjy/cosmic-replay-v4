@@ -13,8 +13,12 @@ cosmic-replay-v4/
 │   ├── config.py          # 配置管理
 │   ├── cosmic_login.py    # 登录模块
 │   ├── field_resolver.py  # 基础资料跨环境解析
+│   ├── component_registry.py # HAR 组件处理器注册表
+│   ├── har_regression.py  # HAR 回归样本与影响分级
+│   ├── agent_evidence.py  # AI 修复证据包
+│   ├── report_exporter.py # 批量 HTML 报告导出
 │   ├── kb_loader.py       # 知识库加载
-│   ├── task_manager.py    # 任务管理
+│   ├── task_manager.py    # 批量任务、验收报告、入库证据
 │   ├── session_manager.py # 会话管理
 │   ├── db/                # SQLite 持久化
 │   ├── webui/             # Web UI
@@ -116,9 +120,92 @@ HAR 导入时，如果 Web UI 已选择并登录环境，会通过 `MetadataReso
 - `knowledge/scenarios/<form_id>/scene_doc_lite.json`
 - `knowledge/_shared/_standard_metadata/entity_metadata/<form_id>.md`
 
+### 环境字段运行时优先级
+
+`pick_fields` 不是普通展示字段，而是跨环境执行前会被 runner 注入到请求体里的运行期输入。
+
+优先级从高到低：
+
+| 来源 | YAML 标记 | 行为 |
+|------|----------|------|
+| 用户手工维护值 | `manual_override: true` + `auto_resolve: false` | 直接使用 YAML 中的 value，不再按名称解析 |
+| 当前环境自动解析 | `auto_resolve: true` + `value_name` | 通过 `FieldResolver` 按当前环境查基础资料/枚举内码 |
+| HAR 原始值 | 无解析信息或解析失败 | 保留录制时的原始值 |
+
+关键风险：如果用户在预览页把“行政组织类型”从 `1020` 改成 `1010`，但 YAML 仍保留旧 `value_name` 且 `auto_resolve=true`，运行时会按旧名称重新解析回 `1020`。因此前端保存手工值时必须设置 `manual_override=true` 并关闭 `auto_resolve`。
+
 ### C档：响应回传（跨 step 引用）
 
 如 processInstId、fid、pkValue 等从响应中提取，用 `${capture.step_id}` 引用
+
+## HAR 导入到 YAML 的验收链路
+
+导入 HAR 后，不应直接以“能生成 YAML”为成功标准，而是先产出可解释的预览：
+
+```
+HAR 上传
+  → har_extractor 过滤噪声请求
+  → MetadataResolver 在线补字段语义
+  → cosmic-hr-expert 离线知识库兜底
+  → component_registry 给 preview step 打标签
+  → 变量识别：智能变量 / 环境字段 / 响应捕获
+  → 预览页人工确认或修正
+  → 生成 YAML
+```
+
+组件注册表当前定位是“雷达层”，不直接改写主解析链路。它负责标记已覆盖组件、未知组件和风险等级，方便新 HAR 出现解析遗漏时快速定位，不影响已成功生成的 YAML。
+
+## YAML 到执行的关键链路
+
+```
+runner.py 加载 YAML
+  → 读取 vars / pick_fields / target_forms
+  → 登录并创建 root pageId
+  → 按 step 执行 open_form / invoke / assert
+  → FieldResolver 注入环境字段
+  → replay.py 维护 pageId 状态机
+  → diagnoser/advisor 生成失败原因与修复建议
+  → task_manager 汇总批量报告
+```
+
+执行 PASS 只能说明协议步骤没有抛错，不等价于业务数据一定入库。批量报告必须结合写库证据判断是否可交付。
+
+## 批量验收报告与入库证据
+
+`task_manager.py` 会在批量执行后补充验收维度：
+
+| 状态 | 触发条件 | 面向用户的结论 |
+|------|----------|---------------|
+| `verified` | 保存/提交响应包含主键、成功 token，或后置查询回读命中 | 已自动验证入库 |
+| `manual_verified` | YAML 中存在 `write_verification.manual_confirmed` 且本次 PASS | 用户已确认入库 |
+| `unverified` | 本次 PASS，但保存响应为空或缺少明确写入证据 | 需要补断言、修 pageId，或人工确认 |
+| `failed` | 保存、提交、断言或执行步骤失败 | 按失败分析修复 |
+| `not_applicable` | 没有识别到写库步骤 | 普通非写库用例 |
+
+用户点击“人工确认已入库”后，系统会写回 YAML：
+
+```yaml
+write_verification:
+  manual_confirmed: true
+  confirmed_at: "..."
+  confirmed_by: "manual"
+  reason: "..."
+```
+
+后续同一用例如果执行 PASS 且只有“保存响应为空”这类证据不足问题，会显示 `manual_verified`，不再进入 AI 诊断队列。注意：人工确认不是篡改执行结果，它只是把“业务数据已由人确认”的证据记录下来。
+
+## AI 修复证据链
+
+当报告判断 `next_action=ai_agent` 时，Web UI 会提供“让AI修复”按钮，而不是只展示技术链接。按钮复制的提示词包含：
+
+- 用例名、任务 ID、环境名
+- 报告中的失败或未验证原因
+- `/api/tasks/{task_id}/agent-evidence/{case_name}` 证据包链接
+- 必读技能：`cosmic-replay-troubleshooter`、`cosmic-replay-overview`
+- 修复护栏：不得为了 PASS 删除关键 step、断言、`target_forms` 或环境字段
+- 必跑测试命令
+
+证据包由 `agent_evidence.py` 生成，面向 AI/研发，不要求普通使用者阅读。它聚合 YAML、执行事件、批量报告上下文和排障入口，让 Agent 能复现“解析遗漏、pageId 链路错误、PASS 但未入库”等问题。
 
 ## 苍穹协议核心
 

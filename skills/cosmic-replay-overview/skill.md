@@ -4,7 +4,7 @@
 当 AI Agent 需要理解 cosmic-replay-v4 项目架构、修改代码、排查问题时加载此 Skill。
 
 ## 项目一句话定位
-金蝶苍穹平台的 HAR 录制 → YAML 用例 → 自动回放 的端到端自动化测试工具。3-5 秒执行一条用例。
+金蝶苍穹平台的 HAR 录制 → YAML 用例 → 自动回放 → 批量验收报告 的端到端自动化测试工具。目标不是只跑出 PASS，而是判断用例是否可交付、是否真实入库、是否需要 AI 修复。
 
 ## 技术栈
 - 后端：FastAPI + Uvicorn (Python 3.11+)
@@ -28,7 +28,11 @@
 | `lib/cosmic_login.py` | ~490 | 苍穹登录：RSA 加密 + 多重兜底 |
 | `lib/kb_loader.py` | ~363 | 知识库懒加载：场景元数据 + shared entity_metadata 字段分类 |
 | `lib/field_resolver.py` | - | 基础资料跨环境解析 |
-| `lib/task_manager.py` | - | 任务管理与报告生成 |
+| `lib/component_registry.py` | - | HAR 组件处理器注册表：给 preview step 打标签、统计未知组件风险 |
+| `lib/har_regression.py` | - | 8 类 HAR 结构基线、影响分级和回归门禁 |
+| `lib/task_manager.py` | - | 任务管理、批量报告、入库证据和行动队列 |
+| `lib/agent_evidence.py` | - | AI Agent 修复证据包：YAML、运行事件、报告上下文、技能护栏 |
+| `lib/report_exporter.py` | - | HTML 报告导出，内嵌离线图表资源 |
 | `lib/db/dao.py` | - | 数据访问对象（SQLite） |
 
 ## 模块调用链
@@ -36,14 +40,18 @@
 ```
 Web UI (server.py + index.html)
     ↓ API 调用
-runner.py (执行引擎: 三层防护 + Step Handlers + 断言)
+har_extractor.py (HAR 预览/变量识别/组件雷达/YAML生成)
+    ↓ 生成 YAML
+runner.py (执行引擎: 三层防护 + Step Handlers + 断言 + 环境字段注入)
     ↓ 步骤分发
 replay.py (协议层: PageId 状态机) ← diagnoser.py ← advisor.py
     ↓ HTTP
 苍穹平台 batchInvokeAction.do
+    ↓ 执行事件
+task_manager.py (批量验收报告: PASS/FAIL + 入库证据 + 下一步)
 ```
 
-## 四大核心设计决策
+## 核心设计决策
 
 ### 1. PageId 四层跃迁
 苍穹表单协议的 pageId 不是全局唯一，而是分层的：
@@ -57,21 +65,51 @@ replay.py (协议层: PageId 状态机) ← diagnoser.py ← advisor.py
 ### 2. 变量三档识别（HAR→YAML）
 - A档（必变）：number/code/name → 变量化 `${vars.test_number}`
 - 智能文本变量：description/remark/memo/note → 变量化 `${vars.test_description}` 等，便于导入后编辑
-- B档（基础资料）：org/position → 保留字面量，前端面板可改
+- B档（环境相关）：org/position/adminorg/枚举/基础资料 → 进入 `pick_fields`，前端面板可改
 - C档（响应回传）：pkValue/processInstId → 跨 step 引用
 - 增强来源：在线 `MetadataResolver(getEntityType.do)` + `skills/cosmic-hr-expert/knowledge/_shared/_standard_metadata/entity_metadata`
 
-### 3. SSE 实时推送
-执行过程通过 Server-Sent Events 流式推送：
-case_start → login_ok → session_ready → step_start/step_ok → assertion_ok → case_done
+### 3. 环境字段优先级
+环境字段的权威来源按优先级排列：
+- 用户手工维护值：`manual_override=true`，`auto_resolve=false`，运行期不再被缓存覆盖。
+- 在线自动解析：`FieldResolver` 按当前环境和 `value_name` 解析基础资料/枚举内码。
+- HAR 原始值：解析失败或未开启自动解析时保留。
 
-### 4. invoke 三层防护架构
+手工修改环境字段时必须清理陈旧 `value_name` 或关闭 `auto_resolve`，否则会出现“UI/YAML 是 1010，运行期按旧名称解析回 1020”的问题。
+
+### 4. SSE 实时推送
+执行过程通过 Server-Sent Events 流式推送：
+case_start → login_ok → session_ready → step_start/step_ok → assertion_ok → env_fields_resolved → case_done
+
+### 5. invoke 三层防护架构
 执行 invoke 时有三层自动保护：
 - 预验证（_validate_pageid_before_invoke）：首次使用 form 时检查 pageId 有效性
 - auto-open 补偿：每步执行前检查 pageId 存在性
 - 安全网重试（invoke-retry）：可重试错误自动恢复（pop→open→loadData→重试）
 
 详见 skills/cosmic-replay-troubleshooter/skill.md 第一章。
+
+### 6. 批量验收报告
+批量报告不只统计 PASS/FAIL，还会给出交付判断：
+
+| 状态 | 含义 |
+|------|------|
+| `verified` | 系统检测到保存主键、成功 token 或后置查询回读证据 |
+| `manual_verified` | 用户点击“人工确认已入库”，确认写入当前 YAML |
+| `unverified` | 用例 PASS，但保存响应为空或缺少写入 token |
+| `failed` | 保存/提交/断言失败 |
+| `not_applicable` | 未识别写库步骤 |
+
+`manual_verified` 只代表用户确认，不等价于系统自动验证；但后续同一用例 PASS 时不再进入 AI 修复队列。
+
+### 7. AI 修复证据包
+当 `next_action=ai_agent`，Web UI 的“让AI修复”会复制指令，并附带：
+- `/api/tasks/{task_id}/agent-evidence/{case_name}`
+- 当前 YAML
+- 最近运行事件和失败事件
+- 批量报告上下文
+- `cosmic-replay-troubleshooter`、pageId、断言盲区、HR 知识库路径
+- 安全护栏：不得删除 `menuItemClick`、`target_forms`、`pick_fields`、`no_save_failure` 来绕过问题
 
 ## 改代码前必读清单
 1. 改 replay.py → 先理解 PageId 四层跃迁规则
@@ -81,6 +119,9 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 5. 新增断言 → 用 @assertion_handler 装饰器注册
 6. 改 runner.py 安全网 → 先理解三层防护架构（troubleshooter skill 第一章）
 7. 改 har_extractor.py 规则 → 不要静态插入 loadData（Rule 14 教训）
+8. 改环境字段 → 手工值必须优先于 `auto_resolve`，并补 `tests/unit/test_env_field_resolution.py`
+9. 改批量报告 → 同步 `task_manager.py`、Web UI、`report_exporter.py` 和 `tests/unit/test_task_report_acceptance.py`
+10. 改 AI 修复入口 → 同步 `agent_evidence.py` 和 `cosmic-replay-troubleshooter`
 
 ## 快速定位问题
 | 症状 | 去哪看 |
@@ -89,7 +130,33 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 | pageId 404/过期 | lib/replay.py 的 page_ids 缓存和 _pending_by_app |
 | 保存报错 | lib/diagnoser.py + lib/advisor.py |
 | HAR 转换变量遗漏 | lib/har_extractor.py 的 `_classify_key_heuristic` / `_TEXT_VARIABLE_KEYS` / MetadataResolver |
+| 环境字段改了但运行没生效 | YAML `pick_fields` 是否 `manual_override=true` 且 `auto_resolve=false`；runner `_apply_pick_fields` |
+| PASS 但报告入库未验证 | task_manager.py `infer_write_status()`；保存响应是否为空；是否需要后置查询断言 |
+| 人工确认后仍提示 AI | YAML `write_verification.manual_confirmed` 是否写入；批量执行是否加载了最新 YAML |
+| AI 修复入口不清楚 | Web UI `copyAgentRepairPrompt()` 与 `/agent-evidence/` endpoint |
 | 前端不刷新 | lib/webui/static/index.html 的 Alpine.js 响应式 |
 | 用例格式错误 | 参考 cases/新增一条行政组织.yaml |
 | invoke 重试/安全网 | lib/runner.py 的 _RETRYABLE_ERRORS + invoke-retry 循环 |
 | target_forms 缺失 | lib/har_extractor.py 规则13 (行 2013-2069) |
+
+## 推荐验证命令
+
+```bash
+./venv/bin/python -m pytest -q tests/unit tests/test_core.py
+./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff
+node --check /tmp/cosmic_index_full_script.js
+```
+
+前端脚本检查可先用以下命令提取 `index.html` 中的 Alpine 脚本：
+
+```bash
+node - <<'NODE'
+const fs = require('fs');
+const html = fs.readFileSync('lib/webui/static/index.html', 'utf8');
+const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+  .map(m => m[1].trim()).filter(Boolean);
+const target = scripts.find(s => s.includes('function app()'));
+fs.writeFileSync('/tmp/cosmic_index_full_script.js', target);
+NODE
+node --check /tmp/cosmic_index_full_script.js
+```
