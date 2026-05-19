@@ -384,62 +384,62 @@
 
   <!-- ========== Dashboard - v4 宇宙主题 ========== -->
   <section x-show="view==='dashboard'" class="fadein">
-    <!-- 标题区 -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-3xl font-bold mb-1" style="background: linear-gradient(135deg, #06B6D4, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">用例库</h1>
-        <p class="text-sm text-slate-400">管理和执行HAR回放测试用例</p>
-      </div>
-      <button @click="openHarWizard()" class="btn btn-primary btn-md">
-        <span class="text-lg">+</span> 导入 HAR 新建用例
-      </button>
-    </div>
-
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-      <div class="stat-card">
-        <div class="stat-value" x-text="filteredCases().length"></div>
-        <div class="stat-label">用例总数</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="background: linear-gradient(135deg, #10B981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-             x-text="Object.values(lastResults).filter(r=>r==='pass').length"></div>
-        <div class="stat-label">最近通过</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" style="background: linear-gradient(135deg, #EF4444, #DC2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-             x-text="Object.values(lastResults).filter(r=>r==='fail').length"></div>
-        <div class="stat-label">最近失败</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" x-text="cases.length - Object.keys(lastResults).length"></div>
-        <div class="stat-label">未执行</div>
-      </div>
-    </div>
-
-    <!-- 快速操作 -->
-    <div class="glass-card p-4 mb-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">⚡</span>
-          <div>
-            <div class="text-sm font-semibold">快速操作</div>
-            <div class="text-xs text-slate-400">常用功能快捷入口</div>
-          </div>
+    <!-- 标题区（精简版：内联统计badge + 右侧操作按钮） -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <!-- 左侧：标题 + 刷新 + 统计badges -->
+      <div class="flex items-center flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+          <h1 class="text-3xl font-bold" style="background: linear-gradient(135deg, #06B6D4, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">用例库</h1>
+          <button @click="(async () => { await loadCases(); showToast('已刷新用例列表'); })()"
+                  class="p-2 rounded-md bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-sky-400 border border-slate-700 transition-colors"
+                  title="刷新用例列表">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+              <polyline points="21 3 21 8 16 8"/>
+            </svg>
+          </button>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button @click="openHarWizard()" class="btn btn-secondary btn-sm">📥 导入HAR</button>
-          <button @click="view='batch'" class="btn btn-secondary btn-sm">⚡ 批量运行</button>
-          <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn btn-secondary btn-sm">📊 查看报告</button>
+        <!-- 内联统计 badges -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-700/60 text-slate-300 border border-slate-600/50">
+            共 <span class="font-bold" x-text="cases.length"></span> 条
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400 border border-emerald-700/40">
+            通过 <span class="font-bold" x-text="Object.values(lastResults).filter(r=>r==='pass').length"></span>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-900/40 text-red-400 border border-red-700/40">
+            失败 <span class="font-bold" x-text="Object.values(lastResults).filter(r=>r==='fail').length"></span>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-700/40">
+            未执行 <span class="font-bold" x-text="cases.length - Object.keys(lastResults).length"></span>
+          </span>
         </div>
+      </div>
+      <!-- 右侧：操作按钮 -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button @click="view='batch'; batchSubTab='history'; loadTaskHistory(); loadHistoryTrend()" class="btn btn-secondary btn-sm">📊 查看报告</button>
+        <button @click="view='batch'" class="btn btn-secondary btn-sm">⚡ 批量运行</button>
+        <button @click="openHarWizard()" class="btn btn-primary btn-md">
+          <span class="text-lg">+</span> 导入 HAR 新建用例
+        </button>
       </div>
     </div>
 
     <!-- 搜索和筛选 -->
     <div class="glass-card p-4 mb-4">
       <div class="flex flex-col md:flex-row md:items-center gap-3">
-        <input type="text" x-model="caseSearch" @input="casePage=1" placeholder="搜索用例名称、表单、标签..." 
-               class="input-glass flex-1 focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-500 focus:bg-slate-900/70 placeholder:text-slate-500">
+        <div class="relative flex-1 max-w-md">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" x-model="caseSearch" @input="casePage=1"
+                 placeholder="搜索用例名称、表单、标签..."
+                 class="w-full pl-9 pr-9 py-2 text-sm bg-slate-900 border border-slate-700 rounded focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 placeholder:text-slate-500">
+          <button x-show="caseSearch" @click="caseSearch=''; casePage=1"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 px-1"
+                  title="清除搜索">✕</button>
+        </div>
         <select x-model="caseSort" @change="casePage=1" class="input-glass w-full md:w-40 text-xs">
           <option value="created_at">按创建时间</option>
           <option value="name">按名称</option>
@@ -778,17 +778,18 @@
                 <div class="text-xs text-slate-500 mt-2 break-words" x-show="singleRunDiagnosisReason()" x-text="singleRunDiagnosisReason()"></div>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button x-show="currentRunId()"
+                <button type="button"
                         @click="copySingleRunAgentRepairPrompt()"
                         class="w-full rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   复制 AI 修复指令
                 </button>
-                <a x-show="currentRunId()"
-                   :href="singleRunAgentEvidenceUrl(currentCase?.name, currentRunId())"
-                   target="_blank"
-                   class="w-full rounded-lg border border-rose-800 px-4 py-2.5 text-center text-sm font-semibold text-rose-100 transition hover:bg-rose-950">
-                  打开证据包
-                </a>
+                <template x-if="currentRunId()">
+                  <a :href="singleRunAgentEvidenceUrl(currentCase?.name, currentRunId())"
+                     target="_blank"
+                     class="w-full rounded-lg border border-rose-800 px-4 py-2.5 text-center text-sm font-semibold text-rose-100 transition hover:bg-rose-950">
+                    打开证据包
+                  </a>
+                </template>
               </div>
             </div>
           </div>
@@ -1742,13 +1743,23 @@
   <!-- 用例列表视图 -->
   <div x-show="batchView==='list'">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-      <h1 class="text-2xl font-semibold">批量运行</h1>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-semibold">批量运行</h1>
+        <button @click="(async () => { await loadCases(); checkFlakyStatus(); showToast('已刷新用例列表'); })()"
+                class="p-2 rounded-md bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-sky-400 border border-slate-700 transition-colors"
+                title="刷新用例列表">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+            <polyline points="21 3 21 8 16 8"/>
+          </svg>
+        </button>
+      </div>
       <div class="flex flex-wrap gap-2">
         <button @click="batchPagedCases.forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
                 class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
           选当页
         </button>
-        <button @click="cases.forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
+        <button @click="batchFilteredCases().forEach(c => batchSelected.add(c.name)); batchSelected = new Set(batchSelected)"
                 class="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
           全选
         </button>
@@ -1797,14 +1808,37 @@
     </div>
 
 
+    <!-- 搜索栏 -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+      <div class="relative flex-1 max-w-md">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" x-model="batchSearch" @input="batchPage=1"
+               placeholder="按名称 / 描述 / 表单搜索用例..."
+               class="w-full pl-9 pr-9 py-2 text-sm bg-slate-900 border border-slate-700 rounded focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 placeholder:text-slate-500">
+        <button x-show="batchSearch" @click="batchSearch=''; batchPage=1"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 px-1"
+                title="清除搜索">✕</button>
+      </div>
+      <div class="text-xs text-slate-500">
+        <span x-show="batchSearch">匹配 <span class="text-slate-300 font-medium" x-text="batchFilteredCases().length"></span> / </span>
+        共 <span class="text-slate-300 font-medium" x-text="cases.length"></span> 个用例
+        <span x-show="batchSelected.size>0" class="ml-2 text-sky-400">已选 <span x-text="batchSelected.size"></span></span>
+      </div>
+    </div>
+
     <div class="table-shell scrollbar-thin">
-      <table class="w-full min-w-[720px] text-sm">
+      <table class="w-full min-w-[860px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
             <th class="text-left px-4 py-2 w-10"></th>
-            <th class="text-left px-4 py-2 w-12">状态</th>
             <th class="text-left px-4 py-2">用例</th>
-            <th class="text-left px-4 py-2">结果</th>
+            <th class="text-center px-3 py-2 w-20">步骤数</th>
+            <th class="text-right px-3 py-2 w-20">耗时</th>
+            <th class="text-left px-4 py-2 w-36">最后运行</th>
+            <th class="text-left px-4 py-2 w-28">结果</th>
           </tr>
         </thead>
         <tbody>
@@ -1816,22 +1850,27 @@
                        class="accent-sky-500">
               </td>
               <td class="px-4 py-3.5">
-                <span x-show="batchResults[c.name]==='pass'" class="text-emerald-400">✓</span>
-                <span x-show="batchResults[c.name]==='fail'" class="text-rose-400">✗</span>
-                <span x-show="batchResults[c.name]==='running'" class="text-sky-400 pulse-dot">●</span>
-                <span x-show="!batchResults[c.name]" class="text-slate-600">○</span>
+                <div class="flex items-center gap-2 min-w-0">
+                  <span x-show="batchResults[c.name]==='pass'" class="text-emerald-400 text-xs flex-shrink-0" title="本次运行通过">✓</span>
+                  <span x-show="batchResults[c.name]==='fail'" class="text-rose-400 text-xs flex-shrink-0" title="本次运行失败">✗</span>
+                  <span x-show="batchResults[c.name]==='running'" class="text-sky-400 pulse-dot text-xs flex-shrink-0" title="运行中">●</span>
+                  <span @click="openCase(c.name)" class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer hover:underline truncate min-w-0" x-text="c.display_name || c.name" :title="c.display_name || c.name"></span>
+                  <span x-show="c.is_flaky" class="text-xs text-amber-400 flex-shrink-0" title="不稳定用例">⚠</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5 truncate max-w-md"
+                     x-text="c.description || '暂无描述'"
+                     :title="c.description || '暂无描述'"></div>
               </td>
+              <td class="px-3 py-3.5 text-center mono tabular-nums text-slate-300" x-text="c.step_count || 0"></td>
+              <td class="px-3 py-3.5 text-right mono tabular-nums text-xs text-slate-400"
+                  x-text="c.last_duration_s != null ? Number(c.last_duration_s).toFixed(1) + 's' : '—'"></td>
+              <td class="px-4 py-3.5 text-xs text-slate-500 mono tabular-nums"
+                  x-text="c.last_run_time ? c.last_run_time.slice(5, 16) : '—'"
+                  :title="c.last_run_time || ''"></td>
               <td class="px-4 py-3.5">
-                <span @click="openCase(c.name)" class="font-medium text-sky-400 hover:text-sky-300 cursor-pointer hover:underline block truncate max-w-sm" x-text="c.display_name || c.name" :title="c.display_name || c.name"></span>
-                <span x-show="c.is_flaky" class="ml-1 text-xs text-amber-400" title="不稳定用例">⚠ Flaky</span>
-                <div class="text-xs text-slate-500" x-text="c.main_form_id"></div>
-              </td>
-              <td class="px-4 py-3.5">
-                <!-- 本次批量运行错误信息 -->
                 <template x-if="batchErrors[c.name]">
-                  <div class="text-xs text-rose-400" x-text="batchErrors[c.name]"></div>
+                  <div class="text-xs text-rose-400 truncate max-w-[180px]" :title="batchErrors[c.name]" x-text="batchErrors[c.name]"></div>
                 </template>
-                <!-- 最近执行结果 -->
                 <template x-if="!batchErrors[c.name]">
                   <div>
                     <template x-if="c.last_result === 'PASS'">
@@ -1843,35 +1882,58 @@
                     <template x-if="!c.last_result">
                       <span class="text-xs text-slate-600">—</span>
                     </template>
-                    <div x-show="c.last_run_time" class="text-xs text-slate-500 mt-0.5" x-text="c.last_run_time ? c.last_run_time.slice(5, 16) : ''"></div>
                   </div>
                 </template>
               </td>
             </tr>
           </template>
+          <tr x-show="batchFilteredCases().length===0">
+            <td colspan="6" class="px-4 py-12 text-center text-slate-500">
+              <span x-show="cases.length===0">暂无用例</span>
+              <span x-show="cases.length>0">没有匹配的用例</span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <!-- 分页控件 -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 px-2 py-3 border-t border-slate-800" x-show="batchPageCount > 1">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 px-2 py-3 border-t border-slate-800" x-show="batchFilteredCases().length > 0">
       <span class="text-sm text-slate-400">
-        共 <span class="font-medium text-slate-300" x-text="cases.length"></span> 条，
+        共 <span class="font-medium text-slate-300" x-text="batchFilteredCases().length"></span> 条，
         第 <span class="font-medium text-slate-300" x-text="batchPage"></span>/<span class="font-medium text-slate-300" x-text="batchPageCount"></span> 页
       </span>
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-1" x-show="batchPageCount > 1">
+        <button @click="batchPage = 1" :disabled="batchPage <= 1"
+                class="px-2 py-1.5 rounded text-sm border transition-all
+                       enabled:text-slate-300 enabled:border-slate-700 enabled:hover:border-slate-600 enabled:hover:bg-slate-800
+                       disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed"
+                title="首页">«</button>
         <button @click="batchPage = Math.max(1, batchPage - 1)" :disabled="batchPage <= 1"
                 class="px-3 py-1.5 rounded text-sm border transition-all
                        enabled:text-slate-300 enabled:border-slate-700 enabled:hover:border-slate-600 enabled:hover:bg-slate-800
                        disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed">
           ← 上一页
         </button>
+        <template x-for="p in Array.from({length: batchPageCount}, (_, i) => i + 1).filter(p => Math.abs(p - batchPage) <= 2 || p === 1 || p === batchPageCount)" :key="p">
+          <button @click="batchPage = p"
+                  :class="p === batchPage
+                    ? 'bg-sky-600 text-white border-sky-500'
+                    : 'text-slate-300 border-slate-700 hover:border-slate-600 hover:bg-slate-800'"
+                  class="px-3 py-1.5 rounded text-sm border min-w-[36px] mono tabular-nums transition-all"
+                  x-text="p"></button>
+        </template>
         <button @click="batchPage = Math.min(batchPageCount, batchPage + 1)" :disabled="batchPage >= batchPageCount"
                 class="px-3 py-1.5 rounded text-sm border transition-all
                        enabled:text-slate-300 enabled:border-slate-700 enabled:hover:border-slate-600 enabled:hover:bg-slate-800
                        disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed">
           下一页 →
         </button>
+        <button @click="batchPage = batchPageCount" :disabled="batchPage >= batchPageCount"
+                class="px-2 py-1.5 rounded text-sm border transition-all
+                       enabled:text-slate-300 enabled:border-slate-700 enabled:hover:border-slate-600 enabled:hover:bg-slate-800
+                       disabled:text-slate-600 disabled:border-slate-800 disabled:cursor-not-allowed"
+                title="末页">»</button>
       </div>
     </div>
   </div>
@@ -2308,18 +2370,18 @@
       <button @click="view='dashboard'" class="text-slate-400 hover:text-slate-100">←</button>
       <h1 class="text-xl font-semibold">日志</h1>
       <div class="flex gap-1 ml-4 border border-slate-800 rounded overflow-hidden text-xs">
-        <button class="px-3 py-1"
+        <button class="px-3 py-1" style="display:none"
                 :class="logsTab==='server' ? 'bg-sky-700 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'"
                 @click="switchLogsTab('server')">服务日志</button>
         <button class="px-3 py-1"
                 :class="logsTab==='history' ? 'bg-sky-700 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'"
-                @click="switchLogsTab('history')">执行历史</button>
+                @click="switchLogsTab('history')">用例执行历史日志</button>
       </div>
       <div class="flex-1"></div>
     </div>
 
-    <!-- Tab 1: 服务日志 -->
-    <div x-show="logsTab==='server'" class="space-y-3">
+    <!-- Tab 1: 服务日志（已隐藏） -->
+    <div x-show="logsTab==='server'" style="display:none" class="space-y-3">
       <div class="flex items-center gap-2">
         <div class="flex gap-1 border border-slate-800 rounded overflow-hidden text-xs">
           <button @click="logLevel=''" class="px-3 py-1" :class="logLevel==='' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800'">全部</button>
@@ -2362,10 +2424,13 @@
       </div>
     </div>
 
-    <!-- Tab 2: 执行历史 -->
+    <!-- Tab 2: 用例执行历史日志 -->
     <div x-show="logsTab==='history'" class="space-y-3">
       <div class="flex items-center gap-2">
         <button @click="loadRunHistory()" class="text-xs text-sky-400 hover:text-sky-300">↻ 刷新</button>
+        <button @click="clearRunHistory()"
+                class="text-xs px-2 py-1 rounded border border-red-600 text-red-400 hover:bg-red-900/30 transition-colors"
+                title="清空所有用例执行历史日志">🗑 清空日志</button>
         <span class="text-xs text-slate-500" x-text="`共 ${runHistory.length} 条`"></span>
       </div>
 
@@ -2385,7 +2450,7 @@
                     <div class="text-sm font-medium truncate" x-text="r.case_name || '(未识别)'"></div>
                     <div class="text-xs text-slate-500 mono mt-0.5" x-text="r.run_id"></div>
                     <div class="text-xs text-slate-500 mt-1"
-                         x-text="formatTs(r.mtime) + (r.duration_s ? ' · ' + r.duration_s + 's' : '')"></div>
+                         x-text="formatRunTs(r.mtime) + (r.duration_s ? ' · 耗时 ' + r.duration_s + 's' : '')"></div>
                   </div>
                 </div>
               </div>
@@ -2947,7 +3012,7 @@ function app() {
     caseSort: 'created_at',
     caseSortDir: 'desc',
     casePage: 1,
-    casePageSize: 10,
+    casePageSize: 8,
     dashSelected: new Set(),
 
     // 用例详情增强
@@ -2975,13 +3040,29 @@ function app() {
     batchResults: {},
     batchErrors: {},
     batchPage: 1,
-    batchPageSize: 10,
+    batchPageSize: 8,
+    batchSearch: '',
+    batchFilteredCases() {
+      let list = this.cases;
+      const q = (this.batchSearch || '').trim().toLowerCase();
+      if (q) {
+        list = list.filter(c => {
+          const n = (c.display_name || c.name || '').toLowerCase();
+          const d = (c.description || '').toLowerCase();
+          const f = (c.main_form_id || '').toLowerCase();
+          return n.includes(q) || d.includes(q) || f.includes(q);
+        });
+      }
+      // 按最后更新时间倒序（与用例面板按 mtime 排序一致）
+      return [...list].sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+    },
     get batchPageCount() {
-      return Math.max(1, Math.ceil(this.cases.length / this.batchPageSize));
+      return Math.max(1, Math.ceil(this.batchFilteredCases().length / this.batchPageSize));
     },
     get batchPagedCases() {
+      const all = this.batchFilteredCases();
       const start = (this.batchPage - 1) * this.batchPageSize;
-      return this.cases.slice(start, start + this.batchPageSize);
+      return all.slice(start, start + this.batchPageSize);
     },
     // ⭐ 任务系统
     currentTaskId: '',
@@ -3012,7 +3093,7 @@ function app() {
     newEnvClone: '',
 
     // 日志
-    logsTab: 'server',         // server | history
+    logsTab: 'history',         // server | history (server已隐藏)
     logs: [],
     logLevel: '',              // '' | info | warn | error
     logSearch: '',
@@ -5191,6 +5272,30 @@ function app() {
       }
     },
 
+    async clearRunHistory() {
+      if (!confirm('确认清空所有执行历史日志？此操作不可撤销')) return;
+      try {
+        const resp = await fetch('/api/run-logs', { method: 'DELETE' });
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(txt || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        // 重置当前选中状态
+        this.selectedRunId = null;
+        this.selectedRunEvents = [];
+        this.historyPhases = [];
+        this.historyVars = [];
+        this.historyEnvFields = [];
+        this.historySummary = null;
+        this.selectedHistoryStep = null;
+        await this.loadRunHistory();
+        this.showToast(`已清空 ${data.deleted ?? 0} 条执行历史日志`);
+      } catch (e) {
+        this.showToast('清空失败: ' + e.message);
+      }
+    },
+
     async openRunDetail(runId) {
       this.selectedRunId = runId;
       this.selectedRunEvents = [];
@@ -5312,6 +5417,15 @@ function app() {
       if (!ts) return '';
       const d = new Date(ts * 1000);
       return d.toTimeString().slice(0, 8);
+    },
+
+    formatRunTs(ts) {
+      if (!ts) return '';
+      const d = new Date(ts * 1000);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const time = d.toTimeString().slice(0, 8);
+      return `${mm}-${dd} ${time}`;
     },
 
     compactJson(obj) {

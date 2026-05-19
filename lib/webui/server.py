@@ -858,6 +858,19 @@ def api_run_history(limit: int = 100):
     return LOG_STORE.list_runs(limit=limit)
 
 
+@APP.delete("/api/run-logs")
+def api_clear_run_logs():
+    """清空所有用例执行历史日志。
+
+    只删除 logs/runs/*.jsonl 文件，不影响用例本身及批量任务记录。
+    """
+    try:
+        deleted = LOG_STORE.clear_all_runs()
+        return {"success": True, "deleted": deleted}
+    except Exception as e:
+        raise HTTPException(500, f"清空执行历史日志失败: {e}")
+
+
 @APP.get("/api/run_history/{run_id}")
 def api_run_detail(run_id: str):
     """回放某个历史 run 的完整事件流"""

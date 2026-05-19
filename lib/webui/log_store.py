@@ -234,6 +234,22 @@ class LogStore:
                 continue
         return out
 
+    def clear_all_runs(self) -> int:
+        """清空所有用例执行历史日志（logs/runs/*.jsonl）。
+        返回被删除的文件数量。
+        """
+        runs_dir = self.log_dir / "runs"
+        if not runs_dir.exists():
+            return 0
+        deleted = 0
+        for f in runs_dir.glob("*.jsonl"):
+            try:
+                f.unlink()
+                deleted += 1
+            except Exception as e:
+                self.add("warn", "logstore", f"删除历史日志失败 {f.name}: {e}")
+        return deleted
+
 
 # ============================================================
 # 重定向 stdout / stderr / logging 到 LogStore
