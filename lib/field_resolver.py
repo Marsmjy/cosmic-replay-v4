@@ -250,12 +250,15 @@ class FieldResolver:
         item = self.cache_store.get(self.env_id, form_id, app_id, field_key, name)
         if not item or item.get("status") != "resolved" or not item.get("resolved_value_id"):
             return None
+        cached_value_id = str(item.get("resolved_value_id") or "")
+        if _looks_like_internal_id(original_value_id) and not _looks_like_internal_id(cached_value_id):
+            return None
         return ResolveResult(
             status="resolved",
             field_key=field_key,
             query=name,
             original_value_id=original_value_id,
-            resolved_value_id=str(item.get("resolved_value_id") or ""),
+            resolved_value_id=cached_value_id,
             resolved_value_name=str(item.get("resolved_value_name") or name),
             confidence=str(item.get("confidence") or "high"),
             message="命中环境字段缓存",
@@ -322,6 +325,7 @@ class FieldResolver:
                         rid = _row_value(row, id_ix)
                         number = _row_value(row, number_ix)
                         rnm = _row_value(row, name_ix)
+                        rid = _prefer_business_id(row, rid, number)
                         add(rid or number, rnm, number=number, raw=row)
                 lst = obj.get("list")
                 if isinstance(lst, list):
@@ -343,6 +347,7 @@ class FieldResolver:
                         rid = _row_value(row, id_ix)
                         number = _row_value(row, number_ix)
                         rnm = _row_value(row, name_ix)
+                        rid = _prefer_business_id(row, rid, number)
                         add(rid or number, rnm, number=number, raw=row)
                 for v in obj.values(): walk(v)
             elif isinstance(obj, list):
@@ -394,6 +399,25 @@ def _row_value(row: list, index: int | None) -> Any:
     if index is None or index < 0 or index >= len(row):
         return None
     return row[index]
+
+
+def _looks_like_internal_id(value: Any) -> bool:
+    text = str(value or "").strip()
+    return text.isdigit() and len(text) >= 12
+
+
+def _prefer_business_id(row: list, value_id: Any, number: Any) -> Any:
+    """Prefer the first long numeric business id when metadata points to number/code."""
+    if not row:
+        return value_id
+    first = row[0]
+    if not _looks_like_internal_id(first):
+        return value_id
+    value_text = str(value_id or "").strip()
+    number_text = str(number or "").strip()
+    if not value_text or value_text == number_text or not _looks_like_internal_id(value_text):
+        return first
+    return value_id
 
 
 def _first_column_index(columns: list, keys: tuple[str, ...]) -> int | None:

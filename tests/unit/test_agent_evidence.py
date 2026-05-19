@@ -88,3 +88,44 @@ def test_agent_evidence_endpoint_uses_task_report_context(tmp_path, monkeypatch)
     assert data["problem_summary"]["write_status"] == "unverified"
     assert data["report_context"]["acceptance"]["status"] == "needs_ai"
     assert data["evidence_path"] == "logs/agent_evidence/demo_endpoint.json"
+
+
+def test_single_run_agent_evidence_endpoint_builds_report_context(tmp_path, monkeypatch):
+    from lib.webui import server
+
+    case_path = tmp_path / "single_run.yaml"
+    case_path.write_text("name: single_run\nsteps: []\n", encoding="utf-8")
+    evidence_path = server.SKILL_ROOT / "logs/agent_evidence/run_run_123_single_run.json"
+
+    monkeypatch.setattr(server, "case_path_from_name", lambda _name: case_path)
+    monkeypatch.setattr(server.LOG_STORE, "read_run", lambda _run_id: [
+        {
+            "type": "step_fail",
+            "data": {
+                "id": "load_activityoverview",
+                "errors": ["java.lang.NullPointerException"],
+            },
+        },
+        {
+            "type": "failure_analysis",
+            "data": {
+                "category": "unknown",
+                "root_cause": "流程概览页刷新失败",
+            },
+        },
+        {"type": "case_done", "data": {"passed": False}},
+    ])
+    monkeypatch.setattr(
+        server,
+        "save_repair_evidence_package",
+        lambda _package, _output_dir: evidence_path,
+    )
+
+    response = TestClient(server.APP).get("/api/runs/run_123/agent-evidence/single_run")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_id"] == "run_run_123"
+    assert data["problem_summary"]["next_action"] == "ai_agent"
+    assert data["problem_summary"]["failure_analysis"]["root_cause"] == "流程概览页刷新失败"
+    assert data["report_context"]["acceptance"]["status"] == "needs_ai"

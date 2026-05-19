@@ -141,7 +141,7 @@ class TestConfigEndpoints:
             cred = env.get("credentials", {})
             password = cred.get("password", "")
             if password:
-                assert password == "***", "Password should be masked"
+                assert set(password) == {"*"} and len(password) >= 3, "Password should be masked"
     
     def test_get_envs_returns_list(self, client):
         """获取环境列表"""

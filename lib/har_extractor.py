@@ -122,6 +122,7 @@ _NAVIGATION_FORM_IDS = {
     "hom_wbcalendar",
     "hom_wbwaitin",
     "hom_wbwarning",
+    "hom_activityoverview",
 }
 
 _AUTO_RESOLVE_FIELD_HINTS = {

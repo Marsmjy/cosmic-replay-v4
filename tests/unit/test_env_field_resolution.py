@@ -6,7 +6,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from lib.field_resolver import EnvFieldCache, FieldResolver
+from lib.field_resolver import EnvFieldCache, FieldResolver, ResolveResult
 from lib.har_extractor import build_yaml_case, preview_har
 from lib.runner import _apply_pick_fields, _auto_resolve_pick_basedata_step
 from lib.webui.server import _apply_pick_field_manual_update
@@ -70,6 +70,25 @@ def test_field_resolver_parses_set_lookup_list_value_shape():
     assert len(candidates) == 1
     assert best.value_id == "100000"
     assert best.number == "00"
+    assert confidence == "high"
+    assert status == "resolved"
+
+
+def test_field_resolver_prefers_business_id_when_dataindex_points_to_code():
+    resp = [{
+        "rows": [
+            ["2266069031129946112", "tmcompany", "天美公司"],
+        ],
+        "dataindex": {"id": 1, "number": 1, "name": 2},
+    }]
+
+    candidates = FieldResolver._parse_lookup_candidates(resp)
+    best, confidence, status, _ = FieldResolver._select_candidate(
+        candidates, "天美公司"
+    )
+
+    assert best.value_id == "2266069031129946112"
+    assert best.number == "tmcompany"
     assert confidence == "high"
     assert status == "resolved"
 
@@ -237,3 +256,41 @@ def test_field_resolver_uses_environment_cache(tmp_path):
     assert cached.status == "resolved"
     assert cached.resolved_value_id == "new-id"
     assert "缓存" in cached.message
+
+
+def test_field_resolver_ignores_suspicious_code_cache_for_internal_id(tmp_path):
+    cache = EnvFieldCache(tmp_path / "env_field_cache.json")
+    cache.set(
+        "sit",
+        "hom_onbrdinfo",
+        "hom",
+        "ba_po_adminorg",
+        "天美公司",
+        ResolveResult(
+            status="resolved",
+            field_key="ba_po_adminorg",
+            query="天美公司",
+            resolved_value_id="tmcompany",
+            resolved_value_name="天美公司",
+        ),
+    )
+
+    class AdminOrgReplay:
+        def invoke(self, form_id, app_id, ac, actions, page_id=None):
+            return [{
+                "rows": [["2266069031129946112", "tmcompany", "天美公司"]],
+                "dataindex": {"id": 1, "number": 1, "name": 2},
+            }]
+
+    resolver = FieldResolver(AdminOrgReplay(), env_id="sit", cache_store=cache)
+    result = resolver.resolve_basedata_result(
+        "hom_onbrdinfo",
+        "hom",
+        "ba_po_adminorg",
+        "天美公司",
+        original_value_id="2266069031129946112",
+    )
+
+    assert result.status == "resolved"
+    assert result.resolved_value_id == "2266069031129946112"
+    assert "缓存" not in result.message

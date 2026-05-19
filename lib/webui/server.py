@@ -867,6 +867,89 @@ def api_run_detail(run_id: str):
     return {"run_id": run_id, "events": events}
 
 
+@APP.get("/api/runs/{run_id}/agent-evidence/{case_name:path}")
+def api_run_agent_evidence(run_id: str, case_name: str):
+    """为单次用例执行生成 AI Agent 修复证据包。"""
+    events = LOG_STORE.read_run(run_id)
+    if not events:
+        raise HTTPException(404, f"run_id 不存在或无记录: {run_id}")
+
+    case_result = _case_result_from_run_events(run_id, case_name, events)
+    report_data = {
+        "task_id": f"run_{run_id}",
+        "env": case_result.get("env", ""),
+        "acceptance": {
+            "status": "needs_ai" if not case_result.get("passed") else "single_run",
+            "title": "单次执行需要 AI 诊断" if not case_result.get("passed") else "单次执行证据包",
+            "summary_text": case_result.get("error", ""),
+        },
+        "action_queues": {
+            "ai_agent": [case_result] if not case_result.get("passed") else [],
+        },
+        "case_results": [case_result],
+    }
+    package = build_repair_evidence_package(
+        task_id=f"run_{run_id}",
+        case_name=case_name,
+        report_data=report_data,
+        case_path=case_path_from_name(case_name),
+        run_events=events,
+        skill_root=SKILL_ROOT,
+    )
+    evidence_path = save_repair_evidence_package(
+        package,
+        skill_path("logs/agent_evidence"),
+    )
+    package["evidence_path"] = str(evidence_path.relative_to(SKILL_ROOT))
+    return package
+
+
+def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]) -> dict:
+    """Build a report-like case result from single-run SSE events."""
+    summary = next(
+        (event.get("data") or {} for event in reversed(events) if event.get("type") == "case_done"),
+        {},
+    )
+    failure_analysis = next(
+        (event.get("data") or {} for event in reversed(events) if event.get("type") == "failure_analysis"),
+        {},
+    )
+    env_fields_event = next(
+        (event.get("data") or {} for event in reversed(events) if event.get("type") == "env_fields_resolved"),
+        {},
+    )
+    failed_event = next(
+        (
+            event for event in events
+            if event.get("type") in {"step_fail", "assertion_fail", "case_error"}
+        ),
+        None,
+    )
+    error = ""
+    if failed_event:
+        payload = failed_event.get("data") or {}
+        if failed_event.get("type") == "assertion_fail":
+            error = payload.get("msg", "")
+        else:
+            errors = payload.get("errors") or []
+            error = payload.get("error") or ("; ".join(str(item) for item in errors[:3]) if errors else "")
+
+    passed = bool(summary.get("passed")) if summary else False
+    return {
+        "name": case_name,
+        "passed": passed,
+        "run_id": run_id,
+        "error": error,
+        "error_category": failure_analysis.get("category", ""),
+        "failure_analysis": failure_analysis,
+        "env_fields": env_fields_event.get("fields") or [],
+        "write_status": "not_checked" if passed else "failed",
+        "write_evidence": {"signals": ["single_run_failed"] if not passed else ["single_run_passed"]},
+        "next_action": "none" if passed else "ai_agent",
+        "ai_reason": failure_analysis.get("root_cause") or error,
+    }
+
+
 # ============================================================
 # 全局异常 handler
 # ============================================================

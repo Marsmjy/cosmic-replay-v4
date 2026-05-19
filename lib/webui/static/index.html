@@ -752,6 +752,11 @@
                           class="btn btn-secondary btn-sm border-amber-800 text-amber-200 hover:bg-amber-950">
                     查看需确认的修复项
                   </button>
+                  <button x-show="currentRunId()"
+                          @click="copySingleRunAgentRepairPrompt()"
+                          class="btn btn-secondary btn-sm border-rose-700 text-rose-100 hover:bg-rose-950">
+                    复制 AI 修复指令
+                  </button>
                   <button @click="detailTab='yaml'"
                           class="btn btn-secondary btn-sm text-slate-300">
                     查看 YAML
@@ -4268,6 +4273,11 @@ function app() {
       return `/api/tasks/${encodeURIComponent(this.currentReport.task_id)}/agent-evidence/${encodeURIComponent(caseName)}`;
     },
 
+    singleRunAgentEvidenceUrl(caseName, runId) {
+      if (!caseName || !runId) return '#';
+      return `/api/runs/${encodeURIComponent(runId)}/agent-evidence/${encodeURIComponent(caseName)}`;
+    },
+
     agentRepairPrompt(item) {
       const caseName = item?.name || '';
       const evidenceUrl = `${location.origin}${this.agentEvidenceUrl(caseName)}`;
@@ -4290,11 +4300,49 @@ function app() {
       ].join('\n');
     },
 
+    singleRunAgentRepairPrompt() {
+      const caseName = this.currentCase?.name || '';
+      const runId = this.currentRunId();
+      const failed = this.failedPhase();
+      const reason = this.failureAnalysis?.root_cause
+        || (failed?.errors || []).join('; ')
+        || this.summary?.error
+        || '单次执行失败，需结合运行事件、YAML 和失败响应定位根因。';
+      const evidenceUrl = `${location.origin}${this.singleRunAgentEvidenceUrl(caseName, runId)}`;
+      return [
+        '请作为 cosmic-replay AI 修复 Agent 介入处理下面这个单次执行失败用例。',
+        '',
+        `用例：${caseName}`,
+        `run_id：${runId}`,
+        `环境：${this.currentEnv || ''}`,
+        `失败位置：${failed?.label || '未知'}`,
+        `问题：${reason}`,
+        `技术证据包：${evidenceUrl}`,
+        '',
+        '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
+        '1. 先读取证据包、YAML、运行事件、失败步骤和断言结果。',
+        '2. 判断是 HAR 解析变量遗漏、环境字段覆盖、pageId 链路错误、异步流程未等待、断言盲区，还是执行器问题。',
+        '3. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '4. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '5. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+      ].join('\n');
+    },
+
     async copyAgentRepairPrompt(item) {
       const prompt = this.agentRepairPrompt(item);
       try {
         await navigator.clipboard.writeText(prompt);
         this.showToast('已复制 AI 修复指令，发给 Codex/AI Agent 即可');
+      } catch (e) {
+        this.showToast('复制失败，请打开证据包后手动复制');
+      }
+    },
+
+    async copySingleRunAgentRepairPrompt() {
+      const prompt = this.singleRunAgentRepairPrompt();
+      try {
+        await navigator.clipboard.writeText(prompt);
+        this.showToast('已复制单次执行 AI 修复指令，发给 Codex/AI Agent 即可');
       } catch (e) {
         this.showToast('复制失败，请打开证据包后手动复制');
       }

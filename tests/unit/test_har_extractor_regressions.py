@@ -135,3 +135,17 @@ def test_build_yaml_case_extracts_email_var_for_onboard_har():
 
     assert case["vars"]["test_email"].endswith("@163.com")
     assert fill_step["fields"]["peremail"] == "${vars.test_email}"
+
+
+def test_build_yaml_case_marks_onboard_activity_overview_optional():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835319_新增入职0512测试.har"
+
+    yaml_text = build_yaml_case(har_path, case_name="regression_onboard")
+    case = yaml.safe_load(yaml_text)
+    overview_steps = [
+        step for step in case["steps"]
+        if step.get("form_id") == "hom_activityoverview"
+    ]
+
+    assert overview_steps
+    assert all(step.get("optional") is True for step in overview_steps)
