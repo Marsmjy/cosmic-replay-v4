@@ -99,6 +99,13 @@ class TestReplayErrorDetection:
         }]
         assert has_error_action(resp) == ["[Notification] 无根组织，请先完成根组织初始化！"]
 
+    def test_has_error_action_detects_invalid_request_dict(self):
+        assert has_error_action({"msg": "无效请求"}) == ["[Protocol] 无效请求"]
+
+    def test_has_error_action_allows_empty_dict_and_list(self):
+        assert has_error_action({}) == []
+        assert has_error_action([]) == []
+
 
 class TestYAMLLightParsing:
     """轻量 YAML 解析测试"""
@@ -398,6 +405,30 @@ class TestAssertionHandlers:
         )
         assert passed == False
         assert "错误" in msg
+
+    def test_no_error_actions_fail_on_invalid_request_dict(self):
+        ctx = {
+            "last_response": {"msg": "无效请求"},
+            "last_step_response": {"msg": "无效请求"},
+            "step_responses": {},
+        }
+        passed, msg = ASSERTION_HANDLERS["no_error_actions"](
+            {"last_step": True}, ctx
+        )
+        assert passed is False
+        assert "无效请求" in msg
+
+    def test_no_save_failure_fails_on_invalid_request_dict(self):
+        ctx = {
+            "replay": object(),
+            "step_responses": {"save": {"msg": "无效请求"}},
+            "step_descriptions": {"save": "保存"},
+        }
+        passed, msg = ASSERTION_HANDLERS["no_save_failure"](
+            {"step": "save"}, ctx
+        )
+        assert passed is False
+        assert "无效请求" in msg
     
     def test_response_contains_found(self):
         """响应包含指定内容"""

@@ -25,6 +25,8 @@ import string
 import re
 import base64
 import os
+import uuid
+from urllib.parse import urlparse
 
 try:
     import requests
@@ -49,6 +51,17 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════
 # 核心函数
 # ═══════════════════════════════════════════════════════════════
+
+def _should_bypass_proxy(base_url: str) -> bool:
+    """Return True for internal/Cosmic hosts that should be reached directly."""
+    host = (urlparse(base_url).hostname or "").lower()
+    if not host:
+        return False
+    if host in {"localhost", "127.0.0.1"}:
+        return True
+    if host.endswith(".kingdee.com") or host == "kingdee.com":
+        return True
+    return bool(re.match(r"^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)", host))
 
 def _random_suffix(length: int = 5) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -157,10 +170,8 @@ def list_datacenters(base_url: str, timeout: int = 15, proxies: dict | None = No
     注意：如果 base_url 是内网地址，应该传入 proxies={"http": None, "https": None} 绕过代理
     """
     base_url = base_url.rstrip("/")
-    # 自动检测内网地址，内网不走代理
-    import re as _re
-    is_internal = _re.match(r'^(https?://)?(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|localhost|127\.)', base_url)
-    if is_internal and proxies is None:
+    # 自动检测内网/苍穹域名，避免被系统代理转发导致网关 502。
+    if _should_bypass_proxy(base_url) and proxies is None:
         proxies = {"http": None, "https": None}
     resp = requests.get(f"{base_url}/auth/getAllDatacenters.do", timeout=timeout,
                         headers={"User-Agent": "CosmicLoginSkill/1.0"},
@@ -192,11 +203,10 @@ def login(base_url: str, username: str, password: str,
         }
     """
     base_url = base_url.rstrip("/")
+    effective_base_url = base_url
     
-    # 自动检测内网地址，内网不走代理
-    import re as _re_internal
-    is_internal = _re_internal.match(r'^(https?://)?(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|localhost|127\.)', base_url)
-    if is_internal and proxies is None:
+    # 自动检测内网/苍穹域名，避免被系统代理转发导致网关 502。
+    if _should_bypass_proxy(base_url) and proxies is None:
         proxies = {"http": None, "https": None}
     
     session = requests.Session()
@@ -208,7 +218,9 @@ def login(base_url: str, username: str, password: str,
 
     result = {
         "success": False, "cookie": "", "csrf_token": "",
-        "error": "", "account_id": account_id, "user_id": ""
+        "error": "", "account_id": account_id, "user_id": "",
+        # 部分环境 http getPublicKey 会 502，但 https 正常；这里记录实际生效的 base_url。
+        "effective_base_url": effective_base_url,
     }
 
     # ── 参数预校验（防止占位符 / 明显非法值被当真 ──
@@ -229,16 +241,43 @@ def login(base_url: str, username: str, password: str,
 
     # ── Step 1: 获取 RSA 公钥 ──
     access_key = username + _random_suffix(5)
-    try:
-        pk_resp = session.post(
-            f"{base_url}/auth/getPublicKey.do",
-            data={"accessKey": access_key, "language": language, "accountId": account_id},
-            timeout=timeout,
-            proxies=proxies,
-        )
-        pk_resp.raise_for_status()
-    except Exception as e:
-        result["error"] = f"获取公钥失败: {e}"
+    pk_resp = None
+    last_pk_err = None
+    tried_urls: list[str] = []
+
+    def _swap_scheme(url: str, scheme: str) -> str:
+        if url.startswith("http://") and scheme == "https":
+            return "https://" + url[len("http://"):]
+        if url.startswith("https://") and scheme == "http":
+            return "http://" + url[len("https://"):]
+        return url
+
+    pk_urls = [effective_base_url]
+    if effective_base_url.startswith("http://"):
+        pk_urls.append(_swap_scheme(effective_base_url, "https"))
+
+    for u in pk_urls:
+        tried_urls.append(u)
+        try:
+            pk_resp = session.post(
+                f"{u}/auth/getPublicKey.do",
+                data={"accessKey": access_key, "language": language, "accountId": account_id},
+                timeout=timeout,
+                proxies=proxies,
+            )
+            pk_resp.raise_for_status()
+            effective_base_url = u
+            result["effective_base_url"] = effective_base_url
+            last_pk_err = None
+            break
+        except Exception as e:
+            last_pk_err = e
+            pk_resp = None
+            continue
+
+    if pk_resp is None:
+        suffix = f" (tried: {', '.join(tried_urls)})" if len(tried_urls) > 1 else ""
+        result["error"] = f"获取公钥失败: {last_pk_err}{suffix}"
         return result
 
     # 解析公钥
@@ -284,7 +323,7 @@ def login(base_url: str, username: str, password: str,
     # ── Step 3: 提交登录 ──
     try:
         login_resp = session.post(
-            f"{base_url}/auth/yzjlogin.do",
+            f"{effective_base_url}/auth/yzjlogin.do",
             data={
                 "type": "user", "userSourceType": "2",
                 "accountId": account_id, "language": language,
@@ -339,7 +378,7 @@ def login(base_url: str, username: str, password: str,
         csrf = login_resp.headers.get("kd-csrf-token", "")
     if not csrf:
         try:
-            idx_resp = session.get(f"{base_url}/index.html", timeout=timeout, allow_redirects=True)
+            idx_resp = session.get(f"{effective_base_url}/index.html", timeout=timeout, allow_redirects=True)
             for pat in [r'kd-csrf-token["\'\s:=]+["\']([^"\']+)',
                         r'csrf[-_]token["\'\s:=]+["\']([^"\']+)',
                         r'kdCsrfToken\s*=\s*["\']([^"\']+)']:
@@ -352,10 +391,17 @@ def login(base_url: str, username: str, password: str,
         except Exception:
             pass
 
+    # 部分 UAT 环境登录/首页不下发 kd-csrf-token，但 batchInvokeAction 会要求
+    # 请求头中存在非空 kd-csrf-token。浏览器侧也会在运行期补齐该头；这里在服务端
+    # 缺省时生成会话级 token，避免 batchInvoke 被统一判为“无效请求”。
+    if not csrf:
+        csrf = uuid.uuid4().hex
+
     result["csrf_token"] = csrf
     result["success"] = bool(cookie_str)
     if isinstance(login_json, dict):
         result["user_id"] = str(login_json.get("userId", ""))
+    result["effective_base_url"] = effective_base_url
 
     return result
 
@@ -469,6 +515,8 @@ def main():
     result = auto_login(url, username, password, dc_id)
     if result["success"]:
         print("LOGIN_SUCCESS")
+        if result.get("effective_base_url"):
+            print(f"EFFECTIVE_BASE_URL={result['effective_base_url']}")
         print(f"COOKIE={result['cookie']}")
         print(f"CSRF_TOKEN={result['csrf_token']}")
         print(f"ACCOUNT_ID={result['account_id']}")

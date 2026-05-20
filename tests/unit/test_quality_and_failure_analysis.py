@@ -83,6 +83,18 @@ def test_failure_analysis_classifies_transient_protocol_error():
     assert result["retryable"] is True
 
 
+def test_failure_analysis_classifies_invalid_protocol_request():
+    result = classify_error(
+        "[Protocol] 无效请求",
+        step={"id": "menuItemClick_32", "form_id": "bos_portal_myapp_new"},
+        case={"main_form_id": "haos_adminorgdetail"},
+    )
+
+    assert result["category"] == "invalid_protocol_request"
+    assert result["severity"] == "high"
+    assert result["retryable"] is False
+
+
 def test_classify_run_failure_uses_first_non_optional_failure():
     analysis = classify_run_failure(
         steps=[

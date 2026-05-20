@@ -52,7 +52,7 @@ from typing import Any
 
 from .replay import (
     CosmicError, LoginError, ProtocolError, BusinessError,
-    CosmicFormReplay, login, _is_l2_pageid,
+    CosmicFormReplay, CosmicSession, login, _is_l2_pageid,
 )
 from .diagnoser import (
     extract_save_errors, summarize_response, format_error_report, has_error_action,
@@ -830,6 +830,116 @@ class RunResult:
             print(format_fixes(self.fixes), file=out)
 
 
+_WRITE_ACS = {
+    "save", "submit", "saveandeffect", "submitandeffect", "saveandaudit",
+    "doconfirm", "afterconfirm", "startupflow",
+}
+_WRITE_KEYS = {
+    "btnsave", "btn_save", "bar_save", "barsave",
+    "btn_confirm", "btnconfirm", "bar_confirm", "barconfirm",
+    "btnok", "btn_ok", "bar_submit", "barsubmit",
+    "barstart", "bar_start",
+    "new_save",
+}
+
+
+def _case_has_write_step(case: dict) -> bool:
+    for step in case.get("steps") or []:
+        ac = str(step.get("ac") or "").lower()
+        key = str(step.get("key") or "").lower()
+        args = step.get("args") or []
+        arg_text = json.dumps(args, ensure_ascii=False).lower() if args else ""
+        if ac in _WRITE_ACS or key in _WRITE_KEYS or any(k in arg_text for k in _WRITE_KEYS):
+            return True
+    return False
+
+
+def _clone_session(sess: CosmicSession) -> CosmicSession:
+    return CosmicSession(
+        base_url=sess.base_url,
+        cookie=sess.cookie,
+        user_id=sess.user_id,
+        account_id=sess.account_id,
+        csrf_token=sess.csrf_token,
+        diff_time=sess.diff_time,
+        root_base_id="",
+        root_page_id="",
+    )
+
+
+def _find_first_menu_step(case: dict, vars_ns: dict[str, Any]) -> dict | None:
+    for raw_step in case.get("steps") or []:
+        step = resolve_vars(raw_step, vars_ns)
+        if step.get("type") == "invoke" and step.get("ac") == "menuItemClick":
+            return step
+    return None
+
+
+def _preflight_write_case(
+    case: dict,
+    sess: CosmicSession,
+    sign_required: bool,
+    vars_ns: dict[str, Any],
+    emit,
+) -> list[str]:
+    """写库前的跨环境导航探针。只做登录后读/导航，不触发新增或保存。"""
+    if case.get("preflight") is False or not _case_has_write_step(case):
+        return []
+
+    menu_step = _find_first_menu_step(case, vars_ns)
+    if not menu_step:
+        return []
+
+    main_form = case.get("main_form_id") or menu_step.get("target_form") or ""
+    emit("preflight_start", {
+        "id": "preflight_navigation",
+        "main_form_id": main_form,
+        "checks": ["csrf", "root", "portal", "menuItemClick", "main_loadData"],
+    })
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not sess.csrf_token:
+        warnings.append("当前登录未获取到 kd-csrf-token，目标环境可能拒绝 batchInvokeAction。")
+
+    probe = CosmicFormReplay(_clone_session(sess), sign_required=sign_required)
+    try:
+        probe.init_root()
+        portal_form = menu_step.get("form_id", "bos_portal_myapp_new")
+        portal_app = menu_step.get("app_id", "bos")
+        portal_pid = probe.open_portal(portal_form, portal_app, lazy=False)
+        action = {
+            "key": menu_step.get("key", ""),
+            "methodName": menu_step.get("method", ""),
+            "args": menu_step.get("args", []),
+            "postData": menu_step.get("post_data", [{}, []]),
+        }
+        menu_resp = probe.invoke(
+            portal_form, portal_app, "menuItemClick", [action], page_id=portal_pid
+        )
+        menu_errors = has_error_action(menu_resp)
+        if menu_errors:
+            errors.extend([f"menuItemClick 预检失败: {e}" for e in menu_errors])
+        elif main_form:
+            args = menu_step.get("args") or []
+            menu_id = str(args[0].get("menuId", "")) if args and isinstance(args[0], dict) else ""
+            if menu_id and probe.s.root_base_id:
+                probe.page_ids[main_form] = f"{menu_id}root{probe.s.root_base_id}"
+            main_app = _guess_app_id(main_form, case)
+            load_resp = probe.load_data(main_form, main_app)
+            load_errors = has_error_action(load_resp)
+            if load_errors:
+                errors.extend([f"main loadData 预检失败: {e}" for e in load_errors])
+    except Exception as e:
+        errors.append(f"preflight 异常: {type(e).__name__}: {e}")
+    finally:
+        probe.close()
+
+    payload = {"id": "preflight_navigation", "warnings": warnings, "errors": errors}
+    emit("preflight_fail" if errors else "preflight_ok", payload)
+    return errors
+
+
 def run_case(case: dict, on_event=None) -> RunResult:
     """执行一份用例。返回 RunResult。
 
@@ -961,7 +1071,31 @@ def run_case(case: dict, on_event=None) -> RunResult:
         },
     }
 
-    for raw_step in case.get("steps") or []:
+    preflight_errors = _preflight_write_case(
+        case, sess, bool(case.get("sign_required", True)), vars_ns, emit
+    )
+    preflight_blocked = bool(preflight_errors)
+    if preflight_blocked:
+        detail = "跨环境写库前置检查"
+        result.steps.append({
+            "id": "preflight_navigation",
+            "type": "preflight",
+            "ok": False,
+            "optional": False,
+            "detail": detail,
+            "error": "; ".join(preflight_errors[:5]),
+            "_errors": preflight_errors,
+        })
+        emit("step_fail", {
+            "id": "preflight_navigation",
+            "errors": preflight_errors[:5],
+            "duration_ms": 0,
+            "response": {"preflight": "failed"},
+        })
+
+    steps_to_run = [] if preflight_blocked else (case.get("steps") or [])
+
+    for raw_step in steps_to_run:
         step = resolve_vars(raw_step, vars_ns)
 
         # ---- date pick_fields 后置注入：防止 resolve_vars 用 ${today} 覆盖用户自定义日期 ----
@@ -1177,10 +1311,18 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 if stype in ("invoke", "update_fields", "pick_basedata", "click_toolbar"):
                     break
             else:
-                result.steps.append({
+                step_record = {
                     "id": sid, "type": stype, "ok": True, "optional": optional,
                     "detail": detail,
-                })
+                }
+                if errs and optional:
+                    step_record["warning"] = "; ".join(errs[:3])
+                    emit("step_warning", {
+                        "id": sid,
+                        "warnings": errs[:5],
+                        "duration_ms": int((time.time() - step_start) * 1000),
+                    })
+                result.steps.append(step_record)
                 # ⭐ 推送完整响应数据供前端展示
                 resp_snapshot = _truncate_response(resp)
                 emit("step_ok", {
@@ -1216,7 +1358,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             if not optional: break
 
     # 6. 断言（先把 ${vars.xxx} 解析掉）
-    for a_raw in case.get("assertions") or []:
+    for a_raw in ([] if preflight_blocked else (case.get("assertions") or [])):
         a = resolve_vars(a_raw, vars_ns)
         atype = a.get("type")
         # ⭐ 预查断言挂靠的 step 描述，供日志展示

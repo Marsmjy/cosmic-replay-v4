@@ -2505,6 +2505,9 @@ def build_yaml_case(
                 menu_id = str(args[0].get("menuId", ""))
                 if menu_id and main_form:
                     s["target_form"] = main_form
+                    s["env_sensitive"] = "high"
+                    s["resolve_by"] = "menu_path_or_form"
+                    s["navigation_form_id"] = main_form
                     _menu_target_set = True
                     _menu_id_for_target = menu_id
     if _menu_target_set:
@@ -2879,7 +2882,8 @@ def build_yaml_case(
         for k in ("id", "type", "form_id", "app_id", "ac", "key", "method",
                   "args", "post_data", "fields", "field_key", "value_id",
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
-                  "target_form", "target_forms"):
+                  "target_form", "target_forms", "env_sensitive", "resolve_by",
+                  "navigation_form_id"):
             if k in s:
                 entry[k] = s[k]
         # ⭐ 自动生成步骤业务描述

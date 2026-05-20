@@ -56,6 +56,16 @@ _FORMAT_PATTERNS = (
     "超出",
 )
 
+_INVALID_REQUEST_PATTERNS = (
+    "无效请求",
+    "非法请求",
+    "invalid request",
+    "csrf",
+    "signature",
+    "未登录",
+    "登录超时",
+)
+
 
 def classify_run_failure(
     steps: list[dict],
@@ -134,6 +144,24 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
     form_id = str(step.get("form_id") or "")
     step_id = str(step.get("id") or "")
     main_form = str(case.get("main_form_id") or "")
+
+    if _contains(text, _INVALID_REQUEST_PATTERNS):
+        return _result(
+            "invalid_protocol_request",
+            "high",
+            False,
+            "目标环境拒绝了协议请求，通常是会话/CSRF/签名、账号权限或跨环境菜单入口不匹配。",
+            text,
+            [
+                "先运行跨环境 preflight，确认 login、root page、portal、menuItemClick、main loadData 哪一段失败。",
+                "检查当前环境登录是否拿到 kd-csrf-token；UAT 可能比 SIT 更严格。",
+                "核对 menuId/appId/cloudId 是否来自当前环境；不要直接复用 SIT HAR 的导航字面值。",
+                "确认当前账号在目标环境有菜单和主表单访问权限。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
 
     if _contains(text, _TRANSIENT_PATTERNS):
         return _result(

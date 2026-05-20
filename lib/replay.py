@@ -157,6 +157,7 @@ def login(base_url: str, username: str, password: str,
             )
             out = result.stdout or ""
             if "LOGIN_SUCCESS" in out:
+                m_effective = re.search(r"^EFFECTIVE_BASE_URL=(.+)$", out, re.M)
                 m_cookie = re.search(r"^COOKIE=(.+)$", out, re.M)
                 m_acct = re.search(r"^ACCOUNT_ID=(.+)$", out, re.M)
                 m_user = re.search(r"^USER_ID=(.+)$", out, re.M)
@@ -164,7 +165,7 @@ def login(base_url: str, username: str, password: str,
                 if not (m_cookie and m_acct and m_user):
                     raise LoginError(f"Login output missing fields:\n{out}")
                 return CosmicSession(
-                    base_url=base_url.rstrip("/"),
+                    base_url=(m_effective.group(1).strip().rstrip("/") if m_effective else base_url.rstrip("/")),
                     cookie=m_cookie.group(1).strip(),
                     account_id=m_acct.group(1).strip(),
                     user_id=f"{m_acct.group(1).strip()}_{m_user.group(1).strip()}",
@@ -741,7 +742,6 @@ def _iter_action_commands(node: Any):
 def has_error_action(resp: Any) -> list[str]:
     """扫响应错误消息（含嵌套 action），返回错误文本列表。"""
     errors = []
-    if not isinstance(resp, list): return errors
     seen = set()
 
     def add_error(text: str) -> None:
@@ -749,6 +749,29 @@ def has_error_action(resp: Any) -> list[str]:
         if text and text not in seen:
             seen.add(text)
             errors.append(text)
+
+    if isinstance(resp, dict):
+        # 空 dict 是苍穹常见的正常空响应，不判错。只处理非空错误摘要。
+        success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "已完成", "操作成功")
+        for key in ("msg", "message", "error", "errorMsg", "errMsg"):
+            val = resp.get(key)
+            if not val:
+                continue
+            text = str(val)
+            if any(kw in text for kw in success_kw):
+                continue
+            add_error(f"[Protocol] {text}")
+        if resp.get("success") is False:
+            add_error("[Protocol] success=false")
+        if resp.get("status") is False:
+            add_error("[Protocol] status=false")
+        code = resp.get("errorCode") or resp.get("code")
+        if code and str(code) not in {"0", "200"}:
+            add_error(f"[Protocol] errorCode={code}")
+        return errors
+
+    if not isinstance(resp, list):
+        return errors
 
     for cmd in _iter_action_commands(resp):
         a = cmd.get("a")

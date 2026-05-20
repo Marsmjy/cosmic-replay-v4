@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -110,6 +111,20 @@ def test_build_yaml_case_injects_adminorg_context_step_for_position_har():
     assert adminorg_step["value_id"] == "${vars.adminorg_id}"
     assert pick_fields["pick_adminorg_id"]["value_id"] == "100000"
     assert pick_fields["env_click_tblnew_treeview_focus"]["value_id"] == "100000"
+
+
+def test_build_yaml_case_marks_menu_navigation_env_sensitive():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="admin_org_nav")
+    case = yaml.safe_load(yaml_text)
+    menu_step = next(step for step in case["steps"] if step.get("ac") == "menuItemClick")
+
+    assert menu_step["env_sensitive"] == "high"
+    assert menu_step["resolve_by"] == "menu_path_or_form"
+    assert menu_step["navigation_form_id"] == case["main_form_id"]
 
 
 def test_build_yaml_case_marks_non_main_navigation_steps_optional():

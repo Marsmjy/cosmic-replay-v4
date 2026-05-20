@@ -27,6 +27,26 @@ def test_infer_write_status_flags_empty_save_response_as_unverified():
     assert "empty_response" in evidence["signals"][0]
 
 
+def test_infer_write_status_flags_invalid_request_as_failed():
+    result = CaseResult(
+        name="case_invalid_request",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "点击保存",
+                "status": "ok",
+                "response": {"msg": "无效请求"},
+            }
+        ],
+    )
+
+    status, evidence = infer_write_status(result)
+
+    assert status == "failed"
+    assert "invalid_request" in evidence["signals"][0]
+
+
 def test_acceptance_summary_routes_unverified_pass_to_ai_agent():
     result = CaseResult(
         name="case_unverified",

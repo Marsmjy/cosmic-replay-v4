@@ -414,6 +414,12 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
             continue
         if _contains_any(
             compact_text,
+            ("无效请求", "非法请求", "invalidrequest", "csrf", "signature"),
+        ):
+            evidence["signals"].append(f"{phase.get('id', '')}:invalid_request")
+            return "failed", evidence
+        if _contains_any(
+            compact_text,
             (
                 "pkvalue",
                 '"fid"',
