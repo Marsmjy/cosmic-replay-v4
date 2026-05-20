@@ -56,6 +56,11 @@ _FORMAT_PATTERNS = (
     "超出",
 )
 
+_LOCKED_FIELD_PATTERNS = (
+    "无法修改锁定字段",
+    "锁定字段",
+)
+
 _INVALID_REQUEST_PATTERNS = (
     "无效请求",
     "非法请求",
@@ -145,6 +150,25 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
     step_id = str(step.get("id") or "")
     main_form = str(case.get("main_form_id") or "")
 
+    if _contains(text, _LOCKED_FIELD_PATTERNS):
+        field = _extract_field_caption(text)
+        return _result(
+            "locked_field_update",
+            "high",
+            False,
+            f"回放尝试修改服务端已锁定字段{f'：{field}' if field else ''}，通常是 HAR 把默认带出/只读字段误生成为 update_fields。",
+            text,
+            [
+                "检查生成 YAML 中对应 update_fields，锁定字段应由服务端默认带出，不应主动回放。",
+                "重新导入 HAR 以应用锁定字段过滤规则；不要删除保存断言绕过问题。",
+                "若该字段确实需要人工维护，先确认浏览器端是否可编辑，再补充专门的组件处理器。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            field_caption=field,
+            confidence="high",
+        )
+
     if _contains(text, _INVALID_REQUEST_PATTERNS):
         return _result(
             "invalid_protocol_request",
@@ -219,7 +243,8 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             text,
             [
                 "检查 menuItemClick 是否带 target_form/target_forms。",
-                "检查 HAR 导入是否保留列表/树到主表单的上下文桥接步骤。",
+                "优先比对 HAR 原始 pageId 与回放 pageId：列表/树/工具栏步骤应保留 L2，真实编辑/保存步骤才切到 L3。",
+                "检查 HAR 导入是否为列表/树到主表单的上下文桥接步骤生成 preserve_l2_page。",
                 "若是保存后继续操作同一页面，确认 keep_page 或重新 open/load 策略。",
             ],
             step_id=step_id,
@@ -253,6 +278,7 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             text,
             [
                 "检查该字段是否被 HAR 解析成 update_fields 或 pick_basedata。",
+                "若录制时该字段由树节点/默认值/联动带出，先检查 pageId 链路是否与 HAR 一致，不要直接硬补 save 字段。",
                 "若字段由浏览器上下文带出，需补充上下文字段规则或 pick_fields 环境配置。",
             ],
             step_id=step_id,
@@ -373,6 +399,7 @@ def _extract_field_caption(text: str) -> str:
         r'请(?:填写|输入|录入|选择)\s*[""“”「」]?([^""“”「」，。；\s]+)',
         r'[""“”「」]?([^""“”「」]+?)[""“”「」]?\s*不能为空',
         r'[""“”「」]?([^""“”「」]+?)[""“”「」]?\s*(?:已存在|重复)',
+        r'锁定字段([^的]+)的值',
     )
     for pattern in patterns:
         m = re.search(pattern, text)

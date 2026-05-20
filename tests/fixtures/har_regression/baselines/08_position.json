@@ -84,11 +84,11 @@
         "form_id": "hbpm_positionhr",
         "label": "changedesc",
         "name": "pick_changedesc_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 9
         },
         "value_name_shape": {
           "kind": "literal",
@@ -103,10 +103,11 @@
         "form_id": "hbpm_positionhr",
         "label": "城市",
         "name": "pick_city_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 3
         },
         "value_name_shape": {
           "kind": "literal",
@@ -143,7 +144,8 @@
         "resolve_by": "",
         "resolve_status": "manual",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -158,11 +160,11 @@
         "form_id": "hbpm_positionhr",
         "label": "job",
         "name": "pick_job_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 11
         },
         "value_name_shape": {
           "kind": "literal",
@@ -177,11 +179,11 @@
         "form_id": "hbpm_positionhr",
         "label": "jobgradescm",
         "name": "pick_jobgradescm_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 11
         },
         "value_name_shape": {
           "kind": "literal",
@@ -196,11 +198,11 @@
         "form_id": "hbpm_positionhr",
         "label": "joblevelscm",
         "name": "pick_joblevelscm_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 11
         },
         "value_name_shape": {
           "kind": "literal",
@@ -215,7 +217,7 @@
         "form_id": "hbpm_positionhr",
         "label": "positiontype",
         "name": "pick_positiontype_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
@@ -234,11 +236,11 @@
         "form_id": "hbpm_positionhr",
         "label": "工作地点",
         "name": "pick_workplace_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 9
         },
         "value_name_shape": {
           "kind": "literal",
@@ -246,7 +248,7 @@
         }
       }
     ],
-    "step_count": 26,
+    "step_count": 27,
     "steps": [
       {
         "app_id": "hbpm",
@@ -343,6 +345,18 @@
             "${vars.*}"
           ]
         }
+      },
+      {
+        "ac": "changeYear",
+        "app_id": "hbpm",
+        "args_count": 1,
+        "form_id": "hbpm_positionhr",
+        "id": "changeYear_9",
+        "key": "bsed",
+        "method": "changeYear",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
       },
       {
         "app_id": "hbpm",
@@ -818,6 +832,6 @@
   "schema_version": 1,
   "source_har": "preview_1778835351_岗位信息维护-新增一个岗位.har",
   "source_sha256": "41d1ce3fb7525775375ebb7c0f89e873c9195345fcbf51e415ecb203f3078de0",
-  "summary_hash": "a8263eae2028516dbc6896ec4695d4020f0cf9be496335405a96ce9cb1ce9b43",
+  "summary_hash": "48bdf6328f12dd306fab69402c18c8d7ebd9201fe9aafbd39887693ac615fee8",
   "title": "岗位信息维护-新增一个岗位"
 }

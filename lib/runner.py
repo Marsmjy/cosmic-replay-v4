@@ -60,7 +60,7 @@ from .diagnoser import (
 from .advisor import analyze_errors, format_fixes
 from .failure_analysis import classify_run_failure
 from .repair_planner import build_repair_plan
-from .field_resolver import FieldResolver, ResolveResult
+from .field_resolver import FieldResolver, ResolveResult, _looks_like_internal_id
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -337,6 +337,31 @@ def _h_open_form(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     return {"page_id": pid}
 
 
+def _step_allows_l2_pageid(step: dict) -> bool:
+    """Whether this step should keep the menu/list L2 pageId.
+
+    Kingdee keeps list/tree/toolbar state on the L2 pageId. Replacing it with a
+    pending L3 before addnew corrupts the form-model chain and later field
+    writes can look "locked" even though the browser HAR succeeded.
+    """
+    if step.get("preserve_l2_page") is True:
+        return True
+    ac = str(step.get("ac") or step.get("method") or "")
+    method = str(step.get("method") or "")
+    if method == "itemClick":
+        return True
+    return ac in {
+        "itemClick",
+        "loadData",
+        "treeNodeClick",
+        "treeMenuClick",
+        "postExpandNodes",
+        "queryTreeNodeChildren",
+        "entryRowClick",
+        "refresh",
+    }
+
+
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
     """invoke 执行前的 pageId 有效性预验证
 
@@ -349,8 +374,8 @@ def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict
     _skip_actions = ("loadData", "open_form", "close_form", "startupflow", "doconfirm", "afterConfirm")
     if ac in _skip_actions:
         return
-    # toolbar 类操作（itemClick 方法）也跳过
-    if step.get("method") == "itemClick":
+    # HAR 中明确处于 L2 列表/菜单上下文的动作不能被 pending L3 抢走。
+    if _step_allows_l2_pageid(step):
         return
 
     # 避免重复校验
@@ -420,10 +445,9 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     form_id = step["form_id"]
     pid = replay.page_ids.get(form_id)
     ac_name = step.get("ac", "")
-    # toolbar 操作使用 L2 pageId 是正确的（原始 HAR 中就是这样）
-    _toolbar_actions = {"startupflow", "doconfirm", "afterConfirm", "itemClick"}
-    _is_toolbar = step.get("method") == "itemClick" or ac_name in _toolbar_actions
-    if pid and _is_l2_pageid(pid) and not _is_toolbar:
+    # 列表/树/工具栏动作使用 L2 pageId 是正确的（原始 HAR 中就是这样）。
+    # 只有字段写入、基础资料选择等表单态动作才需要降级到 L3。
+    if pid and _is_l2_pageid(pid) and not _step_allows_l2_pageid(step):
         log.warning(f"[invoke] {form_id}/{ac_name}: detected L2 pageId {pid[:30]}..., will attempt fallback")
         app_id = step.get("app_id", "")
         pending = replay._pending_by_app.get(app_id)
@@ -541,6 +565,37 @@ def assertion_handler(name: str):
     return deco
 
 
+def _expected_notification_needles(step: dict) -> list[str]:
+    specs = step.get("expected_notifications") or step.get("expected_errors") or []
+    needles: list[str] = []
+    if isinstance(specs, (str, bytes)):
+        specs = [specs]
+    for item in specs:
+        if isinstance(item, dict):
+            text = item.get("content") or item.get("contains") or item.get("needle") or ""
+        else:
+            text = str(item or "")
+        text = str(text or "").strip()
+        if text:
+            needles.append(text)
+    return needles
+
+
+def _split_expected_errors(step: dict, errors: list[str]) -> tuple[list[str], list[str]]:
+    """Split response errors into HAR-recorded expected notifications and unexpected errors."""
+    needles = _expected_notification_needles(step)
+    if not needles or not errors:
+        return [], errors
+    expected: list[str] = []
+    unexpected: list[str] = []
+    for err in errors:
+        if any(needle in err for needle in needles):
+            expected.append(err)
+        else:
+            unexpected.append(err)
+    return expected, unexpected
+
+
 @assertion_handler("no_error_actions")
 def _a_no_errors(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     step_id = assert_spec.get("step")
@@ -581,6 +636,25 @@ def _a_no_save_failure(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     if step_desc:
         return True, f"✅ 【{step_desc}】写库成功（无字段级错误、无操作失败 action）"
     return True, "✅ 写库成功（无错误消息）"
+
+
+@assertion_handler("expected_notification")
+def _a_expected_notification(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
+    step_id = assert_spec.get("step")
+    needle = str(assert_spec.get("contains") or assert_spec.get("needle") or "").strip()
+    if not step_id:
+        return False, "expected_notification 缺少 step"
+    if not needle:
+        return False, "expected_notification 缺少 contains"
+    resp = ctx["step_responses"].get(step_id)
+    if resp is None:
+        return False, f"找不到步骤 '{step_id}' 的响应"
+    errs = has_error_action(resp)
+    if any(needle in err for err in errs):
+        step_desc = (ctx.get("step_descriptions") or {}).get(step_id, "")
+        where = f"【{step_desc}】" if step_desc else f"步骤 {step_id}"
+        return True, f"✅ {where} 出现预期业务校验提示：{needle}"
+    return False, f"步骤 '{step_id}' 未出现预期业务校验提示：{needle}"
 
 
 @assertion_handler("response_contains")
@@ -661,6 +735,7 @@ def _apply_pick_fields(case: dict):
             field_key = pf_meta.get("field_key") or pf_id[5:]  # 优先用 meta 中的 field_key，fallback 到去前缀
             inject_vid = pf_meta.get("value_id", "")
             inject_vname = pf_meta.get("value_name", "")
+            inject_vcode = pf_meta.get("value_code", "")
             if inject_vid or inject_vname:
                 applied = False
                 for step in steps:
@@ -671,9 +746,12 @@ def _apply_pick_fields(case: dict):
                             step["value_name"] = str(inject_vname)
                         elif pf_meta.get("manual_override") or pf_meta.get("resolve_status") == "manual":
                             step["value_name"] = ""
+                        if inject_vcode:
+                            step["value_code"] = str(inject_vcode)
                         step["_env_field_id"] = pf_id
                         step["_env_field_meta"] = pf_meta
                         step["auto_resolve"] = bool(pf_meta.get("auto_resolve"))
+                        step["resolve_by"] = str(pf_meta.get("resolve_by") or step.get("resolve_by") or "")
                         log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
                         applied = True
                 # MainOrgProp 等上下文字段可能以 update_fields 形式补偿写入；
@@ -725,14 +803,24 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
     pf_id = step.get("_env_field_id") or step.get("id") or ""
     pf_meta = step.get("_env_field_meta") or {}
     value_name = str(step.get("value_name") or pf_meta.get("value_name") or "").strip()
+    value_code = str(step.get("value_code") or pf_meta.get("value_code") or "").strip()
+    resolve_by = str(step.get("resolve_by") or pf_meta.get("resolve_by") or "value_name").strip()
+    query_value = value_code if resolve_by == "value_code" and value_code else value_name
     original_value_id = str(step.get("value_id") or "").strip()
+    recorded_value_id = str(
+        pf_meta.get("recorded_value_id")
+        or step.get("recorded_value_id")
+        or original_value_id
+    ).strip()
     field_key = str(step.get("field_key") or pf_meta.get("field_key") or "").strip()
     form_id = str(step.get("form_id") or "").strip()
     app_id = str(step.get("app_id") or "").strip()
 
-    if not value_name or not field_key or not form_id or not app_id:
+    if not query_value or not field_key or not form_id or not app_id:
         return
-    if value_name == original_value_id or value_name.startswith("${"):
+    if query_value.startswith("${"):
+        return
+    if query_value == original_value_id and _looks_like_internal_id(original_value_id):
         return
 
     env_resolution = ctx.setdefault("env_resolution", {})
@@ -749,20 +837,25 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
         form_id,
         app_id,
         field_key,
-        value_name,
-        original_value_id=original_value_id,
+        query_value,
+        original_value_id=recorded_value_id or original_value_id,
     )
     result_dict = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
     if result.status == "resolved" and result.resolved_value_id:
         step["value_id"] = result.resolved_value_id
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
-        result_dict["effective_value_id"] = original_value_id
+        if recorded_value_id and recorded_value_id != original_value_id:
+            step["value_id"] = recorded_value_id
+        result_dict["effective_value_id"] = step.get("value_id", original_value_id)
     result_dict["step_id"] = pf_id
     result_dict["label"] = pf_meta.get("label", field_key)
     result_dict["env_sensitive"] = pf_meta.get("env_sensitive", "medium")
     result_dict["value_id"] = step.get("value_id", original_value_id)
     result_dict["value_name"] = value_name
+    result_dict["value_code"] = value_code
+    result_dict["resolve_by"] = resolve_by
+    result_dict["query"] = query_value
     env_resolution[pf_id] = result_dict
 
     run_ev = ctx.get("run_event")
@@ -772,10 +865,13 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
             "field_key": field_key,
             "value_id": str(step.get("value_id", original_value_id)),
             "value_name": value_name,
+            "value_code": value_code,
             "label": pf_meta.get("label", field_key),
             "env_sensitive": pf_meta.get("env_sensitive", "medium"),
             "status": "pending",
             "resolve_status": result_dict.get("status"),
+            "resolve_by": resolve_by,
+            "query": query_value,
             "resolved_value_id": result_dict.get("resolved_value_id", ""),
             "confidence": result_dict.get("confidence", "low"),
             "message": result_dict.get("message", ""),
@@ -964,6 +1060,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "field_key": pf_meta.get("field_key", ""),
             "value_id": str(pf_meta.get("value_id", "") or pf_meta.get("value_name", "")),
             "value_name": pf_meta.get("value_name", ""),
+            "value_code": pf_meta.get("value_code", ""),
             "label": pf_meta.get("label", pf_id),
             "env_sensitive": pf_meta.get("env_sensitive", "medium"),
             "status": "pending",
@@ -1235,6 +1332,13 @@ def run_case(case: dict, on_event=None) -> RunResult:
                             log.warning(f"[invoke-retry] 协议错误恢复失败，将直接重试原步骤: {_re}")
                     continue
                 errs = has_error_action(resp) if resp else []
+                expected_errs, unexpected_errs = _split_expected_errors(step, errs)
+                if expected_errs and not unexpected_errs:
+                    ctx.setdefault("expected_notifications", {})[sid] = expected_errs
+                    errs = []
+                elif expected_errs:
+                    ctx.setdefault("expected_notifications", {})[sid] = expected_errs
+                    errs = unexpected_errs
 
                 # 无错误或已达最大重试次数 → 跳出
                 if not errs or _retry_count >= _INVOKE_MAX_RETRIES:
@@ -1315,6 +1419,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     "id": sid, "type": stype, "ok": True, "optional": optional,
                     "detail": detail,
                 }
+                if expected_errs:
+                    step_record["expected_notifications"] = expected_errs
                 if errs and optional:
                     step_record["warning"] = "; ".join(errs[:3])
                     emit("step_warning", {
@@ -1596,11 +1702,13 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
             "field_key": raw.get("field_key", ""),
             "value_id": str(raw.get("value_id", "")),
             "value_name": raw.get("value_name", ""),
+            "value_code": raw.get("value_code", "") or meta.get("value_code", ""),
             "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
             "env_sensitive": meta.get("env_sensitive", "medium"),
             "status": "ok" if result_step.get("ok") else "fail",
             "auto_resolve": bool(meta.get("auto_resolve")),
             "resolve_status": resolved.get("status") or meta.get("resolve_status", ""),
+            "resolve_by": resolved.get("resolve_by") or meta.get("resolve_by", ""),
             "resolved_value_id": resolved.get("resolved_value_id", ""),
             "confidence": resolved.get("confidence", ""),
             "message": resolved.get("message", ""),
@@ -1630,6 +1738,8 @@ def _build_resolved_request(step: dict) -> dict:
     elif t == "pick_basedata":
         req["field_key"] = step.get("field_key", "")
         req["value_id"] = step.get("value_id", "")
+        if step.get("value_code"):
+            req["value_code"] = step.get("value_code", "")
     elif t == "open_form":
         pass  # form_id/app_id already included
     return req

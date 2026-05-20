@@ -24,6 +24,18 @@ class FakeReplay:
         }]
 
 
+class CodeReplay:
+    def invoke(self, form_id, app_id, ac, actions, page_id=None):
+        assert ac == "getLookUpList"
+        assert actions[0]["args"][0][1] == "KD001"
+        return [{
+            "rows": [
+                ["internal-kd001", "KD001", "行政组织"],
+            ],
+            "dataindex": {"id": 0, "number": 1, "name": 2},
+        }]
+
+
 def test_field_resolver_parses_lookup_candidates_and_exact_match():
     resp = [{
         "rows": [
@@ -124,6 +136,44 @@ def test_auto_resolve_pick_basedata_step_overrides_value_id_and_emits_status():
     assert field["step_id"] == "pick_adminorg_id"
     assert field["resolve_status"] == "resolved"
     assert field["resolved_value_id"] == "new-id"
+
+
+def test_auto_resolve_pick_basedata_step_can_resolve_by_business_code():
+    step = {
+        "id": "pick_khr_homs_orgform",
+        "type": "pick_basedata",
+        "form_id": "haos_adminorgdetail",
+        "app_id": "haos",
+        "field_key": "khr_homs_orgform",
+        "value_id": "2336398131039579136",
+        "value_name": "行政组织",
+        "value_code": "KD001",
+        "auto_resolve": True,
+        "resolve_by": "value_code",
+        "_env_field_id": "pick_khr_homs_orgform_id",
+        "_env_field_meta": {
+            "label": "组织形态",
+            "env_sensitive": "medium",
+            "value_name": "行政组织",
+            "value_code": "KD001",
+            "resolve_by": "value_code",
+        },
+    }
+    events = []
+
+    _auto_resolve_pick_basedata_step(
+        step,
+        CodeReplay(),
+        {"env_resolution": {}, "run_event": lambda t, p: events.append((t, p))},
+    )
+
+    assert step["value_id"] == "internal-kd001"
+    field = events[0][1]["fields"][0]
+    assert field["resolve_status"] == "resolved"
+    assert field["resolve_by"] == "value_code"
+    assert field["query"] == "KD001"
+    assert field["value_code"] == "KD001"
+    assert field["resolved_value_id"] == "internal-kd001"
 
 
 def test_manual_pick_field_value_id_is_injected_without_value_name():

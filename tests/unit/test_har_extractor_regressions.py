@@ -7,7 +7,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from lib.har_extractor import build_yaml_case, to_yaml
+from lib.har_extractor import build_yaml_case, preview_har, to_yaml
 from lib import kb_loader
 
 
@@ -27,6 +27,17 @@ def test_to_yaml_keeps_multilang_numeric_values_as_strings():
     assert '"11111"' in yaml_text
     assert parsed["fields"]["posorientation"]["zh_CN"] == "11111"
     assert isinstance(parsed["fields"]["posorientation"]["zh_CN"], str)
+
+
+def test_to_yaml_keeps_leading_zero_business_codes_as_strings():
+    data = {"pick_fields": {"pick_city_id": {"value_id": "00407", "value_code": "00407"}}}
+
+    yaml_text = to_yaml(data)
+    parsed = yaml.safe_load(yaml_text)
+
+    assert '"00407"' in yaml_text
+    assert parsed["pick_fields"]["pick_city_id"]["value_id"] == "00407"
+    assert parsed["pick_fields"]["pick_city_id"]["value_code"] == "00407"
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():
@@ -178,3 +189,181 @@ def test_build_yaml_case_marks_revision_log_page_optional():
 
     assert revision_steps
     assert all(step.get("optional") is True for step in revision_steps)
+
+
+def test_real_adminorg_har_keeps_recorded_date_and_business_codes():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779256712_金蝶HR-行政组织新增.har"
+    if not har_path.exists():
+        pytest.skip("local ignored real HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="real_adminorg")
+    case = yaml.safe_load(yaml_text)
+    pick_fields = case["pick_fields"]
+
+    assert any(
+        "bsed" in (step.get("fields") or {})
+        for step in case["steps"]
+        if step.get("type") == "update_fields"
+    )
+    assert "date_bsed" in pick_fields
+    assert "test_confidential_description" in case["vars"]
+    assert case["vars_labels"]["test_confidential_description"] == "保密描述"
+
+    orgform = pick_fields["pick_khr_homs_orgform_id"]
+    assert orgform["value_id"] == "KD001"
+    assert orgform["recorded_value_id"] == "2336398131039579136"
+    assert orgform["value_code"] == "KD001"
+    assert orgform["value_name"] == "行政组织"
+    assert orgform["auto_resolve"] is True
+    assert orgform["resolve_by"] == "value_code"
+
+    orgloc = pick_fields["pick_khr_homs_orgloc_id"]
+    assert orgloc["value_id"] == "JD_DW_001"
+    assert orgloc["recorded_value_id"] == "2370364949164732416"
+    assert orgloc["value_code"] == "JD_DW_001"
+    assert orgloc["value_name"] == "总部"
+    assert orgloc["auto_resolve"] is True
+    assert orgloc["resolve_by"] == "value_code"
+
+    parentorg = pick_fields["pick_parentorg_id"]
+    assert parentorg["label"] == "上级行政组织"
+    assert parentorg["value_code"] == "-260520-046"
+    assert parentorg["value_name"] == "Autotest组织"
+    assert parentorg.get("readonly") is not True
+    assert any(step.get("field_key") == "parentorg" for step in case["steps"])
+
+    preview = preview_har(har_path)
+    preview_ids = {step["id"] for step in preview["steps"]}
+    preview_pick_fields = {pf["id"]: pf for pf in preview["pick_fields"]}
+
+    assert "fill_bsed" in preview_ids
+    assert preview_pick_fields["pick_khr_homs_orgform_id"]["value_code"] == "KD001"
+    assert preview_pick_fields["pick_khr_homs_orgloc_id"]["value_code"] == "JD_DW_001"
+    assert preview_pick_fields["pick_parentorg_id"].get("readonly") is not True
+
+
+def test_real_adminorg_replays_recorded_required_defaults_before_save():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779259965_金蝶HR-行政组织新增.har"
+    if not har_path.exists():
+        pytest.skip("local ignored real HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="real_adminorg_defaults")
+    case = yaml.safe_load(yaml_text)
+    pick_fields = case["pick_fields"]
+    defaults = {
+        "parentorg": "-260520-046",
+        "companyarea": "001",
+        "city": "00407",
+        "org": "JDGJJT",
+        "changescene": "1010_S",
+        "otclassify": "1010_S",
+    }
+
+    first_save_index = next(i for i, step in enumerate(case["steps"]) if step["id"] == "click_new_save")
+    first_input_index = next(
+        i for i, step in enumerate(case["steps"])
+        if step.get("form_id") == case["main_form_id"]
+        and step.get("type") in ("update_fields", "pick_basedata")
+    )
+    for field_key, value_code in defaults.items():
+        step = next(step for step in case["steps"] if step.get("field_key") == field_key)
+        pf = pick_fields[f"pick_{field_key}_id"]
+        assert case["steps"].index(step) < first_save_index
+        assert step["value_code"] == value_code
+        assert pf["value_code"] == value_code
+        assert pf["auto_resolve"] is True
+        assert pf["resolve_by"] == "value_code"
+
+    org_step = next(step for step in case["steps"] if step.get("field_key") == "org")
+    assert case["steps"].index(org_step) == first_input_index
+    assert pick_fields["pick_changescene_id"]["value_id"] == "1010"
+
+    assert not any(
+        step.get("id") == "pick_adminorglayer_ctx"
+        for step in case["steps"]
+    )
+    assert "pick_adminorglayer_id" not in pick_fields
+
+
+def test_real_adminorg_context_parentorg_becomes_active_when_user_overrides():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779256712_金蝶HR-行政组织新增.har"
+    if not har_path.exists():
+        pytest.skip("local ignored real HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="real_adminorg_parentorg_override",
+        pick_field_overrides={
+            "pick_parentorg_id": {
+                "value_id": "NEW_PARENT_ORG",
+                "value_name": "",
+                "value_code": "",
+                "resolve_status": "manual",
+                "manual_override": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+
+    parentorg = case["pick_fields"]["pick_parentorg_id"]
+    parent_step = next(step for step in case["steps"] if step.get("field_key") == "parentorg")
+
+    assert parentorg["value_id"] == "NEW_PARENT_ORG"
+    assert parentorg["resolve_status"] == "manual"
+    assert parentorg["manual_override"] is True
+    assert "context_only" not in parentorg
+    assert parent_step["type"] == "pick_basedata"
+    assert parent_step["value_id"] == "${vars.pick_parentorg_id}"
+
+
+def test_real_adminorg_marks_recorded_intermediate_validation_as_expected():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779259965_金蝶HR-行政组织新增.har"
+    if not har_path.exists():
+        pytest.skip("local ignored real HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="real_adminorg_expected_validation")
+    case = yaml.safe_load(yaml_text)
+    first_save = next(step for step in case["steps"] if step["id"] == "click_new_save")
+    final_save = next(step for step in case["steps"] if step["id"] == "click_new_save_2")
+
+    assert first_save["expected_notifications"][0]["content"] == "请选择所属L1流程：ITM下的L2流程"
+    assert first_save["continue_on_expected_error"] is True
+    assert "expected_notifications" not in final_save
+    assert {"type": "expected_notification", "step": "click_new_save", "contains": "请选择所属L1流程：ITM下的L2流程"} in case["assertions"]
+    assert {"type": "no_save_failure", "step": "click_new_save_2"} in case["assertions"]
+    assert {"type": "no_save_failure", "step": "click_new_save"} not in case["assertions"]
+
+
+def test_pick_field_code_override_keeps_code_resolve_editable():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779259965_金蝶HR-行政组织新增.har"
+    if not har_path.exists():
+        pytest.skip("local ignored real HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="real_adminorg_code_override",
+        pick_field_overrides={
+            "pick_khr_homs_orgloc_id": {
+                "value_id": "2370364949164732416",
+                "value_name": "总部",
+                "value_code": "JD_DW_002",
+                "value_number": "JD_DW_002",
+                "resolve_by": "value_code",
+                "auto_resolve": True,
+                "resolve_status": "pending",
+                "manual_override": False,
+                "user_overridden": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    orgloc = case["pick_fields"]["pick_khr_homs_orgloc_id"]
+
+    assert orgloc["value_id"] == "JD_DW_002"
+    assert orgloc["recorded_value_id"] == "2370364949164732416"
+    assert orgloc["value_code"] == "JD_DW_002"
+    assert orgloc["value_number"] == "JD_DW_002"
+    assert orgloc["resolve_by"] == "value_code"
+    assert orgloc["auto_resolve"] is True
+    assert orgloc["resolve_status"] == "pending"
+    assert "manual_override" not in orgloc

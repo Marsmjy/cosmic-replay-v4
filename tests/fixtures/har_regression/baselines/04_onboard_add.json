@@ -65,11 +65,11 @@
         "form_id": "hom_onbrdinfo",
         "label": "企业",
         "name": "pick_ba_e_enterprise_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 9
         },
         "value_name_shape": {
           "kind": "literal",
@@ -87,7 +87,8 @@
         "resolve_by": "",
         "resolve_status": "manual",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -102,11 +103,11 @@
         "form_id": "hom_onbrdinfo",
         "label": "行政组织",
         "name": "pick_ba_po_adminorg_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 9
         },
         "value_name_shape": {
           "kind": "literal",
@@ -121,11 +122,11 @@
         "form_id": "hom_onbrdinfo",
         "label": "职位",
         "name": "pick_ba_po_position_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 5
         },
         "value_name_shape": {
           "kind": "literal",
@@ -134,17 +135,17 @@
       },
       {
         "app_id": "hom",
-        "auto_resolve": false,
+        "auto_resolve": true,
         "env_sensitive": "low",
         "field_key": "ba_po_workplace",
         "form_id": "hom_onbrdinfo",
         "label": "工作地点",
         "name": "pick_ba_po_workplace_id",
-        "resolve_by": "",
-        "resolve_status": "manual",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 9
         },
         "value_name_shape": {
           "kind": "literal",
@@ -162,7 +163,8 @@
         "resolve_by": "",
         "resolve_status": "manual",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -180,7 +182,8 @@
         "resolve_by": "",
         "resolve_status": "manual",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -217,7 +220,8 @@
         "resolve_by": "",
         "resolve_status": "manual",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -226,17 +230,17 @@
       },
       {
         "app_id": "hom",
-        "auto_resolve": false,
+        "auto_resolve": true,
         "env_sensitive": "low",
         "field_key": "onbrdtcitybak",
         "form_id": "hom_onbrdinfo",
         "label": "入职城市",
         "name": "pick_onbrdtcitybak_id",
-        "resolve_by": "",
-        "resolve_status": "manual",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
         "value_id_shape": {
           "kind": "literal",
-          "length": 19
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -244,7 +248,7 @@
         }
       }
     ],
-    "step_count": 107,
+    "step_count": 109,
     "steps": [
       {
         "app_id": "bos",
@@ -627,6 +631,18 @@
         }
       },
       {
+        "ac": "changeYear",
+        "app_id": "hom",
+        "args_count": 1,
+        "form_id": "hom_onbrdinfo",
+        "id": "changeYear_37",
+        "key": "effectdatebak",
+        "method": "changeYear",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
+      },
+      {
         "app_id": "hom",
         "fields": [
           {
@@ -671,6 +687,18 @@
             "${vars.*}"
           ]
         }
+      },
+      {
+        "ac": "changeYear",
+        "app_id": "hom",
+        "args_count": 1,
+        "form_id": "hom_onbrdinfo",
+        "id": "changeYear_41",
+        "key": "validuntil",
+        "method": "changeYear",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
       },
       {
         "app_id": "hom",
@@ -1703,6 +1731,6 @@
   "schema_version": 1,
   "source_har": "preview_1778835319_新增入职0512测试.har",
   "source_sha256": "852bb54c4aecca7282e9fd6bc80f6916c03db616370264f47ab5f789c2d732f7",
-  "summary_hash": "43f989d2962a8177c0d931112c70a6e75f6f4f00dd7ce0f680b08255f9cbc3db",
+  "summary_hash": "bcf7c54634fb3f511a8229513ccc7813585c09a34bfae752770b07943ea68bf5",
   "title": "新增入职0512测试"
 }

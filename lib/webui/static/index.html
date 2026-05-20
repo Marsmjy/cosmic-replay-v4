@@ -1129,7 +1129,7 @@
               </div>
               <!-- 字段列表 -->
               <div x-show="pickFieldsExpanded" x-transition class="divide-y divide-slate-700">
-                <template x-for="pf in (parsedPickFields().length > 0 ? parsedPickFields() : harPickFields.map(h => ({step_id: h.id, label: h.label, env_sensitive: h.env_sensitive, value_id: h.value_id, value_name: h.value_name || ''})))" :key="pf.step_id">
+                <template x-for="pf in (parsedPickFields().length > 0 ? parsedPickFields() : harPickFields.map(h => ({step_id: h.id, label: h.label, env_sensitive: h.env_sensitive, value_id: h.value_id, value_name: h.value_name || '', value_code: h.value_code || '', value_number: h.value_number || '', resolve_by: h.resolve_by || '', auto_resolve: !!h.auto_resolve, resolve_status: h.resolve_status || '', context_only: !!h.context_only, readonly: !!h.readonly})))" :key="pf.step_id">
                   <div class="px-4 py-3 hover:bg-slate-800/50">
                     <div class="flex items-center gap-2 mb-1">
                       <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -1146,17 +1146,25 @@
                       <input type="text" 
                              :id="'pf_input_' + pf.step_id"
                              class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
-                             x-init="$el.value = pf.value_id"
-                             :data-orig="pf.value_id"
-                             @input="let idx = harPickFields.findIndex(h => h.id === pf.step_id); if(idx !== -1) { harPickFields[idx].value_id = $el.value; markHarPickFieldManual(harPickFields[idx]); }"
-                             @keydown.enter="savePickFieldValue(pf.step_id, $el.value)"
-                             @blur="if($el.value !== ($el.dataset.orig || '')) savePickFieldValue(pf.step_id, $el.value)">
+                             :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
+                             :disabled="pf.readonly"
+                             x-init="$el.value = pickFieldDisplayValue(pf)"
+                             :data-orig="pickFieldDisplayValue(pf)"
+                             @input="if(!pf.readonly) updateHarPickFieldDisplayValue(pf.step_id, $el.value)"
+                             @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.step_id, $el.value, 'display')"
+                             @blur="if(!pf.readonly && $el.value !== ($el.dataset.orig || '')) savePickFieldValue(pf.step_id, $el.value, 'display')">
                       <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                              @click="savePickFieldValue(pf.step_id, document.getElementById('pf_input_' + pf.step_id).value)">保存</button>
+                              x-show="!pf.readonly"
+                              @click="savePickFieldValue(pf.step_id, document.getElementById('pf_input_' + pf.step_id).value, 'display')">保存</button>
                     </div>
                     <!-- 中文名称显示（当 value_name 存在且与 value_id 不同时） -->
                     <div x-show="pf.value_name && pf.value_name !== pf.value_id" class="ml-5 mt-1">
                       <span class="text-xs text-slate-400" x-text="'名称: ' + pf.value_name"></span>
+                    </div>
+                    <div x-show="pf.value_code || pf.value_number" class="ml-5 mt-1">
+                      <span class="text-xs text-cyan-300" x-text="'业务编码: ' + (pf.value_code || pf.value_number)"></span>
+                      <span class="ml-2 text-xs text-slate-500" x-show="pf.value_id && (pf.value_code || pf.value_number) !== pf.value_id" x-text="'内部ID: ' + pf.value_id"></span>
+                      <span class="ml-2 text-xs text-slate-500" x-show="pf.context_only">服务端默认带出，可按环境修改</span>
                     </div>
                     <div class="ml-5 mt-1">
                       <span class="text-xs" 
@@ -1603,15 +1611,19 @@
               <div class="w-28 shrink-0">
                 <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="pf.label"></span>
               </div>
-              <!-- 可编辑输入框：始终绑定 value_id，确保编辑值同步到 harPickFields -->
+              <!-- 可编辑输入框：优先展示业务编码，内部 value_id 保留给执行器使用 -->
               <span class="text-xs text-slate-500 shrink-0">值:</span>
-              <input type="text" x-model="pf.value_id"
-                     @input="markHarPickFieldManual(pf)"
+              <input type="text"
+                     :value="pickFieldDisplayValue(pf)"
+                     @input="if(!pf.readonly) updateHarPickFieldDisplayValue(pf.id, $event.target.value)"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
-                     :placeholder="pf.value_name || 'value_id'">
+                     :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
+                     :disabled="pf.readonly"
+                     :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
               <!-- value_name 显示 -->
-              <div class="w-24 shrink-0 text-right">
-                <span class="text-xs text-slate-500" x-show="pf.value_name && pf.value_name !== pf.value_id" x-text="pf.value_name"></span>
+              <div class="w-32 shrink-0 text-right">
+                <span class="block text-xs text-cyan-300" x-show="pf.value_id && pickFieldDisplayValue(pf) !== pf.value_id" x-text="'ID ' + pf.value_id"></span>
+                <span class="text-xs text-slate-500" x-show="pf.value_name && pf.value_name !== pickFieldDisplayValue(pf)" x-text="pf.value_name"></span>
               </div>
               <!-- 敏感度文字 -->
               <div class="w-12 shrink-0 text-right">
@@ -4033,12 +4045,17 @@ function app() {
       // ⭐ 构建环境字段覆盖配置
       const pickFieldOverrides = {};
       for (const pf of this.harPickFields) {
+        const manualOverride = !!pf.manual_override && (pf.resolve_status === 'manual' || !pf.value_code);
         pickFieldOverrides[pf.id] = {
           value_id: pf.value_id,
           value_name: pf.value_name,
-          auto_resolve: !!pf.auto_resolve && !pf.manual_override && !pf.user_overridden,
+          value_code: pf.value_code || '',
+          value_number: pf.value_number || '',
+          auto_resolve: !!pf.auto_resolve && !manualOverride,
+          resolve_by: pf.resolve_by || '',
           resolve_status: pf.resolve_status || '',
-          manual_override: !!pf.manual_override || !!pf.user_overridden,
+          manual_override: manualOverride,
+          user_overridden: !!pf.user_overridden,
         };
       }
       try {
@@ -4245,6 +4262,48 @@ function app() {
       return this.currentReport?.action_queues?.[name] || [];
     },
 
+    pickFieldDisplayValue(pf) {
+      if (!pf) return '';
+      return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
+    },
+
+    pickFieldDisplayKind(pf) {
+      if (!pf) return 'id';
+      if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
+      if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
+      return 'id';
+    },
+
+    updateHarPickFieldDisplayValue(stepId, value) {
+      const text = String(value || '').trim();
+      let pf = this.harPickFields.find(h => h.id === stepId || h.step_id === stepId);
+      if (!pf) {
+        const parsed = this.parsedPickFields().find(h => h.step_id === stepId || h.id === stepId);
+        pf = parsed || null;
+      }
+      if (!pf) return;
+      const kind = this.pickFieldDisplayKind(pf);
+      if (kind === 'code') {
+        pf.value_code = text;
+        pf.value_number = text;
+        pf.resolve_by = 'value_code';
+        pf.auto_resolve = true;
+        pf.resolve_status = 'pending';
+        pf.manual_override = false;
+        pf.user_overridden = true;
+      } else if (kind === 'name') {
+        pf.value_name = text;
+        pf.resolve_by = 'value_name';
+        pf.auto_resolve = true;
+        pf.resolve_status = 'pending';
+        pf.manual_override = false;
+        pf.user_overridden = true;
+      } else {
+        pf.value_id = text;
+        this.markHarPickFieldManual(pf);
+      }
+    },
+
     markHarPickFieldManual(pf) {
       if (!pf) return;
       pf.manual_override = true;
@@ -4253,6 +4312,9 @@ function app() {
       pf.resolve_status = 'manual';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) {
         pf.value_name = '';
+      }
+      if (pf.value_code && String(pf.value_code) !== String(pf.value_id || '')) {
+        pf.value_code = '';
       }
     },
 
@@ -4452,10 +4514,11 @@ function app() {
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '1. 先读取证据包、YAML、运行事件和失败/入库证据。',
-        '2. 判断是 HAR 解析变量遗漏、环境字段覆盖、pageId 链路错误、断言盲区，还是执行器问题。',
-        '3. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '4. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '5. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '3. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '4. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '5. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '6. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
@@ -4486,10 +4549,11 @@ function app() {
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '1. 先读取证据包、YAML、运行事件、失败步骤和断言结果。',
-        '2. 判断是 HAR 解析变量遗漏、环境字段覆盖、pageId 链路错误、异步流程未等待、断言盲区，还是执行器问题。',
-        '3. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '4. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '5. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '3. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '4. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '5. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '6. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
@@ -5939,10 +6003,10 @@ function app() {
       // 从 steps 段提取 pick_basedata 步骤的 value_id 和 value_name
       const pickStepMap = {};
       try {
-        const stepPattern = new RegExp('- id:\\s*(\\S+)\\s*\\n\\s+type:\\s*pick_basedata[\\s\\S]*?value_id:\\s*["\']?([^"\'\\n]+?)["\']?\\s*\\n(?:\\s+value_name:\\s*["\']?([^"\'\\n]*?)["\']?\\s*\\n)?', 'g');
+        const stepPattern = new RegExp('- id:\\s*(\\S+)\\s*\\n\\s+type:\\s*pick_basedata[\\s\\S]*?value_id:\\s*["\']?([^"\'\\n]+?)["\']?\\s*\\n(?:\\s+value_name:\\s*["\']?([^"\'\\n]*?)["\']?\\s*\\n)?(?:\\s+value_code:\\s*["\']?([^"\'\\n]*?)["\']?\\s*\\n)?', 'g');
         let m;
         while ((m = stepPattern.exec(yamlText)) !== null) {
-          pickStepMap[m[1]] = { value_id: m[2].trim(), value_name: (m[3] || '').trim() };
+          pickStepMap[m[1]] = { value_id: m[2].trim(), value_name: (m[3] || '').trim(), value_code: (m[4] || '').trim() };
         }
       } catch(e) {}
 
@@ -5951,18 +6015,21 @@ function app() {
         const entry = pickFields[key];
         const sensitive = entry.env_sensitive || 'medium';
         const stepData = pickStepMap[key];
-        let valueId, valueName;
+        let valueId, valueName, valueCode;
         // pick_fields 块是用户编辑的权威源，优先级最高
         if (entry.value_id) {
           valueId = entry.value_id;
           valueName = entry.value_name || (stepData ? stepData.value_name : '') || '';
+          valueCode = entry.value_code || (stepData ? stepData.value_code : '') || '';
         } else if (stepData) {
           // pick_fields 没有 value_id，fallback 到步骤定义中的值
           valueId = stepData.value_id;
           valueName = stepData.value_name || entry.value_name || '';
+          valueCode = stepData.value_code || entry.value_code || '';
         } else {
           valueId = entry.value_name || '';
           valueName = '';
+          valueCode = entry.value_code || '';
         }
         return {
           step_id: key,
@@ -5970,7 +6037,10 @@ function app() {
           env_sensitive: sensitive,
           value_id: valueId,
           value_name: valueName,
+          value_code: valueCode,
           source: entry.source || '',
+          context_only: entry.context_only === 'true' || entry.context_only === true,
+          readonly: entry.readonly === 'true' || entry.readonly === true,
           _sort: SENS_ORDER[sensitive] !== undefined ? SENS_ORDER[sensitive] : 1
         };
       }).sort((a, b) => a._sort - b._sort);
@@ -5998,14 +6068,79 @@ function app() {
       }
     },
 
-    async savePickFieldValue(stepId, newValue) {
+    async savePickFieldValue(stepId, newValue, mode = 'display') {
       if (!newValue || !String(newValue).trim()) { alert('值不能为空'); return; }
       newValue = String(newValue).trim();
       // ⭐ 立即更新本地 harPickFields（不依赖API成功）
       const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId);
+      let payload = { case_name: this.currentCase && this.currentCase.name, step_id: stepId };
       if (pfIdx !== -1) {
-        this.harPickFields[pfIdx].value_id = newValue;
-        this.markHarPickFieldManual(this.harPickFields[pfIdx]);
+        const pf = this.harPickFields[pfIdx];
+        const kind = this.pickFieldDisplayKind(pf);
+        if (kind === 'code') {
+          pf.value_code = newValue;
+          pf.value_number = newValue;
+          pf.resolve_by = 'value_code';
+          pf.auto_resolve = true;
+          pf.resolve_status = 'pending';
+          pf.manual_override = false;
+          pf.user_overridden = true;
+          payload = {
+            ...payload,
+            value_id: pf.value_id || '',
+            value_code: newValue,
+            resolve_by: 'value_code',
+            auto_resolve: true,
+            resolve_status: 'pending',
+            manual_override: false,
+          };
+        } else if (kind === 'name') {
+          pf.value_name = newValue;
+          pf.resolve_by = 'value_name';
+          pf.auto_resolve = true;
+          pf.resolve_status = 'pending';
+          pf.manual_override = false;
+          pf.user_overridden = true;
+          payload = {
+            ...payload,
+            value_id: pf.value_id || '',
+            value_name: newValue,
+            resolve_by: 'value_name',
+            auto_resolve: true,
+            resolve_status: 'pending',
+            manual_override: false,
+          };
+        } else {
+          pf.value_id = newValue;
+          this.markHarPickFieldManual(pf);
+          payload = {...payload, value_id: newValue, manual_override: true};
+        }
+      } else {
+        const pf = this.parsedPickFields().find(item => item.step_id === stepId || item.id === stepId);
+        const kind = this.pickFieldDisplayKind(pf);
+        if (pf && kind === 'code') {
+          payload = {
+            ...payload,
+            value_id: pf.value_id || '',
+            value_code: newValue,
+            resolve_by: 'value_code',
+            auto_resolve: true,
+            resolve_status: 'pending',
+            manual_override: false,
+          };
+        } else if (pf && kind === 'name') {
+          payload = {
+            ...payload,
+            value_id: pf.value_id || '',
+            value_name: newValue,
+            resolve_by: 'value_name',
+            auto_resolve: true,
+            resolve_status: 'pending',
+            manual_override: false,
+          };
+        } else {
+          payload = {...payload, value_id: newValue, manual_override: true};
+        }
       }
       var caseName = this.currentCase && this.currentCase.name;
       if (!caseName) { this.showToast('✓ 本地已更新（远程保存跳过：预览阶段）'); return; }
@@ -6013,7 +6148,7 @@ function app() {
         var resp = await fetch('/api/pick-field-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ case_name: caseName, step_id: stepId, value_id: newValue, manual_override: true })
+          body: JSON.stringify({...payload, case_name: caseName})
         });
         var data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || '保存失败');

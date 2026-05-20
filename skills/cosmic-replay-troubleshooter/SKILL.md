@@ -120,6 +120,8 @@ def _is_l2_pageid(pid: str) -> bool:
 - save/submit 后 pageId 失效，框架自动 pop（除非 `keep_page=true`）
 - menuItemClick 后自动计算 L2: `f"{menuId}root{session.root_base_id}"`
 - `_pending_by_app`: addVirtualTab 响应中按 app_id 缓存待消费 pageId
+- L2 不是错误本身。列表、树、工具栏和 `addnew` 前置桥接步骤依赖 L2 上下文；进入真实编辑页后才应切换到 L3。
+- 很多保存字段保存在 pageId 对应的服务端模型里。排障时先比对 HAR 原始 pageId 链路，再看字段解析和补偿；不要一上来硬补 `save` 请求体。
 
 ---
 
@@ -301,6 +303,27 @@ post_data:
 - 检查 `_is_l2_pageid()` 判定是否正确匹配该 pageId
 - 确认 `_pending_by_app` 中是否有对应 app_id 的 L3
 
+### 类型B-2：L2/L3 过早替换导致服务端模型丢失
+
+**症状**:
+- 录制过程正常，但回放保存时报业务必填缺失、锁定字段被修改、默认字段丢失，或 PASS 但入库未验证。
+- HAR 中 `treeNodeClick` / `loadData` / `addnew` 使用的是 L2 pageId，回放日志却在这些步骤前切到了 L3 或重新 open_form。
+- 硬补 `save.post_data` 后错误变化但不稳定，例如从锁定字段错误变成必填字段缺失。
+
+**根因**: 金蝶苍穹会把树节点、默认值、联动字段和部分表单状态保存在 pageId 对应的服务端模型中。列表/树上下文步骤如果过早替换成 L3，会丢掉录制时的 L2 服务端模型；随后保存步骤即使字段看起来齐全，也可能不是同一条上下文链。
+
+**诊断顺序**:
+1. 从 evidence package 或 HAR 中抽取关键步骤的原始 `_har_page_id`：`menuItemClick → loadData/treeNodeClick → addnew → update_fields → save`。
+2. 对照 run events / debug 日志中的实际 pageId，确认 L2 (`^\d+root[0-9a-f]{32}$`) 与 L3 (`^[0-9a-f]{32}$`) 切换点是否一致。
+3. 若列表/树/工具栏步骤被替换成 L3，检查 YAML 是否缺少 `preserve_l2_page: true`，以及 `runner.py` 的 `_step_allows_l2_pageid()` 是否覆盖该 `ac/method`。
+4. 若保存步骤仍使用 L2，再回到“类型B：L2 pageId 屏蔽问题”，检查 `_pending_by_app` 和预验证降级。
+
+**修复原则**:
+- L2 应保留给 `menuItemClick`、`loadData`、`treeNodeClick`、`treeMenuClick`、`postExpandNodes`、`queryTreeNodeChildren`、`entryRowClick`、`refresh`、`itemClick` 等列表/树/工具栏动作。
+- L3 应用于真实编辑页的字段更新、保存、提交、确认等表单态动作。
+- HAR 导入阶段应为原始 L2 步骤写入 `preserve_l2_page: true`，runner 执行阶段根据 `_step_allows_l2_pageid()` 决定是否替换为 pending L3。
+- 不要通过追加 `save.post_data` 或删除锁定字段断言来掩盖 pageId 链路问题。只有确认 pageId 链路正确后，才进入字段解析、pick_fields 或业务补偿。
+
 ### 类型C：多表单 L2 共享（target_forms 缺失）
 
 **症状**: 非主表单的 invoke 使用错误 pageId / 子表单操作报"页面未初始化"
@@ -428,8 +451,8 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 1. 先读 `skills_to_use` 中的 overview 与 troubleshooter。
 2. 只基于 evidence package 中的 HAR/YAML/run events 诊断，不凭空猜业务字段。
 3. 判断问题类型：
+   - pageId / target_forms 链路错误（优先检查 HAR 原始 pageId 与回放 pageId 是否一致）
    - HAR 解析变量遗漏
-   - pageId / target_forms 链路错误
    - 保存断言盲区
    - 环境字段缺失或跨环境 value_id 错误
    - 业务校验错误
@@ -452,6 +475,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 4. 不得更新 HAR baseline 掩盖规则回归。
 5. 不得在无入库证据时宣称修复完成。
 6. 通用代码修复必须保持向后兼容，并通过 8 类 HAR 回归影响报告。
+7. 不得把硬补 `save` 字段作为 pageId 链路问题的替代修复；必须先证明 L2/L3 切换点与 HAR 原始链路一致。
 
 ---
 

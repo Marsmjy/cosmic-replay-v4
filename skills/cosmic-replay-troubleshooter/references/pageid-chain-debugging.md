@@ -8,6 +8,8 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 2. **L2 pageId** — 从 `menuItemClick` 响应中通过 `addVirtualTab` 下发的 `{menuId}root{baseId}` 格式（51+ 字符）
 3. **root_pageId** — 从 `getConfig.do` 获取的会话根 pageId（兜底）
 
+重要原则：pageId 不只是请求参数，也是服务端表单模型上下文。很多默认值、联动字段、树节点状态和锁定字段状态保存在 pageId 对应的服务端模型里。排障时优先确认 HAR 原始 pageId 链路与回放链路一致，再看变量解析和字段补偿；不要先硬补 `save` 请求体。
+
 ## pageId 错误类型
 
 ### 类型 1：pageId 缺失（404 / No pageId error）
@@ -29,6 +31,11 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 **症状**：全部修复后仍返回空 `[]`，`page_ids[form_id]` 是 L2 pageId（`/J9YH7GL2XOVroot...`）
 **原因**：`runner.py` 的 `target_form` 绑定设置了 L2 pageId → `_pending_by_app` 后备永不触发
 **修复**：pageId 查找时 `_pending_by_app` 优先于 L2 pageId（但不覆盖 32hex）
+
+### 类型 5：L2/L3 过早替换（2026-05-20 发现）
+**症状**：录制时正常，回放保存时出现默认字段丢失、业务必填缺失、锁定字段被修改，或保存响应缺少入库证据。
+**原因**：HAR 中列表/树/工具栏桥接步骤使用 L2 pageId，但 runner 过早替换成 L3/open_form pageId，导致服务端模型上下文丢失。
+**修复**：HAR 导入对原始 L2 步骤生成 `preserve_l2_page: true`；runner 的 `_step_allows_l2_pageid()` 对 `loadData`、`treeNodeClick`、`addnew` 前置桥接、`itemClick` 等步骤保留 L2，只在真实编辑态字段更新/保存/提交时切到 L3。
 
 ## 修复清单
 
@@ -53,6 +60,8 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 ### `lib/har_extractor.py`
 - `_SAVE_BUTTON_KEYS` 标记 `btnsave` 等按钮为 `tier: core`
 - 不改变 `ac`（保持 `click`，不改 `saveandeffect`）
+- 对 HAR 原始 L2 pageId 步骤写入 `preserve_l2_page: true`
+- pick_fields 展示业务编码，同时保留 `recorded_value_id` 作为跨环境解析兜底
 
 ## 诊断脚本
 

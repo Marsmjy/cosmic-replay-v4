@@ -37,6 +37,7 @@ def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
     assert "name: demo" in package["case_artifacts"]["yaml"]
     assert package["skills_to_use"]
     assert any("不得删除 menuItemClick" in rule for rule in package["guardrails"])
+    assert any("先比对 HAR 原始 pageId 链路" in rule for rule in package["guardrails"])
 
     saved = save_repair_evidence_package(package, tmp_path / "evidence")
     loaded = json.loads(saved.read_text(encoding="utf-8"))

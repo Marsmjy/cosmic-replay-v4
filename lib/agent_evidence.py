@@ -70,6 +70,7 @@ def build_repair_evidence_package(
             "不得修改已成功回归样本的 YAML baseline，除非影响报告明确为 none/review 且有理由。",
             "修复后必须运行 HAR 回归 compare --fail-on-diff 和相关单测。",
             "如果缺少入库证据，优先补入库验证或 pageId 链路，不要把 PASS 当作成功。",
+            "先比对 HAR 原始 pageId 链路与回放 pageId 是否一致，再看变量解析和字段补偿；不得用硬补 save 字段替代 pageId 修复。",
         ],
         "expected_agent_output": {
             "diagnosis_json": "根因、证据、风险等级、影响范围",

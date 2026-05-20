@@ -1226,6 +1226,9 @@ def api_resolve_env_fields(body: dict = Body(...)):
             step_id = item.get("id") or item.get("step_id") or ""
             field_key = str(item.get("field_key") or "").strip()
             value_name = str(item.get("value_name") or "").strip()
+            value_code = str(item.get("value_code") or "").strip()
+            resolve_by = str(item.get("resolve_by") or "value_name").strip()
+            query_value = value_code if resolve_by == "value_code" and value_code else value_name
             value_id = str(item.get("value_id") or "").strip()
             form_id = str(item.get("form_id") or "").strip()
             app_id = str(item.get("app_id") or "").strip()
@@ -1235,9 +1238,11 @@ def api_resolve_env_fields(body: dict = Body(...)):
                 "field_key": field_key,
                 "value_id": value_id,
                 "value_name": value_name,
+                "value_code": value_code,
                 "label": item.get("label", field_key),
                 "env_sensitive": item.get("env_sensitive", "medium"),
                 "auto_resolve": bool(item.get("auto_resolve")),
+                "resolve_by": resolve_by,
             }
 
             if not item.get("auto_resolve"):
@@ -1248,12 +1253,12 @@ def api_resolve_env_fields(body: dict = Body(...)):
                     "message": "未启用自动解析",
                 })
                 continue
-            if not (form_id and app_id and field_key and value_name):
+            if not (form_id and app_id and field_key and query_value):
                 resolved_fields.append({
                     **base,
                     "resolve_status": "skipped",
                     "effective_value_id": value_id,
-                    "message": "缺少 form_id/app_id/field_key/value_name，无法解析",
+                    "message": "缺少 form_id/app_id/field_key/查询值，无法解析",
                 })
                 continue
 
@@ -1271,7 +1276,7 @@ def api_resolve_env_fields(body: dict = Body(...)):
                 form_id,
                 app_id,
                 field_key,
-                value_name,
+                query_value,
                 original_value_id=value_id,
             )
             data = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
@@ -1370,14 +1375,22 @@ def api_pick_field_update(body: dict = Body(...)):
     case_name = body.get("case_name")
     step_id = body.get("step_id")
     value_id = str(body.get("value_id") or "").strip()
+    value_code_provided = "value_code" in body
+    value_code = str(body.get("value_code") or "").strip()
+    resolve_by_provided = "resolve_by" in body
+    resolve_by = str(body.get("resolve_by") or "").strip()
+    auto_resolve_provided = "auto_resolve" in body
+    auto_resolve = bool(body.get("auto_resolve"))
+    resolve_status_provided = "resolve_status" in body
+    resolve_status = str(body.get("resolve_status") or "").strip()
     value_name_provided = "value_name" in body
     value_name = str(body.get("value_name") or "").strip()
     manual_override = bool(body.get("manual_override", True))
 
     if not case_name or not step_id:
         raise HTTPException(400, "缺少 case_name 或 step_id")
-    if not value_id:
-        raise HTTPException(400, "缺少 value_id")
+    if not value_id and not value_code:
+        raise HTTPException(400, "缺少 value_id 或 value_code")
 
     p = case_path_from_name(case_name)
     if not p.exists():
@@ -1402,6 +1415,10 @@ def api_pick_field_update(body: dict = Body(...)):
                 value_id,
                 value_name if value_name_provided else None,
                 manual_override=manual_override,
+                value_code=value_code if value_code_provided else None,
+                resolve_by=resolve_by if resolve_by_provided else None,
+                auto_resolve=auto_resolve if auto_resolve_provided else None,
+                resolve_status=resolve_status if resolve_status_provided else None,
             )
             found = True
     elif isinstance(pick_fields, list):
@@ -1413,6 +1430,10 @@ def api_pick_field_update(body: dict = Body(...)):
                     value_id,
                     value_name if value_name_provided else None,
                     manual_override=manual_override,
+                    value_code=value_code if value_code_provided else None,
+                    resolve_by=resolve_by if resolve_by_provided else None,
+                    auto_resolve=auto_resolve if auto_resolve_provided else None,
+                    resolve_status=resolve_status if resolve_status_provided else None,
                 )
                 found = True
                 break
@@ -1427,7 +1448,7 @@ def api_pick_field_update(body: dict = Body(...)):
     new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
     p.write_text(new_content, encoding="utf-8")
 
-    return {"ok": True, "step_id": step_id, "value_id": value_id}
+    return {"ok": True, "step_id": step_id, "value_id": value_id, "value_code": value_code}
 
 
 @APP.post("/api/cases/{name:path}/write-confirmation")
@@ -1561,19 +1582,38 @@ def _apply_pick_field_manual_update(
     value_name: str | None = None,
     *,
     manual_override: bool = True,
+    value_code: str | None = None,
+    resolve_by: str | None = None,
+    auto_resolve: bool | None = None,
+    resolve_status: str | None = None,
 ) -> None:
     """Apply a user-maintained env field value without stale auto-resolve metadata."""
     old_value_id = str(item.get("value_id") or "")
     old_value_name = str(item.get("value_name") or "")
-    item["value_id"] = value_id
+    if value_id:
+        item["value_id"] = value_id
     if value_name is not None:
         item["value_name"] = value_name
-    elif old_value_name and old_value_name != value_id and old_value_id != value_id:
+    elif value_id and old_value_name and old_value_name != value_id and old_value_id != value_id:
         item["value_name"] = ""
+    if value_code is not None:
+        item["value_code"] = value_code
+    elif value_id and old_value_id != value_id:
+        item["value_code"] = ""
+    if resolve_by is not None:
+        item["resolve_by"] = resolve_by
+    if auto_resolve is not None:
+        item["auto_resolve"] = auto_resolve
+    if resolve_status is not None:
+        item["resolve_status"] = resolve_status
     if manual_override:
         item["auto_resolve"] = False
         item["resolve_status"] = "manual"
         item["manual_override"] = True
+    elif value_code is not None and (item.get("resolve_by") == "value_code" or resolve_by == "value_code"):
+        item["auto_resolve"] = True if auto_resolve is None else auto_resolve
+        item["resolve_status"] = resolve_status or "pending"
+        item.pop("manual_override", None)
 
 
 # ============================================================

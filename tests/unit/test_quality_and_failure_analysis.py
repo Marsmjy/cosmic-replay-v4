@@ -95,6 +95,30 @@ def test_failure_analysis_classifies_invalid_protocol_request():
     assert result["retryable"] is False
 
 
+def test_failure_analysis_classifies_locked_field_update():
+    result = classify_error(
+        "ShowNotificationMsg: 无法修改锁定字段组织变动生效日期的值。",
+        step={"id": "fill_bsed", "form_id": "haos_adminorgdetail"},
+        case={"main_form_id": "haos_adminorgdetail"},
+    )
+
+    assert result["category"] == "locked_field_update"
+    assert result["field_caption"] == "组织变动生效日期"
+    assert result["retryable"] is False
+
+
+def test_failure_analysis_pageid_recommendation_prioritizes_har_chain():
+    result = classify_error(
+        "页面未初始化或者已经过期",
+        step={"id": "treeNodeClick_47", "form_id": "haos_adminorgdetail"},
+        case={"main_form_id": "haos_adminorgdetail"},
+    )
+
+    assert result["category"] == "pageid_context"
+    assert any("HAR 原始 pageId" in action for action in result["recommended_actions"])
+    assert any("preserve_l2_page" in action for action in result["recommended_actions"])
+
+
 def test_classify_run_failure_uses_first_non_optional_failure():
     analysis = classify_run_failure(
         steps=[

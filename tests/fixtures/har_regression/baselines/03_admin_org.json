@@ -68,7 +68,8 @@
         "resolve_by": "value_name",
         "resolve_status": "pending",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
@@ -83,18 +84,76 @@
         "form_id": "haos_adminorgdetail",
         "label": "变更场景",
         "name": "pick_changescene_id",
-        "resolve_by": "value_name",
+        "resolve_by": "value_code",
         "resolve_status": "pending",
         "value_id_shape": {
-          "kind": "integer"
+          "kind": "literal",
+          "length": 4
         },
         "value_name_shape": {
           "kind": "literal",
           "length": 4
         }
+      },
+      {
+        "app_id": "haos",
+        "auto_resolve": true,
+        "env_sensitive": "medium",
+        "field_key": "org",
+        "form_id": "haos_adminorgdetail",
+        "label": "组织",
+        "name": "pick_org_id",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 2
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 10
+        }
+      },
+      {
+        "app_id": "haos",
+        "auto_resolve": true,
+        "env_sensitive": "low",
+        "field_key": "otclassify",
+        "form_id": "haos_adminorgdetail",
+        "label": "组织分类",
+        "name": "pick_otclassify_id",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 6
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 4
+        }
+      },
+      {
+        "app_id": "haos",
+        "auto_resolve": true,
+        "env_sensitive": "low",
+        "field_key": "parentorg",
+        "form_id": "haos_adminorgdetail",
+        "label": "上级行政组织",
+        "name": "pick_parentorg_id",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 2
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 10
+        }
       }
     ],
-    "step_count": 36,
+    "step_count": 40,
     "steps": [
       {
         "app_id": "bos",
@@ -310,6 +369,20 @@
       },
       {
         "app_id": "haos",
+        "field_key": "org",
+        "form_id": "haos_adminorgdetail",
+        "id": "pick_org_ctx",
+        "optional": false,
+        "type": "pick_basedata",
+        "value_id_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "app_id": "haos",
         "field_key": "changescene",
         "form_id": "haos_adminorgdetail",
         "id": "pick_changescene",
@@ -321,6 +394,18 @@
             "${vars.*}"
           ]
         }
+      },
+      {
+        "ac": "changeYear",
+        "app_id": "haos",
+        "args_count": 1,
+        "form_id": "haos_adminorgdetail",
+        "id": "changeYear_57",
+        "key": "bsed",
+        "method": "changeYear",
+        "optional": false,
+        "post_data_fields": [],
+        "type": "invoke"
       },
       {
         "app_id": "haos",
@@ -370,6 +455,34 @@
         "field_key": "adminorgtype",
         "form_id": "haos_adminorgdetail",
         "id": "pick_adminorgtype",
+        "optional": false,
+        "type": "pick_basedata",
+        "value_id_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "app_id": "haos",
+        "field_key": "parentorg",
+        "form_id": "haos_adminorgdetail",
+        "id": "pick_parentorg_ctx",
+        "optional": false,
+        "type": "pick_basedata",
+        "value_id_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "app_id": "haos",
+        "field_key": "otclassify",
+        "form_id": "haos_adminorgdetail",
+        "id": "pick_otclassify_ctx",
         "optional": false,
         "type": "pick_basedata",
         "value_id_shape": {
@@ -574,16 +687,16 @@
   },
   "preview": {
     "components": {
-      "coverage_percent": 81,
+      "coverage_percent": 82,
       "handler_ids": [
         "form_load",
         "dialog_confirm",
         "open_form",
         "portal_navigation",
         "geo_lookup",
+        "basedata_selector",
         "generic_safe_invoke",
         "tree_context",
-        "basedata_selector",
         "list_navigation",
         "field_update",
         "persistence_action",
@@ -592,8 +705,8 @@
       ],
       "partial_steps": 28,
       "risk_level": "medium",
-      "supported_steps": 47,
-      "total_steps": 75,
+      "supported_steps": 50,
+      "total_steps": 78,
       "unsupported_steps": 0
     },
     "detected_vars": [
@@ -605,6 +718,9 @@
       "adminorgtype",
       "bsed",
       "changescene",
+      "org",
+      "otclassify",
+      "parentorg",
       "treeview.focus.id"
     ],
     "quality": {
@@ -620,6 +736,6 @@
   "schema_version": 1,
   "source_har": "preview_1778835311_新增一条行政组织.har",
   "source_sha256": "70c9ed909e82ebc0c1911fd86a17b3edc0d5eea76894209067603e28cc3826c3",
-  "summary_hash": "2ed075d20f2afbbc2d6d288cd3bc5259a0183cfd21e031307eb686072fd46fc8",
+  "summary_hash": "e0604a150753ff510c5f2eba6b71edd96871d2729c293266b81e530266945b50",
   "title": "新增一条行政组织"
 }

@@ -20,7 +20,8 @@ sys.path.insert(0, str(SKILL_ROOT))
 
 from lib.runner import (
     load_yaml, _parse_yaml_light, resolve_vars, _resolve_str, _resolve_ref,
-    STEP_HANDLERS, ASSERTION_HANDLERS,
+    STEP_HANDLERS, ASSERTION_HANDLERS, _auto_resolve_pick_basedata_step,
+    _step_allows_l2_pageid,
 )
 from lib.replay import has_error_action
 
@@ -105,6 +106,69 @@ class TestReplayErrorDetection:
     def test_has_error_action_allows_empty_dict_and_list(self):
         assert has_error_action({}) == []
         assert has_error_action([]) == []
+
+    def test_expected_notification_assertion_accepts_recorded_business_validation(self):
+        resp = [{
+            "a": "ShowNotificationMsg",
+            "p": [{
+                "type": 1,
+                "content": "请选择所属L1流程：ITM下的L2流程",
+            }],
+        }]
+        ctx = {
+            "step_responses": {"click_new_save": resp},
+            "step_descriptions": {"click_new_save": "保存【行政组织详情】"},
+        }
+
+        ok, msg = ASSERTION_HANDLERS["expected_notification"](
+            {
+                "type": "expected_notification",
+                "step": "click_new_save",
+                "contains": "请选择所属L1流程：ITM下的L2流程",
+            },
+            ctx,
+        )
+
+        assert ok is True
+        assert "预期业务校验提示" in msg
+
+    def test_auto_resolve_keeps_business_code_display_but_uses_internal_id(self):
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions, page_id=None):
+                assert ac == "getLookUpList"
+                return [{
+                    "rows": [["2483502552415473664", "-260520-046", "Autotest组织"]],
+                    "dataindex": {"id": 0, "number": 1, "name": 2},
+                }]
+
+        step = {
+            "id": "pick_parentorg_ctx",
+            "type": "pick_basedata",
+            "form_id": "haos_adminorgdetail",
+            "app_id": "haos",
+            "field_key": "parentorg",
+            "value_id": "-260520-046",
+            "value_code": "-260520-046",
+            "value_name": "Autotest组织",
+            "auto_resolve": True,
+            "resolve_by": "value_code",
+        }
+
+        _auto_resolve_pick_basedata_step(step, FakeReplay(), {"env_id": "uat"})
+
+        assert step["value_id"] == "2483502552415473664"
+
+    def test_tree_node_click_preserves_l2_page_id(self):
+        assert _step_allows_l2_pageid({
+            "type": "invoke",
+            "ac": "treeNodeClick",
+            "method": "treeNodeClick",
+        }) is True
+        assert _step_allows_l2_pageid({
+            "type": "update_fields",
+            "ac": "updateValue",
+            "method": "updateValue",
+        }) is False
 
 
 class TestYAMLLightParsing:

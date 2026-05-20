@@ -43,7 +43,7 @@ AC_TIER = {
     "clientCallBack":          "noise",
     "queryExceedMaxCount":     "noise",
     "customEvent":             "noise",
-    "changeYear":              "noise",
+    "changeYear":              "core",
     "clientPosInvokeMethod":   "noise",
     # ui_reaction：UI 联动类下拉联动 / 城市带出 / 树子节点查询
     "getCityInfo":             "ui_reaction",
@@ -128,6 +128,7 @@ _NAVIGATION_FORM_IDS = {
 
 _AUTO_RESOLVE_FIELD_HINTS = {
     "adminorg",
+    "adminorglayer",
     "adminorgtype",
     "ba_e_enterprise",
     "ba_po_adminorg",
@@ -136,12 +137,15 @@ _AUTO_RESOLVE_FIELD_HINTS = {
     "changereason",
     "changescene",
     "city",
+    "companyarea",
     "country",
     "countryregion",
     "enterprise",
     "job",
     "jobgradescm",
     "joblevelscm",
+    "khr_homs_orgform",
+    "khr_homs_orgloc",
     "lawentity",
     "org",
     "otclassify",
@@ -153,6 +157,18 @@ _AUTO_RESOLVE_FIELD_HINTS = {
     "workplace",
 }
 
+_AUTO_RESOLVE_CODE_FIELD_HINTS = {
+    "adminorglayer",
+    "changescene",
+    "city",
+    "companyarea",
+    "khr_homs_orgform",
+    "khr_homs_orgloc",
+    "org",
+    "otclassify",
+    "parentorg",
+}
+
 
 # 值类型识别（从 HAR 里的值反推是什么形式）
 _RX_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -162,11 +178,50 @@ _RX_INTEGER = re.compile(r"^\d+$")
 
 # ⭐ 规则2：识别 session-specific pageId 模式（嵌入 root_base_id 的 32位hex）
 _RX_ROOT_BASE_ID = re.compile(r"root([a-f0-9]{32})")
+_RX_L2_PAGE_ID = re.compile(r"^\d+root[0-9a-f]{32}$")
 # 匹配纯随机 32hex pageId（不含 "root" 前缀的独立 pageId）
 _RX_RANDOM_PAGE_ID = re.compile(r"^[a-f0-9]{32}$")
 
 # ⭐ 规则5：从原始测试值中提取前缀（去掉末尾数字/随机部分）
 _RX_TRAILING_DIGITS = re.compile(r"^(.*?[^0-9])\d{2,}$")
+
+_DEFAULT_CONTEXT_FIELD_KEYS = {"parentorg"}
+_RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
+    "haos_adminorgdetail": (
+        "parentorg",
+        "changescene",
+        "city",
+        "companyarea",
+        "org",
+        "otclassify",
+    ),
+}
+
+
+def _recorded_default_value_id(field_key: str, value_code: str, value_name: str = "") -> str:
+    """Return the value id to replay for recorded server defaults.
+
+    Some Kingdee "basedata" fields behave like enum-backed data in the UI:
+    the display/business code is `1010_S`, while setItemByIdFromClient expects
+    the compact id `1010`. Keep `value_code` for the user-facing panel, but
+    replay the compact id when this stable pattern is present.
+    """
+    key = str(field_key or "").strip().lower()
+    code = str(value_code or "").strip()
+    if key == "changescene":
+        m = re.match(r"^(\d+)_S$", code)
+        if m:
+            return m.group(1)
+    return code or str(value_name or "").strip()
+
+
+def _display_pick_value_id(value_id: Any, value_code: Any) -> str:
+    """Prefer business code in user-facing pick_fields when HAR stored an internal id."""
+    raw = str(value_id or "").strip()
+    code = str(value_code or "").strip()
+    if code and _looks_like_internal_id(raw):
+        return code
+    return raw
 
 
 def _extract_value_prefix(val: str) -> str:
@@ -309,8 +364,9 @@ _FIELD_LABELS = {
     'creator':      '创建人',
     'modifier':     '修改人',
     'parent':       '上级',
-    'org':          '所属组织',
+    'org':          '组织体系管理组织',
     'country':      '国家',
+    'companyarea':  '国家/地区',
     'province':     '省份',
     'city':         '城市',
     'address':      '地址',
@@ -320,7 +376,9 @@ _FIELD_LABELS = {
     'enddate':      '结束日期',
     # ⭐ 核心 4 HAR 涉及的 pick_basedata 业务字段
     'adminorgtype':       '行政组织类型',
-    'changescene':        '变更场景',
+    'adminorglayer':      '行政组织层级',
+    'changescene':        '组织变动场景',
+    'otclassify':         '组织分类',
     'laborreltypecls':    '用工关系分类',
     'basedatafield':      '基础资料字段',
     'menulocal':          '菜单位置',
@@ -328,8 +386,11 @@ _FIELD_LABELS = {
     'bsled':              '失效日期',
     'effectdate':         '生效日期',
     'loseeffectdate':     '失效日期',
+    'khr_homs_condes':    '保密描述',
     'parentorg':          '上级行政组织',
     'orgpattern':         '组织形态',
+    'khr_homs_orgform':   '组织形态',
+    'khr_homs_orgloc':    '行政组织定位',
     'biztype':            '业务类型',
     'useorg':             '使用组织',
     'createorg':          '创建组织',
@@ -822,6 +883,171 @@ def _extract_update_fields(post_data: list) -> dict[str, Any]:
     return fields
 
 
+def _looks_like_internal_id(value: Any) -> bool:
+    text = str(value or "").strip()
+    return text.isdigit() and len(text) >= 12
+
+
+def _extract_basedata_parts(value: Any) -> dict[str, str]:
+    """从苍穹基础资料显示值中拆出业务编码/名称/编号。"""
+    row = value
+    if isinstance(row, list) and row and isinstance(row[0], list):
+        row = row[0]
+    if not isinstance(row, list) or len(row) < 2:
+        return {}
+    value_code = str(row[0] or "").strip()
+    value_name = str(row[1] or "").strip()
+    value_number = str(row[2] or "").strip() if len(row) >= 3 else value_code
+    if not value_code and not value_name:
+        return {}
+    return {
+        "value_code": value_code,
+        "value_name": value_name,
+        "value_number": value_number,
+    }
+
+
+def _is_l2_page_id(value: Any) -> bool:
+    return bool(_RX_L2_PAGE_ID.match(str(value or "").strip()))
+
+
+def _iter_har_response_actions(har: dict):
+    for idx, entry in enumerate(har.get("log", {}).get("entries", [])):
+        resp_text = (entry.get("response") or {}).get("content", {}).get("text", "") or ""
+        if not resp_text:
+            continue
+        try:
+            resp_json = json.loads(resp_text)
+        except Exception:
+            continue
+        if isinstance(resp_json, list):
+            for cmd in resp_json:
+                if isinstance(cmd, dict) and cmd.get("a"):
+                    yield idx, cmd
+
+
+def _collect_har_field_observations(har: dict) -> dict[str, Any]:
+    """收集响应中的字段锁定状态和值，用于生成更贴近浏览器录制的 YAML。"""
+    locked_events: dict[int, set[str]] = {}
+    response_values: dict[str, dict[str, str]] = {}
+
+    def mark_locked(har_index: int, field_key: Any) -> None:
+        key = str(field_key or "").strip().lower()
+        if key:
+            locked_events.setdefault(har_index, set()).add(key)
+
+    def remember_value(field_key: Any, value: Any) -> None:
+        key = str(field_key or "").strip().lower()
+        if not key:
+            return
+        parts = _extract_basedata_parts(value)
+        if parts:
+            response_values[key] = parts
+            return
+        if value not in (None, "") and key in _DEFAULT_CONTEXT_FIELD_KEYS:
+            response_values.setdefault(key, {
+                "value_code": str(value),
+                "value_name": str(value),
+                "value_number": str(value),
+            })
+
+    for har_index, cmd in _iter_har_response_actions(har):
+        action = cmd.get("a")
+        params = cmd.get("p") or []
+        if action == "updateControlMetadata" and isinstance(params, list):
+            for i in range(0, len(params) - 1, 2):
+                meta = params[i + 1]
+                if not isinstance(meta, dict):
+                    continue
+                item_meta = meta.get("item") if isinstance(meta.get("item"), dict) else {}
+                if meta.get("mi") is True or item_meta.get("mi") is True:
+                    mark_locked(har_index, params[i])
+        elif action == "u" and isinstance(params, list):
+            for item in params:
+                if isinstance(item, dict) and "k" in item:
+                    remember_value(item.get("k"), item.get("v"))
+
+    return {
+        "locked_events": locked_events,
+        "response_values": response_values,
+    }
+
+
+def _is_locked_before(observations: dict[str, Any], field_key: Any, har_index: Any) -> bool:
+    key = str(field_key or "").strip().lower()
+    if not key:
+        return False
+    try:
+        idx = int(har_index)
+    except (TypeError, ValueError):
+        return False
+    for event_idx, fields in (observations.get("locked_events") or {}).items():
+        # 苍穹 loadData 里常会先下发只读/锁定元数据，后续用户仍可能通过业务流程
+        # 进入可编辑态。只采用紧邻当前 updateValue 的锁定证据，避免跨页面/跨阶段误杀。
+        if 0 < idx - event_idx <= 2 and key in fields:
+            return True
+    return False
+
+
+def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) -> list[dict]:
+    """移除当前 HAR 中已被服务端标记锁定的字段写入。"""
+    if not observations:
+        return steps
+    change_year_unlocks: set[tuple[int, str]] = set()
+    for step in steps:
+        if not (
+            step.get("type") == "invoke"
+            and (step.get("ac") == "changeYear" or step.get("method") == "changeYear")
+        ):
+            continue
+        try:
+            idx = int(step.get("_har_index"))
+        except (TypeError, ValueError):
+            continue
+        field_key = str(step.get("key") or "").strip().lower()
+        if field_key:
+            change_year_unlocks.add((idx, field_key))
+
+    def _has_recent_change_year(field_key: str, har_index: Any) -> bool:
+        try:
+            idx = int(har_index)
+        except (TypeError, ValueError):
+            return False
+        return any(
+            key == field_key and 0 < idx - change_idx <= 1
+            for change_idx, key in change_year_unlocks
+        )
+
+    out: list[dict] = []
+    for step in steps:
+        if step.get("type") != "update_fields":
+            out.append(step)
+            continue
+        fields = step.get("fields")
+        if not isinstance(fields, dict):
+            out.append(step)
+            continue
+        kept = OrderedDict()
+        dropped: list[str] = []
+        for field_key, value in fields.items():
+            field_key_s = str(field_key or "").strip().lower()
+            if (
+                _is_locked_before(observations, field_key, step.get("_har_index"))
+                and not _has_recent_change_year(field_key_s, step.get("_har_index"))
+            ):
+                dropped.append(str(field_key))
+                continue
+            kept[field_key] = value
+        if not dropped:
+            out.append(step)
+        elif kept:
+            new_step = dict(step)
+            new_step["fields"] = kept
+            new_step["_dropped_locked_fields"] = dropped
+            out.append(new_step)
+    return out
+
+
 def _extract_row_index(post_data: list) -> int:
     """从 updateValue 的 postData 中提取 entry row_index。
 
@@ -865,6 +1091,7 @@ _TEXT_VARIABLE_KEYS = {
     "comments",
     "changedescription",
     "changedesc",
+    "khr_homs_condes",
 }
 
 
@@ -981,6 +1208,7 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             "comments": "test_comment",
             "changedescription": "test_change_description",
             "changedesc": "test_change_description",
+            "khr_homs_condes": "test_confidential_description",
         }
         if kl in mapping:
             return mapping[kl]
@@ -1158,6 +1386,13 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
         # click btnsave 的 post_data 格式和 save 一样：[context, entries]
         # entries 包含 {"k": "number", "v": "xxx", "r": -1} 格式的字段值
         if ac == "click" or method == "click":
+            pd = action_wrap.get("post_data") or [{}, []]
+            if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
+                for entry in pd[1]:
+                    if isinstance(entry, dict):
+                        rewrite_dirty_entry(entry)
+
+        if ac == "changeYear" or method == "changeYear":
             pd = action_wrap.get("post_data") or [{}, []]
             if isinstance(pd, list) and len(pd) >= 2 and isinstance(pd[1], list):
                 for entry in pd[1]:
@@ -1394,8 +1629,15 @@ def extract_steps(har: dict) -> list[dict]:
                     "_har_page_id": req_page_id,   # HAR 原始 pageId
                     "_tier": tier,
                 }
-                # 仅对 setItemByIdFromClient 保留响应体（提取 value_name）
-                if action.get("methodName") == "setItemByIdFromClient" and _resp_text:
+                if _is_l2_page_id(req_page_id):
+                    step_dict["preserve_l2_page"] = True
+                # 保留有限响应体：setItem 用于提取 value_name；通知用于识别录制期业务校验点。
+                # 响应体不输出到 YAML，仅在本次解析内消费。
+                if _resp_text and (
+                    action.get("methodName") == "setItemByIdFromClient"
+                    or "ShowNotificationMsg" in _resp_text
+                    or "showErrMsg" in _resp_text
+                ):
                     step_dict["_resp_text"] = _resp_text
                 steps.append(step_dict)
         elif "getConfig" in path:
@@ -1561,6 +1803,7 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
                 "app_id": s["app_id"],
                 "fields": merged_fields,
                 "_tier": "core",
+                "_har_index": s.get("_har_index"),
                 "_har_page_id": s.get("_har_page_id", ""),  # 保留 pageId 供 keep_page 检测
             }
             if row_idx >= 0:
@@ -1580,6 +1823,7 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
                     "app_id": s["app_id"],
                     "fields": merged_fields,
                     "_tier": "core",
+                    "_har_index": s.get("_har_index"),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
                 row_idx = _extract_row_index(pd)
@@ -1642,6 +1886,7 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "app_id": s["app_id"],
                     "fields": extra_fields,
                     "_tier": "core",
+                    "_har_index": s.get("_har_index"),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
                 if extra_row_idx >= 0:
@@ -1649,8 +1894,10 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                 out.append(fill_step)
 
             if value_id:
-                # ⭐ 从响应体提取 value_name（响应中 "u" action 的 v[1]）
+                # ⭐ 从响应体提取业务编码/名称（响应中 "u" action 的 v 数组）
+                value_code = ""
                 value_name = ""
+                value_number = ""
                 _resp_text = s.get("_resp_text", "")
                 if _resp_text:
                     try:
@@ -1663,16 +1910,17 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                                         if (isinstance(p_item, dict)
                                                 and p_item.get("k") == field_key):
                                             v_arr = p_item.get("v")
-                                            if (isinstance(v_arr, list)
-                                                    and len(v_arr) >= 2
-                                                    and isinstance(v_arr[1], str)):
-                                                value_name = v_arr[1]
+                                            parts = _extract_basedata_parts(v_arr)
+                                            if parts:
+                                                value_code = parts.get("value_code", "")
+                                                value_name = parts.get("value_name", "")
+                                                value_number = parts.get("value_number", "")
                                             break
                                     if value_name:
                                         break
                     except Exception:
                         pass
-                out.append({
+                pick_step = {
                     "type": "pick_basedata",
                     "id": s["id"],
                     "form_id": s["form_id"],
@@ -1681,8 +1929,14 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "value_id": value_id,
                     "value_name": value_name,
                     "_tier": "core",
+                    "_har_index": s.get("_har_index"),
                     "_har_page_id": s.get("_har_page_id", ""),
-                })
+                }
+                if value_code:
+                    pick_step["value_code"] = value_code
+                if value_number:
+                    pick_step["value_number"] = value_number
+                out.append(pick_step)
                 continue
         out.append(s)
     return out
@@ -1995,12 +2249,15 @@ def _pick_field_auto_resolve_meta(
     value_name: Any,
     env_sensitive: str,
     field_type: str | None = None,
+    value_code: Any = "",
 ) -> dict[str, Any]:
     """生成环境字段自动解析元信息。"""
     field_key_l = str(field_key or "").lower()
     value_id_s = str(value_id or "").strip()
     value_name_s = str(value_name or "").strip()
+    value_code_s = str(value_code or "").strip()
     field_type_s = str(field_type or "")
+    query_s = value_code_s or value_name_s
 
     is_basedata = field_type_s in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp")
     looks_env = (
@@ -2009,19 +2266,225 @@ def _pick_field_auto_resolve_meta(
         or field_key_l.endswith(("org", "position", "entity", "city", "country"))
     )
     can_resolve = bool(
-        value_name_s
+        query_s
         and value_id_s
-        and value_name_s != value_id_s
+        and (query_s != value_id_s or (value_code_s and not _looks_like_internal_id(value_id_s)))
         and not value_id_s.startswith("${")
-        and not value_name_s.startswith("${")
+        and not query_s.startswith("${")
         and (is_basedata or looks_env)
     )
 
     return {
         "auto_resolve": can_resolve,
-        "resolve_by": "value_name" if can_resolve else "",
+        "resolve_by": "value_code" if can_resolve and value_code_s and field_key_l in _AUTO_RESOLVE_CODE_FIELD_HINTS else ("value_name" if can_resolve else ""),
         "resolve_status": "pending" if can_resolve else "manual",
     }
+
+
+def _make_context_default_pick_field(
+    field_key: str,
+    parts: dict[str, str],
+    *,
+    main_form: str,
+    app_id: str,
+) -> OrderedDict | None:
+    value_code = str(parts.get("value_code") or "").strip()
+    value_name = str(parts.get("value_name") or "").strip()
+    if not (value_code or value_name):
+        return None
+    label = _resolve_field_label(field_key, entity_id=main_form)
+    return OrderedDict([
+        ("value_id", value_code or value_name),
+        ("value_name", value_name),
+        ("value_code", value_code),
+        ("value_number", str(parts.get("value_number") or "")),
+        ("label", label),
+        ("env_sensitive", "high"),
+        ("field_key", field_key),
+        ("form_id", main_form),
+        ("app_id", app_id),
+        ("auto_resolve", False),
+        ("resolve_by", ""),
+        ("resolve_status", "context"),
+        ("context_only", True),
+        ("readonly", False),
+        ("source", "server_default"),
+    ])
+
+
+def _append_context_default_pick_fields(
+    pick_fields_map: OrderedDict,
+    observations: dict[str, Any],
+    *,
+    main_form: str,
+    app_id: str,
+) -> None:
+    values = observations.get("response_values") or {}
+    for field_key in sorted(_DEFAULT_CONTEXT_FIELD_KEYS):
+        step_id = f"pick_{field_key}_id"
+        if step_id in pick_fields_map:
+            continue
+        item = _make_context_default_pick_field(
+            field_key,
+            values.get(field_key) or {},
+            main_form=main_form,
+            app_id=app_id,
+        )
+        if item is not None:
+            pick_fields_map[step_id] = item
+
+
+def _append_context_default_steps(
+    steps: list[dict],
+    observations: dict[str, Any],
+    *,
+    main_form: str,
+    app_id: str,
+    pick_field_overrides: dict | None = None,
+) -> list[dict]:
+    """用户修改服务端默认带出字段时，将其转为真实回放步骤。
+
+    默认带出的字段只展示在环境字段面板；一旦导入预览里被用户手工修改，
+    就补一条 pick_basedata，使“预览页改值 → 生成 YAML → 执行”真正生效。
+    """
+    if not main_form or not pick_field_overrides:
+        return steps
+    response_values = observations.get("response_values") or {}
+    if not response_values:
+        return steps
+    out = list(steps)
+    existing_fields = {
+        str(step.get("field_key") or "").lower()
+        for step in out
+        if step.get("type") == "pick_basedata"
+    }
+    for step in out:
+        if step.get("type") == "update_fields" and isinstance(step.get("fields"), dict):
+            existing_fields.update(str(k).lower() for k in step["fields"])
+
+    injected: list[dict[str, Any]] = []
+    for field_key in _DEFAULT_CONTEXT_FIELD_KEYS:
+        if field_key in existing_fields:
+            continue
+        parts = response_values.get(field_key)
+        if not isinstance(parts, dict):
+            continue
+        pf_id = f"pick_{field_key}_id"
+        override = pick_field_overrides.get(pf_id)
+        if not isinstance(override, dict):
+            continue
+        original_value_id = str(parts.get("value_code") or parts.get("value_name") or "").strip()
+        incoming_value_id = str(override.get("value_id", original_value_id) or "").strip()
+        manual_override = bool(override.get("manual_override") or override.get("user_overridden"))
+        if incoming_value_id != original_value_id and override.get("resolve_status") == "manual":
+            manual_override = True
+        if not manual_override or not incoming_value_id:
+            continue
+        injected.append({
+            "type": "pick_basedata",
+            "id": f"pick_{_sanitize(field_key) or field_key}_ctx",
+            "form_id": main_form,
+            "app_id": app_id,
+            "field_key": field_key,
+            "value_id": incoming_value_id,
+            "value_name": str(override.get("value_name") or "").strip(),
+            "value_code": str(override.get("value_code") or "").strip(),
+            "_tier": "core",
+            "_is_context_default": True,
+        })
+
+    if not injected:
+        return steps
+
+    insert_pos = next((
+        idx for idx, step in enumerate(out)
+        if step.get("form_id") == main_form and step.get("type") in ("update_fields", "pick_basedata")
+    ), len(out))
+    return out[:insert_pos] + injected + out[insert_pos:]
+
+
+def _append_recorded_default_pick_steps(
+    steps: list[dict],
+    observations: dict[str, Any],
+    *,
+    main_form: str,
+    app_id: str,
+) -> list[dict]:
+    """Replay required defaults that were visible in HAR loadData but never clicked.
+
+    Some Kingdee forms prefill required basedata fields during addnew/loadData.
+    Browser replay keeps them in client state, while API replay can lose them
+    after dependent field recalculation. For known forms, convert those recorded
+    defaults into explicit pick_basedata steps before the first save.
+    """
+    default_fields = _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM.get(main_form, set())
+    if not default_fields:
+        return steps
+    values = observations.get("response_values") or {}
+    if not values:
+        return steps
+
+    existing_fields = {
+        str(step.get("field_key") or "").lower()
+        for step in steps
+        if step.get("type") == "pick_basedata" and step.get("field_key")
+    }
+    injected: list[dict[str, Any]] = []
+    for field_key in default_fields:
+        if field_key in existing_fields:
+            continue
+        parts = values.get(field_key)
+        if not isinstance(parts, dict):
+            continue
+        value_code = str(parts.get("value_code") or "").strip()
+        value_name = str(parts.get("value_name") or "").strip()
+        value_number = str(parts.get("value_number") or "").strip()
+        value_id = _recorded_default_value_id(field_key, value_code, value_name)
+        if not value_id:
+            continue
+        injected.append({
+            "type": "pick_basedata",
+            "id": f"pick_{_sanitize(field_key) or field_key}_ctx",
+            "form_id": main_form,
+            "app_id": app_id,
+            "field_key": field_key,
+            "value_id": value_id,
+            "value_name": value_name,
+            "value_code": value_code,
+            "value_number": value_number,
+            "_tier": "core",
+            "_is_recorded_default": True,
+        })
+
+    if not injected:
+        return steps
+
+    early_fields = {"org"} if main_form == "haos_adminorgdetail" else set()
+    early_injected = [
+        step for step in injected
+        if str(step.get("field_key") or "").lower() in early_fields
+    ]
+    late_injected = [
+        step for step in injected
+        if str(step.get("field_key") or "").lower() not in early_fields
+    ]
+    out = list(steps)
+    if early_injected:
+        early_pos = next((
+            idx for idx, step in enumerate(out)
+            if step.get("form_id") == main_form
+            and step.get("type") in ("update_fields", "pick_basedata")
+        ), len(out))
+        for offset, step in enumerate(early_injected):
+            out.insert(early_pos + offset, step)
+
+    insert_pos = next(
+        (idx for idx, step in enumerate(out) if _is_write_anchor_step(step)),
+        len(out),
+    )
+    for offset, step in enumerate(late_injected):
+        out.insert(insert_pos + offset, step)
+    return out
 
 
 def _infer_context_field_modes(main_form: str, meta_resolver=None) -> dict[str, str]:
@@ -2211,6 +2674,11 @@ def _yaml_scalar(v: Any, key: Any | None = None) -> str:
     # 运行时再写回文本字段时会触发 ClassCastException。
     if key in _MULTILANG_KEYS and s and _RX_INTEGER.match(s):
         return json.dumps(s, ensure_ascii=False)
+    if key in {"value_id", "value_code", "value_number", "recorded_value_id"} and s and _RX_INTEGER.match(s):
+        return json.dumps(s, ensure_ascii=False)
+    # 业务编码常有前导 0（如国家 001、城市 00407），必须保持字符串。
+    if s and re.match(r"^0\d+$", s):
+        return json.dumps(s, ensure_ascii=False)
     # ⭐ 规则1：纯数字字符串必须加引号，否则 YAML 解析器会转成整数
     # Java 服务端通过 beanutils 反射调用，需要 String 类型匹配方法签名
     if s and _RX_INTEGER.match(s) and len(s) >= 6:
@@ -2225,6 +2693,104 @@ def _yaml_scalar(v: Any, key: Any | None = None) -> str:
 
 
 # ---------- 组装 ----------
+
+def _iter_response_actions(node: Any):
+    """Yield action-like dicts from a nested Kingdee response payload."""
+    if isinstance(node, dict):
+        if "a" in node:
+            yield node
+        for value in node.values():
+            if isinstance(value, (dict, list)):
+                yield from _iter_response_actions(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _iter_response_actions(item)
+
+
+def _extract_error_notifications(resp_text: str) -> list[dict[str, Any]]:
+    """Extract non-success notification messages recorded in HAR responses."""
+    if not resp_text:
+        return []
+    try:
+        resp = json.loads(resp_text)
+    except Exception:
+        return []
+
+    success_kw = (
+        "成功", "已保存", "已提交", "已生效", "已审核", "已完成",
+        "操作成功", "已设置", "已清空", "已更新", "已调整", "已同步",
+    )
+    messages: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for cmd in _iter_response_actions(resp):
+        if cmd.get("a") != "ShowNotificationMsg":
+            continue
+        for payload in cmd.get("p", []):
+            if not isinstance(payload, dict):
+                continue
+            content = str(payload.get("content") or "").strip()
+            if not content or content in seen:
+                continue
+            ntype = payload.get("type")
+            if ntype == 0 or any(kw in content for kw in success_kw):
+                continue
+            seen.add(content)
+            messages.append({
+                "content": content,
+                "type": ntype,
+                "source": "har_recorded",
+            })
+    return messages
+
+
+def _is_write_anchor_step(step: dict) -> bool:
+    ac = str(step.get("ac") or "").lower()
+    key = str(step.get("key") or "").lower()
+    sid = str(step.get("id") or "").lower()
+    return (
+        ac in {
+            "save", "submit", "saveandeffect", "submitandeffect",
+            "saveandaudit", "doconfirm", "afterconfirm", "startupflow",
+        }
+        or key in {
+            "btnsave", "btn_save", "bar_save", "barsave",
+            "btn_confirm", "btnconfirm", "bar_confirm", "barconfirm",
+            "btnok", "btn_ok", "bar_submit", "barsubmit",
+            "barstart", "bar_start", "btn_saveandeffect", "btnsaveandeffect",
+        }
+        or "save" in sid
+    )
+
+
+def _has_expected_notification(step: dict) -> bool:
+    return bool(step.get("expected_notifications") or step.get("expected_errors"))
+
+
+def _mark_recorded_business_validations(steps: list[dict]) -> None:
+    """Mark intermediate save validations that were present in the recording.
+
+    Real HARs may contain a save click that intentionally triggers a business
+    notification, followed by the user filling the missing field and saving
+    again. That first notification is a validation checkpoint, not a replay
+    failure, so we preserve it as an expected notification and keep running.
+    """
+    for idx, step in enumerate(steps):
+        if not _is_write_anchor_step(step):
+            continue
+        notifications = _extract_error_notifications(str(step.get("_resp_text") or ""))
+        if not notifications:
+            continue
+        has_later_write = any(_is_write_anchor_step(s) for s in steps[idx + 1:])
+        has_later_core_input = any(
+            s.get("type") in ("update_fields", "pick_basedata")
+            and s.get("form_id") == step.get("form_id")
+            for s in steps[idx + 1:]
+        )
+        if not (has_later_write and has_later_core_input):
+            continue
+        step["expected_notifications"] = notifications
+        step["continue_on_expected_error"] = True
+
 
 def _build_default_assertions(yaml_steps: list[dict]) -> list:
     """根据 step 列表智能生成默认断言。
@@ -2260,20 +2826,36 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
 
     # ——找 save_id（挂 no_save_failure）——
     save_id = None
-    # 1. ac 在写库白名单
+    expected_assertions = []
     for s in yaml_steps:
+        if not _has_expected_notification(s):
+            continue
+        sid = s.get("id")
+        for item in s.get("expected_notifications") or s.get("expected_errors") or []:
+            content = item.get("content") if isinstance(item, dict) else str(item)
+            if sid and content:
+                expected_assertions.append(OrderedDict([
+                    ("type", "expected_notification"),
+                    ("step", sid),
+                    ("contains", str(content)),
+                ]))
+
+    write_candidates = [s for s in yaml_steps if not _has_expected_notification(s)]
+
+    # 1. ac 在写库白名单
+    for s in write_candidates:
         if _ac(s) in _save_acs:
             save_id = s.get("id")
             break
     # 2. key 在写库 key 白名单（覆盖 click btnsave 这类）
     if not save_id:
-        for s in yaml_steps:
+        for s in write_candidates:
             if _key(s) in _save_keys:
                 save_id = s.get("id")
                 break
     # 3. id 含 save（兜底，兼容老生成器产物）
     if not save_id:
-        for s in yaml_steps:
+        for s in write_candidates:
             sid = s.get("id", "")
             if "save" in sid.lower():
                 save_id = sid
@@ -2283,31 +2865,31 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     _key_acs = {"itemClick", "click"} | _save_acs
     confirm_id = None
     # 1. 倒序：ac 在写库白名单（最可靠的写库锚点）
-    for s in reversed(yaml_steps):
+    for s in reversed(write_candidates or yaml_steps):
         if _ac(s) in _save_acs:
             confirm_id = s.get("id")
             break
     # 2. 倒序：key 在写库 key 白名单
     if not confirm_id:
-        for s in reversed(yaml_steps):
+        for s in reversed(write_candidates or yaml_steps):
             if _key(s) in _save_keys:
                 confirm_id = s.get("id")
                 break
     # 3. 倒序：click/itemClick 且 id 以 click_ 开头
     if not confirm_id:
-        for s in reversed(yaml_steps):
+        for s in reversed(write_candidates or yaml_steps):
             sid = s.get("id", "")
             if _ac(s) in ("click", "itemclick") and sid.startswith("click_"):
                 confirm_id = sid
                 break
     # 4. 兜底：任何关键动作
     if not confirm_id:
-        for s in reversed(yaml_steps):
+        for s in reversed(write_candidates or yaml_steps):
             if _ac(s) in _key_acs:
                 confirm_id = s.get("id")
                 break
 
-    assertions = []
+    assertions = expected_assertions[:]
     if save_id:
         assertions.append(OrderedDict([("type", "no_save_failure"), ("step", save_id)]))
     if confirm_id:
@@ -2384,11 +2966,13 @@ def build_yaml_case(
     meta_resolver=None,
 ) -> str:
     har = load_har(har_path)
+    field_observations = _collect_har_field_observations(har)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
     raw_steps = relocate_premature_open_forms(raw_steps)
     raw_steps = lower_set_item_to_pick_basedata(raw_steps)
     raw_steps = merge_consecutive_update_values(raw_steps)
+    raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
 
     # ⭐ 规则2：session pageId 动态化（selectTab args 中的 root{32hex} → ${session.root_base_id}）
     raw_steps = dynamize_session_pageids(raw_steps)
@@ -2610,6 +3194,21 @@ def build_yaml_case(
         main_form,
         meta_resolver=meta_resolver,
     )
+    _context_app_id = next((s.get("app_id", "") for s in cleaned if s.get("form_id") == main_form), "")
+    cleaned = _append_context_default_steps(
+        cleaned,
+        field_observations,
+        main_form=main_form,
+        app_id=_context_app_id,
+        pick_field_overrides=pick_field_overrides,
+    )
+    cleaned = _append_recorded_default_pick_steps(
+        cleaned,
+        field_observations,
+        main_form=main_form,
+        app_id=_context_app_id,
+    )
+    cleaned = _drop_locked_update_fields(cleaned, field_observations)
     _mark_navigation_steps_optional(cleaned, main_form)
 
     # ⭐ step ID 去重：同名 ID 加数字后缀
@@ -2625,6 +3224,8 @@ def build_yaml_case(
         if sid and _id_counts.get(sid, 0) > 1:
             _id_seen[sid] = _id_seen.get(sid, 0) + 1
             s["id"] = f"{sid}_{_id_seen[sid]}" if _id_seen[sid] > 1 else sid
+
+    _mark_recorded_business_validations(cleaned)
 
     # 抽 vars
     _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
@@ -2698,12 +3299,28 @@ def build_yaml_case(
                 elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
                     env_sensitive = "low"
         if step_id not in pick_fields_map:
+            value_code = s.get("value_code", "") or ""
+            display_value_id = _display_pick_value_id(raw_value_id, value_code)
             auto_meta = _pick_field_auto_resolve_meta(
-                field_key, raw_value_id, s.get("value_name", "") or "", env_sensitive, field_type
+                field_key,
+                display_value_id,
+                s.get("value_name", "") or "",
+                env_sensitive,
+                field_type,
+                value_code=value_code,
             )
+            if value_code and _looks_like_internal_id(raw_value_id):
+                auto_meta = {
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                    "resolve_status": "pending",
+                }
             pick_fields_map[step_id] = OrderedDict([
-                ("value_id", str(raw_value_id)),
+                ("value_id", display_value_id),
                 ("value_name", s.get("value_name", "") or ""),
+                ("value_code", value_code),
+                ("value_number", s.get("value_number", "") or ""),
+                ("recorded_value_id", str(raw_value_id)),
                 ("label", label),
                 ("env_sensitive", env_sensitive),
                 ("field_key", field_key),
@@ -2713,6 +3330,14 @@ def build_yaml_case(
                 ("resolve_by", auto_meta["resolve_by"]),
                 ("resolve_status", auto_meta["resolve_status"]),
             ])
+
+    _main_app_id = next((s.get("app_id", "") for s in cleaned if s.get("form_id") == main_form), "")
+    _append_context_default_pick_fields(
+        pick_fields_map,
+        field_observations,
+        main_form=main_form,
+        app_id=_main_app_id,
+    )
 
     # --- 从 addnew/new 步骤中提取 treeview.focus（环境上下文组织） ---
     for s in cleaned:
@@ -2844,7 +3469,10 @@ def build_yaml_case(
                 current_value_id = str(pick_fields_map[pf_id].get("value_id", ""))
                 current_value_name = str(pick_fields_map[pf_id].get("value_name", "") or "")
                 incoming_value_id = str(pf_cfg.get("value_id", current_value_id))
-                manual_override = bool(pf_cfg.get("manual_override") or pf_cfg.get("user_overridden"))
+                manual_override = bool(
+                    pf_cfg.get("manual_override")
+                    or pf_cfg.get("resolve_status") == "manual"
+                )
                 if incoming_value_id != current_value_id and pf_cfg.get("resolve_status") == "manual":
                     manual_override = True
                 if "value_id" in pf_cfg:
@@ -2854,12 +3482,35 @@ def build_yaml_case(
                     if manual_override and incoming_value_name == current_value_name and incoming_value_id != current_value_id:
                         incoming_value_name = ""
                     pick_fields_map[pf_id]["value_name"] = incoming_value_name
+                if "value_code" in pf_cfg:
+                    pick_fields_map[pf_id]["value_code"] = str(pf_cfg["value_code"] or "")
+                elif manual_override and incoming_value_id != current_value_id:
+                    pick_fields_map[pf_id]["value_code"] = ""
+                if "value_number" in pf_cfg:
+                    pick_fields_map[pf_id]["value_number"] = str(pf_cfg["value_number"] or "")
+                if "resolve_by" in pf_cfg:
+                    pick_fields_map[pf_id]["resolve_by"] = str(pf_cfg["resolve_by"] or "")
                 if "auto_resolve" in pf_cfg:
                     pick_fields_map[pf_id]["auto_resolve"] = bool(pf_cfg["auto_resolve"])
+                if "resolve_status" in pf_cfg and not manual_override:
+                    pick_fields_map[pf_id]["resolve_status"] = str(pf_cfg["resolve_status"] or "")
                 if manual_override:
                     pick_fields_map[pf_id]["auto_resolve"] = False
                     pick_fields_map[pf_id]["resolve_status"] = "manual"
                     pick_fields_map[pf_id]["manual_override"] = True
+                elif (
+                    str(pick_fields_map[pf_id].get("value_code") or "").strip()
+                    and _looks_like_internal_id(pick_fields_map[pf_id].get("value_id"))
+                ):
+                    pick_fields_map[pf_id]["recorded_value_id"] = str(
+                        pick_fields_map[pf_id].get("recorded_value_id")
+                        or pick_fields_map[pf_id].get("value_id")
+                        or ""
+                    )
+                    pick_fields_map[pf_id]["value_id"] = str(pick_fields_map[pf_id].get("value_code") or "")
+                    pick_fields_map[pf_id]["auto_resolve"] = True
+                    pick_fields_map[pf_id]["resolve_by"] = "value_code"
+                    pick_fields_map[pf_id]["resolve_status"] = "pending"
 
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:
@@ -2881,9 +3532,11 @@ def build_yaml_case(
         entry = OrderedDict()
         for k in ("id", "type", "form_id", "app_id", "ac", "key", "method",
                   "args", "post_data", "fields", "field_key", "value_id",
+                  "value_name", "value_code", "value_number",
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
-                  "navigation_form_id"):
+                  "navigation_form_id", "expected_notifications",
+                  "continue_on_expected_error", "preserve_l2_page"):
             if k in s:
                 entry[k] = s[k]
         # ⭐ 自动生成步骤业务描述
@@ -3057,11 +3710,13 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     """只预览不落盘。供 webui 展示用。"""
     import copy
     har = load_har(har_path)
+    field_observations = _collect_har_field_observations(har)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
     raw_steps = relocate_premature_open_forms(raw_steps)
     raw_steps = lower_set_item_to_pick_basedata(raw_steps)
     raw_steps = merge_consecutive_update_values(raw_steps)
+    raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
 
     by_tier = {"core": 0, "ui_reaction": 0, "noise": 0}
     for s in raw_steps:
@@ -3073,7 +3728,16 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         main_form,
         meta_resolver=meta_resolver,
     )
+    preview_steps = _drop_locked_update_fields(preview_steps, field_observations)
     _mark_navigation_steps_optional(preview_steps, main_form)
+    _preview_app_id = next((s.get("app_id", "") for s in preview_steps if s.get("form_id") == main_form), "")
+    preview_steps = _append_recorded_default_pick_steps(
+        preview_steps,
+        field_observations,
+        main_form=main_form,
+        app_id=_preview_app_id,
+    )
+    _mark_recorded_business_validations(preview_steps)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)
@@ -3182,17 +3846,33 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 or _ENUM_FIELDS.get(field_key)
                 or _resolve_field_label(field_key, entity_id=step_form_id, meta_resolver=meta_resolver)
             )
+            value_code = s.get("value_code", "") or ""
+            display_value_id = _display_pick_value_id(value_id, value_code)
             auto_meta = _pick_field_auto_resolve_meta(
-                field_key, value_id, s.get("value_name", "") or "", env_sensitive, field_type
+                field_key,
+                display_value_id,
+                s.get("value_name", "") or "",
+                env_sensitive,
+                field_type,
+                value_code=value_code,
             )
+            if value_code and _looks_like_internal_id(value_id):
+                auto_meta = {
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                    "resolve_status": "pending",
+                }
 
             pick_fields.append({
                 "id": step_id,
                 "field_key": field_key,
                 "label": label,
                 "env_sensitive": env_sensitive,
-                "value_id": str(value_id),
+                "value_id": display_value_id,
                 "value_name": s.get("value_name", "") or "",
+                "value_code": value_code,
+                "value_number": s.get("value_number", "") or "",
+                "recorded_value_id": str(value_id),
                 "form_id": step_form_id,
                 "app_id": s.get("app_id", ""),
                 "auto_resolve": auto_meta["auto_resolve"],
@@ -3285,6 +3965,23 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         "resolve_by": "",
                         "resolve_status": "manual",
                     })
+
+    _preview_pf_ids = {pf.get("id") for pf in pick_fields}
+    _preview_app_id = next((s.get("app_id", "") for s in preview_steps if s.get("form_id") == main_form), "")
+    for _field_key in sorted(_DEFAULT_CONTEXT_FIELD_KEYS):
+        _step_id = f"pick_{_field_key}_id"
+        if _step_id in _preview_pf_ids:
+            continue
+        _ctx_item = _make_context_default_pick_field(
+            _field_key,
+            (field_observations.get("response_values") or {}).get(_field_key) or {},
+            main_form=main_form,
+            app_id=_preview_app_id,
+        )
+        if _ctx_item is None:
+            continue
+        pick_fields.append({"id": _step_id, **dict(_ctx_item)})
+        _preview_pf_ids.add(_step_id)
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
     _sens_order = {"high": 0, "medium": 1, "low": 2}
