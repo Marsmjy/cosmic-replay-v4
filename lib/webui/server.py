@@ -663,12 +663,12 @@ def api_update_case_description(name: str, body: dict = Body(...)):
 def _case_field_needs_env_override(v) -> bool:
     """判断用例 env 字段值是否需要被环境配置覆盖。
 
-    认作"需要覆盖"的情况：
-      - 空 / None / 纯空白
-      - 仍是 ${env:XXX} 或 ${env:XXX:default} 形式，且对应环境变量未设（无默认值也算未设）
-
-    这样用例里写 `username: ${env:COSMIC_USERNAME}` 但重装后 env 没设时，
-    仍能自动回退到 config/envs/<env>.yaml 的凭证，不用每次手动给默认值。
+    规则：
+      - None 或空字符串 → 需要覆盖
+      - 包含 ${env:...} 占位符 → 需要覆盖（无论是否有默认值）
+        因为占位符的硬编码默认值通常是 SIT 等单一环境的值，
+        切换到其他环境（如 UAT）时必须用环境配置覆盖，避免误用错误 base_url。
+      - 其他有效值（已解析的具体值）→ 不需要覆盖，尊重用例
     """
     if v is None:
         return True
@@ -676,14 +676,8 @@ def _case_field_needs_env_override(v) -> bool:
         s = v.strip()
         if not s:
             return True
-        # 纯 ${env:...} 占位符且环境变量未设 → 视作未填
-        m = re.fullmatch(r"\$\{env:([^}:]+)(?::([^}]*))?\}", s)
-        if m:
-            name = m.group(1).strip()
-            default = m.group(2)
-            env_val = os.environ.get(name, "")
-            if not env_val and (default is None or default.strip() == ""):
-                return True
+        if "${env:" in s:
+            return True
     return False
 
 
