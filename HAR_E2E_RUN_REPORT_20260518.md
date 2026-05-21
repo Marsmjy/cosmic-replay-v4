@@ -56,8 +56,4 @@ pytest -q tests/unit/test_har_extractor_regressions.py
 python3 -m py_compile lib/runner.py lib/har_extractor.py
 ```
 
-API 级验证结果已保存到：
-
-```text
-/Users/mars/Desktop/cosmic-replay/tmp_e2e_8har_results_20260518_1219.json
-```
+API 级验证原始明细属于本地临时产物，不再提交到版本库；仓库只保留本报告中的摘要结论。

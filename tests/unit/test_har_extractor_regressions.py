@@ -7,7 +7,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from lib.har_extractor import build_yaml_case, preview_har, to_yaml
+from lib.har_extractor import _attach_pick_field_scopes, _clean_display_label, _scoped_pick_field_id, build_yaml_case, preview_har, to_yaml
 from lib import kb_loader
 
 
@@ -38,6 +38,72 @@ def test_to_yaml_keeps_leading_zero_business_codes_as_strings():
     assert '"00407"' in yaml_text
     assert parsed["pick_fields"]["pick_city_id"]["value_id"] == "00407"
     assert parsed["pick_fields"]["pick_city_id"]["value_code"] == "00407"
+
+
+def test_clean_display_label_hides_deprecated_suffix_for_user_facing_labels():
+    assert _clean_display_label("入职日期_废弃") == "入职日期"
+    assert _clean_display_label("入职日期（废弃）") == "入职日期"
+
+
+def test_scoped_pick_field_id_keeps_base_key_until_cross_form_collision():
+    existing = {}
+
+    first = _scoped_pick_field_id(
+        "pick_adminorg_id",
+        existing,
+        form_id="form_a",
+        source_step_id="pick_a",
+    )
+    existing[first] = {"form_id": "form_a"}
+
+    assert first == "pick_adminorg_id"
+    assert _scoped_pick_field_id(
+        "pick_adminorg_id",
+        existing,
+        form_id="form_a",
+        source_step_id="pick_a_again",
+    ) == ""
+    assert _scoped_pick_field_id(
+        "pick_adminorg_id",
+        existing,
+        form_id="form_b",
+        source_step_id="pick_b",
+    ) == "pick_adminorg_id__pick_b"
+
+
+def test_attach_pick_field_scopes_uses_form_before_field_key_match():
+    pick_fields = {
+        "pick_adminorg_id__pick_b": {
+            "field_key": "adminorg",
+            "form_id": "form_b",
+        }
+    }
+    steps = [
+        {
+            "id": "pick_a",
+            "type": "pick_basedata",
+            "form_id": "form_a",
+            "field_key": "adminorg",
+        },
+        {
+            "id": "pick_b",
+            "type": "pick_basedata",
+            "form_id": "form_b",
+            "field_key": "adminorg",
+        },
+        {
+            "id": "save_b",
+            "type": "invoke",
+            "form_id": "form_b",
+            "ac": "save",
+            "description": "保存【B表单】",
+        },
+    ]
+
+    _attach_pick_field_scopes(pick_fields, steps)
+
+    assert pick_fields["pick_adminorg_id__pick_b"]["source_step_id"] == "pick_b"
+    assert pick_fields["pick_adminorg_id__pick_b"]["write_step_id"] == "save_b"
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():
@@ -71,6 +137,18 @@ def test_build_yaml_case_injects_createorg_context_step_for_enterprise_har():
     assert createorg_step["fields"]["createorg"] == "100000"
     assert pick_fields["pick_createorg_id"]["value_id"] == "100000"
     assert pick_fields["pick_createorg_id"]["field_key"] == "createorg"
+
+
+def test_build_yaml_case_adds_business_block_metadata_for_vars_and_pick_fields():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(har_path, case_name="regression_adminorg_grouping")
+    case = yaml.safe_load(yaml_text)
+
+    assert case["vars_meta"]["test_name"]["form_id"] == "haos_adminorgdetail"
+    assert "保存" in case["vars_meta"]["test_name"]["group_label"]
+    assert case["pick_fields"]["pick_org_id"]["form_id"] == "haos_adminorgdetail"
+    assert case["pick_fields"]["pick_org_id"]["source_step_id"]
 
 
 def test_build_yaml_case_extracts_enterprise_description_var():

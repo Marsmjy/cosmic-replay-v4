@@ -206,6 +206,84 @@ def test_manual_pick_field_value_id_is_injected_without_value_name():
     assert step["auto_resolve"] is False
 
 
+def test_pick_field_injection_respects_source_step_scope_in_multi_form_chain():
+    case = {
+        "pick_fields": {
+            "pick_adminorg_id": {
+                "field_key": "adminorg",
+                "value_id": "A-new",
+                "value_name": "",
+                "form_id": "form_a",
+                "source_step_id": "pick_a_adminorg",
+                "auto_resolve": False,
+                "resolve_status": "manual",
+            }
+        },
+        "steps": [
+            {
+                "id": "pick_a_adminorg",
+                "type": "pick_basedata",
+                "form_id": "form_a",
+                "field_key": "adminorg",
+                "value_id": "A-old",
+                "value_name": "A组织",
+            },
+            {
+                "id": "pick_b_adminorg",
+                "type": "pick_basedata",
+                "form_id": "form_b",
+                "field_key": "adminorg",
+                "value_id": "B-old",
+                "value_name": "B组织",
+            },
+            {
+                "id": "fill_b_adminorg",
+                "type": "update_fields",
+                "form_id": "form_b",
+                "fields": {"adminorg": "B-old"},
+            },
+        ],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["value_id"] == "A-new"
+    assert case["steps"][1]["value_id"] == "B-old"
+    assert case["steps"][2]["fields"]["adminorg"] == "B-old"
+
+
+def test_date_pick_field_injection_respects_form_scope():
+    case = {
+        "pick_fields": {
+            "date_effectdate": {
+                "field_key": "effectdate",
+                "value_id": "2026-05-21",
+                "form_id": "form_a",
+                "source_step_id": "fill_a_date",
+            }
+        },
+        "steps": [
+            {
+                "id": "fill_a_date",
+                "type": "update_fields",
+                "form_id": "form_a",
+                "fields": {"effectdate": "2026-05-01"},
+            },
+            {
+                "id": "fill_b_date",
+                "type": "update_fields",
+                "form_id": "form_b",
+                "fields": {"effectdate": "2026-05-01"},
+            },
+        ],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["fields"]["effectdate"] == "2026-05-21"
+    assert case["steps"][1]["fields"]["effectdate"] == "2026-05-01"
+
+
 def test_manual_pick_field_update_disables_auto_resolve_and_clears_stale_name():
     item = {
         "value_id": "1020",

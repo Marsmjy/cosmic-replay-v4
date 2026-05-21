@@ -1073,11 +1073,20 @@
             </div>
             <!-- 变量列表 -->
             <div x-show="varsExpanded" x-transition class="divide-y divide-slate-700">
-              <template x-for="(pv, i) in parsedVars()" :key="i">
+              <template x-for="group in parsedVarGroups()" :key="group.key">
+                <div>
+                  <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
+                    <div class="min-w-0">
+                      <div class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></div>
+                      <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
+                    </div>
+                    <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+                  </div>
+                  <template x-for="(pv, i) in group.items" :key="pv.key">
                 <div class="px-4 py-3 hover:bg-slate-800/50">
                   <div class="flex items-center gap-2 mb-1">
                     <code class="mono text-sm text-sky-400" x-text="pv.key"></code>
-                    <span x-show="getVarLabel(pv.key)" class="text-xs text-slate-500" x-text="'(' + getVarLabel(pv.key) + ')'"></span>
+                    <span x-show="pv.label || getVarLabel(pv.key)" class="text-xs text-slate-500" x-text="'(' + (pv.label || getVarLabel(pv.key)) + ')'"></span>
                   </div>
                   <div class="flex items-center gap-2 ml-1">
                     <span class="text-xs text-slate-500">值:</span>
@@ -1092,6 +1101,8 @@
                   <div class="ml-1 mt-1">
                     <span class="text-xs text-slate-500" x-show="pv.hint" x-text="pv.hint === '随机' ? '每次运行自动生成随机值' : pv.hint === '日期' ? '自动填充当天日期' : pv.hint === '引用' ? '引用其他变量的值' : ''"></span>
                   </div>
+                </div>
+              </template>
                 </div>
               </template>
               <div x-show="parsedVars().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center">
@@ -1119,7 +1130,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                   </svg>
                   <span class="text-sm font-medium text-slate-200">环境相关字段</span>
-                  <span class="text-xs text-slate-400" x-text="'(' + (parsedPickFields().length > 0 ? parsedPickFields().length : harPickFields.length) + '项)'"></span>
+                  <span class="text-xs text-slate-400" x-text="'(' + casePickFieldItems().length + '项)'"></span>
                 </div>
                 <div class="flex gap-2 text-xs">
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span>必改</span>
@@ -1129,7 +1140,16 @@
               </div>
               <!-- 字段列表 -->
               <div x-show="pickFieldsExpanded" x-transition class="divide-y divide-slate-700">
-                <template x-for="pf in (parsedPickFields().length > 0 ? parsedPickFields() : harPickFields.map(h => ({step_id: h.id, label: h.label, env_sensitive: h.env_sensitive, value_id: h.value_id, value_name: h.value_name || '', value_code: h.value_code || '', value_number: h.value_number || '', resolve_by: h.resolve_by || '', auto_resolve: !!h.auto_resolve, resolve_status: h.resolve_status || '', context_only: !!h.context_only, readonly: !!h.readonly})))" :key="pf.step_id">
+                <template x-for="group in casePickFieldGroups()" :key="group.key">
+                  <div>
+                    <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
+                      <div class="min-w-0">
+                        <div class="text-xs font-medium text-yellow-200 truncate" x-text="group.label"></div>
+                        <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
+                      </div>
+                      <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+                    </div>
+                <template x-for="pf in group.items" :key="pf.step_id">
                   <div class="px-4 py-3 hover:bg-slate-800/50">
                     <div class="flex items-center gap-2 mb-1">
                       <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -1176,6 +1196,8 @@
                             x-text="pf.env_sensitive === 'high' ? '跨环境必须修改' : pf.env_sensitive === 'medium' ? '可能需要修改' : '系统枚举，一般不需修改'">
                       </span>
                     </div>
+                  </div>
+                </template>
                   </div>
                 </template>
               </div>
@@ -1536,12 +1558,19 @@
             <span class="text-xs text-slate-500">系统检测到以下字段可参数化，你可以编辑模板或禁用不需要的变量</span>
           </div>
         </div>
-        <div class="space-y-2">
-          <!-- 按分类分组渲染变量 -->
-          <template x-for="cat in [...new Set(harVarConfig.map(v => v.category))]" :key="cat">
-            <div class="mb-2">
-              <!-- 该分类下的变量 -->
-              <template x-for="(v, i) in harVarConfig.filter(v => v.category === cat)" :key="v.name">
+        <div class="space-y-3">
+          <!-- 按表单/写入动作块渲染变量 -->
+          <template x-for="group in harVarGroups()" :key="group.key">
+            <div class="border border-slate-800 rounded-lg overflow-hidden">
+              <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
+                <div class="min-w-0">
+                  <div class="text-xs font-medium text-purple-200 truncate" x-text="group.label"></div>
+                  <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
+                </div>
+                <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+              </div>
+              <div class="divide-y divide-slate-800">
+              <template x-for="(v, i) in group.items" :key="v.name">
                 <div class="flex items-center gap-3 px-3 py-2 rounded"
                      :class="v.enabled ? 'bg-slate-900' : 'bg-slate-900/50 opacity-50'">
                   <input type="checkbox" x-model="v.enabled" class="accent-sky-500 shrink-0">
@@ -1567,6 +1596,7 @@
                   </div>
                 </div>
               </template>
+              </div>
             </div>
           </template>
         </div>
@@ -1593,9 +1623,19 @@
 	            <span x-text="harResolvingFields ? '解析中...' : '一键解析当前环境'"></span>
 	          </button>
 	        </div>
-	        <div class="space-y-2">
-	          <template x-for="(pf, i) in harPickFields" :key="pf.id">
-	            <div class="flex items-center gap-3 px-3 py-2 rounded bg-slate-900">
+	        <div class="space-y-3">
+	          <template x-for="group in harPickFieldGroups()" :key="group.key">
+              <div class="border border-slate-800 rounded-lg overflow-hidden">
+                <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
+                  <div class="min-w-0">
+                    <div class="text-xs font-medium text-orange-200 truncate" x-text="group.label"></div>
+                    <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
+                  </div>
+                  <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+                </div>
+                <div class="divide-y divide-slate-800">
+	          <template x-for="(pf, i) in group.items" :key="pf.id">
+	            <div class="flex items-center gap-3 px-3 py-2 bg-slate-900">
               <!-- 敏感度指示圆点 -->
               <span class="w-2.5 h-2.5 rounded-full shrink-0"
                     :class="{
@@ -1645,6 +1685,9 @@
 	              </div>
 	            </div>
 	          </template>
+                </div>
+              </div>
+            </template>
 	        </div>
         <div class="text-xs text-slate-500 mt-2 flex items-center gap-3">
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> 跨环境必须修改</span>
@@ -3710,6 +3753,8 @@ function app() {
     //   3. 内置常见字段字典
     //   4. 启发式推断
     getVarLabel(key) {
+      const fromMeta = (this._getVarsMetaFromYaml()[key] || {}).label;
+      if (fromMeta) return fromMeta;
       // 1) step 反查（最权威，与左侧执行步骤对齐）
       const fromSteps = this._getVarLabelFromSteps(key);
       if (fromSteps) return fromSteps;
@@ -4272,6 +4317,75 @@ function app() {
       if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
       return 'id';
+    },
+
+    _groupFieldItems(items, fallbackLabel = '默认业务块') {
+      const groups = [];
+      const byKey = new Map();
+      for (const raw of (items || [])) {
+        const item = {...raw};
+        const formId = item.form_id || '';
+        const groupKey = item.group_key || (formId ? `${formId}:context` : 'default:unscoped');
+        const groupLabel = item.group_label || item.form_label || fallbackLabel;
+        item._group_key = groupKey;
+        item._group_label = groupLabel;
+        if (!byKey.has(groupKey)) {
+          const group = {
+            key: groupKey,
+            label: groupLabel,
+            form_id: formId,
+            form_label: item.form_label || '',
+            write_step_id: item.write_step_id || '',
+            items: [],
+          };
+          byKey.set(groupKey, group);
+          groups.push(group);
+        }
+        byKey.get(groupKey).items.push(item);
+      }
+      return groups;
+    },
+
+    harVarGroups() {
+      return this._groupFieldItems(this.harVarConfig || [], '智能变量');
+    },
+
+    harPickFieldGroups() {
+      return this._groupFieldItems(this.harPickFields || [], '环境字段');
+    },
+
+    casePickFieldItems() {
+      const parsed = this.parsedPickFields();
+      if (parsed.length > 0) return parsed;
+      return (this.harPickFields || []).map(h => ({
+        step_id: h.step_id || h.id,
+        id: h.id,
+        label: h.label,
+        env_sensitive: h.env_sensitive,
+        value_id: h.value_id,
+        value_name: h.value_name || '',
+        value_code: h.value_code || '',
+        value_number: h.value_number || '',
+        resolve_by: h.resolve_by || '',
+        auto_resolve: !!h.auto_resolve,
+        resolve_status: h.resolve_status || '',
+        context_only: !!h.context_only,
+        readonly: !!h.readonly,
+        form_id: h.form_id || '',
+        form_label: h.form_label || '',
+        group_key: h.group_key || '',
+        group_label: h.group_label || '',
+        source_step_id: h.source_step_id || '',
+        write_step_id: h.write_step_id || '',
+      }));
+    },
+
+    casePickFieldGroups() {
+      return this._groupFieldItems(this.casePickFieldItems(), '环境字段');
+    },
+
+    parsedVarGroups() {
+      return this._groupFieldItems(this.parsedVars(), '智能变量');
     },
 
     updateHarPickFieldDisplayValue(stepId, value) {
@@ -5720,6 +5834,60 @@ function app() {
     },
 
     // ======== 用例编辑器增强 ========
+    _parseYamlScalar(value) {
+      let v = String(value || '').trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      if (v === 'true') return true;
+      if (v === 'false') return false;
+      return v;
+    },
+
+    _parseYamlNestedMap(sectionName) {
+      try {
+        const lines = (this.yamlSource || '').split('\n');
+        let inSection = false;
+        let baseIndent = 0;
+        let itemIndent = 0;
+        let currentKey = null;
+        const out = {};
+        for (const line of lines) {
+          const trimmed = line.trimStart();
+          const curIndent = line.length - trimmed.length;
+          if (!inSection && new RegExp('^' + sectionName + '\\s*:').test(trimmed)) {
+            inSection = true;
+            baseIndent = curIndent;
+            itemIndent = curIndent + 2;
+            continue;
+          }
+          if (!inSection) continue;
+          if (trimmed && curIndent <= baseIndent && !trimmed.startsWith('#')) break;
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const itemMatch = trimmed.match(/^([^:]+):\s*$/);
+          if (curIndent === itemIndent && itemMatch) {
+            currentKey = itemMatch[1].trim().replace(/^["']|["']$/g, '');
+            out[currentKey] = {};
+            continue;
+          }
+          if (currentKey && curIndent > itemIndent) {
+            const propMatch = trimmed.match(/^([^:]+):\s*(.*)$/);
+            if (propMatch) {
+              const prop = propMatch[1].trim().replace(/^["']|["']$/g, '');
+              out[currentKey][prop] = this._parseYamlScalar(propMatch[2]);
+            }
+          }
+        }
+        return out;
+      } catch (e) {
+        return {};
+      }
+    },
+
+    _getVarsMetaFromYaml() {
+      return this._parseYamlNestedMap('vars_meta');
+    },
+
     parsedVars() {
       // 从 YAML 文本中解析 vars 块
       try {
@@ -5727,6 +5895,7 @@ function app() {
         let inVars = false;
         let indent = 0;
         const vars = [];
+        const varsMeta = this._getVarsMetaFromYaml();
         for (const line of lines) {
           if (/^vars\s*:/.test(line.trimStart())) {
             inVars = true;
@@ -5752,7 +5921,9 @@ function app() {
                 if (val.includes('${rand:')) hint = '随机';
                 else if (val.includes('${today}')) hint = '日期';
                 else if (val.includes('${vars.')) hint = '引用';
-                const label = this._getVarLabelFromSteps(key) || this._getVarLabelFromYaml(key) || this._inferVarLabel(key); vars.push({key, value: val, hint, label});
+                const meta = varsMeta[key] || {};
+                const label = meta.label || this._getVarLabelFromSteps(key) || this._getVarLabelFromYaml(key) || this._inferVarLabel(key);
+                vars.push({key, value: val, hint, label, ...meta});
               }
             }
           }
@@ -5989,9 +6160,9 @@ function app() {
             continue;
           }
           if (currentKey) {
-            const propMatch = line.match(/^\s{4}([\w]+):\s*"?([^"]*)"?\s*$/);
+            const propMatch = line.match(/^\s{4}([\w]+):\s*(.*)\s*$/);
             if (propMatch) {
-              pickFields[currentKey][propMatch[1]] = propMatch[2];
+              pickFields[currentKey][propMatch[1]] = this._parseYamlScalar(propMatch[2]);
             }
           }
         }
@@ -6038,7 +6209,18 @@ function app() {
           value_id: valueId,
           value_name: valueName,
           value_code: valueCode,
+          value_number: entry.value_number || '',
           source: entry.source || '',
+          field_key: entry.field_key || '',
+          form_id: entry.form_id || '',
+          form_label: entry.form_label || '',
+          group_key: entry.group_key || '',
+          group_label: entry.group_label || '',
+          source_step_id: entry.source_step_id || '',
+          write_step_id: entry.write_step_id || '',
+          resolve_by: entry.resolve_by || '',
+          auto_resolve: entry.auto_resolve === 'true' || entry.auto_resolve === true,
+          resolve_status: entry.resolve_status || '',
           context_only: entry.context_only === 'true' || entry.context_only === true,
           readonly: entry.readonly === 'true' || entry.readonly === true,
           _sort: SENS_ORDER[sensitive] !== undefined ? SENS_ORDER[sensitive] : 1

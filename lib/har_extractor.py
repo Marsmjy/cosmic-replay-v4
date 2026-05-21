@@ -224,6 +224,27 @@ def _display_pick_value_id(value_id: Any, value_code: Any) -> str:
     return raw
 
 
+def _clean_display_label(label: Any) -> str:
+    """Return a user-facing label while keeping technical field_key untouched.
+
+    Some live Kingdee metadata labels include implementation suffixes such as
+    "_废弃" even when the current page renders the field without that suffix.
+    The field key remains the execution anchor; only the UI-facing label is
+    softened here.
+    """
+    text = str(label or "").strip()
+    if not text:
+        return ""
+    for pattern in (
+        r"[_\-\s]*(?:废弃|已废弃)$",
+        r"[（(]\s*(?:废弃|已废弃)\s*[）)]$",
+    ):
+        cleaned = re.sub(pattern, "", text).strip()
+        if cleaned != text and cleaned:
+            return cleaned
+    return text
+
+
 def _extract_value_prefix(val: str) -> str:
     """从测试值中提取前缀部分。如 'kdtest_hbss_marstest001' → 'kdtest_hbss_'。"""
     m = _RX_TRAILING_DIGITS.match(val)
@@ -441,19 +462,19 @@ def _resolve_field_label(field_key: str, entity_id: str = None, meta_resolver=No
     if meta_resolver and entity_id:
         label = meta_resolver.get_field_label(entity_id, field_key)
         if label:
-            return label
+            return _clean_display_label(label)
     key_lower = field_key.lower()
     if entity_id:
         meta = _kb_field_meta(entity_id, key_lower)
         label = (meta or {}).get("label")
         if label:
-            return label
+            return _clean_display_label(label)
     # 优先查询知识库
     kb_label = _kb_get_field_label(key_lower)
     if kb_label:
-        return kb_label
+        return _clean_display_label(kb_label)
     # 静态字典兜底
-    return _FIELD_LABELS.get(key_lower, field_key)
+    return _clean_display_label(_FIELD_LABELS.get(key_lower, field_key))
 
 
 _AC_LABELS = {
@@ -2334,6 +2355,31 @@ def _append_context_default_pick_fields(
             pick_fields_map[step_id] = item
 
 
+def _scoped_pick_field_id(
+    base_id: str,
+    existing: dict,
+    *,
+    form_id: str = "",
+    source_step_id: str = "",
+) -> str:
+    """Return a stable pick_fields key, adding scope only on real collisions."""
+    if base_id not in existing:
+        return base_id
+    for key, prev in existing.items():
+        if key != base_id and not str(key).startswith(f"{base_id}__"):
+            continue
+        if isinstance(prev, dict) and str(prev.get("form_id") or "") == str(form_id or ""):
+            return ""
+    raw_scope = str(source_step_id or form_id or len(existing) + 1)
+    suffix = re.sub(r"[^a-zA-Z0-9_]", "_", raw_scope).strip("_") or str(len(existing) + 1)
+    candidate = f"{base_id}__{suffix}"
+    idx = 2
+    while candidate in existing:
+        candidate = f"{base_id}__{suffix}_{idx}"
+        idx += 1
+    return candidate
+
+
 def _append_context_default_steps(
     steps: list[dict],
     observations: dict[str, Any],
@@ -2760,6 +2806,178 @@ def _is_write_anchor_step(step: dict) -> bool:
         }
         or "save" in sid
     )
+
+
+_VAR_REF_RE = re.compile(r"\$\{vars\.([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def _clean_group_action_label(text: Any) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+    raw = re.sub(r"^[^\w\u4e00-\u9fff]+", "", raw).strip()
+    return raw
+
+
+def _step_scope_for_index(steps: list[dict], index: int, main_form: str = "") -> dict[str, str]:
+    """Map a field/variable step to the nearest business write block.
+
+    The YAML key remains stable; this metadata only helps UI group long HAR
+    chains into "form/action blocks" so users can maintain A/B/C forms without
+    mentally reverse-engineering step order.
+    """
+    step = steps[index] if 0 <= index < len(steps) else {}
+    form_id = str(step.get("form_id") or main_form or "")
+    anchor = None
+    for nxt in steps[index:]:
+        if form_id and str(nxt.get("form_id") or "") != form_id:
+            continue
+        if _is_write_anchor_step(nxt):
+            anchor = nxt
+            break
+    if anchor is None:
+        for prev in reversed(steps[:index + 1]):
+            if form_id and str(prev.get("form_id") or "") != form_id:
+                continue
+            if _is_write_anchor_step(prev):
+                anchor = prev
+                break
+
+    form_label = _resolve_form_name(form_id) if form_id else "未识别表单"
+    anchor_id = str((anchor or {}).get("id") or "")
+    action_label = _clean_group_action_label((anchor or {}).get("description") or "")
+    if not action_label and anchor:
+        action_label = generate_step_description(anchor)
+        action_label = _clean_group_action_label(action_label)
+    if not action_label:
+        action_label = "表单维护"
+    group_key = f"{form_id or 'unknown'}:{anchor_id or 'context'}"
+    return {
+        "group_key": group_key,
+        "group_label": f"{form_label} / {action_label}",
+        "form_id": form_id,
+        "form_label": form_label,
+        "source_step_id": str(step.get("id") or ""),
+        "write_step_id": anchor_id,
+    }
+
+
+def _collect_var_refs(value: Any, refs: set[str]) -> None:
+    if isinstance(value, str):
+        refs.update(_VAR_REF_RE.findall(value))
+    elif isinstance(value, dict):
+        for item in value.values():
+            _collect_var_refs(item, refs)
+    elif isinstance(value, list):
+        for item in value:
+            _collect_var_refs(item, refs)
+
+
+def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "") -> OrderedDict:
+    """Infer variable source form/field/block metadata from generated steps."""
+    meta: OrderedDict[str, OrderedDict] = OrderedDict()
+
+    def remember(vname: str, *, step_idx: int, field_key: str = "") -> None:
+        if not vname or vname in meta:
+            return
+        step = steps[step_idx] if 0 <= step_idx < len(steps) else {}
+        scope = _step_scope_for_index(steps, step_idx, main_form)
+        label = _resolve_field_label(field_key, entity_id=scope.get("form_id") or main_form) if field_key else ""
+        item = OrderedDict([
+            ("label", label or field_key or vname),
+            ("field_key", field_key),
+            ("form_id", scope["form_id"]),
+            ("form_label", scope["form_label"]),
+            ("group_key", scope["group_key"]),
+            ("group_label", scope["group_label"]),
+            ("source_step_id", scope["source_step_id"] or str(step.get("id") or "")),
+            ("write_step_id", scope["write_step_id"]),
+        ])
+        meta[vname] = item
+
+    for idx, step in enumerate(steps):
+        stype = step.get("type")
+        if stype == "update_fields":
+            for field_key, value in (step.get("fields") or {}).items():
+                refs: set[str] = set()
+                _collect_var_refs(value, refs)
+                for ref in sorted(refs):
+                    remember(ref, step_idx=idx, field_key=str(field_key))
+        elif stype == "invoke":
+            post_data = step.get("post_data")
+            if isinstance(post_data, list) and len(post_data) >= 2 and isinstance(post_data[1], list):
+                for entry in post_data[1]:
+                    if not isinstance(entry, dict):
+                        continue
+                    refs: set[str] = set()
+                    _collect_var_refs(entry.get("v"), refs)
+                    for ref in sorted(refs):
+                        remember(ref, step_idx=idx, field_key=str(entry.get("k") or ""))
+        elif stype == "pick_basedata":
+            # pick_fields own the environment panel; do not duplicate them as
+            # smart case variables when old YAML still contains a vars ref.
+            continue
+    return meta
+
+
+def _attach_pick_field_scopes(pick_fields_map: OrderedDict, steps: list[dict], main_form: str = "") -> None:
+    """Add UI grouping metadata to pick_fields without changing their keys."""
+    if not pick_fields_map:
+        return
+
+    def find_step_index(pf_id: str, pf_meta: dict) -> int:
+        field_key = str((pf_meta or {}).get("field_key") or "").lower()
+        source_step_id = str((pf_meta or {}).get("source_step_id") or "")
+        target_form_id = str((pf_meta or {}).get("form_id") or "")
+        if source_step_id:
+            for idx, step in enumerate(steps):
+                if str(step.get("id") or "") == source_step_id:
+                    return idx
+
+        def form_matches(step: dict) -> bool:
+            return not target_form_id or not step.get("form_id") or str(step.get("form_id") or "") == target_form_id
+
+        if pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
+            step_id = pf_id[4:-15]
+            for idx, step in enumerate(steps):
+                if step.get("id") == step_id:
+                    return idx
+        if pf_id.startswith("date_"):
+            field_key = field_key or pf_id[5:].lower()
+            for idx, step in enumerate(steps):
+                if step.get("type") != "update_fields":
+                    continue
+                if not form_matches(step):
+                    continue
+                fields = step.get("fields") or {}
+                if any(str(k).lower() == field_key for k in fields):
+                    return idx
+        if field_key:
+            for idx, step in enumerate(steps):
+                if not form_matches(step):
+                    continue
+                if step.get("type") == "pick_basedata" and str(step.get("field_key") or "").lower() == field_key:
+                    return idx
+            for idx, step in enumerate(steps):
+                if step.get("type") != "update_fields":
+                    continue
+                if not form_matches(step):
+                    continue
+                fields = step.get("fields") or {}
+                if any(str(k).lower() == field_key for k in fields):
+                    return idx
+        return 0
+
+    for pf_id, pf_meta in pick_fields_map.items():
+        if not isinstance(pf_meta, dict):
+            continue
+        idx = find_step_index(str(pf_id), pf_meta)
+        scope = _step_scope_for_index(steps, idx, main_form)
+        pf_meta.setdefault("form_label", scope["form_label"])
+        pf_meta.setdefault("group_key", scope["group_key"])
+        pf_meta.setdefault("group_label", scope["group_label"])
+        pf_meta.setdefault("source_step_id", scope["source_step_id"])
+        pf_meta.setdefault("write_step_id", scope["write_step_id"])
 
 
 def _has_expected_notification(step: dict) -> bool:
@@ -3272,24 +3490,32 @@ def build_yaml_case(
         if isinstance(raw_value_id, str) and raw_value_id.startswith("${vars."):
             vname_ref = raw_value_id[7:-1]  # 提取变量名
             raw_value_id = vars_map.get(vname_ref, raw_value_id)
+        step_form_id = s.get("form_id") or main_form
         # 确定 step_id 和 env_sensitive
         if field_key in _PF_ENV_RELATED_FIELDS:
-            step_id = f"pick_{field_key}_id"
+            base_step_id = f"pick_{field_key}_id"
             env_sensitive = "medium"
             label = _PF_ENV_RELATED_FIELDS[field_key]
         elif field_key in _PF_ENUM_FIELDS:
             _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
-            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            base_step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
             env_sensitive = "low"
             label = _PF_ENUM_FIELDS[field_key]
         else:
             # 通用处理：所有 pick_basedata 字段均归入环境相关字段
             _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
-            step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            base_step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
             env_sensitive = "low"
             label = _resolve_field_label(field_key, entity_id=s.get("form_id") or main_form, meta_resolver=meta_resolver)
+        step_id = _scoped_pick_field_id(
+            base_step_id,
+            pick_fields_map,
+            form_id=step_form_id,
+            source_step_id=s.get("id", ""),
+        )
+        if not step_id:
+            continue
         # ⭐ 实时元数据增强 env_sensitive 分级
-        step_form_id = s.get("form_id") or main_form
         field_type = None
         if meta_resolver and step_form_id:
             field_type = meta_resolver.get_field_type(step_form_id, field_key)
@@ -3298,38 +3524,37 @@ def build_yaml_case(
                     env_sensitive = "medium"
                 elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
                     env_sensitive = "low"
-        if step_id not in pick_fields_map:
-            value_code = s.get("value_code", "") or ""
-            display_value_id = _display_pick_value_id(raw_value_id, value_code)
-            auto_meta = _pick_field_auto_resolve_meta(
-                field_key,
-                display_value_id,
-                s.get("value_name", "") or "",
-                env_sensitive,
-                field_type,
-                value_code=value_code,
-            )
-            if value_code and _looks_like_internal_id(raw_value_id):
-                auto_meta = {
-                    "auto_resolve": True,
-                    "resolve_by": "value_code",
-                    "resolve_status": "pending",
-                }
-            pick_fields_map[step_id] = OrderedDict([
-                ("value_id", display_value_id),
-                ("value_name", s.get("value_name", "") or ""),
-                ("value_code", value_code),
-                ("value_number", s.get("value_number", "") or ""),
-                ("recorded_value_id", str(raw_value_id)),
-                ("label", label),
-                ("env_sensitive", env_sensitive),
-                ("field_key", field_key),
-                ("form_id", step_form_id),
-                ("app_id", s.get("app_id", "")),
-                ("auto_resolve", auto_meta["auto_resolve"]),
-                ("resolve_by", auto_meta["resolve_by"]),
-                ("resolve_status", auto_meta["resolve_status"]),
-            ])
+        value_code = s.get("value_code", "") or ""
+        display_value_id = _display_pick_value_id(raw_value_id, value_code)
+        auto_meta = _pick_field_auto_resolve_meta(
+            field_key,
+            display_value_id,
+            s.get("value_name", "") or "",
+            env_sensitive,
+            field_type,
+            value_code=value_code,
+        )
+        if value_code and _looks_like_internal_id(raw_value_id):
+            auto_meta = {
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "pending",
+            }
+        pick_fields_map[step_id] = OrderedDict([
+            ("value_id", display_value_id),
+            ("value_name", s.get("value_name", "") or ""),
+            ("value_code", value_code),
+            ("value_number", s.get("value_number", "") or ""),
+            ("recorded_value_id", str(raw_value_id)),
+            ("label", label),
+            ("env_sensitive", env_sensitive),
+            ("field_key", field_key),
+            ("form_id", step_form_id),
+            ("app_id", s.get("app_id", "")),
+            ("auto_resolve", auto_meta["auto_resolve"]),
+            ("resolve_by", auto_meta["resolve_by"]),
+            ("resolve_status", auto_meta["resolve_status"]),
+        ])
 
     _main_app_id = next((s.get("app_id", "") for s in cleaned if s.get("form_id") == main_form), "")
     _append_context_default_pick_fields(
@@ -3373,8 +3598,13 @@ def build_yaml_case(
         for fk in fields:
             fk_lower = fk.lower()
             if fk_lower in _PF_ENV_RELATED_FIELDS:
-                step_id = f"pick_{fk_lower}_id"
-                if step_id in pick_fields_map:
+                step_id = _scoped_pick_field_id(
+                    f"pick_{fk_lower}_id",
+                    pick_fields_map,
+                    form_id=step_form_id,
+                    source_step_id=s.get("id", ""),
+                )
+                if not step_id:
                     continue
                 fv = fields[fk]
                 display_val = ""
@@ -3398,8 +3628,13 @@ def build_yaml_case(
                 ])
                 continue
             if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
-                step_id = f"date_{fk}"
-                if step_id in pick_fields_map:
+                step_id = _scoped_pick_field_id(
+                    f"date_{fk}",
+                    pick_fields_map,
+                    form_id=step_form_id,
+                    source_step_id=s.get("id", ""),
+                )
+                if not step_id:
                     continue
                 label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
                 fv = fields[fk]
@@ -3524,6 +3759,8 @@ def build_yaml_case(
                 # 直接传模板字符串
                 vars_map[vname] = cfg
 
+    _attach_pick_field_scopes(pick_fields_map, cleaned, main_form)
+
     case_name = case_name or har_path.stem
 
     # 清理 YAML 输出用的字段（去掉以 _ 开头的内部字段）
@@ -3557,6 +3794,13 @@ def build_yaml_case(
     if vars_labels:
         built_vars_labels.update(vars_labels)
 
+    vars_meta_all = _infer_vars_meta_from_steps(yaml_steps, main_form)
+    built_vars_meta = OrderedDict(
+        (name, vars_meta_all[name])
+        for name in built_vars.keys()
+        if name in vars_meta_all and not name.startswith("_")
+    )
+
     case = OrderedDict([
         ("name", case_name),
         ("description", _build_case_description(
@@ -3571,6 +3815,7 @@ def build_yaml_case(
         ])),
         ("vars", built_vars),
         ("vars_labels", built_vars_labels),  # 变量中文标签
+        ("vars_meta", built_vars_meta),       # 变量来源表单/业务块，供长链路分组维护
         ("pick_fields", pick_fields_map if pick_fields_map else OrderedDict()),
         ("main_form_id", main_form),
         ("steps", yaml_steps),
@@ -3746,6 +3991,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     # ⭐ step.description 反查业务名：与左侧"执行步骤"的「...」内文字严格对齐
     step_label_map = _infer_labels_from_preview_steps(preview_copy)
+    vars_meta_map = _infer_vars_meta_from_steps(preview_copy, main_form)
 
     var_items = []
     for vname, template in detected_vars.items():
@@ -3764,6 +4010,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "enabled": True,
             "category": _var_category(vname),  # 保留兼容，前端做彩色分类
             "label": label,                      # ⭐ 新增：真实业务中文名
+            **dict(vars_meta_map.get(vname, {})),
         })
 
     # ⭐ 环境相关字段 pick_fields 提取
@@ -3798,7 +4045,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     )
 
     pick_fields: list[dict] = []
-    _seen_pick_ids: set = set()
+    _seen_pick_map: OrderedDict[str, dict] = OrderedDict()
 
     for s in preview_steps:
         if s.get("type") == "pick_basedata":
@@ -3809,15 +4056,19 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
             # 确定 step_id（与 build_yaml_case 命名规则一致）
             if field_key in _ENV_RELATED_FIELDS:
-                step_id = f"pick_{field_key}_id"
+                base_step_id = f"pick_{field_key}_id"
             else:
                 _sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", field_key).strip("_")
-                step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
-
-            # 去重
-            if step_id in _seen_pick_ids:
+                base_step_id = f"pick_{_sanitized}_id" if _sanitized else f"pick_{field_key}"
+            step_form_id = s.get("form_id") or main_form
+            step_id = _scoped_pick_field_id(
+                base_step_id,
+                _seen_pick_map,
+                form_id=step_form_id,
+                source_step_id=s.get("id", ""),
+            )
+            if not step_id:
                 continue
-            _seen_pick_ids.add(step_id)
 
             # 判断 env_sensitive 级别
             if field_key in _ENV_RELATED_FIELDS:
@@ -3830,7 +4081,6 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 env_sensitive = "low"
 
             # ⭐ 实时元数据增强 env_sensitive 分级
-            step_form_id = s.get("form_id") or main_form
             field_type = None
             if meta_resolver and step_form_id:
                 field_type = meta_resolver.get_field_type(step_form_id, field_key)
@@ -3863,7 +4113,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     "resolve_status": "pending",
                 }
 
-            pick_fields.append({
+            item = {
                 "id": step_id,
                 "field_key": field_key,
                 "label": label,
@@ -3878,17 +4128,18 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "auto_resolve": auto_meta["auto_resolve"],
                 "resolve_by": auto_meta["resolve_by"],
                 "resolve_status": auto_meta["resolve_status"],
-            })
+            }
+            pick_fields.append(item)
+            _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
 
         elif s.get("type") == "invoke" and s.get("ac") in ("new", "addnew"):
             focus_id, focus_name = _extract_treeview_focus(s)
             if not focus_id and not focus_name:
                 continue
             step_id = f"env_{s.get('id', 'addnew')}_treeview_focus"
-            if step_id in _seen_pick_ids:
+            if step_id in _seen_pick_map:
                 continue
-            _seen_pick_ids.add(step_id)
-            pick_fields.append({
+            item = {
                 "id": step_id,
                 "field_key": "treeview.focus.id",
                 "label": "新增上下文组织",
@@ -3900,7 +4151,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "auto_resolve": False,
                 "resolve_by": "",
                 "resolve_status": "manual",
-            })
+            }
+            pick_fields.append(item)
+            _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
 
         elif s.get("type") == "update_fields":
             # 处理 update_fields 中的环境字段和日期字段
@@ -3911,10 +4164,14 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             for fk in fields:
                 fk_lower = fk.lower()
                 if fk_lower in _ENV_RELATED_FIELDS:
-                    step_id = f"pick_{fk_lower}_id"
-                    if step_id in _seen_pick_ids:
+                    step_id = _scoped_pick_field_id(
+                        f"pick_{fk_lower}_id",
+                        _seen_pick_map,
+                        form_id=step_form_id,
+                        source_step_id=s.get("id", ""),
+                    )
+                    if not step_id:
                         continue
-                    _seen_pick_ids.add(step_id)
                     fv = fields[fk]
                     if isinstance(fv, dict):
                         display_val = fv.get("zh_CN", "") or str(fv)
@@ -3922,7 +4179,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         display_val = fv
                     else:
                         display_val = str(fv) if fv is not None else ""
-                    pick_fields.append({
+                    item = {
                         "id": step_id,
                         "field_key": fk_lower,
                         "label": _ENV_RELATED_FIELDS[fk_lower],
@@ -3934,13 +4191,19 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         "auto_resolve": False,
                         "resolve_by": "",
                         "resolve_status": "manual",
-                    })
+                    }
+                    pick_fields.append(item)
+                    _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
                     continue
                 if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
-                    step_id = f"date_{fk}"
-                    if step_id in _seen_pick_ids:
+                    step_id = _scoped_pick_field_id(
+                        f"date_{fk}",
+                        _seen_pick_map,
+                        form_id=step_form_id,
+                        source_step_id=s.get("id", ""),
+                    )
+                    if not step_id:
                         continue
-                    _seen_pick_ids.add(step_id)
 
                     label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
                     fv = fields[fk]
@@ -3952,7 +4215,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     else:
                         display_val = str(fv) if fv else ""
 
-                    pick_fields.append({
+                    item = {
                         "id": step_id,
                         "field_key": fk,
                         "label": label,
@@ -3964,13 +4227,14 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         "auto_resolve": False,
                         "resolve_by": "",
                         "resolve_status": "manual",
-                    })
+                    }
+                    pick_fields.append(item)
+                    _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
 
-    _preview_pf_ids = {pf.get("id") for pf in pick_fields}
     _preview_app_id = next((s.get("app_id", "") for s in preview_steps if s.get("form_id") == main_form), "")
     for _field_key in sorted(_DEFAULT_CONTEXT_FIELD_KEYS):
         _step_id = f"pick_{_field_key}_id"
-        if _step_id in _preview_pf_ids:
+        if _step_id in _seen_pick_map:
             continue
         _ctx_item = _make_context_default_pick_field(
             _field_key,
@@ -3980,8 +4244,18 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         )
         if _ctx_item is None:
             continue
-        pick_fields.append({"id": _step_id, **dict(_ctx_item)})
-        _preview_pf_ids.add(_step_id)
+        item = {"id": _step_id, **dict(_ctx_item)}
+        pick_fields.append(item)
+        _seen_pick_map[_step_id] = {k: v for k, v in item.items() if k != "id"}
+
+    _preview_pick_map = OrderedDict()
+    for pf in pick_fields:
+        pf_id = str(pf.get("id") or "")
+        if pf_id:
+            item = OrderedDict((k, v) for k, v in pf.items() if k != "id")
+            _preview_pick_map[pf_id] = item
+    _attach_pick_field_scopes(_preview_pick_map, preview_steps, main_form)
+    pick_fields = [{"id": pf_id, **dict(meta)} for pf_id, meta in _preview_pick_map.items()]
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
     _sens_order = {"high": 0, "medium": 1, "low": 2}

@@ -661,6 +661,25 @@ def _a_response_contains(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
 # =============================================================
 # pick_fields 运行时值注入
 # =============================================================
+def _pick_field_targets_step(pf_meta: dict, step: dict) -> bool:
+    """Return whether a pick/date override should touch this YAML step.
+
+    New HARs carry source_step_id/form_id metadata so long multi-form chains can
+    safely contain the same field_key in different forms. Older YAML files do
+    not have this metadata, so absence still means "legacy broad match".
+    """
+    if not isinstance(pf_meta, dict):
+        return True
+    source_step_id = str(pf_meta.get("source_step_id") or "")
+    if source_step_id and str(step.get("id") or "") != source_step_id:
+        return False
+    form_id = str(pf_meta.get("form_id") or "")
+    step_form_id = str(step.get("form_id") or "")
+    if form_id and step_form_id and form_id != step_form_id:
+        return False
+    return True
+
+
 def _apply_pick_fields(case: dict):
     """运行前将 pick_fields 的用户修改值注入到对应步骤参数"""
     pick_fields = case.get("pick_fields") or {}
@@ -676,12 +695,14 @@ def _apply_pick_fields(case: dict):
         # date_* -> 替换 update_fields 步骤中的日期字段
         # 对 date_* 字段，优先用 value_id（用户编辑的值），fallback 到 value_name
         if pf_id.startswith("date_"):
-            field_key = pf_id[5:]  # 去掉 "date_" 前缀，如 date_bsed -> bsed
+            field_key = str(pf_meta.get("field_key") or pf_id[5:])  # 去掉 "date_" 前缀，如 date_bsed -> bsed
             value = pf_meta.get("value_id") or pf_meta.get("value_name", "")
             if not value:
                 continue
             for step in steps:
                 if step.get("type") == "update_fields":
+                    if not _pick_field_targets_step(pf_meta, step):
+                        continue
                     fields = step.get("fields") or {}
                     if field_key in fields:
                         fv = fields[field_key]
@@ -728,6 +749,8 @@ def _apply_pick_fields(case: dict):
             if inject_vid or inject_vname:
                 applied = False
                 for step in steps:
+                    if not _pick_field_targets_step(pf_meta, step):
+                        continue
                     if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
                         if inject_vid:
                             step["value_id"] = str(inject_vid)
@@ -746,6 +769,8 @@ def _apply_pick_fields(case: dict):
                 # MainOrgProp 等上下文字段可能以 update_fields 形式补偿写入；
                 # 允许沿用 pick_* 配置面板去覆盖这些字段，保持 UI/配置方式一致。
                 for step in steps:
+                    if not _pick_field_targets_step(pf_meta, step):
+                        continue
                     if step.get("type") != "update_fields":
                         continue
                     fields = step.get("fields") or {}
@@ -1051,6 +1076,12 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "value_name": pf_meta.get("value_name", ""),
             "value_code": pf_meta.get("value_code", ""),
             "label": pf_meta.get("label", pf_id),
+            "form_id": pf_meta.get("form_id", ""),
+            "form_label": pf_meta.get("form_label", ""),
+            "group_key": pf_meta.get("group_key", ""),
+            "group_label": pf_meta.get("group_label", ""),
+            "source_step_id": pf_meta.get("source_step_id", ""),
+            "write_step_id": pf_meta.get("write_step_id", ""),
             "env_sensitive": pf_meta.get("env_sensitive", "medium"),
             "status": "pending",
             "auto_resolve": bool(pf_meta.get("auto_resolve")),
@@ -1064,6 +1095,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         # 先发送vars定义（显示用户配置的模板）
         "vars_def": {k: v for k, v in (case.get("vars") or {}).items() if not k.startswith("_")},
         "vars_labels": case.get("vars_labels", {}),
+        "vars_meta": case.get("vars_meta", {}),
         "pick_fields_preview": _pick_fields_preview,
     })
 
@@ -1192,7 +1224,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     continue
                 if not isinstance(_pf_meta, dict):
                     continue
-                _field_key = _pf_id[5:]  # 去掉 "date_" 前缀
+                if not _pick_field_targets_step(_pf_meta, step):
+                    continue
+                _field_key = str(_pf_meta.get("field_key") or _pf_id[5:])  # 去掉 "date_" 前缀
                 _value = _pf_meta.get("value_id") or _pf_meta.get("value_name", "")
                 if not _value:
                     continue
@@ -1713,6 +1747,12 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
             "value_name": raw.get("value_name", ""),
             "value_code": raw.get("value_code", "") or meta.get("value_code", ""),
             "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
+            "form_id": meta.get("form_id", raw.get("form_id", "")),
+            "form_label": meta.get("form_label", ""),
+            "group_key": meta.get("group_key", ""),
+            "group_label": meta.get("group_label", ""),
+            "source_step_id": meta.get("source_step_id", ""),
+            "write_step_id": meta.get("write_step_id", ""),
             "env_sensitive": meta.get("env_sensitive", "medium"),
             "status": "ok" if result_step.get("ok") else "fail",
             "auto_resolve": bool(meta.get("auto_resolve")),

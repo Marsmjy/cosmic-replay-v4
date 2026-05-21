@@ -76,8 +76,13 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
 
 # Sensitive files - NEVER COMMIT
+config/webui.yaml
+config/
+!config.example/
 config/envs/*.yaml
 !config/envs/*.example.yaml
 secrets/
@@ -86,10 +91,18 @@ secrets/
 
 # HAR files may contain sensitive data
 *.har
+har_uploads/
 
 # Generated files
 cases/*.yaml
 !cases/*.example.yaml
+data/
+!data/.gitkeep
+task_plan.md
+findings.md
+progress.md
+tmp_*.json
+step*_*.png
 
 # Temporary files
 tmp/
@@ -120,3 +133,18 @@ data/pf_*.txt
 data/pf_*.json
 data/test_output.*
 data/env_field_cache.json
+check_*.py
+diag_*.py
+test_getEntityType.py
+scripts/check_*.py
+scripts/diag_*.py
+scripts/final_check.py
+scripts/get_details.py
+scripts/list_steps.py
+scripts/p0_*.py
+scripts/p1_*.py
+scripts/quick_check.py
+scripts/run_remaining*.py
+scripts/test_*.py
+scripts/verify_*.py
+scripts/verify_results.json

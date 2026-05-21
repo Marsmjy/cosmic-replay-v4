@@ -164,7 +164,7 @@ H 类必须按 **8 步法**走·跳任何一步 = 脑补：
 ### 🚨🚨🚨 Step H-00 · 反模式自检门禁（v1.1.0 加 · 2026-05-08 退休单事故反哺 · 绝不允许跳过）
 
 > **任何方案输出前·先跑这套自检·把结果钉死在响应顶部**。这是 stop-the-line 门禁·没跑 = 输出禁止。
-> 触发原因：2026-05-07 退休单方案命中 AP-025/026/027 三个 P0 反模式·skill 自检脱档·详 [skill_incidents/2026-05-07_retirement_bill_brainmaking](file:///D:/aiworkspace/cludecodeworkspace/cosmic_hr_knowledge_explorer/skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md)
+> 触发原因：2026-05-07 退休单方案命中 AP-025/026/027 三个 P0 反模式·skill 自检脱档·详 `skill_incidents/2026-05-07_retirement_bill_brainmaking/audit_report.md`。
 
 #### Step H-00.1 · 提取关键词
 从用户输入提取 2-4 个核心关键词（如"退休单"·"法定退休年龄"·"业务规则"·"批量导入"）。
@@ -228,7 +228,7 @@ LLM 必须**在心智里查** Level 0 已读的 `_intent_routing.json` 对应意
 
 **这条铁律是硬性约束·不是建议·违反 = skill 输出失败**。
 
-详细铁律见 [memory/feedback_skill_must_grep_antipatterns_before_output.md](file:///C:/Users/kingdee/.claude/projects/d--aiworkspace-cludecodeworkspace/memory/feedback_skill_must_grep_antipatterns_before_output.md)。
+详细铁律见 `memory/feedback_skill_must_grep_antipatterns_before_output.md`。
 
 ---
 
@@ -626,7 +626,7 @@ python scripts/assemble_asset.py \
     --asset <asset-id>          # 14 资产之一
     --isv-flag <客户开发商标识>   # 如 bjss
     --biz-app <客户应用编码>     # 如 bjss_<应用名>_ext
-    --output <目标目录>           # 如 D:/myproject/<资产名>-bjss/
+    --output <目标目录>           # 如 ./output/<资产名>-bjss/
 ```
 
 #### 14 个可一键复刻的资产
