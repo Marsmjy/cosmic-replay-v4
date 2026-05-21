@@ -1656,12 +1656,17 @@
               <input type="text"
                      :value="pickFieldDisplayValue(pf)"
                      @input="if(!pf.readonly) updateHarPickFieldDisplayValue(pf.id, $event.target.value)"
+                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.id, $event.target.value, 'display')"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
                      :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
                      :disabled="pf.readonly"
                      :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
+              <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
+                      x-show="!pf.readonly"
+                      @click="savePickFieldValue(pf.id, pickFieldDisplayValue(pf), 'display')">确认</button>
               <!-- value_name 显示 -->
               <div class="w-32 shrink-0 text-right">
+                <span class="block text-[10px] text-amber-300" x-show="pf.user_overridden">已修改，生成 YAML 后生效</span>
                 <span class="block text-xs text-cyan-300" x-show="pf.value_id && pickFieldDisplayValue(pf) !== pf.value_id" x-text="'ID ' + pf.value_id"></span>
                 <span class="text-xs text-slate-500" x-show="pf.value_name && pf.value_name !== pickFieldDisplayValue(pf)" x-text="pf.value_name"></span>
               </div>
@@ -4124,7 +4129,7 @@ function app() {
         await this.loadCases();
         const verb = data.overwritten ? '已覆盖' : '已生成';
         this.showToast('✓ ' + verb + ' ' + data.name);
-        await this.openCase(this.harCaseName);
+        await this.openCase(data.name || this.harCaseName);
       } catch (e) {
         this.showToast('生成失败: ' + e.message);
       } finally {
@@ -4323,7 +4328,8 @@ function app() {
       const groups = [];
       const byKey = new Map();
       for (const raw of (items || [])) {
-        const item = {...raw};
+        if (!raw || typeof raw !== 'object') continue;
+        const item = raw;
         const formId = item.form_id || '';
         const groupKey = item.group_key || (formId ? `${formId}:context` : 'default:unscoped');
         const groupLabel = item.group_label || item.form_label || fallbackLabel;

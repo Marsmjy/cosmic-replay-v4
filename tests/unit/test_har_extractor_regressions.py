@@ -151,6 +151,42 @@ def test_build_yaml_case_adds_business_block_metadata_for_vars_and_pick_fields()
     assert case["pick_fields"]["pick_org_id"]["source_step_id"]
 
 
+def test_build_yaml_case_applies_preview_var_override_to_generated_vars():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="regression_adminorg_var_override",
+        var_overrides={
+            "test_name": {
+                "enabled": True,
+                "template": "预览页维护后的名称",
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+
+    assert case["vars"]["test_name"] == "预览页维护后的名称"
+
+
+def test_build_yaml_case_allows_preview_var_override_to_empty_string():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="regression_adminorg_empty_var_override",
+        var_overrides={
+            "test_name": {
+                "enabled": True,
+                "template": "",
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+
+    assert case["vars"]["test_name"] == ""
+
+
 def test_build_yaml_case_extracts_enterprise_description_var():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
 

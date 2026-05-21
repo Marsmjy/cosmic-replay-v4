@@ -3753,7 +3753,7 @@ def build_yaml_case(
             if isinstance(cfg, dict):
                 if not cfg.get("enabled", True):
                     vars_map.pop(vname, None)
-                elif "template" in cfg and cfg["template"]:
+                elif "template" in cfg:
                     vars_map[vname] = cfg["template"]
             elif isinstance(cfg, str):
                 # 直接传模板字符串
