@@ -18,8 +18,10 @@ def test_har_preview_grouping_keeps_original_field_object_references():
 def test_har_preview_env_fields_have_explicit_confirm_action():
     html = _index_html()
 
-    assert 'x-model="pf.edit_value"' in html
-    assert '@click="savePickFieldValue(pf.id, pf.edit_value, \'display\')"' in html
+    assert ':value="harPickFieldDraftValue(pf)"' in html
+    assert "@input=\"setHarPickFieldDraft(pf, $event.target.value)\"" in html
+    assert '@click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), \'display\')"' in html
+    assert "harPickFieldDrafts: {}" in html
     assert "已修改，生成 YAML 后生效" in html
 
 

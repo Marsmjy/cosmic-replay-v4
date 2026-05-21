@@ -1642,16 +1642,16 @@
               <!-- 可编辑输入框：优先展示业务编码，内部 value_id 保留给执行器使用 -->
               <span class="text-xs text-slate-500 shrink-0">值:</span>
               <input type="text"
-                     x-model="pf.edit_value"
-                     @input="if(!pf.readonly) markHarPickFieldDraft(pf)"
-                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.id, pf.edit_value, 'display')"
+                     :value="harPickFieldDraftValue(pf)"
+                     @input="setHarPickFieldDraft(pf, $event.target.value)"
+                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
                      :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
                      :disabled="pf.readonly"
                      :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
               <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                       x-show="!pf.readonly"
-                      @click="savePickFieldValue(pf.id, pf.edit_value, 'display')">确认</button>
+                      @click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">确认</button>
               <!-- value_name 显示 -->
               <div class="w-32 shrink-0 text-right">
                 <span class="block text-[10px] text-amber-300" x-show="pf.user_overridden">已修改，生成 YAML 后生效</span>
@@ -3044,6 +3044,7 @@ function app() {
 	    harCaseName: '',
 	    harVarConfig: [],     // ⭐ 变量配置（从 preview 初始化，用户可编辑）
 	    harPickFields: [],    // ⭐ 环境相关字段（从 preview 初始化，用户可编辑）
+	    harPickFieldDrafts: {},
 	    harResolvingFields: false,
 	    metadataStatus: 'offline',  // ⭐ 元数据增强状态: online/offline/degraded
 	    harAdvancedOpen: false,
@@ -3954,9 +3955,10 @@ function app() {
       this.harStep = 1;
       this.harPreview = null;
       this.harFile = null;
-      this.harCaseName = '';
+	      this.harCaseName = '';
 	      this.harVarConfig = [];
 	      this.harPickFields = [];
+	      this.harPickFieldDrafts = {};
 	      this.harResolvingFields = false;
 	      this.metadataStatus = 'offline';
 	      this.harAdvancedOpen = false;
@@ -3996,13 +3998,14 @@ function app() {
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
         // ⭐ 初始化环境相关字段面板（按 env_sensitive 排序，与变量面板一致）
         const SENS_ORDER = { high: 0, medium: 1, low: 2 };
-        this.harPickFields = (data.preview.pick_fields || []).map(pf => {
-          const item = {...pf};
-          item.edit_value = this.pickFieldDisplayValue(item);
-          return item;
-        })
-            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
-        this.harCaseName = file.name.replace(/\.har$/i, '');
+	        this.harPickFields = (data.preview.pick_fields || []).map(pf => {
+	          const item = {...pf};
+	          item.edit_value = this.pickFieldDisplayValue(item);
+	          return item;
+	        })
+	            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
+	        this.hydrateHarPickFieldDrafts();
+	        this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harAdvancedOpen = false;
 	        this.harStep = 2;
 	      } catch (e) {
@@ -4044,16 +4047,17 @@ function app() {
 	        this.harPickFields = this.harPickFields.map(pf => {
 	          const r = byId.get(pf.id);
 	          if (!r) return pf;
-	          const next = {...pf, ...r};
+		          const next = {...pf, ...r};
 	          if (r.resolve_status === 'resolved' && r.effective_value_id) {
 	            next.value_id = r.effective_value_id;
 	            ok++;
 	          } else if (r.resolve_status && r.resolve_status !== 'manual') {
 	            needConfirm++;
 	          }
-	          next.edit_value = this.pickFieldDisplayValue(next);
-	          return next;
-	        });
+		          next.edit_value = this.pickFieldStoredDisplayValue(next);
+		          return next;
+		        });
+		        this.hydrateHarPickFieldDrafts();
 	        this.showToast(`环境字段解析完成：${ok} 个已解析，${needConfirm} 个需确认`);
 	      } catch (e) {
 	        this.showToast('环境字段解析失败: ' + e.message);
@@ -4075,10 +4079,8 @@ function app() {
       }
       // ⭐ 构建环境字段覆盖配置
       const pickFieldOverrides = {};
-      for (const pf of this.harPickFields) {
-        if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) {
-          this.updateHarPickFieldDisplayValue(pf.id, pf.edit_value);
-        }
+	      for (const pf of this.harPickFields) {
+	        this.updateHarPickFieldDisplayValue(this.pickFieldDraftKey(pf), this.harPickFieldDraftValue(pf));
         const manualOverride = !!pf.manual_override && (pf.resolve_status === 'manual' || !pf.value_code);
         pickFieldOverrides[pf.id] = {
           value_id: pf.value_id,
@@ -4296,13 +4298,56 @@ function app() {
       return this.currentReport?.action_queues?.[name] || [];
     },
 
-    pickFieldDisplayValue(pf) {
-      if (!pf) return '';
-      if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
-      return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
-    },
+	    pickFieldDraftKey(pf) {
+	      if (!pf) return '';
+	      return String(pf.step_id || pf.source_step_id || pf.write_step_id || pf.id || '');
+	    },
 
-    pickFieldDisplayKind(pf) {
+	    pickFieldStoredDisplayValue(pf) {
+	      if (!pf) return '';
+	      if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
+	      return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
+	    },
+
+	    pickFieldDisplayValue(pf) {
+	      if (!pf) return '';
+	      const key = this.pickFieldDraftKey(pf);
+	      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
+	        return String(this.harPickFieldDrafts[key] || '');
+	      }
+	      return this.pickFieldStoredDisplayValue(pf);
+	    },
+
+	    hydrateHarPickFieldDrafts() {
+	      const drafts = {};
+	      for (const pf of (this.harPickFields || [])) {
+	        const key = this.pickFieldDraftKey(pf);
+	        if (!key) continue;
+	        drafts[key] = this.pickFieldStoredDisplayValue(pf);
+	      }
+	      this.harPickFieldDrafts = drafts;
+	    },
+
+	    harPickFieldDraftValue(pf) {
+	      if (!pf) return '';
+	      const key = this.pickFieldDraftKey(pf);
+	      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
+	        return String(this.harPickFieldDrafts[key] || '');
+	      }
+	      return this.pickFieldStoredDisplayValue(pf);
+	    },
+
+	    setHarPickFieldDraft(pf, value) {
+	      if (!pf || pf.readonly) return;
+	      const key = this.pickFieldDraftKey(pf);
+	      if (!key) return;
+	      const text = String(value || '');
+	      this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+	      pf.edit_value = text;
+	      this.markHarPickFieldDraft(pf);
+	    },
+
+	    pickFieldDisplayKind(pf) {
       if (!pf) return 'id';
       if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
@@ -4379,15 +4424,19 @@ function app() {
       return this._groupFieldItems(this.parsedVars(), '智能变量');
     },
 
-    updateHarPickFieldDisplayValue(stepId, value) {
-      const text = String(value || '').trim();
-      let pf = this.harPickFields.find(h => h.id === stepId || h.step_id === stepId);
-      if (!pf) {
-        const parsed = this.parsedPickFields().find(h => h.step_id === stepId || h.id === stepId);
-        pf = parsed || null;
-      }
-      if (!pf) return;
-      pf.edit_value = text;
+	    updateHarPickFieldDisplayValue(stepId, value) {
+	      const text = String(value || '').trim();
+	      let pf = this.harPickFields.find(h => h.id === stepId || h.step_id === stepId || this.pickFieldDraftKey(h) === stepId);
+	      if (!pf) {
+	        const parsed = this.parsedPickFields().find(h => h.step_id === stepId || h.id === stepId);
+	        pf = parsed || null;
+	      }
+	      if (!pf) return;
+	      pf.edit_value = text;
+	      const key = this.pickFieldDraftKey(pf);
+	      if (key) {
+	        this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+	      }
       const kind = this.pickFieldDisplayKind(pf);
       if (kind === 'code') {
         pf.value_code = text;
@@ -6252,11 +6301,16 @@ function app() {
       if (!newValue || !String(newValue).trim()) { alert('值不能为空'); return; }
       newValue = String(newValue).trim();
       // ⭐ 立即更新本地 harPickFields（不依赖API成功）
-      const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId);
+	      const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId || pf.step_id === stepId || this.pickFieldDraftKey(pf) === stepId);
       let payload = { case_name: this.currentCase && this.currentCase.name, step_id: stepId };
-      if (pfIdx !== -1) {
-        const pf = this.harPickFields[pfIdx];
-        const kind = this.pickFieldDisplayKind(pf);
+	      if (pfIdx !== -1) {
+	        const pf = this.harPickFields[pfIdx];
+	        pf.edit_value = newValue;
+	        const draftKey = this.pickFieldDraftKey(pf);
+	        if (draftKey) {
+	          this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [draftKey]: newValue};
+	        }
+	        const kind = this.pickFieldDisplayKind(pf);
         if (kind === 'code') {
           pf.value_code = newValue;
           pf.value_number = newValue;
