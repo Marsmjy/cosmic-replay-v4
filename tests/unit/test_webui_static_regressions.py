@@ -22,6 +22,8 @@ def test_har_preview_env_fields_have_explicit_confirm_action():
     assert "@input=\"setHarPickFieldDraft(pf, $event.target.value)\"" in html
     assert '@click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), \'display\')"' in html
     assert "harPickFieldDrafts: {}" in html
+    assert 'pf_input_' not in html
+    assert ':disabled="pf.readonly"' not in html
     assert "已修改，生成 YAML 后生效" in html
 
 

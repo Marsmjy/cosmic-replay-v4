@@ -1163,19 +1163,13 @@
                     </div>
                     <div class="flex items-center gap-2 ml-5">
                       <span class="text-xs text-slate-500">值:</span>
-                      <input type="text" 
-                             :id="'pf_input_' + pf.step_id"
+                      <input type="text"
                              class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
-                             :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
-                             :disabled="pf.readonly"
-                             x-init="$el.value = pickFieldDisplayValue(pf)"
-                             :data-orig="pickFieldDisplayValue(pf)"
-                             @input="if(!pf.readonly) updateHarPickFieldDisplayValue(pf.step_id, $el.value)"
-                             @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.step_id, $el.value, 'display')"
-                             @blur="if(!pf.readonly && $el.value !== ($el.dataset.orig || '')) savePickFieldValue(pf.step_id, $el.value, 'display')">
+                             :value="harPickFieldDraftValue(pf)"
+                             @input="setHarPickFieldDraft(pf, $event.target.value)"
+                             @keydown.enter="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">
                       <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                              x-show="!pf.readonly"
-                              @click="savePickFieldValue(pf.step_id, document.getElementById('pf_input_' + pf.step_id).value, 'display')">保存</button>
+                              @click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">保存</button>
                     </div>
                     <!-- 中文名称显示（当 value_name 存在且与 value_id 不同时） -->
                     <div x-show="pf.value_name && pf.value_name !== pf.value_id" class="ml-5 mt-1">
@@ -1455,10 +1449,10 @@
         </div>
       </div>
 
-	      <div x-show="harAdvancedOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-	        <div class="bg-slate-950 border border-slate-800 rounded p-3">
-	          <div class="text-xs text-slate-400">主表单</div>
-	          <div class="mono text-sm mt-1" x-text="harPreview?.main_form_id || '未识别'"></div>
+      <div x-show="harAdvancedOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-slate-950 border border-slate-800 rounded p-3">
+          <div class="text-xs text-slate-400">主表单</div>
+          <div class="mono text-sm mt-1" x-text="harPreview?.main_form_id || '未识别'"></div>
         </div>
         <div class="bg-slate-950 border border-emerald-900/50 rounded p-3">
           <div class="text-xs text-emerald-400">核心 step</div>
@@ -1471,79 +1465,79 @@
         <div class="bg-slate-950 border border-slate-800 rounded p-3">
           <div class="text-xs text-slate-500">噪声（默认去掉）</div>
           <div class="text-2xl mt-1 text-slate-500" x-text="harPreview?.tier_counts?.noise || 0"></div>
-	        </div>
-	      </div>
+        </div>
+      </div>
 
-	      <!-- 第三阶段：组件雷达 -->
-	      <div x-show="harAdvancedOpen && harPreview?.components"
-	           class="bg-slate-950 border border-cyan-900/50 rounded-lg p-4">
-	        <div class="flex items-start justify-between gap-4">
-	          <div>
-	            <div class="flex items-center gap-2 mb-1">
-	              <span class="text-sm font-medium text-cyan-200">组件雷达</span>
-	              <span class="text-xs px-2 py-0.5 rounded"
-	                    :class="{
-	                      'bg-emerald-900/50 text-emerald-300': harPreview?.components?.summary?.risk_level === 'low',
-	                      'bg-amber-900/50 text-amber-300': harPreview?.components?.summary?.risk_level === 'medium',
-	                      'bg-rose-900/50 text-rose-300': harPreview?.components?.summary?.risk_level === 'high',
-	                    }"
-	                    x-text="'风险 ' + (harPreview?.components?.summary?.risk_level || '-')"></span>
-	            </div>
-	            <div class="text-xs text-slate-500">
-	              按金蝶组件处理器识别每个 step，先暴露未知组件，不改变当前 YAML 生成行为。
-	            </div>
-	          </div>
-	          <div class="text-right shrink-0">
-	            <div class="text-2xl font-semibold text-cyan-200"
-	                 x-text="(harPreview?.components?.summary?.coverage_percent ?? 0) + '%'"></div>
-	            <div class="text-xs text-slate-500">组件覆盖率</div>
-	          </div>
-	        </div>
-	        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
-	          <div class="bg-slate-900 rounded px-3 py-2">
-	            <div class="text-xs text-slate-500">总步骤</div>
-	            <div class="text-lg text-slate-200" x-text="harPreview?.components?.summary?.total_steps || 0"></div>
-	          </div>
-	          <div class="bg-slate-900 rounded px-3 py-2">
-	            <div class="text-xs text-slate-500">已支持</div>
-	            <div class="text-lg text-emerald-300" x-text="harPreview?.components?.summary?.supported_steps || 0"></div>
-	          </div>
-	          <div class="bg-slate-900 rounded px-3 py-2">
-	            <div class="text-xs text-slate-500">部分支持</div>
-	            <div class="text-lg text-amber-300" x-text="harPreview?.components?.summary?.partial_steps || 0"></div>
-	          </div>
-	          <div class="bg-slate-900 rounded px-3 py-2">
-	            <div class="text-xs text-slate-500">未覆盖</div>
-	            <div class="text-lg text-rose-300" x-text="harPreview?.components?.summary?.unsupported_steps || 0"></div>
-	          </div>
-	        </div>
-	        <div class="grid grid-cols-2 gap-3 mt-3">
-	          <div class="bg-slate-900 rounded p-2">
-	            <div class="text-xs text-slate-500 mb-2">主要组件</div>
-	            <template x-for="h in (harPreview?.components?.handlers || []).slice(0, 6)" :key="h.handler_id">
-	              <div class="flex justify-between gap-2 text-xs py-0.5">
-	                <span class="text-slate-300 truncate" x-text="h.component"></span>
-	                <span class="text-slate-500" x-text="h.count"></span>
-	              </div>
-	            </template>
-	          </div>
-	          <div class="bg-slate-900 rounded p-2">
-	            <div class="text-xs text-slate-500 mb-2">未覆盖步骤</div>
-	            <template x-if="!(harPreview?.components?.unsupported || []).length">
-	              <div class="text-xs text-emerald-400">暂无未知组件</div>
-	            </template>
-	            <template x-for="u in (harPreview?.components?.unsupported || []).slice(0, 6)" :key="u.index + u.step_id">
-	              <div class="text-xs py-0.5">
-	                <code class="text-rose-300" x-text="u.step_id || u.ac || '-'"></code>
-	                <span class="text-slate-500 ml-1" x-text="u.reason"></span>
-	              </div>
-	            </template>
-	          </div>
-	        </div>
-	      </div>
+      <!-- 第三阶段：组件雷达 -->
+      <div x-show="harAdvancedOpen && harPreview?.components"
+           class="bg-slate-950 border border-cyan-900/50 rounded-lg p-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-sm font-medium text-cyan-200">组件雷达</span>
+              <span class="text-xs px-2 py-0.5 rounded"
+                    :class="{
+                      'bg-emerald-900/50 text-emerald-300': harPreview?.components?.summary?.risk_level === 'low',
+                      'bg-amber-900/50 text-amber-300': harPreview?.components?.summary?.risk_level === 'medium',
+                      'bg-rose-900/50 text-rose-300': harPreview?.components?.summary?.risk_level === 'high',
+                    }"
+                    x-text="'风险 ' + (harPreview?.components?.summary?.risk_level || '-')"></span>
+            </div>
+            <div class="text-xs text-slate-500">
+              按金蝶组件处理器识别每个 step，先暴露未知组件，不改变当前 YAML 生成行为。
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-2xl font-semibold text-cyan-200"
+                 x-text="(harPreview?.components?.summary?.coverage_percent ?? 0) + '%'"></div>
+            <div class="text-xs text-slate-500">组件覆盖率</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+          <div class="bg-slate-900 rounded px-3 py-2">
+            <div class="text-xs text-slate-500">总步骤</div>
+            <div class="text-lg text-slate-200" x-text="harPreview?.components?.summary?.total_steps || 0"></div>
+          </div>
+          <div class="bg-slate-900 rounded px-3 py-2">
+            <div class="text-xs text-slate-500">已支持</div>
+            <div class="text-lg text-emerald-300" x-text="harPreview?.components?.summary?.supported_steps || 0"></div>
+          </div>
+          <div class="bg-slate-900 rounded px-3 py-2">
+            <div class="text-xs text-slate-500">部分支持</div>
+            <div class="text-lg text-amber-300" x-text="harPreview?.components?.summary?.partial_steps || 0"></div>
+          </div>
+          <div class="bg-slate-900 rounded px-3 py-2">
+            <div class="text-xs text-slate-500">未覆盖</div>
+            <div class="text-lg text-rose-300" x-text="harPreview?.components?.summary?.unsupported_steps || 0"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <div class="bg-slate-900 rounded p-2">
+            <div class="text-xs text-slate-500 mb-2">主要组件</div>
+            <template x-for="h in (harPreview?.components?.handlers || []).slice(0, 6)" :key="h.handler_id">
+              <div class="flex justify-between gap-2 text-xs py-0.5">
+                <span class="text-slate-300 truncate" x-text="h.component"></span>
+                <span class="text-slate-500" x-text="h.count"></span>
+              </div>
+            </template>
+          </div>
+          <div class="bg-slate-900 rounded p-2">
+            <div class="text-xs text-slate-500 mb-2">未覆盖步骤</div>
+            <template x-if="!(harPreview?.components?.unsupported || []).length">
+              <div class="text-xs text-emerald-400">暂无未知组件</div>
+            </template>
+            <template x-for="u in (harPreview?.components?.unsupported || []).slice(0, 6)" :key="u.index + u.step_id">
+              <div class="text-xs py-0.5">
+                <code class="text-rose-300" x-text="u.step_id || u.ac || '-'"></code>
+                <span class="text-slate-500 ml-1" x-text="u.reason"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
 
-	      <!-- ⭐ 变量配置面板 -->
-	      <div x-show="(harPreview?.detected_vars || []).length > 0"
+      <!-- ⭐ 变量配置面板 -->
+      <div x-show="(harPreview?.detected_vars || []).length > 0"
            class="bg-slate-950 border border-purple-900/40 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
@@ -1604,15 +1598,15 @@
       <!-- ⭐ 环境相关字段面板 -->
       <div x-show="harPickFields.length > 0"
            class="bg-slate-950 border border-orange-900/40 rounded-lg p-4">
-	        <div class="flex items-center justify-between mb-3">
-	          <div class="flex items-center gap-2">
-	            <span class="text-orange-400 text-sm">&#9881;</span>
-	            <span class="text-sm font-medium text-orange-200">环境相关字段</span>
-	            <span class="text-xs text-slate-500">系统识别到以下环境敏感字段，跨环境运行时可能需要修改</span>
-	          </div>
-	        </div>
-	        <div class="space-y-3">
-	          <template x-for="group in harPickFieldGroups()" :key="group.key">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-orange-400 text-sm">&#9881;</span>
+            <span class="text-sm font-medium text-orange-200">环境相关字段</span>
+            <span class="text-xs text-slate-500">系统识别到以下环境敏感字段，跨环境运行时可能需要修改</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <template x-for="group in harPickFieldGroups()" :key="group.key">
               <div class="border border-slate-800 rounded-lg overflow-hidden">
                 <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
                   <div class="min-w-0">
@@ -1622,8 +1616,8 @@
                   <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
                 </div>
                 <div class="divide-y divide-slate-800">
-	          <template x-for="(pf, i) in group.items" :key="pf.id">
-	            <div class="flex items-center gap-3 px-3 py-2 bg-slate-900">
+          <template x-for="(pf, i) in group.items" :key="pf.id">
+            <div class="flex items-center gap-3 px-3 py-2 bg-slate-900">
               <!-- 敏感度指示圆点 -->
               <span class="w-2.5 h-2.5 rounded-full shrink-0"
                     :class="{
@@ -1644,13 +1638,10 @@
               <input type="text"
                      :value="harPickFieldDraftValue(pf)"
                      @input="setHarPickFieldDraft(pf, $event.target.value)"
-                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')"
+                     @keydown.enter="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
-                     :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
-                     :disabled="pf.readonly"
                      :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
               <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
-                      x-show="!pf.readonly"
                       @click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">确认</button>
               <!-- value_name 显示 -->
               <div class="w-32 shrink-0 text-right">
@@ -1667,21 +1658,21 @@
                         'text-emerald-400': pf.env_sensitive === 'low',
                       }" x-text="pf.env_sensitive === 'high' ? '必改' : pf.env_sensitive === 'medium' ? '可能需改' : '一般不改'"></span>
               </div>
-	              <label class="flex items-center gap-1 text-xs text-slate-500 shrink-0" x-show="pf.resolve_status !== 'manual'">
-	                <input type="checkbox" x-model="pf.auto_resolve" class="accent-sky-500">
-	                <span>自动解析</span>
-	              </label>
-	              <div class="w-20 shrink-0 text-right">
-	                <span x-show="pf.resolve_status === 'resolved'" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-300">已解析</span>
-	                <span x-show="pf.resolve_status === 'ambiguous'" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300">有歧义</span>
-	                <span x-show="pf.resolve_status === 'not_found' || pf.resolve_status === 'error'" class="text-[10px] px-1.5 py-0.5 rounded bg-rose-900/50 text-rose-300">需确认</span>
-	              </div>
-	            </div>
-	          </template>
+              <label class="flex items-center gap-1 text-xs text-slate-500 shrink-0" x-show="pf.resolve_status !== 'manual'">
+                <input type="checkbox" x-model="pf.auto_resolve" class="accent-sky-500">
+                <span>自动解析</span>
+              </label>
+              <div class="w-20 shrink-0 text-right">
+                <span x-show="pf.resolve_status === 'resolved'" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/50 text-emerald-300">已解析</span>
+                <span x-show="pf.resolve_status === 'ambiguous'" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300">有歧义</span>
+                <span x-show="pf.resolve_status === 'not_found' || pf.resolve_status === 'error'" class="text-[10px] px-1.5 py-0.5 rounded bg-rose-900/50 text-rose-300">需确认</span>
+              </div>
+            </div>
+          </template>
                 </div>
               </div>
             </template>
-	        </div>
+        </div>
         <div class="text-xs text-slate-500 mt-2 flex items-center gap-3">
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> 跨环境必须修改</span>
           <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> 可能需修改</span>
@@ -1700,18 +1691,18 @@
                     'bg-slate-600': s.tier==='noise',
                   }"></span>
             <div class="flex-1 min-w-0">
-	              <div class="truncate">
-	                <code class="mono text-xs text-sky-400" x-text="s.id"></code>
-	                <span class="text-xs text-slate-500 ml-2" x-text="s.type"></span>
-	                <span x-show="s.component"
-	                      class="text-[10px] px-1 py-0.5 rounded ml-2"
-	                      :class="{
-	                        'bg-emerald-900/40 text-emerald-300': s.component_support === 'supported',
-	                        'bg-amber-900/40 text-amber-300': s.component_support === 'partial',
-	                        'bg-rose-900/40 text-rose-300': s.component_support === 'unsupported',
-	                      }"
-	                      x-text="s.component"></span>
-	              </div>
+              <div class="truncate">
+                <code class="mono text-xs text-sky-400" x-text="s.id"></code>
+                <span class="text-xs text-slate-500 ml-2" x-text="s.type"></span>
+                <span x-show="s.component"
+                      class="text-[10px] px-1 py-0.5 rounded ml-2"
+                      :class="{
+                        'bg-emerald-900/40 text-emerald-300': s.component_support === 'supported',
+                        'bg-amber-900/40 text-amber-300': s.component_support === 'partial',
+                        'bg-rose-900/40 text-rose-300': s.component_support === 'unsupported',
+                      }"
+                      x-text="s.component"></span>
+              </div>
               <div class="text-xs text-slate-500 mono truncate" x-text="s.brief"></div>
             </div>
             <div class="flex items-center gap-1 shrink-0">
@@ -3847,7 +3838,7 @@ function app() {
           iconClass: 'bg-amber-500 text-slate-950',
         };
       }
-	      if (score >= 85) {
+      if (score >= 85) {
         return {
           level: 'ready',
           icon: '✓',
@@ -3955,15 +3946,15 @@ function app() {
       this.harStep = 1;
       this.harPreview = null;
       this.harFile = null;
-	      this.harCaseName = '';
-	      this.harVarConfig = [];
-	      this.harPickFields = [];
-	      this.harPickFieldDrafts = {};
-	      this.harResolvingFields = false;
-	      this.metadataStatus = 'offline';
-	      this.harAdvancedOpen = false;
-	      this.dropHover = false;
-	    },
+      this.harCaseName = '';
+      this.harVarConfig = [];
+      this.harPickFields = [];
+      this.harPickFieldDrafts = {};
+      this.harResolvingFields = false;
+      this.metadataStatus = 'offline';
+      this.harAdvancedOpen = false;
+      this.dropHover = false;
+    },
 
     async onDropHar(ev) {
       this.dropHover = false;
@@ -3998,73 +3989,73 @@ function app() {
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
         // ⭐ 初始化环境相关字段面板（按 env_sensitive 排序，与变量面板一致）
         const SENS_ORDER = { high: 0, medium: 1, low: 2 };
-	        this.harPickFields = (data.preview.pick_fields || []).map(pf => {
-	          const item = {...pf};
-	          item.edit_value = this.pickFieldDisplayValue(item);
-	          return item;
-	        })
-	            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
-	        this.hydrateHarPickFieldDrafts();
-	        this.harCaseName = file.name.replace(/\.har$/i, '');
+        this.harPickFields = (data.preview.pick_fields || []).map(pf => {
+          const item = {...pf};
+          item.edit_value = this.pickFieldDisplayValue(item);
+          return item;
+        })
+            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
+        this.hydrateHarPickFieldDrafts();
+        this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harAdvancedOpen = false;
-	        this.harStep = 2;
-	      } catch (e) {
-	        this.showToast('上传失败: ' + e.message);
-	      } finally {
-	        this.harUploading = false;
-	      }
-	    },
+        this.harStep = 2;
+      } catch (e) {
+        this.showToast('上传失败: ' + e.message);
+      } finally {
+        this.harUploading = false;
+      }
+    },
 
 	    async resolveHarEnvFields() {
-	      const candidates = this.harPickFields.filter(pf => pf.auto_resolve);
-	      if (!candidates.length) {
-	        this.showToast('没有需要自动解析的环境字段');
-	        return;
-	      }
-	      if (this.metadataStatus !== 'online') {
-	        this.showToast('当前环境未在线，无法解析字段');
-	        return;
-	      }
-	      this.harResolvingFields = true;
-	      try {
-	        const resp = await fetch('/api/env-fields/resolve', {
-	          method: 'POST',
-	          headers: {'Content-Type': 'application/json'},
-	          body: JSON.stringify({
-	            env_id: this.currentEnv || '',
-	            har_file: this.harFile || '',
-	            fields: candidates,
-	          }),
-	        });
-	        const data = await resp.json();
-	        if (!resp.ok || !data.ok) {
-	          this.showToast('环境字段解析失败: ' + (data.detail || data.error || resp.status));
-	          return;
-	        }
-	        const byId = new Map((data.fields || []).map(f => [f.step_id, f]));
-	        let ok = 0;
-	        let needConfirm = 0;
-	        this.harPickFields = this.harPickFields.map(pf => {
-	          const r = byId.get(pf.id);
-	          if (!r) return pf;
-		          const next = {...pf, ...r};
-	          if (r.resolve_status === 'resolved' && r.effective_value_id) {
-	            next.value_id = r.effective_value_id;
-	            ok++;
-	          } else if (r.resolve_status && r.resolve_status !== 'manual') {
-	            needConfirm++;
-	          }
-		          next.edit_value = this.pickFieldStoredDisplayValue(next);
-		          return next;
-		        });
-		        this.hydrateHarPickFieldDrafts();
-	        this.showToast(`环境字段解析完成：${ok} 个已解析，${needConfirm} 个需确认`);
-	      } catch (e) {
-	        this.showToast('环境字段解析失败: ' + e.message);
-	      } finally {
-	        this.harResolvingFields = false;
-	      }
-	    },
+      const candidates = this.harPickFields.filter(pf => pf.auto_resolve);
+      if (!candidates.length) {
+        this.showToast('没有需要自动解析的环境字段');
+        return;
+      }
+      if (this.metadataStatus !== 'online') {
+        this.showToast('当前环境未在线，无法解析字段');
+        return;
+      }
+      this.harResolvingFields = true;
+      try {
+        const resp = await fetch('/api/env-fields/resolve', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            env_id: this.currentEnv || '',
+            har_file: this.harFile || '',
+            fields: candidates,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          this.showToast('环境字段解析失败: ' + (data.detail || data.error || resp.status));
+          return;
+        }
+        const byId = new Map((data.fields || []).map(f => [f.step_id, f]));
+        let ok = 0;
+        let needConfirm = 0;
+        this.harPickFields = this.harPickFields.map(pf => {
+          const r = byId.get(pf.id);
+          if (!r) return pf;
+          const next = {...pf, ...r};
+          if (r.resolve_status === 'resolved' && r.effective_value_id) {
+            next.value_id = r.effective_value_id;
+            ok++;
+          } else if (r.resolve_status && r.resolve_status !== 'manual') {
+            needConfirm++;
+          }
+          next.edit_value = this.pickFieldStoredDisplayValue(next);
+          return next;
+        });
+        this.hydrateHarPickFieldDrafts();
+        this.showToast(`环境字段解析完成：${ok} 个已解析，${needConfirm} 个需确认`);
+      } catch (e) {
+        this.showToast('环境字段解析失败: ' + e.message);
+      } finally {
+        this.harResolvingFields = false;
+      }
+    },
 
 	    async doExtractHar() {
       if (!this.harCaseName || !this.harFile) return;
@@ -4079,8 +4070,8 @@ function app() {
       }
       // ⭐ 构建环境字段覆盖配置
       const pickFieldOverrides = {};
-	      for (const pf of this.harPickFields) {
-	        this.updateHarPickFieldDisplayValue(this.pickFieldDraftKey(pf), this.harPickFieldDraftValue(pf));
+      for (const pf of this.harPickFields) {
+        this.updateHarPickFieldDisplayValue(this.pickFieldDraftKey(pf), this.harPickFieldDraftValue(pf));
         const manualOverride = !!pf.manual_override && (pf.resolve_status === 'manual' || !pf.value_code);
         pickFieldOverrides[pf.id] = {
           value_id: pf.value_id,
@@ -4099,12 +4090,12 @@ function app() {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-	            har_file: this.harFile,
-	            case_name: this.harCaseName,
-	            env_id: this.currentEnv || '',
-	            var_overrides: varOverrides,
-	            pick_field_overrides: pickFieldOverrides,
-	          }),
+            har_file: this.harFile,
+            case_name: this.harCaseName,
+            env_id: this.currentEnv || '',
+            var_overrides: varOverrides,
+            pick_field_overrides: pickFieldOverrides,
+          }),
         });
         if (!resp.ok) {
           const err = await resp.json();
@@ -4298,56 +4289,56 @@ function app() {
       return this.currentReport?.action_queues?.[name] || [];
     },
 
-	    pickFieldDraftKey(pf) {
-	      if (!pf) return '';
-	      return String(pf.step_id || pf.source_step_id || pf.write_step_id || pf.id || '');
-	    },
+    pickFieldDraftKey(pf) {
+      if (!pf) return '';
+      return String(pf.id || pf.step_id || pf.source_step_id || pf.write_step_id || '');
+    },
 
-	    pickFieldStoredDisplayValue(pf) {
-	      if (!pf) return '';
-	      if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
-	      return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
-	    },
+    pickFieldStoredDisplayValue(pf) {
+      if (!pf) return '';
+      if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
+      return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
+    },
 
-	    pickFieldDisplayValue(pf) {
-	      if (!pf) return '';
-	      const key = this.pickFieldDraftKey(pf);
-	      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
-	        return String(this.harPickFieldDrafts[key] || '');
-	      }
-	      return this.pickFieldStoredDisplayValue(pf);
-	    },
+    pickFieldDisplayValue(pf) {
+      if (!pf) return '';
+      const key = this.pickFieldDraftKey(pf);
+      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
+        return String(this.harPickFieldDrafts[key] || '');
+      }
+      return this.pickFieldStoredDisplayValue(pf);
+    },
 
-	    hydrateHarPickFieldDrafts() {
-	      const drafts = {};
-	      for (const pf of (this.harPickFields || [])) {
-	        const key = this.pickFieldDraftKey(pf);
-	        if (!key) continue;
-	        drafts[key] = this.pickFieldStoredDisplayValue(pf);
-	      }
-	      this.harPickFieldDrafts = drafts;
-	    },
+    hydrateHarPickFieldDrafts() {
+      const drafts = {};
+      for (const pf of (this.harPickFields || [])) {
+        const key = this.pickFieldDraftKey(pf);
+        if (!key) continue;
+        drafts[key] = this.pickFieldStoredDisplayValue(pf);
+      }
+      this.harPickFieldDrafts = drafts;
+    },
 
-	    harPickFieldDraftValue(pf) {
-	      if (!pf) return '';
-	      const key = this.pickFieldDraftKey(pf);
-	      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
-	        return String(this.harPickFieldDrafts[key] || '');
-	      }
-	      return this.pickFieldStoredDisplayValue(pf);
-	    },
+    harPickFieldDraftValue(pf) {
+      if (!pf) return '';
+      const key = this.pickFieldDraftKey(pf);
+      if (key && this.harPickFieldDrafts && Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
+        return String(this.harPickFieldDrafts[key] || '');
+      }
+      return this.pickFieldStoredDisplayValue(pf);
+    },
 
-	    setHarPickFieldDraft(pf, value) {
-	      if (!pf || pf.readonly) return;
-	      const key = this.pickFieldDraftKey(pf);
-	      if (!key) return;
-	      const text = String(value || '');
-	      this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
-	      pf.edit_value = text;
-	      this.markHarPickFieldDraft(pf);
-	    },
+    setHarPickFieldDraft(pf, value) {
+      if (!pf) return;
+      const key = this.pickFieldDraftKey(pf);
+      if (!key) return;
+      const text = String(value || '');
+      this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+      pf.edit_value = text;
+      this.markHarPickFieldDraft(pf);
+    },
 
-	    pickFieldDisplayKind(pf) {
+    pickFieldDisplayKind(pf) {
       if (!pf) return 'id';
       if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
@@ -4425,18 +4416,18 @@ function app() {
     },
 
 	    updateHarPickFieldDisplayValue(stepId, value) {
-	      const text = String(value || '').trim();
-	      let pf = this.harPickFields.find(h => h.id === stepId || h.step_id === stepId || this.pickFieldDraftKey(h) === stepId);
-	      if (!pf) {
-	        const parsed = this.parsedPickFields().find(h => h.step_id === stepId || h.id === stepId);
-	        pf = parsed || null;
-	      }
-	      if (!pf) return;
-	      pf.edit_value = text;
-	      const key = this.pickFieldDraftKey(pf);
-	      if (key) {
-	        this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
-	      }
+      const text = String(value || '').trim();
+      let pf = this.harPickFields.find(h => h.id === stepId || h.step_id === stepId || this.pickFieldDraftKey(h) === stepId);
+      if (!pf) {
+        const parsed = this.parsedPickFields().find(h => h.step_id === stepId || h.id === stepId);
+        pf = parsed || null;
+      }
+      if (!pf) return;
+      pf.edit_value = text;
+      const key = this.pickFieldDraftKey(pf);
+      if (key) {
+        this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+      }
       const kind = this.pickFieldDisplayKind(pf);
       if (kind === 'code') {
         pf.value_code = text;
@@ -4460,7 +4451,7 @@ function app() {
     },
 
     markHarPickFieldDraft(pf) {
-      if (!pf || pf.readonly) return;
+      if (!pf) return;
       pf.user_overridden = true;
       pf.resolve_status = pf.resolve_status || 'manual';
     },
@@ -6301,16 +6292,16 @@ function app() {
       if (!newValue || !String(newValue).trim()) { alert('值不能为空'); return; }
       newValue = String(newValue).trim();
       // ⭐ 立即更新本地 harPickFields（不依赖API成功）
-	      const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId || pf.step_id === stepId || this.pickFieldDraftKey(pf) === stepId);
+      const pfIdx = this.harPickFields.findIndex(pf => pf.id === stepId || pf.step_id === stepId || this.pickFieldDraftKey(pf) === stepId);
       let payload = { case_name: this.currentCase && this.currentCase.name, step_id: stepId };
-	      if (pfIdx !== -1) {
-	        const pf = this.harPickFields[pfIdx];
-	        pf.edit_value = newValue;
-	        const draftKey = this.pickFieldDraftKey(pf);
-	        if (draftKey) {
-	          this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [draftKey]: newValue};
-	        }
-	        const kind = this.pickFieldDisplayKind(pf);
+      if (pfIdx !== -1) {
+        const pf = this.harPickFields[pfIdx];
+        pf.edit_value = newValue;
+        const draftKey = this.pickFieldDraftKey(pf);
+        if (draftKey) {
+          this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [draftKey]: newValue};
+        }
+        const kind = this.pickFieldDisplayKind(pf);
         if (kind === 'code') {
           pf.value_code = newValue;
           pf.value_number = newValue;
