@@ -189,6 +189,13 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      max-width: 180px;
+    }
+    .env-selector select {
+      max-width: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .env-dot {
       width: 8px;
@@ -349,9 +356,9 @@
     <!-- 环境选择器 -->
     <div class="env-selector ml-auto lg:ml-0">
       <span class="env-dot"></span>
-      <span class="text-xs font-medium" x-text="currentEnvObj()?.name || currentEnv"></span>
       <select x-model="currentEnv" @change="confirmEnvChange()"
-              class="bg-transparent border-none text-xs cursor-pointer outline-none">
+              :title="currentEnvObj()?.name || currentEnv"
+              class="bg-transparent border-none text-xs font-medium cursor-pointer outline-none">
         <template x-for="e in envs" :key="e.id">
           <option :value="e.id" x-text="e.name"></option>
         </template>
@@ -400,7 +407,7 @@
           </button>
         </div>
         <!-- 内联统计 badges -->
-        <div class="flex items-center gap-1.5 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap" style="display:none">
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-700/60 text-slate-300 border border-slate-600/50">
             共 <span class="font-bold" x-text="cases.length"></span> 条
           </span>
@@ -2203,7 +2210,7 @@
 
   </section>
 
-  <!-- ========== 配置 ========== -->
+  <!-- ========== 配置 ========== --> 
   <section x-show="view==='settings'" class="fadein">
     <div class="flex items-center gap-3 mb-4">
       <button @click="view='dashboard'" class="text-slate-400 hover:text-slate-100">←</button>
@@ -2214,7 +2221,7 @@
 
     <!-- Tab 切换 -->
     <div class="flex gap-1 mb-4 border-b border-slate-800">
-      <button class="px-4 py-2 text-sm -mb-px border-b-2"
+      <button class="px-4 py-2 text-sm -mb-px border-b-2" style="display:none"
               :class="settingsTab==='general' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
               @click="settingsTab='general'">通用</button>
       <button class="px-4 py-2 text-sm -mb-px border-b-2"
@@ -2377,9 +2384,9 @@
            @click="newEnvDialog=false">
         <div class="bg-slate-900 border border-slate-700 rounded-lg p-6 w-96" @click.stop>
           <div class="text-lg font-semibold mb-3">新建环境</div>
-          <label class="block text-xs text-slate-400 mb-1">环境 ID（文件名，小写字母数字下划线）</label>
-          <input type="text" x-model="newEnvId" placeholder="如: uat / client_acme"
-                 class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 mono mb-3">
+          <label class="block text-xs text-slate-400 mb-1">环境标识</label>
+          <input type="text" x-model="newEnvId" placeholder="如: uat / 测试环境"
+                 class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 mb-3">
           <label class="block text-xs text-slate-400 mb-1">克隆自</label>
           <select x-model="newEnvClone" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2">
             <option value="">不克隆（空白模板）</option>
@@ -3118,7 +3125,7 @@ function app() {
     taskDetail: null,     // 当前查看的任务详情对象（来自 /api/tasks/{id} 返回）
 
     // 配置
-    settingsTab: 'general',
+    settingsTab: 'envs',
     envDraft: {},
     envShowPwd: {},
     envExpanded: {},
@@ -5301,8 +5308,8 @@ function app() {
     },
 
     async confirmNewEnv() {
-      if (!this.newEnvId || !/^[a-z0-9_]+$/.test(this.newEnvId)) {
-        this.showToast('ID 必须是小写字母数字下划线');
+      if (!this.newEnvId || !this.newEnvId.trim()) {
+        this.showToast('环境标识不能为空');
         return;
       }
       let template = {
