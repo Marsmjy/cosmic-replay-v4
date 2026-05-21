@@ -18,5 +18,14 @@ def test_har_preview_grouping_keeps_original_field_object_references():
 def test_har_preview_env_fields_have_explicit_confirm_action():
     html = _index_html()
 
-    assert "@click=\"savePickFieldValue(pf.id, pickFieldDisplayValue(pf), 'display')\"" in html
+    assert 'x-model="pf.edit_value"' in html
+    assert '@click="savePickFieldValue(pf.id, pf.edit_value, \'display\')"' in html
     assert "已修改，生成 YAML 后生效" in html
+
+
+def test_har_preview_hides_manual_env_resolve_buttons_from_primary_flow():
+    html = _index_html()
+
+    assert "先解析字段" not in html
+    assert "一键解析当前环境" not in html
+    assert "建议先一键解析环境字段" not in html

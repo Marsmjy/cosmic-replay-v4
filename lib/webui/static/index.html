@@ -1386,12 +1386,6 @@
                    class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 mono text-sm"
                    placeholder="用例文件名">
             <div class="flex gap-2">
-              <button @click="resolveHarEnvFields()"
-                      x-show="harEnvStats().pending > 0 && metadataStatus === 'online'"
-                      :disabled="harResolvingFields"
-                      class="flex-1 px-3 py-2 rounded text-sm border border-sky-800 text-sky-200 hover:bg-sky-950 disabled:opacity-50">
-                <span x-text="harResolvingFields ? '解析中...' : '先解析字段'"></span>
-              </button>
               <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
                       class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-3 py-2 rounded text-sm">
                 生成 YAML
@@ -1616,12 +1610,6 @@
 	            <span class="text-sm font-medium text-orange-200">环境相关字段</span>
 	            <span class="text-xs text-slate-500">系统识别到以下环境敏感字段，跨环境运行时可能需要修改</span>
 	          </div>
-	          <button @click="resolveHarEnvFields()"
-	                  x-show="harPickFields.some(p => p.auto_resolve)"
-	                  :disabled="harResolvingFields || metadataStatus !== 'online'"
-	                  class="text-xs px-3 py-1.5 rounded border border-sky-800 text-sky-300 hover:bg-sky-950 disabled:opacity-50 disabled:hover:bg-transparent">
-	            <span x-text="harResolvingFields ? '解析中...' : '一键解析当前环境'"></span>
-	          </button>
 	        </div>
 	        <div class="space-y-3">
 	          <template x-for="group in harPickFieldGroups()" :key="group.key">
@@ -1654,16 +1642,16 @@
               <!-- 可编辑输入框：优先展示业务编码，内部 value_id 保留给执行器使用 -->
               <span class="text-xs text-slate-500 shrink-0">值:</span>
               <input type="text"
-                     :value="pickFieldDisplayValue(pf)"
-                     @input="if(!pf.readonly) updateHarPickFieldDisplayValue(pf.id, $event.target.value)"
-                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.id, $event.target.value, 'display')"
+                     x-model="pf.edit_value"
+                     @input="if(!pf.readonly) markHarPickFieldDraft(pf)"
+                     @keydown.enter="if(!pf.readonly) savePickFieldValue(pf.id, pf.edit_value, 'display')"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
                      :class="{'opacity-60 cursor-not-allowed': pf.readonly}"
                      :disabled="pf.readonly"
                      :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
               <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                       x-show="!pf.readonly"
-                      @click="savePickFieldValue(pf.id, pickFieldDisplayValue(pf), 'display')">确认</button>
+                      @click="savePickFieldValue(pf.id, pf.edit_value, 'display')">确认</button>
               <!-- value_name 显示 -->
               <div class="w-32 shrink-0 text-right">
                 <span class="block text-[10px] text-amber-300" x-show="pf.user_overridden">已修改，生成 YAML 后生效</span>
@@ -3858,19 +3846,7 @@ function app() {
           iconClass: 'bg-amber-500 text-slate-950',
         };
       }
-      if (env.pending > 0 && this.metadataStatus === 'online') {
-        return {
-          level: 'resolve',
-          icon: '~',
-          title: '建议先一键解析环境字段',
-          detail: `${env.pending} 个字段可用当前环境自动解析；也可以直接生成，运行时仍会兜底解析。`,
-          badge: '可优化',
-          cardClass: 'border-sky-700/70 bg-sky-950/20',
-          badgeClass: 'bg-sky-900/60 text-sky-200',
-          iconClass: 'bg-sky-500 text-white',
-        };
-      }
-      if (score >= 85) {
+	      if (score >= 85) {
         return {
           level: 'ready',
           icon: '✓',
@@ -4020,7 +3996,11 @@ function app() {
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
         // ⭐ 初始化环境相关字段面板（按 env_sensitive 排序，与变量面板一致）
         const SENS_ORDER = { high: 0, medium: 1, low: 2 };
-        this.harPickFields = (data.preview.pick_fields || []).map(pf => ({...pf}))
+        this.harPickFields = (data.preview.pick_fields || []).map(pf => {
+          const item = {...pf};
+          item.edit_value = this.pickFieldDisplayValue(item);
+          return item;
+        })
             .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
         this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harAdvancedOpen = false;
@@ -4071,6 +4051,7 @@ function app() {
 	          } else if (r.resolve_status && r.resolve_status !== 'manual') {
 	            needConfirm++;
 	          }
+	          next.edit_value = this.pickFieldDisplayValue(next);
 	          return next;
 	        });
 	        this.showToast(`环境字段解析完成：${ok} 个已解析，${needConfirm} 个需确认`);
@@ -4095,6 +4076,9 @@ function app() {
       // ⭐ 构建环境字段覆盖配置
       const pickFieldOverrides = {};
       for (const pf of this.harPickFields) {
+        if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) {
+          this.updateHarPickFieldDisplayValue(pf.id, pf.edit_value);
+        }
         const manualOverride = !!pf.manual_override && (pf.resolve_status === 'manual' || !pf.value_code);
         pickFieldOverrides[pf.id] = {
           value_id: pf.value_id,
@@ -4314,6 +4298,7 @@ function app() {
 
     pickFieldDisplayValue(pf) {
       if (!pf) return '';
+      if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
       return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
     },
 
@@ -4402,6 +4387,7 @@ function app() {
         pf = parsed || null;
       }
       if (!pf) return;
+      pf.edit_value = text;
       const kind = this.pickFieldDisplayKind(pf);
       if (kind === 'code') {
         pf.value_code = text;
@@ -4422,6 +4408,12 @@ function app() {
         pf.value_id = text;
         this.markHarPickFieldManual(pf);
       }
+    },
+
+    markHarPickFieldDraft(pf) {
+      if (!pf || pf.readonly) return;
+      pf.user_overridden = true;
+      pf.resolve_status = pf.resolve_status || 'manual';
     },
 
     markHarPickFieldManual(pf) {
