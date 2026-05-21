@@ -169,6 +169,18 @@ class TestReplayErrorDetection:
             "ac": "updateValue",
             "method": "updateValue",
         }) is False
+        assert _step_allows_l2_pageid({
+            "type": "invoke",
+            "ac": "save",
+            "method": "itemClick",
+            "key": "tbmain",
+            "args": ["new_save", "save"],
+        }) is False
+        assert _step_allows_l2_pageid({
+            "type": "invoke",
+            "ac": "addnew",
+            "method": "itemClick",
+        }) is True
 
 
 class TestYAMLLightParsing:

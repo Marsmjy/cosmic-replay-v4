@@ -11,6 +11,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
+from .pageid_trace import build_pageid_trace
+
 
 def build_repair_evidence_package(
     *,
@@ -23,6 +27,10 @@ def build_repair_evidence_package(
 ) -> dict[str, Any]:
     case_result = _find_case_result(report_data, case_name)
     yaml_text = case_path.read_text(encoding="utf-8") if case_path.exists() else ""
+    try:
+        case_data = yaml.safe_load(yaml_text) if yaml_text else {}
+    except Exception:
+        case_data = {}
     run_id = case_result.get("run_id", "")
     package = {
         "schema_version": "1.0",
@@ -51,6 +59,11 @@ def build_repair_evidence_package(
                 event for event in run_events
                 if event.get("type") in {"step_fail", "assertion_fail", "case_error"}
             ],
+            "pageid_trace": build_pageid_trace(
+                case_data if isinstance(case_data, dict) else {},
+                run_events=run_events,
+                include_fragments=True,
+            ),
         },
         "report_context": {
             "acceptance": report_data.get("acceptance", {}),

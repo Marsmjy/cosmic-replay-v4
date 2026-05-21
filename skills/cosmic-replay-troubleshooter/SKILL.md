@@ -441,6 +441,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 | `case_artifacts.yaml` | 当前 YAML 用例全文 |
 | `run_artifacts.events` | 最近一次 run 的事件流，最多 300 条 |
 | `run_artifacts.failed_events` | step_fail/assertion_fail/case_error |
+| `run_artifacts.pageid_trace` | YAML/HAR/运行事件合并后的 pageId 链路画像 |
 | `report_context.acceptance` | 批量验收结论 |
 | `skills_to_use` | overview、troubleshooter、pageId、assertion、HR expert 知识入口 |
 | `guardrails` | 修复红线 |
@@ -463,7 +464,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
    - `./venv/bin/python -m pytest -q tests/unit tests/test_core.py`
    - `./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff`
 6. 输出影响说明：
-   - 是否影响 8 类基准 HAR。
+   - 是否影响 9 类基准 HAR（8 个 SIT + 1 个 UAT）。
    - 是否需要用户确认环境字段。
    - 是否需要真实环境写库回查。
 
@@ -474,7 +475,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 3. 不得修改已经成功的 YAML 用例来适配新 HAR。
 4. 不得更新 HAR baseline 掩盖规则回归。
 5. 不得在无入库证据时宣称修复完成。
-6. 通用代码修复必须保持向后兼容，并通过 8 类 HAR 回归影响报告。
+6. 通用代码修复必须保持向后兼容，并通过 9 类 HAR 回归影响报告。
 7. 不得把硬补 `save` 字段作为 pageId 链路问题的替代修复；必须先证明 L2/L3 切换点与 HAR 原始链路一致。
 
 ---

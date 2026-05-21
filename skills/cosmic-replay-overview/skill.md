@@ -29,7 +29,7 @@
 | `lib/kb_loader.py` | ~363 | 知识库懒加载：场景元数据 + shared entity_metadata 字段分类 |
 | `lib/field_resolver.py` | - | 基础资料跨环境解析 |
 | `lib/component_registry.py` | - | HAR 组件处理器注册表：给 preview step 打标签、统计未知组件风险 |
-| `lib/har_regression.py` | - | 8 类 HAR 结构基线、影响分级和回归门禁 |
+| `lib/har_regression.py` | - | 9 类 HAR 结构基线、影响分级和回归门禁（8 个 SIT + 1 个 UAT） |
 | `lib/task_manager.py` | - | 任务管理、批量报告、入库证据和行动队列 |
 | `lib/agent_evidence.py` | - | AI Agent 修复证据包：YAML、运行事件、报告上下文、技能护栏 |
 | `lib/report_exporter.py` | - | HTML 报告导出，内嵌离线图表资源 |

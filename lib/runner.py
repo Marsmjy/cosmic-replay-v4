@@ -61,6 +61,10 @@ from .advisor import analyze_errors, format_fixes
 from .failure_analysis import classify_run_failure
 from .repair_planner import build_repair_plan
 from .field_resolver import FieldResolver, ResolveResult, _looks_like_internal_id
+from .pageid_trace import (
+    build_runtime_pageid_trace,
+    step_allows_l2_pageid as _trace_step_allows_l2_pageid,
+)
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -344,22 +348,7 @@ def _step_allows_l2_pageid(step: dict) -> bool:
     pending L3 before addnew corrupts the form-model chain and later field
     writes can look "locked" even though the browser HAR succeeded.
     """
-    if step.get("preserve_l2_page") is True:
-        return True
-    ac = str(step.get("ac") or step.get("method") or "")
-    method = str(step.get("method") or "")
-    if method == "itemClick":
-        return True
-    return ac in {
-        "itemClick",
-        "loadData",
-        "treeNodeClick",
-        "treeMenuClick",
-        "postExpandNodes",
-        "queryTreeNodeChildren",
-        "entryRowClick",
-        "refresh",
-    }
+    return _trace_step_allows_l2_pageid(step)
 
 
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
@@ -1269,6 +1258,20 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 except Exception as _e:
                     log.warning(f"[auto-open] failed for {_target_form}: {_e}")
 
+        def _runtime_pageid_trace(phase: str, status: str = "") -> dict[str, Any]:
+            current_pid = replay.page_ids.get(_target_form or "", "")
+            pending_pid = replay._pending_by_app.get(_target_app or "", "")
+            return build_runtime_pageid_trace(
+                step,
+                current_page_id=current_pid,
+                pending_page_id=pending_pid,
+                phase=phase,
+                status=status,
+            )
+
+        if stype not in ("sleep",):
+            emit("pageid_trace", _runtime_pageid_trace("before_handler"))
+
         try:
             # ========= 安全网：invoke 通用重试机制 =========
             _INVOKE_MAX_RETRIES = 2  # 最大重试次数
@@ -1411,6 +1414,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     "id": sid, "errors": collected[:5],
                     "duration_ms": int((time.time() - step_start) * 1000),
                     "response": resp_snapshot,
+                    "pageid_trace": _runtime_pageid_trace("after_handler", "fail"),
                 })
                 if stype in ("invoke", "update_fields", "pick_basedata", "click_toolbar"):
                     break
@@ -1427,6 +1431,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                         "id": sid,
                         "warnings": errs[:5],
                         "duration_ms": int((time.time() - step_start) * 1000),
+                        "pageid_trace": _runtime_pageid_trace("after_handler", "warning"),
                     })
                 result.steps.append(step_record)
                 # ⭐ 推送完整响应数据供前端展示
@@ -1435,6 +1440,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     "id": sid,
                     "duration_ms": int((time.time() - step_start) * 1000),
                     "response": resp_snapshot,
+                    "pageid_trace": _runtime_pageid_trace("after_handler", "ok"),
                 })
                 if step.get("capture"):
                     vars_ns[step["capture"]] = resp
@@ -1444,7 +1450,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 "detail": detail, "error": f"业务错误: {e}",
             })
             emit("step_fail", {"id": sid, "error": f"业务错误: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000)})
+                               "duration_ms": int((time.time() - step_start) * 1000),
+                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
             if not optional: break
         except ProtocolError as e:
             result.steps.append({
@@ -1452,7 +1459,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 "detail": detail, "error": f"协议错误: {e}",
             })
             emit("step_fail", {"id": sid, "error": f"协议错误: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000)})
+                               "duration_ms": int((time.time() - step_start) * 1000),
+                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
             if not optional: break
         except Exception as e:
             result.steps.append({
@@ -1460,7 +1468,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 "detail": detail, "error": f"{type(e).__name__}: {e}",
             })
             emit("step_fail", {"id": sid, "error": f"{type(e).__name__}: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000)})
+                               "duration_ms": int((time.time() - step_start) * 1000),
+                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
             if not optional: break
 
     # 6. 断言（先把 ${vars.xxx} 解析掉）

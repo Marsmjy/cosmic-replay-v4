@@ -147,3 +147,35 @@ def test_failure_analysis_classifies_missing_root_org_prerequisite():
 
     assert analysis["category"] == "environment_business_prerequisite"
     assert "根行政组织初始化" in analysis["root_cause"]
+
+
+def test_failure_analysis_classifies_database_schema_mismatch():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "click_barstart",
+            "type": "invoke",
+            "ok": False,
+            "error": 'ERROR: column "finitdatasource" of relation "t_hom_onbrdbill_c" does not exist',
+        }],
+        assertions=[],
+        case={"main_form_id": "hom_persononbrdhandlebody"},
+    )
+
+    assert analysis["category"] == "environment_schema_mismatch"
+    assert "数据库结构" in analysis["root_cause"]
+
+
+def test_failure_analysis_classifies_server_stack_exception():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "click_barstart",
+            "type": "invoke",
+            "ok": False,
+            "error": "Key: toolbarap\nTraceId：4da7dce01bf34260\n调用堆栈：\njava.lang.RuntimeException",
+        }],
+        assertions=[],
+        case={"main_form_id": "hom_persononbrdhandlebody"},
+    )
+
+    assert analysis["category"] == "environment_server_exception"
+    assert "TraceId" in analysis["recommended_actions"][0]

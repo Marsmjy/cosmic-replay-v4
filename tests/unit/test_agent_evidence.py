@@ -35,6 +35,7 @@ def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
 
     assert package["problem_summary"]["write_status"] == "unverified"
     assert "name: demo" in package["case_artifacts"]["yaml"]
+    assert package["run_artifacts"]["pageid_trace"]["summary"]["total_steps"] == 0
     assert package["skills_to_use"]
     assert any("不得删除 menuItemClick" in rule for rule in package["guardrails"])
     assert any("先比对 HAR 原始 pageId 链路" in rule for rule in package["guardrails"])

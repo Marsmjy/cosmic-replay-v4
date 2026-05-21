@@ -1,0 +1,317 @@
+"""PageId chain diagnostics for HAR import and replay.
+
+The trace is intentionally value-safe by default: full pageId values are not
+required for regression snapshots. Evidence packages may include short
+fragments so an agent can compare L2/L3 transitions without leaking entire
+session identifiers.
+"""
+from __future__ import annotations
+
+import re
+from typing import Any
+
+
+_ROOT_RE = re.compile(r"^root[0-9a-f]{32}$")
+_HEX32_RE = re.compile(r"^[0-9a-f]{32}$")
+_NUMERIC_L2_RE = re.compile(r"^\d+root[0-9a-f]{32}$")
+_ROOT_WITH_BASE_RE = re.compile(r"root[0-9a-f]{32}")
+
+_L2_CONTEXT_ACS = {
+    "addnew",
+    "itemClick",
+    "loadData",
+    "treeNodeClick",
+    "treeMenuClick",
+    "postExpandNodes",
+    "queryTreeNodeChildren",
+    "entryRowClick",
+    "refresh",
+}
+
+_EDIT_STEP_TYPES = {"update_fields", "pick_basedata"}
+_WRITE_ACS = {
+    "click",
+    "save",
+    "submit",
+    "saveandeffect",
+    "submitandeffect",
+    "saveandaudit",
+}
+
+_WRITE_KEYS = {
+    "btnsave",
+    "btn_save",
+    "bar_save",
+    "barsave",
+    "new_save",
+    "btn_confirm",
+    "btnconfirm",
+    "bar_confirm",
+    "barconfirm",
+    "btnok",
+    "btn_ok",
+    "bar_submit",
+    "barsubmit",
+}
+
+
+def classify_pageid(value: Any) -> str:
+    """Classify a pageId string into the project's L0/L2/L3 diagnostic buckets."""
+    pid = str(value or "").strip()
+    if not pid:
+        return "missing"
+    if _ROOT_RE.match(pid):
+        return "L0"
+    if _NUMERIC_L2_RE.match(pid):
+        return "L2"
+    if _HEX32_RE.match(pid):
+        return "L1_or_L3"
+    if _ROOT_WITH_BASE_RE.search(pid):
+        return "compound_root"
+    return "unknown"
+
+
+def pageid_fragment(value: Any) -> str:
+    """Return a short fragment that is useful in evidence but safe for reports."""
+    pid = str(value or "").strip()
+    if not pid:
+        return ""
+    if len(pid) <= 24:
+        return pid
+    return f"{pid[:14]}...{pid[-8:]}"
+
+
+def step_allows_l2_pageid(step: dict[str, Any]) -> bool:
+    """Whether this step should keep a menu/list L2 pageId."""
+    if _is_write_like_step(step):
+        return False
+    if step.get("preserve_l2_page") is True:
+        return True
+    ac = str(step.get("ac") or step.get("method") or "")
+    method = str(step.get("method") or "")
+    if method == "itemClick":
+        return True
+    return ac in _L2_CONTEXT_ACS
+
+
+def expected_pageid_role(step: dict[str, Any]) -> str:
+    """Return the expected pageId role for the step based on replay semantics."""
+    stype = str(step.get("type") or "")
+    ac = str(step.get("ac") or "")
+    form_id = str(step.get("form_id") or "")
+    if stype == "open_form":
+        return "L1" if form_id.startswith("bos_portal") else "L3"
+    if stype in _EDIT_STEP_TYPES:
+        return "L3"
+    if stype == "invoke":
+        if ac == "loadData" and not step.get("preserve_l2_page"):
+            return "L2_or_L3"
+        if _is_write_like_step(step):
+            return "L3"
+        if step_allows_l2_pageid(step):
+            return "L2"
+        return "L3"
+    return "not_applicable"
+
+
+def build_runtime_pageid_trace(
+    step: dict[str, Any],
+    *,
+    current_page_id: Any = "",
+    pending_page_id: Any = "",
+    phase: str = "",
+    status: str = "",
+) -> dict[str, Any]:
+    """Build a compact trace payload for a running step."""
+    har_page_id = step.get("_har_page_id", "")
+    return {
+        "step_id": step.get("id", ""),
+        "step_type": step.get("type", ""),
+        "form_id": step.get("form_id", ""),
+        "app_id": step.get("app_id", ""),
+        "ac": step.get("ac", ""),
+        "method": step.get("method", ""),
+        "phase": phase,
+        "status": status,
+        "expected_pageid_role": expected_pageid_role(step),
+        "preserve_l2_page": bool(step.get("preserve_l2_page")),
+        "har_pageid_type": classify_pageid(har_page_id),
+        "har_pageid_fragment": pageid_fragment(har_page_id),
+        "runtime_pageid_type": classify_pageid(current_page_id),
+        "runtime_pageid_fragment": pageid_fragment(current_page_id),
+        "pending_pageid_type": classify_pageid(pending_page_id),
+        "pending_pageid_fragment": pageid_fragment(pending_page_id),
+        "risk_codes": pageid_risks(
+            step,
+            har_page_id=har_page_id,
+            runtime_page_id=current_page_id,
+            pending_page_id=pending_page_id,
+            phase=phase,
+        ),
+    }
+
+
+def build_pageid_trace(
+    case: dict[str, Any],
+    *,
+    har_steps: list[dict[str, Any]] | None = None,
+    run_events: list[dict[str, Any]] | None = None,
+    include_fragments: bool = True,
+) -> dict[str, Any]:
+    """Build a static/runtime pageId trace for evidence packages and reports."""
+    har_by_id = {
+        str(step.get("id")): step
+        for step in (har_steps or [])
+        if step.get("id")
+    }
+    runtime_by_id = _runtime_trace_by_step(run_events or [])
+
+    rows: list[dict[str, Any]] = []
+    for index, step in enumerate(case.get("steps") or []):
+        sid = str(step.get("id") or f"step_{index + 1}")
+        har_step = har_by_id.get(sid) or {}
+        har_page_id = step.get("_har_page_id") or har_step.get("_har_page_id", "")
+        runtime = runtime_by_id.get(sid, {})
+        row = {
+            "index": index,
+            "step_id": sid,
+            "step_type": step.get("type", ""),
+            "form_id": step.get("form_id", ""),
+            "app_id": step.get("app_id", ""),
+            "ac": step.get("ac", ""),
+            "method": step.get("method", ""),
+            "expected_pageid_role": expected_pageid_role(step),
+            "preserve_l2_page": bool(step.get("preserve_l2_page")),
+            "har_pageid_type": classify_pageid(har_page_id),
+            "runtime_pageid_type": runtime.get("runtime_pageid_type", ""),
+            "pending_pageid_type": runtime.get("pending_pageid_type", ""),
+        }
+        if include_fragments:
+            row["har_pageid_fragment"] = pageid_fragment(har_page_id)
+            row["runtime_pageid_fragment"] = runtime.get("runtime_pageid_fragment", "")
+            row["pending_pageid_fragment"] = runtime.get("pending_pageid_fragment", "")
+        row["risk_codes"] = pageid_risks(
+            step,
+            har_page_id=har_page_id,
+            runtime_page_id=runtime.get("runtime_pageid_fragment", ""),
+            pending_page_id=runtime.get("pending_pageid_fragment", ""),
+            runtime_pageid_type=runtime.get("runtime_pageid_type", ""),
+        )
+        rows.append(row)
+
+    return {
+        "summary": summarize_pageid_trace(rows),
+        "steps": rows,
+    }
+
+
+def compact_pageid_trace(trace: dict[str, Any]) -> dict[str, Any]:
+    """Strip fragments for deterministic value-safe regression baselines."""
+    return {
+        "summary": trace.get("summary", {}),
+        "steps": [
+            {
+                "step_id": row.get("step_id", ""),
+                "step_type": row.get("step_type", ""),
+                "form_id": row.get("form_id", ""),
+                "app_id": row.get("app_id", ""),
+                "ac": row.get("ac", ""),
+                "method": row.get("method", ""),
+                "expected_pageid_role": row.get("expected_pageid_role", ""),
+                "preserve_l2_page": bool(row.get("preserve_l2_page")),
+                "har_pageid_type": row.get("har_pageid_type", ""),
+                "risk_codes": row.get("risk_codes", []),
+            }
+            for row in trace.get("steps", [])
+            if _is_trace_step_interesting(row)
+        ],
+    }
+
+
+def summarize_pageid_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    counts: dict[str, int] = {}
+    risks: dict[str, int] = {}
+    preserve_l2 = 0
+    for row in rows:
+        role = str(row.get("expected_pageid_role") or "unknown")
+        counts[role] = counts.get(role, 0) + 1
+        if row.get("preserve_l2_page"):
+            preserve_l2 += 1
+        for risk in row.get("risk_codes") or []:
+            risks[str(risk)] = risks.get(str(risk), 0) + 1
+    return {
+        "total_steps": len(rows),
+        "expected_roles": counts,
+        "preserve_l2_steps": preserve_l2,
+        "risk_counts": risks,
+        "risk_level": "review" if risks else "none",
+    }
+
+
+def pageid_risks(
+    step: dict[str, Any],
+    *,
+    har_page_id: Any = "",
+    runtime_page_id: Any = "",
+    pending_page_id: Any = "",
+    runtime_pageid_type: str = "",
+    phase: str = "",
+) -> list[str]:
+    expected = expected_pageid_role(step)
+    har_type = classify_pageid(har_page_id)
+    runtime_type = runtime_pageid_type or classify_pageid(runtime_page_id)
+    risks: list[str] = []
+
+    if har_type == "L2" and expected == "L2" and not step.get("preserve_l2_page"):
+        risks.append("missing_preserve_l2_page")
+    # Before the handler runs, runner may still hold the list L2 while a pending
+    # L3 is available. _h_invoke will consume pending L3, so this is not a
+    # defect unless the after-handler trace still shows L2.
+    if expected == "L3" and runtime_type == "L2" and phase != "before_handler":
+        risks.append("runtime_l2_used_for_l3_step")
+    if expected == "L2" and runtime_type in {"L1_or_L3"} and har_type == "L2":
+        risks.append("runtime_l3_used_for_l2_step")
+    if expected == "L3" and har_type == "L2" and not step_allows_l2_pageid(step):
+        risks.append("har_l2_on_l3_step")
+    if classify_pageid(pending_page_id) == "L2" and expected == "L3":
+        risks.append("pending_l2_for_l3_step")
+    return risks
+
+
+def _runtime_trace_by_step(events: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    by_id: dict[str, dict[str, Any]] = {}
+    for event in events:
+        data = event.get("data") if isinstance(event, dict) else None
+        if not isinstance(data, dict):
+            continue
+        payload = data.get("pageid_trace") if event.get("type") != "pageid_trace" else data
+        if not isinstance(payload, dict):
+            continue
+        sid = str(payload.get("step_id") or data.get("id") or "")
+        if not sid:
+            continue
+        by_id[sid] = payload
+    return by_id
+
+
+def _is_write_like_step(step: dict[str, Any]) -> bool:
+    ac = str(step.get("ac") or "").lower()
+    key = str(step.get("key") or "").lower()
+    args_text = str(step.get("args") or "").lower()
+    if ac in {item.lower() for item in _WRITE_ACS}:
+        if ac == "click" and key not in _WRITE_KEYS and "save" not in args_text and "submit" not in args_text:
+            return False
+        return True
+    if key in _WRITE_KEYS:
+        return True
+    return any(token in args_text for token in ("new_save", "save", "submit", "confirm"))
+
+
+def _is_trace_step_interesting(row: dict[str, Any]) -> bool:
+    if row.get("preserve_l2_page"):
+        return True
+    if row.get("risk_codes"):
+        return True
+    if row.get("expected_pageid_role") in {"L2", "L3"}:
+        return True
+    return False

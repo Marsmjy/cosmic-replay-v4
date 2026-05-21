@@ -65,6 +65,10 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 
 ## 诊断脚本
 
+优先查看证据包中的 `run_artifacts.pageid_trace`，它会按关键 step 输出：
+`step_id / form_id / app_id / ac / method / HAR pageId 类型 / 回放 pageId 类型 / preserve_l2_page / risk_codes`。
+若 `risk_codes` 出现 `missing_preserve_l2_page`、`runtime_l3_used_for_l2_step` 或 `runtime_l2_used_for_l3_step`，先修 pageId 链路，不要先补 `save` 字段。
+
 ```python
 # 在 invoke() 方法中加临时调试
 def invoke(self, form_id, app_id, ac, actions, page_id=None):

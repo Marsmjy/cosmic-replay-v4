@@ -35,6 +35,22 @@ _SERVICE_PATTERNS = (
     "错误码:1002",
 )
 
+_DATABASE_SCHEMA_PATTERNS = (
+    "column \"",
+    "does not exist",
+    "relation \"",
+    "数据库表",
+    "数据库字段",
+)
+
+_SERVER_STACK_PATTERNS = (
+    "TraceId",
+    "调用堆栈",
+    "java.lang",
+    "NullPointerException",
+    "RequestContext:",
+)
+
 _MISSING_PATTERNS = (
     "请填写",
     "请选择",
@@ -232,6 +248,40 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             step_id=step_id,
             form_id=form_id,
             confidence="high",
+        )
+
+    if _contains(text, _DATABASE_SCHEMA_PATTERNS):
+        return _result(
+            "environment_schema_mismatch",
+            "high",
+            False,
+            "目标环境数据库结构或后端版本与当前业务服务不匹配，属于环境侧失败，不应通过修改 HAR/YAML 绕过。",
+            text,
+            [
+                "确认当前 SIT/UAT 环境是否完成对应应用的数据库脚本和元数据升级。",
+                "保留失败步骤和 TraceId 给环境/后端排查；不要删除 startupflow/save 断言来掩盖问题。",
+                "若同一 YAML 在已验证环境可通过，则优先归为环境差异，而不是 pageId 链路问题。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if _contains(text, _SERVER_STACK_PATTERNS):
+        return _result(
+            "environment_server_exception",
+            "high",
+            False,
+            "目标环境后端服务抛出运行时异常，通常需要结合 TraceId 查看服务日志。",
+            text,
+            [
+                "先按 TraceId/发生时间查询目标环境服务日志，确认是否为环境数据、脚本或服务版本问题。",
+                "同时检查证据包 pageid_trace；若 pageId 链路无风险，不要优先硬补 save 或流程字段。",
+                "如果错误稳定复现且同环境手工操作也失败，应交给环境/后端处理。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="medium",
         )
 
     if _contains(text, _PAGE_ID_PATTERNS):

@@ -16,7 +16,8 @@ from typing import Any
 
 import yaml
 
-from lib.har_extractor import build_yaml_case, preview_har
+from lib.har_extractor import build_yaml_case, extract_steps, load_har, preview_har
+from lib.pageid_trace import build_pageid_trace, compact_pageid_trace
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -57,7 +58,8 @@ def generate_snapshot(sample: RegressionSample) -> dict[str, Any]:
     case = yaml.safe_load(yaml_text)
     preview = preview_har(sample.har_path)
 
-    case_summary = summarize_case(case)
+    har_steps = extract_steps(load_har(sample.har_path))
+    case_summary = summarize_case(case, har_steps=har_steps)
     preview_summary = summarize_preview(preview)
     snapshot = {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
@@ -76,7 +78,7 @@ def generate_snapshot(sample: RegressionSample) -> dict[str, Any]:
     return snapshot
 
 
-def summarize_case(case: dict[str, Any]) -> dict[str, Any]:
+def summarize_case(case: dict[str, Any], har_steps: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     vars_map = case.get("vars") or {}
     vars_labels = case.get("vars_labels") or {}
     pick_fields = case.get("pick_fields") or {}
@@ -109,6 +111,9 @@ def summarize_case(case: dict[str, Any]) -> dict[str, Any]:
             }
             for item in assertions
         ],
+        "pageid_trace": compact_pageid_trace(
+            build_pageid_trace(case, har_steps=har_steps or [], include_fragments=False)
+        ),
     }
 
 

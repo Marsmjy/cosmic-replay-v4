@@ -158,7 +158,7 @@ cosmic-replay-v4/
 │   ├── replay.py             # 苍穹协议回放API
 │   ├── field_resolver.py     # 环境相关字段跨环境解析
 │   ├── component_registry.py # HAR 组件雷达
-│   ├── har_regression.py     # 8类HAR回归影响报告
+│   ├── har_regression.py     # 9类HAR回归影响报告（8个SIT + 1个UAT）
 │   ├── task_manager.py       # 批量任务与验收报告
 │   ├── agent_evidence.py     # AI修复证据包
 │   ├── report_exporter.py    # 离线HTML报告导出
