@@ -17,11 +17,9 @@
 ## 本地启动
 
 ```bash
+python3 --version
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
-
-NO_PROXY='127.0.0.1,localhost,kdhruat.kingdee.com,.kingdee.com' \
-no_proxy='127.0.0.1,localhost,kdhruat.kingdee.com,.kingdee.com' \
 ./venv/bin/python _start_webui.py --no-browser
 ```
 
@@ -29,6 +27,30 @@ no_proxy='127.0.0.1,localhost,kdhruat.kingdee.com,.kingdee.com' \
 
 ```text
 http://127.0.0.1:8768/
+```
+
+## 如果没有 Python
+
+本项目需要 Python 3.10+。如果 `python3 --version` 不存在或版本低于 3.10，请 AI Agent 先帮用户安装 Python，再回到“本地启动”继续执行。
+
+常见安装方式：
+
+- macOS：优先使用 `brew install python@3.11` 或从 Python 官网安装。
+- Windows：从 Python 官网安装 Python 3.11+，安装时勾选 “Add python.exe to PATH”。
+- Linux：使用系统包管理器安装 `python3.11`、`python3.11-venv` 和 `python3-pip`。
+
+如果当前 AI IDE 自带 Python 运行时，也可以直接用它创建虚拟环境；关键是最终能执行 `python -m venv venv`、安装 `requirements.txt` 并启动 `_start_webui.py`。
+
+## 网络和代理
+
+顾问环境默认不需要配置 VPN 或代理，也不要默认给启动命令添加 `NO_PROXY/no_proxy`。
+
+只有在公司网络、系统代理或 AI IDE 代理导致金蝶接口访问异常时，再按目标域名追加 `NO_PROXY/no_proxy`。例如浏览器可以访问金蝶接口，但执行器请求出现 502/代理错误时，可临时这样启动：
+
+```bash
+NO_PROXY='127.0.0.1,localhost,目标金蝶域名,.kingdee.com' \
+no_proxy='127.0.0.1,localhost,目标金蝶域名,.kingdee.com' \
+./venv/bin/python _start_webui.py --no-browser
 ```
 
 ## 环境配置
@@ -40,7 +62,7 @@ http://127.0.0.1:8768/
 - `base_url` 是目标金蝶苍穹环境地址。
 - 账号密码可手工登录。
 - 数据中心 ID 正确。
-- 内网域名已加入 `NO_PROXY/no_proxy`。
+- 如存在代理异常，再把目标域名加入 `NO_PROXY/no_proxy`；正常顾问环境不需要配置。
 
 ## 使用流程
 
