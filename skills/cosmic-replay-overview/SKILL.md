@@ -12,7 +12,7 @@ description: Cosmic Replay 项目架构、模块职责、HAR 导入、YAML 生�
 金蝶苍穹平台的 HAR 录制 → YAML 用例 → 自动回放 → 批量验收报告 的端到端自动化测试工具。目标不是只跑出 PASS，而是判断用例是否可交付、是否真实入库、是否需要 AI 修复。
 
 ## 技术栈
-- 后端：FastAPI + Uvicorn (Python 3.11+)
+- 后端：FastAPI + Uvicorn (Python 3.10+)
 - 前端：Alpine.js + Tailwind CSS（无构建工具，单 HTML 文件）
 - 协议：苍穹 batchInvokeAction.do
 - 持久化：SQLite (data/cosmic_replay.db)

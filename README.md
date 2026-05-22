@@ -192,4 +192,4 @@ cosmic-replay-v4/
 | PASS 但入库未验证 | 模式 G — 查看批量报告入库证据；必要时生成 AI 证据包 |
 | 启动时报找不到脚本 | 模式 D — `_find_login_script()` / `_load_dotenv()` |
 
-完整排故见 `docs/troubleshooting.md` 或 `skills/cosmic-replay-troubleshooter/SKILL.md`。
+完整排故见 `skills/cosmic-replay-troubleshooter/SKILL.md` 和 `skills/cosmic-replay-troubleshooter/references/pageid-chain-debugging.md`。
