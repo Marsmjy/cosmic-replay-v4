@@ -2075,7 +2075,7 @@ def main():
     _load_dotenv()
 
     ap = argparse.ArgumentParser(description="cosmic-replay Web UI")
-    ap.add_argument("--port", type=int, default=None, help="端口（默认读配置 8765）")
+    ap.add_argument("--port", type=int, default=None, help="端口（默认读配置 8768）")
     ap.add_argument("--host", default=None, help="监听地址（默认读配置 127.0.0.1）")
     ap.add_argument("--env", default=None, help="默认环境 id（仅本次启动）")
     ap.add_argument("--no-browser", action="store_true", help="不自动开浏览器")

@@ -8,7 +8,7 @@
 用法：
     from .config import Config
     cfg = Config()                            # 自动查找 config/ 目录
-    cfg.webui.port                            # 8765
+    cfg.webui.port                            # 8768
     cfg.envs                                  # list[EnvConfig]
     env = cfg.get_env("sit")                  # EnvConfig
     cfg.save_webui({"port": 9000})            # 写回 webui.yaml + 热重载
@@ -66,7 +66,7 @@ def _dump_yaml(path: Path, data: dict) -> None:
 # =============================================================
 @dataclass
 class WebUIPrefs:
-    port: int = 8765
+    port: int = 8768
     host: str = "127.0.0.1"
     open_browser: bool = True
     default_env: str = "sit"

@@ -269,7 +269,7 @@ class TestConfig:
         from lib.config import WebUIPrefs
         
         prefs = WebUIPrefs()
-        assert prefs.port == 8765
+        assert prefs.port == 8768
         assert prefs.host == "127.0.0.1"
         assert prefs.open_browser == True
     

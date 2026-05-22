@@ -48,7 +48,7 @@ def temp_config_dir(tmp_path: Path) -> Path:
     # 创建默认webui配置
     webui_config = {
         "webui": {
-            "port": 8765,
+            "port": 8768,
             "host": "127.0.0.1",
             "open_browser": False,
             "default_env": "test"
