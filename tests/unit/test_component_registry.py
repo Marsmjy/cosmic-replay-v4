@@ -43,6 +43,25 @@ def test_component_registry_reports_unknown_actions():
     assert match.risk == "medium"
 
 
+def test_component_registry_classifies_ua_bridge_and_hint_scroll_as_known():
+    bridge = classify_step({
+        "id": "donothing_newbill",
+        "type": "invoke",
+        "ac": "donothing_newbill",
+    })
+    hint = classify_step({
+        "id": "getHintScroll_27",
+        "type": "invoke",
+        "ac": "getHintScroll",
+    })
+
+    assert bridge.handler_id == "business_entry_bridge"
+    assert bridge.support_level == "supported"
+    assert hint.handler_id == "hint_scroll"
+    assert hint.support_level == "partial"
+    assert hint.risk == "low"
+
+
 def test_quality_uses_component_report_for_compatibility_risk():
     component_report = analyze_component_coverage([
         {"id": "mystery", "type": "invoke", "ac": "brandNewAction"},

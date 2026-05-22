@@ -309,12 +309,30 @@ post_data:
 2. 对照 run events / debug 日志中的实际 pageId，确认 L2 (`^\d+root[0-9a-f]{32}$`) 与 L3 (`^[0-9a-f]{32}$`) 切换点是否一致。
 3. 若列表/树/工具栏步骤被替换成 L3，检查 YAML 是否缺少 `preserve_l2_page: true`，以及 `runner.py` 的 `_step_allows_l2_pageid()` 是否覆盖该 `ac/method`。
 4. 若保存步骤仍使用 L2，再回到“类型B：L2 pageId 屏蔽问题”，检查 `_pending_by_app` 和预验证降级。
+5. 若 pageId 链路正确但中间模板/选择页报必填（例如 `hpdi_bizdatabillchoicetpl` 提示缺“算发薪管理组织”），检查 HAR `loadData` 响应默认字段是否被按 `form_id` 记录并转为显式上下文 `pick_basedata`，而不是直接补 `save.post_data`。
 
 **修复原则**:
 - L2 应保留给 `menuItemClick`、`loadData`、`treeNodeClick`、`treeMenuClick`、`postExpandNodes`、`queryTreeNodeChildren`、`entryRowClick`、`refresh`、`itemClick` 等列表/树/工具栏动作。
 - L3 应用于真实编辑页的字段更新、保存、提交、确认等表单态动作。
 - HAR 导入阶段应为原始 L2 步骤写入 `preserve_l2_page: true`，runner 执行阶段根据 `_step_allows_l2_pageid()` 决定是否替换为 pending L3。
+- 对 `loadData` 响应默认带出的必填基础资料，优先按 `form_id` 记录并生成可维护环境字段；这是 pageId 服务端模型上下文的一部分。
 - 不要通过追加 `save.post_data` 或删除锁定字段断言来掩盖 pageId 链路问题。只有确认 pageId 链路正确后，才进入字段解析、pick_fields 或业务补偿。
+
+### 类型B-3：showForm 的 billFormId 别名漏绑导致半成功
+
+**症状**:
+- 主单最终保存 PASS，但子弹窗选择、明细新增或二次确认的数据没有完整入库。
+- F7/选择器的 `loadData`、`entryRowClick`、确定按钮返回空 `[]`，或响应像门户首页，而不是选择器列表。
+- `pageid_trace` 显示这些子步骤 pageId 缺失、或没有使用 `showForm` 下发的 32hex pageId。
+
+**根因**: 苍穹弹窗 `showForm` 可能返回 `formId` 作为外壳表单，同时返回 `billFormId` 作为后续请求的真实 `f=`。例如响应中 `formId=hsbs_employeequerylistf7`，后续 HAR 请求却使用 `f=hsbs_empposf7querylist`。若 `_harvest_page_ids()` 只登记 `formId`，后续 `billFormId` 请求会丢 pageId，造成“执行成功但上下文错误”。
+
+**修复原则**:
+- `_harvest_page_ids()` 处理 `showForm` 时同时绑定 `formId` 和 `billFormId` 到同一个 32hex pageId。
+- 进入子明细补录的 `click/newentry` 不能标 optional；失败要中断，避免保存主单后误报成功。
+- `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
+- 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
+- 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。
 
 ### 类型C：多表单 L2 共享（target_forms 缺失）
 

@@ -37,6 +37,11 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 **原因**：HAR 中列表/树/工具栏桥接步骤使用 L2 pageId，但 runner 过早替换成 L3/open_form pageId，导致服务端模型上下文丢失。
 **修复**：HAR 导入对原始 L2 步骤生成 `preserve_l2_page: true`；runner 的 `_step_allows_l2_pageid()` 对 `loadData`、`treeNodeClick`、`addnew` 前置桥接、`itemClick` 等步骤保留 L2，只在真实编辑态字段更新/保存/提交时切到 L3。
 
+### 类型 6：showForm 的 formId / billFormId 别名丢失（2026-05-22 发现）
+**症状**：用例 PASS 或保存有响应，但只入库主单/部分明细；弹出的 F7 选择列表、确认窗口或后续子表单步骤响应为空 `[]`，或拿到门户首页响应；`pageid_trace` 里这些步骤的回放 pageId 缺失或不属于 HAR 录制的弹窗。
+**原因**：苍穹某些 `showForm` 响应会同时下发通用 `formId` 和真实请求使用的 `billFormId`。例如响应里 `formId=hsbs_employeequerylistf7`，但后续 HAR 请求使用 `f=hsbs_empposf7querylist`。如果 runner 只把 pageId 绑定到 `formId`，后续 `billFormId` 请求会找不到正确 pageId。
+**修复**：`_harvest_page_ids()` 在处理 `showForm` 时必须把 `formId` 和 `billFormId` 都绑定到同一个 32hex pageId。排障时若看到弹窗列表 loadData/entryRowClick/确定按钮返回空或门户响应，优先检查这个别名绑定，不要误判为字段缺失。
+
 ## 修复清单
 
 ### `lib/replay.py` 四层修复
@@ -57,11 +62,36 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
   不覆盖：32hex 表单级 pageId
 ```
 
+补充规则：递归收割 `showForm` 时，若响应参数同时包含 `formId` 与 `billFormId`，必须把两者都登记到 `page_ids`。这类 F7/选择器弹窗常用 `formId` 渲染外壳、用 `billFormId` 作为后续 HAR 请求的 `f=`，漏绑会造成后续选择、确认、明细录入步骤“执行成功但上下文错误”。
+
 ### `lib/har_extractor.py`
 - `_SAVE_BUTTON_KEYS` 标记 `btnsave` 等按钮为 `tier: core`
 - 不改变 `ac`（保持 `click`，不改 `saveandeffect`）
 - 对 HAR 原始 L2 pageId 步骤写入 `preserve_l2_page: true`
 - pick_fields 展示业务编码，同时保留 `recorded_value_id` 作为跨环境解析兜底
+- 对 loadData 响应中由 pageId 服务端模型默认带出的必填基础资料，按 `form_id` 记录 `response_values_by_form`；已知模板/新增表单可转为显式 `pick_basedata` 步骤，避免回放时丢失默认组织、上级组织等上下文字段。
+
+### 模板选择页默认上下文（2026-05-22）
+
+典型症状：录制时选择模板正常，回放在选择模板步骤报 `请选择“算发薪管理组织”`，或后续 `open_form(...) got list without pageId: 当前业务数据模板数据缺失，请重新选择模板并创建提报单。`
+
+诊断顺序：
+1. 先确认不是 pageId 预打开错误：模板驱动的详情页不能在菜单/list 流程前直接 `open_form`，必须等 `menuItemClick/loadData/addnew/showForm` 建立上下文。
+2. 再看 HAR 中模板选择表单的 `loadData` 响应是否带出了默认字段，例如 `hpdi_bizdatabillchoicetpl.org = JDGJJT / 金蝶国际软件集团有限公司`。
+3. 如果该字段没有显式 setItem 请求，但后续 pick 依赖它，应让 har_extractor 从同一 `form_id` 的响应默认值生成上下文 `pick_basedata`，并在环境字段面板展示可维护值。
+4. 不要把这种问题通过补 `save.post_data` 解决；保存时看似缺字段，实际根因通常是模板/新增页的 pageId 模型上下文没有完整重建。
+
+## 子弹窗/明细补录链路（2026-05-22）
+
+典型链路：主单点击 `newentry` → 弹出“计薪人员任职经历”选择器 → 确定 → 弹出“业务数据提报新增” → 维护 `bizdate/kd311/kd305/kd306` → 确定 → 主单保存。
+
+排查要点：
+1. `newentry` 这类进入明细补录的 click 不能标 optional；失败应中断，否则会出现“主单保存成功但明细缺失”的半成功。
+2. 选择器的 `loadData/entryRowClick/确定` 必须使用 `showForm` 下发的 32hex pageId；如果响应为空或像门户首页，优先查 `billFormId` 别名绑定。
+3. F7/列表弹窗的 `entryRowClick.post_data[*].selDatas` 是用户选中的环境对象，应暴露为可维护环境字段：界面展示业务编码，YAML 同时保留 `recorded_value_id` 作为兜底，运行时按用户维护的编码重新解析真实内码。
+4. 明细新增弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，而不是环境字段；用户需要能在预览页和用例详情变量面板维护。
+5. 明细新增弹窗的字段更新和确定必须使用真实编辑态 L3 pageId；如果出现 `runtime_l2_used_for_l3_step`，先修 pageId 链路。
+6. 最终保存响应里应能看到明细字段回填，例如 `entryentity.rows` 中包含录制字段值；这比单看最终 PASS 更可靠。
 
 ## 诊断脚本
 

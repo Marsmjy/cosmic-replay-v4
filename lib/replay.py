@@ -546,9 +546,18 @@ class CosmicFormReplay:
                 if obj.get("a") == "showForm":
                     for p in obj.get("p", []):
                         if isinstance(p, dict):
-                            fid = p.get("formId")
                             pid = p.get("pageId")
-                            if isinstance(fid, str) and isinstance(pid, str) and len(pid) >= 16 and fid:
+                            form_ids = [p.get("formId")]
+                            # Some F7 dialogs render with a generic formId but
+                            # subsequent HAR requests use billFormId as `f=`.
+                            # Bind both names to the same pageId so replay can
+                            # follow the recorded request chain.
+                            bill_fid = p.get("billFormId")
+                            if bill_fid and bill_fid not in form_ids:
+                                form_ids.append(bill_fid)
+                            for fid in form_ids:
+                                if not (isinstance(fid, str) and isinstance(pid, str) and len(pid) >= 16 and fid):
+                                    continue
                                 # ⭐ L2 pageId 保护：菜单级 pageId 不应绑定给表单 form_id
                                 if _is_l2_pageid(pid):
                                     log.debug(f"[harvest/showForm] SKIP L2 pageId for {fid}: {pid[:30]}")

@@ -85,6 +85,10 @@ _CORE_TOOLBAR_KEYS = {"toolbarap", "tbmain", "toolbar"}
 # 这类 save 按钮的 ac 是 click 而非 saveandeffect，但属于业务核心操作
 _SAVE_BUTTON_KEYS = {"btnsave", "btnsaveandnew", "btnsaveaddnew", "btnsavenew"}
 
+# click 但属于业务流程入口的按钮。若被 optional 吞掉，后续可能出现
+# “执行 PASS 但只保存主单/部分明细”的半成功。
+_CORE_CLICK_KEYS = {"newentry"}
+
 # ⭐ 无门户导航时，用于连接“列表/树 → 卡片/表单”的上下文步骤。
 # 这类步骤如果被裁掉，新增场景可能丢失默认上下文（如 createorg / tree focus）。
 _CONTEXT_BRIDGE_ACS = {
@@ -159,6 +163,7 @@ _AUTO_RESOLVE_FIELD_HINTS = {
 
 _AUTO_RESOLVE_CODE_FIELD_HINTS = {
     "adminorglayer",
+    "bizitemgroup",
     "changescene",
     "city",
     "companyarea",
@@ -194,6 +199,11 @@ _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
         "companyarea",
         "org",
         "otclassify",
+    ),
+    # 业务数据提报选模板页：HAR 中 org 由 loadData 默认带出，后续选择
+    # bizitemgroup 依赖该上下文；API 回放中缺失时会提示“请选择算发薪管理组织”。
+    "hpdi_bizdatabillchoicetpl": (
+        "org",
     ),
 }
 
@@ -407,6 +417,10 @@ _FIELD_LABELS = {
     'bsled':              '失效日期',
     'effectdate':         '生效日期',
     'loseeffectdate':     '失效日期',
+    'bizdate':            '业务归属日期',
+    'kd311':              '工作加班小时',
+    'kd305':              '周末加班小时',
+    'kd306':              '法定加班小时',
     'khr_homs_condes':    '保密描述',
     'parentorg':          '上级行政组织',
     'orgpattern':         '组织形态',
@@ -934,6 +948,12 @@ def _is_l2_page_id(value: Any) -> bool:
 
 def _iter_har_response_actions(har: dict):
     for idx, entry in enumerate(har.get("log", {}).get("entries", [])):
+        req = entry.get("request", {}) or {}
+        url = req.get("url", "") or ""
+        parsed = urllib.parse.urlparse(url)
+        qs = urllib.parse.parse_qs(parsed.query)
+        form_id = qs.get("f", [""])[0]
+        app_id = qs.get("appId", [""])[0]
         resp_text = (entry.get("response") or {}).get("content", {}).get("text", "") or ""
         if not resp_text:
             continue
@@ -944,35 +964,41 @@ def _iter_har_response_actions(har: dict):
         if isinstance(resp_json, list):
             for cmd in resp_json:
                 if isinstance(cmd, dict) and cmd.get("a"):
-                    yield idx, cmd
+                    yield idx, form_id, app_id, cmd
 
 
 def _collect_har_field_observations(har: dict) -> dict[str, Any]:
     """收集响应中的字段锁定状态和值，用于生成更贴近浏览器录制的 YAML。"""
     locked_events: dict[int, set[str]] = {}
     response_values: dict[str, dict[str, str]] = {}
+    response_values_by_form: dict[str, dict[str, dict[str, str]]] = {}
 
     def mark_locked(har_index: int, field_key: Any) -> None:
         key = str(field_key or "").strip().lower()
         if key:
             locked_events.setdefault(har_index, set()).add(key)
 
-    def remember_value(field_key: Any, value: Any) -> None:
+    def remember_value(field_key: Any, value: Any, form_id: str = "") -> None:
         key = str(field_key or "").strip().lower()
         if not key:
             return
         parts = _extract_basedata_parts(value)
         if parts:
             response_values[key] = parts
+            if form_id:
+                response_values_by_form.setdefault(form_id, {})[key] = parts
             return
         if value not in (None, "") and key in _DEFAULT_CONTEXT_FIELD_KEYS:
-            response_values.setdefault(key, {
+            fallback = {
                 "value_code": str(value),
                 "value_name": str(value),
                 "value_number": str(value),
-            })
+            }
+            response_values.setdefault(key, fallback)
+            if form_id:
+                response_values_by_form.setdefault(form_id, {}).setdefault(key, fallback)
 
-    for har_index, cmd in _iter_har_response_actions(har):
+    for har_index, form_id, _app_id, cmd in _iter_har_response_actions(har):
         action = cmd.get("a")
         params = cmd.get("p") or []
         if action == "updateControlMetadata" and isinstance(params, list):
@@ -986,11 +1012,12 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
         elif action == "u" and isinstance(params, list):
             for item in params:
                 if isinstance(item, dict) and "k" in item:
-                    remember_value(item.get("k"), item.get("v"))
+                    remember_value(item.get("k"), item.get("v"), form_id)
 
     return {
         "locked_events": locked_events,
         "response_values": response_values,
+        "response_values_by_form": response_values_by_form,
     }
 
 
@@ -1115,6 +1142,18 @@ _TEXT_VARIABLE_KEYS = {
     "khr_homs_condes",
 }
 
+_BUSINESS_INPUT_VARIABLE_KEYS = {
+    "bizdate": ("business_belong_date", "业务归属日期"),
+    "kd311": ("workday_overtime_hours", "工作加班小时"),
+    "kd305": ("weekend_overtime_hours", "周末加班小时"),
+    "kd306": ("holiday_overtime_hours", "法定加班小时"),
+}
+
+_F7_SELECTOR_FORM_LABELS = {
+    "hsbs_empposf7querylist": ("employee_position", "计薪人员任职经历", "employee"),
+    "hsbs_employeequerylistf7": ("employee_position", "计薪人员任职经历", "employee"),
+}
+
 
 def _classify_key(key_hint: str) -> str | None:
     """将字段 key 分类为 number/name/phone/cert/unique 或 None。"""
@@ -1237,6 +1276,18 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
         return f"test_{safe}"
 
     def maybe_var(val: Any, key_hint: str = "") -> Any:
+        key_lower = (key_hint or "").lower()
+        if key_lower in _BUSINESS_INPUT_VARIABLE_KEYS and val not in ("", None):
+            suffix, label = _BUSINESS_INPUT_VARIABLE_KEYS[key_lower]
+            vname = f"test_{suffix}"
+            if vname not in vars_map:
+                if key_lower == "bizdate" and isinstance(val, str) and (_RX_DATE.match(val) or _RX_DATETIME.match(val)):
+                    vars_map[vname] = "${today}"
+                else:
+                    vars_map[vname] = val
+                vars_labels[vname] = label
+            return f"${{vars.{vname}}}"
+
         if not isinstance(val, str) or not val:
             return val
         # 日期 → ${today}
@@ -1632,7 +1683,7 @@ def extract_steps(har: dict) -> list[dict]:
                 # ⭐ 规则6补充：toolbar 按钮点击一律视为 core
                 ctrl_key = action.get("key", "")
                 # ⭐ 规则6补充：btnsave 类按钮 → 视为 core（HAR 可能把保存录成 click）
-                if ac == "click" and ctrl_key in _SAVE_BUTTON_KEYS:
+                if ac == "click" and ctrl_key in (_SAVE_BUTTON_KEYS | _CORE_CLICK_KEYS):
                     tier = "core"
                 elif tier != "core" and ctrl_key in _CORE_TOOLBAR_KEYS:
                     tier = "core"
@@ -2168,6 +2219,56 @@ def _extract_treeview_focus(step: dict) -> tuple[str, str]:
     return "", ""
 
 
+def _extract_entry_row_selector(step: dict) -> dict[str, Any] | None:
+    """从 F7 entryRowClick 中提取用户选择的对象。
+
+    有些选择器不是 setItemByIdFromClient，而是在列表弹窗里 entryRowClick
+    一行后再点确定。若不暴露这个 selDatas，用户无法在预览页维护“选择人”。
+    """
+    if step.get("type") != "invoke" or step.get("ac") != "entryRowClick":
+        return None
+    form_id = str(step.get("form_id") or "")
+    selector_key, label, field_key = _F7_SELECTOR_FORM_LABELS.get(form_id, ("", "", ""))
+    if not selector_key:
+        return None
+
+    post_data = step.get("post_data")
+    if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+        return None
+
+    for control_key, payload in post_data[0].items():
+        if not isinstance(payload, dict):
+            continue
+        rows = payload.get("selDatas")
+        if not (isinstance(rows, list) and rows and isinstance(rows[0], list)):
+            continue
+        row = rows[0]
+        value_id = str(row[0] or "") if row else ""
+        if not value_id:
+            continue
+        code_index = next((
+            idx for idx, cell in enumerate(row)
+            if idx > 0
+            and isinstance(cell, str)
+            and cell
+            and not _looks_like_internal_id(cell)
+            and cell not in {"0", "1"}
+        ), -1)
+        value_code = str(row[code_index]) if code_index >= 0 else ""
+        return {
+            "selector_key": selector_key,
+            "field_key": field_key,
+            "label": label,
+            "value_id": value_id,
+            "value_code": value_code,
+            "value_name": value_code,
+            "control_key": str(control_key),
+            "value_index": 0,
+            "code_index": code_index,
+        }
+    return None
+
+
 def _extract_common_search_defaults(steps: list[dict], form_id: str) -> dict[str, str]:
     """从 commonSearch 参数中提取环境上下文默认值（如 useorg.id=100000）。"""
     found: dict[str, str] = {}
@@ -2459,77 +2560,114 @@ def _append_recorded_default_pick_steps(
     """Replay required defaults that were visible in HAR loadData but never clicked.
 
     Some Kingdee forms prefill required basedata fields during addnew/loadData.
-    Browser replay keeps them in client state, while API replay can lose them
-    after dependent field recalculation. For known forms, convert those recorded
-    defaults into explicit pick_basedata steps before the first save.
+    Browser replay keeps them in the pageId model context, while API replay can
+    lose them before a dependent pick/save. For known forms, convert those
+    recorded defaults into explicit pick_basedata steps on the same form.
     """
-    default_fields = _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM.get(main_form, set())
-    if not default_fields:
-        return steps
-    values = observations.get("response_values") or {}
-    if not values:
+    if not _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM:
         return steps
 
-    existing_fields = {
-        str(step.get("field_key") or "").lower()
-        for step in steps
-        if step.get("type") == "pick_basedata" and step.get("field_key")
-    }
-    injected: list[dict[str, Any]] = []
-    for field_key in default_fields:
-        if field_key in existing_fields:
-            continue
-        parts = values.get(field_key)
-        if not isinstance(parts, dict):
-            continue
-        value_code = str(parts.get("value_code") or "").strip()
-        value_name = str(parts.get("value_name") or "").strip()
-        value_number = str(parts.get("value_number") or "").strip()
-        value_id = _recorded_default_value_id(field_key, value_code, value_name)
-        if not value_id:
-            continue
-        injected.append({
-            "type": "pick_basedata",
-            "id": f"pick_{_sanitize(field_key) or field_key}_ctx",
-            "form_id": main_form,
-            "app_id": app_id,
-            "field_key": field_key,
-            "value_id": value_id,
-            "value_name": value_name,
-            "value_code": value_code,
-            "value_number": value_number,
-            "_tier": "core",
-            "_is_recorded_default": True,
-        })
-
-    if not injected:
-        return steps
-
-    early_fields = {"org"} if main_form == "haos_adminorgdetail" else set()
-    early_injected = [
-        step for step in injected
-        if str(step.get("field_key") or "").lower() in early_fields
-    ]
-    late_injected = [
-        step for step in injected
-        if str(step.get("field_key") or "").lower() not in early_fields
-    ]
+    values_by_form = observations.get("response_values_by_form") or {}
+    legacy_values = observations.get("response_values") or {}
     out = list(steps)
-    if early_injected:
-        early_pos = next((
-            idx for idx, step in enumerate(out)
-            if step.get("form_id") == main_form
-            and step.get("type") in ("update_fields", "pick_basedata")
-        ), len(out))
-        for offset, step in enumerate(early_injected):
-            out.insert(early_pos + offset, step)
 
-    insert_pos = next(
-        (idx for idx, step in enumerate(out) if _is_write_anchor_step(step)),
-        len(out),
-    )
-    for offset, step in enumerate(late_injected):
-        out.insert(insert_pos + offset, step)
+    def _form_values(form_id: str) -> dict[str, dict[str, str]]:
+        scoped = values_by_form.get(form_id) or {}
+        if scoped:
+            return scoped
+        # Backward compatibility for older observation payloads used by tests.
+        return legacy_values if form_id == main_form else {}
+
+    def _existing_pick_fields(form_id: str) -> set[str]:
+        return {
+            str(step.get("field_key") or "").lower()
+            for step in out
+            if step.get("form_id") == form_id
+            and step.get("type") == "pick_basedata"
+            and step.get("field_key")
+        }
+
+    def _first_business_input_pos(form_id: str) -> int:
+        for idx, step in enumerate(out):
+            if step.get("form_id") != form_id:
+                continue
+            if step.get("type") in ("update_fields", "pick_basedata"):
+                return idx
+        for idx, step in enumerate(out):
+            if step.get("form_id") != form_id:
+                continue
+            if step.get("type") == "invoke" and step.get("ac") not in {"loadData", "getLookUpList"}:
+                return idx
+        return next((idx + 1 for idx, step in enumerate(out) if step.get("form_id") == form_id), len(out))
+
+    def _write_anchor_pos() -> int:
+        return next((idx for idx, step in enumerate(out) if _is_write_anchor_step(step)), len(out))
+
+    injections_by_form: dict[str, list[dict[str, Any]]] = {}
+    for form_id, default_fields in _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM.items():
+        if not any(step.get("form_id") == form_id for step in out):
+            continue
+        values = _form_values(form_id)
+        if not values:
+            continue
+        existing_fields = _existing_pick_fields(form_id)
+        form_app_id = next((str(step.get("app_id") or "") for step in out if step.get("form_id") == form_id), app_id)
+        for field_key in default_fields:
+            field_key_l = str(field_key or "").lower()
+            if field_key_l in existing_fields:
+                continue
+            parts = values.get(field_key_l)
+            if not isinstance(parts, dict):
+                continue
+            value_code = str(parts.get("value_code") or "").strip()
+            value_name = str(parts.get("value_name") or "").strip()
+            value_number = str(parts.get("value_number") or "").strip()
+            value_id = _recorded_default_value_id(field_key_l, value_code, value_name)
+            if not value_id:
+                continue
+            injections_by_form.setdefault(form_id, []).append({
+                "type": "pick_basedata",
+                "id": f"pick_{_sanitize(field_key_l) or field_key_l}_ctx",
+                "form_id": form_id,
+                "app_id": form_app_id,
+                "field_key": field_key_l,
+                "value_id": value_id,
+                "value_name": value_name,
+                "value_code": value_code,
+                "value_number": value_number,
+                "_tier": "core",
+                "_is_recorded_default": True,
+            })
+
+    if not injections_by_form:
+        return steps
+
+    # Keep the long-standing admin-org behavior: org must be replayed before
+    # first input, while the remaining defaults are safest right before save.
+    admin_injected = injections_by_form.pop("haos_adminorgdetail", [])
+    if admin_injected:
+        early_fields = {"org"} if main_form == "haos_adminorgdetail" else set()
+        early = [
+            step for step in admin_injected
+            if str(step.get("field_key") or "").lower() in early_fields
+        ]
+        late = [
+            step for step in admin_injected
+            if str(step.get("field_key") or "").lower() not in early_fields
+        ]
+        if early:
+            early_pos = _first_business_input_pos("haos_adminorgdetail")
+            for offset, step in enumerate(early):
+                out.insert(early_pos + offset, step)
+        if late:
+            insert_pos = _write_anchor_pos()
+            for offset, step in enumerate(late):
+                out.insert(insert_pos + offset, step)
+
+    for form_id, injected in injections_by_form.items():
+        insert_pos = _first_business_input_pos(form_id)
+        for offset, step in enumerate(injected):
+            out.insert(insert_pos + offset, step)
     return out
 
 
@@ -3587,6 +3725,39 @@ def build_yaml_case(
             ("resolve_status", "manual"),
         ])
 
+    # --- 从 F7 选择器 entryRowClick 中提取用户选择对象（如计薪人员任职经历） ---
+    for s in cleaned:
+        selector = _extract_entry_row_selector(s)
+        if not selector:
+            continue
+        step_id = _scoped_pick_field_id(
+            f"selector_{selector['selector_key']}_id",
+            pick_fields_map,
+            form_id=s.get("form_id") or "",
+            source_step_id=s.get("id", ""),
+        )
+        if not step_id:
+            continue
+        pick_fields_map[step_id] = OrderedDict([
+            ("value_id", selector["value_code"] or selector["value_id"]),
+            ("value_name", selector["value_name"]),
+            ("value_code", selector["value_code"]),
+            ("recorded_value_id", selector["value_id"]),
+            ("label", selector["label"]),
+            ("env_sensitive", "medium"),
+            ("field_key", selector["field_key"]),
+            ("form_id", s.get("form_id", "")),
+            ("app_id", s.get("app_id", "")),
+            ("source_step_id", s.get("id", "")),
+            ("auto_resolve", True if selector["value_code"] else False),
+            ("resolve_by", "value_code" if selector["value_code"] else ""),
+            ("resolve_status", "pending" if selector["value_code"] else "manual"),
+            ("selector_control_key", selector["control_key"]),
+            ("selector_value_index", selector["value_index"]),
+            ("selector_code_index", selector["code_index"]),
+            ("selector_source", "entryRowClick"),
+        ])
+
     # --- 从 update_fields 步骤中提取环境相关字段和日期字段 ---
     for s in cleaned:
         if s.get("type") != "update_fields":
@@ -4151,6 +4322,42 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "auto_resolve": False,
                 "resolve_by": "",
                 "resolve_status": "manual",
+            }
+            pick_fields.append(item)
+            _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
+
+        elif s.get("type") == "invoke" and s.get("ac") == "entryRowClick":
+            selector = _extract_entry_row_selector(s)
+            if not selector:
+                continue
+            step_form_id = s.get("form_id") or ""
+            step_id = _scoped_pick_field_id(
+                f"selector_{selector['selector_key']}_id",
+                _seen_pick_map,
+                form_id=step_form_id,
+                source_step_id=s.get("id", ""),
+            )
+            if not step_id:
+                continue
+            item = {
+                "id": step_id,
+                "field_key": selector["field_key"],
+                "label": selector["label"],
+                "env_sensitive": "medium",
+                "value_id": selector["value_code"] or selector["value_id"],
+                "value_name": selector["value_name"],
+                "value_code": selector["value_code"],
+                "recorded_value_id": selector["value_id"],
+                "form_id": step_form_id,
+                "app_id": s.get("app_id", ""),
+                "source_step_id": s.get("id", ""),
+                "auto_resolve": True if selector["value_code"] else False,
+                "resolve_by": "value_code" if selector["value_code"] else "",
+                "resolve_status": "pending" if selector["value_code"] else "manual",
+                "selector_control_key": selector["control_key"],
+                "selector_value_index": selector["value_index"],
+                "selector_code_index": selector["code_index"],
+                "selector_source": "entryRowClick",
             }
             pick_fields.append(item)
             _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}

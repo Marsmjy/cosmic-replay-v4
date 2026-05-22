@@ -7,7 +7,15 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from lib.har_extractor import _attach_pick_field_scopes, _clean_display_label, _scoped_pick_field_id, build_yaml_case, preview_har, to_yaml
+from lib.har_extractor import (
+    _append_recorded_default_pick_steps,
+    _attach_pick_field_scopes,
+    _clean_display_label,
+    _scoped_pick_field_id,
+    build_yaml_case,
+    preview_har,
+    to_yaml,
+)
 from lib import kb_loader
 
 
@@ -104,6 +112,89 @@ def test_attach_pick_field_scopes_uses_form_before_field_key_match():
 
     assert pick_fields["pick_adminorg_id__pick_b"]["source_step_id"] == "pick_b"
     assert pick_fields["pick_adminorg_id__pick_b"]["write_step_id"] == "save_b"
+
+
+def test_recorded_default_pick_steps_are_inserted_for_intermediate_choice_form():
+    steps = [
+        {
+            "id": "load_choice",
+            "type": "invoke",
+            "form_id": "hpdi_bizdatabillchoicetpl",
+            "app_id": "hpdi",
+            "ac": "loadData",
+        },
+        {
+            "id": "pick_bizitemgroup",
+            "type": "pick_basedata",
+            "form_id": "hpdi_bizdatabillchoicetpl",
+            "app_id": "hpdi",
+            "field_key": "bizitemgroup",
+            "value_id": "2365355356009289728",
+        },
+        {
+            "id": "click_ok",
+            "type": "invoke",
+            "form_id": "hpdi_bizdatabillchoicetpl",
+            "app_id": "hpdi",
+            "ac": "click",
+        },
+    ]
+    observations = {
+        "response_values_by_form": {
+            "hpdi_bizdatabillchoicetpl": {
+                "org": {
+                    "value_code": "JDGJJT",
+                    "value_name": "金蝶国际软件集团有限公司",
+                    "value_number": "JDGJJT",
+                }
+            }
+        }
+    }
+
+    out = _append_recorded_default_pick_steps(
+        steps,
+        observations,
+        main_form="hpdi_bizdatabillnewentry",
+        app_id="hpdi",
+    )
+
+    org_step = next(step for step in out if step.get("field_key") == "org")
+    assert org_step["form_id"] == "hpdi_bizdatabillchoicetpl"
+    assert org_step["value_id"] == "JDGJJT"
+    assert org_step["value_code"] == "JDGJJT"
+    assert out.index(org_step) < next(
+        idx for idx, step in enumerate(out) if step.get("field_key") == "bizitemgroup"
+    )
+
+
+def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779437599_UA提报保存.har"
+    if not har_path.exists():
+        pytest.skip("local ignored UA HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="ua_submit_save")
+    case = yaml.safe_load(yaml_text)
+    steps = {step["id"]: step for step in case["steps"]}
+
+    assert steps["click_31"]["key"] == "newentry"
+    assert steps["click_31"].get("optional") is not True
+    assert "load_empposf7querylist" in steps
+    assert "click_34" in steps
+    assert "load_bizdatabillnewentry" in steps
+    assert steps["fill_bizdate"]["fields"]["bizdate"] == "${vars.test_business_belong_date}"
+    assert steps["fill_kd311"]["fields"]["kd311"] == "${vars.test_workday_overtime_hours}"
+    assert steps["fill_kd305"]["fields"]["kd305"] == "${vars.test_weekend_overtime_hours}"
+    assert steps["fill_kd306"]["fields"]["kd306"] == "${vars.test_holiday_overtime_hours}"
+    assert case["vars"]["test_business_belong_date"] == "${today}"
+    assert case["vars_labels"]["test_workday_overtime_hours"] == "工作加班小时"
+
+    selector = case["pick_fields"]["selector_employee_position_id"]
+    assert selector["label"] == "计薪人员任职经历"
+    assert selector["value_id"] == "012890005"
+    assert selector["recorded_value_id"] == "2381390967690242048"
+    assert selector["source_step_id"] == "entryRowClick_33"
+    assert selector["write_step_id"] == "click_34"
+    assert selector["resolve_by"] == "value_code"
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():

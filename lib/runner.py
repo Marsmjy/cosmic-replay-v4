@@ -351,6 +351,40 @@ def _step_allows_l2_pageid(step: dict) -> bool:
     return _trace_step_allows_l2_pageid(step)
 
 
+def _case_targets_form_via_menu(case: dict, form_id: str) -> bool:
+    """Whether a form is reached through a recorded menu L2 context.
+
+    Such forms should not be opened eagerly with getConfig before the recorded
+    navigation runs. Some Kingdee detail forms, for example template-driven
+    entry pages, only become valid after the list/menu flow creates the server
+    model context.
+    """
+    if not form_id:
+        return False
+    for step in case.get("steps") or []:
+        if step.get("ac") != "menuItemClick":
+            continue
+        if step.get("target_form") == form_id:
+            return True
+        if form_id in (step.get("target_forms") or []):
+            return True
+    return False
+
+
+def _claim_pending_pageid_for_form(replay, form_id: str, app_id: str) -> bool:
+    """Bind an addVirtualTab/showForm pageId to the next form that needs it."""
+    pending = getattr(replay, "_pending_by_app", {}).get(app_id)
+    if not pending:
+        return False
+    replay.page_ids[form_id] = pending
+    try:
+        replay._pending_by_app.pop(app_id, None)
+    except Exception:
+        pass
+    log.info(f"[pending-bind] {form_id}: claimed pending pageId={str(pending)[:20]}...")
+    return True
+
+
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
     """invoke 执行前的 pageId 有效性预验证
 
@@ -377,6 +411,8 @@ def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict
 
     # 场景1：pageId 完全缺失 → 自动 open_form + loadData
     if form_id not in replay.page_ids:
+        if _claim_pending_pageid_for_form(replay, form_id, app_id):
+            return
         try:
             pid = replay.open_form(form_id, app_id, lazy=False)
             if pid:
@@ -419,6 +455,7 @@ def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict
 
 @step_handler("invoke")
 def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
+    _auto_resolve_selector_row_step(step, replay, ctx)
     action = {
         "key": step.get("key", ""),
         "methodName": step.get("method", ""),
@@ -714,6 +751,17 @@ def _apply_pick_fields(case: dict):
                             fields[field_key] = value
             continue
 
+        # selector_* -> 覆盖 F7/列表弹窗 entryRowClick 的 selDatas 选中行
+        if pf_id.startswith("selector_"):
+            source_step_id = str(pf_meta.get("source_step_id") or "")
+            step = step_map.get(source_step_id)
+            if not step:
+                continue
+            step["_selector_env_field_id"] = pf_id
+            step["_selector_env_field_meta"] = pf_meta
+            _apply_selector_row_value(step, pf_meta)
+            continue
+
         # env_*_treeview_focus -> 更新 addnew 步骤的 post_data 中 treeview.focus.id
         if pf_id.startswith("env_") and pf_id.endswith("_treeview_focus"):
             # 优先使用 value_id（数字ID），fallback 到 value_name
@@ -803,6 +851,92 @@ def _apply_pick_fields(case: dict):
                 if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
                     step["value_id"] = value
                     break
+
+
+def _selector_rows(step: dict, pf_meta: dict) -> list | None:
+    post_data = step.get("post_data")
+    if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+        return None
+    control_key = str(pf_meta.get("selector_control_key") or "")
+    candidates = [post_data[0].get(control_key)] if control_key else list(post_data[0].values())
+    for payload in candidates:
+        if not isinstance(payload, dict):
+            continue
+        rows = payload.get("selDatas")
+        if isinstance(rows, list) and rows and isinstance(rows[0], list):
+            return rows
+    return None
+
+
+def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str = "") -> None:
+    rows = _selector_rows(step, pf_meta)
+    if not rows:
+        return
+    row = rows[0]
+    value_idx = int(pf_meta.get("selector_value_index", 0) or 0)
+    code_idx = int(pf_meta.get("selector_code_index", -1) or -1)
+    recorded = str(pf_meta.get("recorded_value_id") or "").strip()
+    user_value = str(pf_meta.get("value_id") or "").strip()
+    value_id = str(resolved_value_id or recorded or user_value or "").strip()
+    value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
+    value_name = str(pf_meta.get("value_name") or "").strip()
+    if value_id and 0 <= value_idx < len(row):
+        row[value_idx] = value_id
+    if value_code and 0 <= code_idx < len(row):
+        row[code_idx] = value_code
+    if value_name:
+        step["_selector_display_value"] = value_name
+
+
+def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
+    pf_meta = step.get("_selector_env_field_meta") or {}
+    if not isinstance(pf_meta, dict) or not pf_meta.get("auto_resolve"):
+        return
+    pf_id = step.get("_selector_env_field_id") or ""
+    field_key = str(pf_meta.get("field_key") or "").strip()
+    form_id = str(pf_meta.get("form_id") or step.get("form_id") or "").strip()
+    app_id = str(pf_meta.get("app_id") or step.get("app_id") or "").strip()
+    user_value = str(pf_meta.get("value_id") or "").strip()
+    value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
+    value_name = str(pf_meta.get("value_name") or "").strip()
+    resolve_by = str(pf_meta.get("resolve_by") or "value_code").strip()
+    query_value = value_code if resolve_by == "value_code" and value_code else value_name
+    if not (field_key and form_id and app_id and query_value):
+        return
+
+    env_resolution = ctx.setdefault("env_resolution", {})
+    cached = env_resolution.get(pf_id)
+    if cached and cached.get("status") == "resolved" and cached.get("resolved_value_id"):
+        _apply_selector_row_value(step, pf_meta, str(cached["resolved_value_id"]))
+        return
+
+    resolver: FieldResolver = ctx.setdefault(
+        "field_resolver",
+        FieldResolver(replay, env_id=str(ctx.get("env_id") or "")),
+    )
+    result = resolver.resolve_basedata_result(
+        form_id,
+        app_id,
+        field_key,
+        query_value,
+        original_value_id=str(pf_meta.get("recorded_value_id") or pf_meta.get("value_id") or ""),
+    )
+    result_dict = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
+    if result.status == "resolved" and result.resolved_value_id:
+        _apply_selector_row_value(step, pf_meta, result.resolved_value_id)
+        result_dict["effective_value_id"] = result.resolved_value_id
+    else:
+        _apply_selector_row_value(step, pf_meta)
+        result_dict["effective_value_id"] = pf_meta.get("recorded_value_id") or pf_meta.get("value_id") or ""
+    result_dict["step_id"] = pf_id
+    result_dict["label"] = pf_meta.get("label", field_key)
+    result_dict["env_sensitive"] = pf_meta.get("env_sensitive", "medium")
+    result_dict["value_id"] = result_dict["effective_value_id"]
+    result_dict["value_name"] = value_name
+    result_dict["value_code"] = value_code
+    result_dict["resolve_by"] = resolve_by
+    result_dict["query"] = query_value
+    env_resolution[pf_id] = result_dict
 
 
 def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
@@ -1162,12 +1296,15 @@ def run_case(case: dict, on_event=None) -> RunResult:
     # 主表单预开
     main_form = case.get("main_form_id")
     if main_form:
-        for s in case.get("steps") or []:
-            if s.get("type") == "open_form" and s.get("form_id") == main_form:
-                break
+        if _case_targets_form_via_menu(case, main_form):
+            log.info(f"[main-preopen] skip {main_form}: recorded menu flow will provide pageId context")
         else:
-            app_id = _guess_app_id(main_form, case)
-            replay.open_form(main_form, app_id)
+            for s in case.get("steps") or []:
+                if s.get("type") == "open_form" and s.get("form_id") == main_form:
+                    break
+            else:
+                app_id = _guess_app_id(main_form, case)
+                replay.open_form(main_form, app_id)
 
     # 5. 执行 steps
     ctx: dict[str, Any] = {
@@ -1282,8 +1419,11 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
             # pageId 完全缺失时才触发 auto-open
             if _target_form not in replay.page_ids:
-                _need_open = True
-                log.debug(f"[auto-open] {_target_form}: pageId 缺失")
+                if _claim_pending_pageid_for_form(replay, _target_form, _target_app):
+                    _need_open = False
+                else:
+                    _need_open = True
+                    log.debug(f"[auto-open] {_target_form}: pageId 缺失")
 
             if _need_open:
                 try:

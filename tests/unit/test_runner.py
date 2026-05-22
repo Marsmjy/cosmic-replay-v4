@@ -18,12 +18,16 @@ from datetime import date, datetime
 SKILL_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
 
+from lib import runner as runner_mod
+from lib.field_resolver import ResolveResult
 from lib.runner import (
     load_yaml, _parse_yaml_light, resolve_vars, _resolve_str, _resolve_ref,
     STEP_HANDLERS, ASSERTION_HANDLERS, _auto_resolve_pick_basedata_step,
-    _step_allows_l2_pageid,
+    _step_allows_l2_pageid, _case_targets_form_via_menu,
+    _claim_pending_pageid_for_form, _apply_pick_fields,
+    _auto_resolve_selector_row_step,
 )
-from lib.replay import has_error_action
+from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
 
 class TestYAMLParsing:
@@ -158,6 +162,74 @@ class TestReplayErrorDetection:
 
         assert step["value_id"] == "2483502552415473664"
 
+    def test_selector_env_field_uses_user_code_and_resolves_internal_id(self, monkeypatch):
+        row = ["2381390967690242048", "", "", "012890005"]
+        step = {
+            "id": "entryRowClick_33",
+            "type": "invoke",
+            "form_id": "hsbs_empposf7querylist",
+            "app_id": "hsbs",
+            "ac": "entryRowClick",
+            "post_data": [{"billlistap": {"selDatas": [row]}}],
+        }
+        case = {
+            "steps": [step],
+            "pick_fields": {
+                "selector_employee_position_id": {
+                    "field_key": "employee",
+                    "form_id": "hsbs_empposf7querylist",
+                    "app_id": "hsbs",
+                    "source_step_id": "entryRowClick_33",
+                    "value_id": "012890006",
+                    "value_code": "012890005",
+                    "value_name": "012890006",
+                    "recorded_value_id": "2381390967690242048",
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                    "selector_control_key": "billlistap",
+                    "selector_value_index": 0,
+                    "selector_code_index": 3,
+                }
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        assert row[0] == "2381390967690242048"
+        assert row[3] == "012890006"
+
+        queries = []
+
+        class FakeResolver:
+            def __init__(self, replay, env_id=""):
+                pass
+
+            def resolve_basedata_result(self, form_id, app_id, field_key, query, original_value_id=""):
+                queries.append((form_id, app_id, field_key, query, original_value_id))
+                return ResolveResult(
+                    status="resolved",
+                    field_key=field_key,
+                    query=query,
+                    original_value_id=original_value_id,
+                    resolved_value_id="2381390967690242999",
+                    resolved_value_name="012890006",
+                    confidence="high",
+                )
+
+        monkeypatch.setattr(runner_mod, "FieldResolver", FakeResolver)
+
+        _auto_resolve_selector_row_step(step, object(), {"env_id": "uat"})
+
+        assert queries == [(
+            "hsbs_empposf7querylist",
+            "hsbs",
+            "employee",
+            "012890006",
+            "2381390967690242048",
+        )]
+        assert row[0] == "2381390967690242999"
+        assert row[3] == "012890006"
+
     def test_tree_node_click_preserves_l2_page_id(self):
         assert _step_allows_l2_pageid({
             "type": "invoke",
@@ -181,6 +253,59 @@ class TestReplayErrorDetection:
             "ac": "addnew",
             "method": "itemClick",
         }) is True
+
+    def test_menu_targeted_main_form_is_not_preopened(self):
+        case = {
+            "main_form_id": "hpdi_bizdatabillnewentry",
+            "steps": [{
+                "type": "invoke",
+                "ac": "menuItemClick",
+                "target_form": "hpdi_bizdatabillnewentry",
+                "target_forms": ["hpdi_bizdatabill"],
+            }],
+        }
+
+        assert _case_targets_form_via_menu(case, "hpdi_bizdatabillnewentry") is True
+        assert _case_targets_form_via_menu(case, "hpdi_bizdatabill") is True
+        assert _case_targets_form_via_menu(case, "other_form") is False
+
+    def test_pending_pageid_is_claimed_before_auto_opening_context_form(self):
+        class FakeReplay:
+            def __init__(self):
+                self.page_ids = {}
+                self._pending_by_app = {"hpdi": "abcdef0123456789abcdef0123456789"}
+
+        replay = FakeReplay()
+
+        assert _claim_pending_pageid_for_form(replay, "hpdi_bizdatabillnewentry", "hpdi") is True
+        assert replay.page_ids["hpdi_bizdatabillnewentry"] == "abcdef0123456789abcdef0123456789"
+        assert "hpdi" not in replay._pending_by_app
+
+    def test_show_form_harvest_binds_bill_form_id_alias(self):
+        sess = CosmicSession(
+            base_url="http://example.test",
+            cookie="",
+            user_id="",
+            account_id="",
+            csrf_token="",
+            diff_time=0,
+            root_base_id="",
+            root_page_id="rootabcdef0123456789abcdef0123456789",
+        )
+        replay = CosmicFormReplay(sess)
+        response = [{
+            "a": "showForm",
+            "p": [{
+                "formId": "hsbs_employeequerylistf7",
+                "billFormId": "hsbs_empposf7querylist",
+                "pageId": "01179cbf5035422581622d93b880ebb8",
+            }],
+        }]
+
+        replay._harvest_page_ids(response)
+
+        assert replay.page_ids["hsbs_employeequerylistf7"] == "01179cbf5035422581622d93b880ebb8"
+        assert replay.page_ids["hsbs_empposf7querylist"] == "01179cbf5035422581622d93b880ebb8"
 
 
 class TestYAMLLightParsing:

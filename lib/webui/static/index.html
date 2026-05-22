@@ -4674,10 +4674,11 @@ function app() {
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '1. 先读取证据包、YAML、运行事件、pageid_trace 和失败/入库证据。',
         '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
-        '3. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '4. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '5. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '6. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '3. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
+        '4. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '5. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '6. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '7. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
@@ -4709,10 +4710,11 @@ function app() {
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '1. 先读取证据包、YAML、运行事件、pageid_trace、失败步骤和断言结果。',
         '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
-        '3. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '4. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '5. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '6. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '3. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
+        '4. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '5. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '6. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '7. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
