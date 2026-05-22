@@ -1,27 +1,19 @@
 ---
 name: cosmic-replay-troubleshooter
-description: Cosmic Replay 执行故障排查与诊断专家
-version: 2.0
-triggers:
-  - 执行失败
-  - pageId
-  - 安全网
-  - 重试
-  - 页面未初始化
-  - 变量解析
-  - target_forms
-  - pick_fields
-  - save失败
-  - 入库失败
-  - 假成功
-  - AI证据包
-  - 排故
-  - invoke失败
+description: Cosmic Replay 执行故障排查与诊断专家。Use when an AI Agent needs to diagnose Cosmic Replay HAR import, YAML generation, pageId chain, target_forms, pick_fields, save/submit failure, PASS but not written to DB, AI evidence package, variable parsing, environment field override, retry safety net, or Kingdee Cosmic replay execution issues.
 ---
 
 # Cosmic Replay 故障排查诊断
 
 快速定位 Cosmic Replay 用例执行失败的根因，面向 AI Agent 精确到代码位置与修复步骤。
+
+## 先读原则
+
+外部顾问、Qoder Work、Codex、Kiro、WorkBuddy 或任何新 AI Agent 接手本项目时，先阅读：
+
+- `references/external-consultant-handoff.md`：外发交接、支持边界、已验证场景、禁止动作。
+- `references/pageid-chain-debugging.md`：pageId 链路优先排障原则。
+- `references/assertion-blindspots.md`：PASS 但入库未验证、断言盲区排查。
 
 ---
 

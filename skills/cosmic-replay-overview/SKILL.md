@@ -1,3 +1,8 @@
+---
+name: cosmic-replay-overview
+description: Cosmic Replay 项目架构、模块职责、HAR 导入、YAML 生成、执行引擎、pageId、环境字段、批量报告和 AI 修复证据包总览。Use when an AI Agent needs to understand or modify the cosmic-replay project, onboard into the codebase, diagnose architecture-level behavior, or prepare consultant handoff.
+---
+
 # Cosmic Replay v4 - 项目概览 Skill
 
 ## 触发条件
@@ -87,7 +92,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 - auto-open 补偿：每步执行前检查 pageId 存在性
 - 安全网重试（invoke-retry）：可重试错误自动恢复（pop→open→loadData→重试）
 
-详见 skills/cosmic-replay-troubleshooter/skill.md 第一章。
+详见 skills/cosmic-replay-troubleshooter/SKILL.md 第一章。
 
 ### 6. 批量验收报告
 批量报告不只统计 PASS/FAIL，还会给出交付判断：
@@ -122,6 +127,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 8. 改环境字段 → 手工值必须优先于 `auto_resolve`，并补 `tests/unit/test_env_field_resolution.py`
 9. 改批量报告 → 同步 `task_manager.py`、Web UI、`report_exporter.py` 和 `tests/unit/test_task_report_acceptance.py`
 10. 改 AI 修复入口 → 同步 `agent_evidence.py` 和 `cosmic-replay-troubleshooter`
+11. 外发给顾问或新 AI Agent → 同步阅读 `skills/cosmic-replay-troubleshooter/references/external-consultant-handoff.md`，不要依赖历史对话记忆。
 
 ## 快速定位问题
 | 症状 | 去哪看 |
