@@ -41,7 +41,7 @@
     }
 
     .wrap {
-      width: min(1120px, calc(100% - 32px));
+      width: min(1360px, calc(100% - 32px));
       margin: 0 auto;
     }
 
@@ -51,7 +51,7 @@
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+      grid-template-columns: minmax(340px, .72fr) minmax(680px, 1.28fr);
       gap: 28px;
       align-items: stretch;
     }
@@ -153,10 +153,28 @@
       background: rgba(255, 255, 255, .04);
     }
 
+    .demo-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .demo-zoom-btn {
+      flex: 0 0 auto;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid rgba(39, 212, 255, .26);
+      border-radius: 999px;
+      background: rgba(39, 212, 255, .11);
+      color: #d7f9ff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     .demo-frame {
       position: relative;
       display: grid;
-      min-height: 330px;
+      min-height: clamp(520px, 68vh, 760px);
       place-items: center;
       padding: 18px;
       background:
@@ -166,11 +184,12 @@
 
     .demo-frame img {
       width: 100%;
-      max-height: 520px;
+      max-height: 74vh;
       object-fit: contain;
       border-radius: 18px;
       border: 1px solid rgba(255, 255, 255, .12);
       background: #050914;
+      cursor: zoom-in;
     }
 
     .demo-missing {
@@ -292,13 +311,54 @@
       color: #ffe7be;
     }
 
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(3, 8, 18, .88);
+      backdrop-filter: blur(10px);
+    }
+
+    .lightbox.open {
+      display: flex;
+    }
+
+    .lightbox img {
+      width: min(96vw, 1500px);
+      max-height: 92vh;
+      object-fit: contain;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      box-shadow: var(--shadow);
+      background: #050914;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
     .footer {
       padding: 34px 0 58px;
       color: var(--muted);
       text-align: center;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
       .hero-grid,
       .grid-3,
       .grid-2 {
@@ -307,6 +367,22 @@
 
       .hero {
         padding-top: 36px;
+      }
+
+      .demo-frame {
+        min-height: 460px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .demo-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .demo-frame {
+        min-height: 340px;
+        padding: 10px;
       }
     }
   </style>
@@ -327,11 +403,14 @@
 
         <div class="card demo-card">
           <div class="demo-head">
-            <strong>完整演示 GIF</strong>
-            <span class="muted">启动、配置、导入、运行、日志、批量执行</span>
+            <div class="demo-title">
+              <strong>完整演示 GIF</strong>
+              <span class="muted">启动、配置、导入、运行、日志、批量执行</span>
+            </div>
+            <button class="demo-zoom-btn" type="button" onclick="openDemo()">放大查看演示</button>
           </div>
           <div class="demo-frame" id="demoFrame">
-            <img src="./cosmic-replay-demo.gif" alt="Cosmic Replay 完整使用演示" onerror="document.getElementById('demoFrame').classList.add('missing')">
+            <img src="./cosmic-replay-demo.gif" alt="Cosmic Replay 完整使用演示" onclick="openDemo()" onerror="document.getElementById('demoFrame').classList.add('missing')">
             <div class="demo-missing">
               <h3>等待放入演示 GIF</h3>
               <p>请把录制好的文件命名为 <code>cosmic-replay-demo.gif</code>，并放在本 HTML 同一目录。刷新页面后这里会自动显示。</p>
@@ -465,7 +544,30 @@
     <div class="wrap">建议交付时把本 HTML、完整项目 zip、演示 GIF 放在同一个文件夹里。</div>
   </footer>
 
+  <div class="lightbox" id="demoLightbox" onclick="closeDemo()">
+    <button class="lightbox-close" type="button" aria-label="关闭演示" onclick="closeDemo()">×</button>
+    <img src="./cosmic-replay-demo.gif" alt="Cosmic Replay 放大演示" onclick="event.stopPropagation()">
+  </div>
+
   <script>
+    function openDemo() {
+      const frame = document.getElementById('demoFrame');
+      if (frame.classList.contains('missing')) {
+        return;
+      }
+      document.getElementById('demoLightbox').classList.add('open');
+    }
+
+    function closeDemo() {
+      document.getElementById('demoLightbox').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeDemo();
+      }
+    });
+
     function copyPrompt() {
       const prompt = document.getElementById('aiPrompt');
       prompt.focus();
