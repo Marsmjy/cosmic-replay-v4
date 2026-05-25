@@ -112,7 +112,7 @@ def test_manifest_baselines_match_local_hars_when_available():
 
     report = compare_manifest(DEFAULT_MANIFEST, DEFAULT_BASELINE_DIR)
 
-    assert report["sample_count"] == 8
+    assert report["sample_count"] == len(samples)
     assert report["changed_count"] == 0, json.dumps(report, ensure_ascii=False, indent=2)
 
 

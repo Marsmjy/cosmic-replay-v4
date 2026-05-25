@@ -158,7 +158,7 @@ cosmic-replay-v4/
 │   ├── replay.py             # 苍穹协议回放API
 │   ├── field_resolver.py     # 环境相关字段跨环境解析
 │   ├── component_registry.py # HAR 组件雷达
-│   ├── har_regression.py     # 9类HAR回归影响报告（8个SIT + 1个UAT）
+│   ├── har_regression.py     # 10类HAR回归影响报告（8个SIT + 2个UAT）
 │   ├── task_manager.py       # 批量任务与验收报告
 │   ├── agent_evidence.py     # AI修复证据包
 │   ├── report_exporter.py    # 离线HTML报告导出
@@ -178,6 +178,18 @@ cosmic-replay-v4/
 ├── requirements.txt  # Python 依赖
 └── _start_webui.py   # 启动入口
 ```
+
+---
+
+## 顾问交付包
+
+如果需要把完整项目交给外部顾问或 AI Agent，本地生成脱敏交付包：
+
+```bash
+./venv/bin/python scripts/package_consultant_handoff.py
+```
+
+脚本会输出 `dist/cosmic-replay-consultant-handoff-YYYYMMDD.zip`，并自动排除 `.git`、`venv`、`data`、`logs`、`har_uploads`、真实环境配置、数据库、HAR、cookie/token 和旧压缩包等不应外发的内容。
 
 ---
 
