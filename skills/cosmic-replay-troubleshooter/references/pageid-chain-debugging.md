@@ -69,7 +69,7 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 - 不改变 `ac`（保持 `click`，不改 `saveandeffect`）
 - 对 HAR 原始 L2 pageId 步骤写入 `preserve_l2_page: true`
 - pick_fields 展示业务编码，同时保留 `recorded_value_id` 作为跨环境解析兜底
-- 对 loadData 响应中由 pageId 服务端模型默认带出的必填基础资料，按 `form_id` 记录 `response_values_by_form`；已知模板/新增表单可转为显式 `pick_basedata` 步骤，避免回放时丢失默认组织、上级组织等上下文字段。
+- 对 loadData 响应中由 pageId 服务端模型默认带出的必填基础资料，按 `form_id` 记录 `response_values_by_form`。只有确认 API 回放会丢失且字段可编辑时，才补显式 `pick_basedata`；模板选择页这类默认组织通常应保留在 pageId 服务端模型里，不要把默认值误当成用户 pick。
 
 ### 模板选择页默认上下文（2026-05-22）
 
@@ -77,9 +77,9 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 
 诊断顺序：
 1. 先确认不是 pageId 预打开错误：模板驱动的详情页不能在菜单/list 流程前直接 `open_form`，必须等 `menuItemClick/loadData/addnew/showForm` 建立上下文。
-2. 再看 HAR 中模板选择表单的 `loadData` 响应是否带出了默认字段，例如 `hpdi_bizdatabillchoicetpl.org = JDGJJT / 金蝶国际软件集团有限公司`。
-3. 如果该字段没有显式 setItem 请求，但后续 pick 依赖它，应让 har_extractor 从同一 `form_id` 的响应默认值生成上下文 `pick_basedata`，并在环境字段面板展示可维护值。
-4. 不要把这种问题通过补 `save.post_data` 解决；保存时看似缺字段，实际根因通常是模板/新增页的 pageId 模型上下文没有完整重建。
+2. 再看 HAR 中模板选择表单的 `loadData` 响应是否带出了默认字段，例如 `hpdi_bizdatabillchoicetpl.org = JDGJJT / 金蝶国际软件集团有限公司`。这类默认字段如果没有显式 `setItemByIdFromClient`，通常不要补成 pick，否则可能清空锁定上下文。
+3. 检查模板字段本身是否有 `/form/invokeAction.do ... getLookUpList` 预热。若 HAR 是 `getLookUpList → setItemByIdFromClient → ok`，生成 YAML 时应在对应 `pick_basedata` 写入 `prefetch_lookup: true`，runner 必须先走 `invokeAction.do/getLookUpList` 再 setItem。
+4. 不要把这种问题通过补 `save.post_data` 解决；保存时看似缺字段，实际根因通常是模板/新增页的 pageId 模型上下文或候选列表预热没有完整重建。
 
 ## 子弹窗/明细补录链路（2026-05-22）
 
@@ -118,6 +118,27 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 6. 已验证低风险业务菜单样本：`薪资数据集成:业务数据提报` 打开后目标列表 `hpdi_bizdatabill` 使用 L2 pageId；`薪资核算:计薪人员` 打开后会出现 `hsbs_employeequerylist` 等列表上下文。这里只能证明 list 链路，不能代表新增/保存链路已经正确。
 7. 只有真正打开业务菜单/list 后出现 `menuItemClick/loadData/treeNodeClick/itemClick/addnew`，才进入 L2/L3 链路判断；后续新增、选择器、子弹窗、保存/提交仍必须按 HAR 原始链路比对。
 8. 原始 Playwright HAR 只能留在 ignored 目录（如 `tmp/playwright_hars/`），排障和提交只能使用脱敏结构摘要，不得提交 cookie、token、账号、真实业务数据。
+
+## Level 2 写入 Smoke（2026-05-27）
+
+写入阶段原则：Playwright 负责发现菜单、采集入口链路；真正生成测试数据优先复用 HAR/YAML runner，因为 YAML 已经包含 pageId 链路、环境字段、智能变量、保存断言和 AI 证据包上下文。
+
+命令示例：
+
+```bash
+./venv/bin/python scripts/write_smoke_run.py \
+  --env uat \
+  --case cases/UA提报保存.yaml \
+  --confirm-write YES_GENERATE_TEST_DATA \
+  --var test_description=CRPLY_WRITE_${timestamp}
+```
+
+排障时注意：
+1. 写入 smoke 必须有显式确认 token，且测试数据应使用 `CRPLY_WRITE` 等前缀，方便环境清理。
+2. 执行证据只保存在 `tmp/write_smoke_runs/`，不能提交；若要沉淀经验，只提交流程摘要、菜单/表单 ID、pageId 类型和断言结论。
+3. 若写入失败，仍优先检查 HAR 原始 pageId 链路与回放 pageId 是否一致，再看变量、环境字段、业务校验和断言，不要靠硬补 `save.post_data`。
+4. 若写入 PASS 但入库未验证，查看保存响应是否有 `pkValue/billId/saveResult/保存成功` 等证据；缺证据时补后置查询或人工确认，不要直接把 PASS 等同于已入库。
+5. 2026-05-27 UA 提报保存验证：UAT 环境使用 `prefetch_lookup` 后 44 步写入 Smoke 通过；同一 YAML 跨 SIT 会在模板确认前失败，原因是默认组织/业务数据模板内部值不一致，不应视为 pageId 修复失败。
 
 ```python
 # 在 invoke() 方法中加临时调试

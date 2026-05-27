@@ -114,7 +114,7 @@ def test_attach_pick_field_scopes_uses_form_before_field_key_match():
     assert pick_fields["pick_adminorg_id__pick_b"]["write_step_id"] == "save_b"
 
 
-def test_recorded_default_pick_steps_are_inserted_for_intermediate_choice_form():
+def test_recorded_default_pick_steps_skip_intermediate_choice_form_server_defaults():
     steps = [
         {
             "id": "load_choice",
@@ -158,12 +158,11 @@ def test_recorded_default_pick_steps_are_inserted_for_intermediate_choice_form()
         app_id="hpdi",
     )
 
-    org_step = next(step for step in out if step.get("field_key") == "org")
-    assert org_step["form_id"] == "hpdi_bizdatabillchoicetpl"
-    assert org_step["value_id"] == "JDGJJT"
-    assert org_step["value_code"] == "JDGJJT"
-    assert out.index(org_step) < next(
-        idx for idx, step in enumerate(out) if step.get("field_key") == "bizitemgroup"
+    assert not any(
+        step.get("form_id") == "hpdi_bizdatabillchoicetpl"
+        and step.get("field_key") == "org"
+        and step.get("_is_recorded_default")
+        for step in out
     )
 
 
@@ -181,6 +180,13 @@ def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
     assert "load_empposf7querylist" in steps
     assert "click_34" in steps
     assert "load_bizdatabillnewentry" in steps
+    assert steps["pick_bizitemgroup"]["prefetch_lookup"] is True
+    assert not any(
+        step.get("form_id") == "hpdi_bizdatabillchoicetpl"
+        and step.get("field_key") == "org"
+        and step.get("_is_recorded_default")
+        for step in case["steps"]
+    )
     assert steps["fill_bizdate"]["fields"]["bizdate"] == "${vars.test_business_belong_date}"
     assert steps["fill_kd311"]["fields"]["kd311"] == "${vars.test_workday_overtime_hours}"
     assert steps["fill_kd305"]["fields"]["kd305"] == "${vars.test_weekend_overtime_hours}"

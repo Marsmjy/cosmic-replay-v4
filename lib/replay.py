@@ -521,6 +521,56 @@ class CosmicFormReplay:
                 print(f"[menuItemClick] pending tab pageId: {new_pid[:30]}")
         return resp
 
+    def invoke_action(self, form_id: str, app_id: str, ac: str,
+                      actions: list[dict], page_id: str | None = None) -> list | dict:
+        """调用 /form/invokeAction.do。
+
+        Some Kingdee lookup controls initialize candidate state through
+        invokeAction.do rather than batchInvokeAction.do. Replaying that
+        prefetch on the original endpoint keeps subsequent setItemByIdFromClient
+        behavior aligned with the recorded HAR.
+        """
+        if page_id is None:
+            page_id = self.page_ids.get(form_id)
+            pending_pid = self._pending_by_app.get(app_id)
+            if (pending_pid and len(pending_pid) >= 16
+                    and page_id != pending_pid
+                    and (page_id is None or len(page_id) > 32 or '/' in page_id)):
+                page_id = pending_pid
+            if page_id is None:
+                page_id = self.s.root_page_id
+        if not page_id:
+            raise ProtocolError(f"No pageId for {form_id}. Call init_root() / open_form() first.")
+
+        params_str = json.dumps(actions, ensure_ascii=False, separators=(",", ":"), default=str)
+        body = urllib.parse.urlencode([
+            ("pageId", page_id),
+            ("appId", app_id),
+            ("params", params_str),
+        ])
+        extra = {}
+        if self.sign_required:
+            ts = str(int(time.time() * 1000))
+            extra["client-start-time"] = ts
+            extra["signature"] = self.s.sign(params_str, ts)
+
+        path = (f"/form/invokeAction.do"
+                f"?appId={app_id}&f={form_id}&ac={ac}")
+        r = self._post(path, body, cqappid=app_id, extra_headers=extra)
+        if r.status_code != 200:
+            raise ProtocolError(f"invokeAction {form_id}/{ac} HTTP {r.status_code}: {r.text[:200]}")
+        try:
+            resp = r.json()
+        except Exception:
+            raise ProtocolError(f"invokeAction {form_id}/{ac} bad json: {r.text[:200]}")
+
+        self.last_response = resp
+        self._current_invoke_form = form_id
+        self._harvest_page_ids(resp)
+        self._current_invoke_form = None
+        self._harvest_virtual_tab_pageids(resp)
+        return resp
+
     def _harvest_page_ids(self, resp: Any):
         """扫响应收集下发的 (formId, pageId)。
 

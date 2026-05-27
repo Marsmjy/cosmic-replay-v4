@@ -534,6 +534,19 @@ def _h_update_fields(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
 @step_handler("pick_basedata")
 def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     _auto_resolve_pick_basedata_step(step, replay, ctx)
+    if step.get("prefetch_lookup"):
+        lookup_args = step.get("prefetch_lookup_args")
+        if not isinstance(lookup_args, list) or not lookup_args:
+            lookup_args = [["%", "", "%", 0, 20, 0]]
+        replay.invoke_action(
+            step["form_id"], step["app_id"], "getLookUpList",
+            [{
+                "key": step["field_key"],
+                "methodName": "getLookUpList",
+                "args": lookup_args,
+                "postData": [{}, []],
+            }],
+        )
     return replay.pick_basedata(
         step["form_id"], step["app_id"],
         step["field_key"], str(step["value_id"]),

@@ -82,9 +82,10 @@ tmp/playwright_discovery/*.json
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --drilldown-apps '薪酬管理,薪资核算,薪资数据集成,薪酬成本,工资条,员工薪酬服务,薪酬基础服务,中国社保' --record-har
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --open-menu-samples '薪资数据集成:业务数据提报,薪资核算:计薪人员' --record-har
+scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-write YES_GENERATE_TEST_DATA --var test_description=CRPLY_WRITE_${timestamp}
 ```
 
-安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。原始 HAR 只能保存在 `tmp/playwright_hars/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
+安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。写入阶段优先使用已生成 YAML 的 `scripts/write_smoke_run.py`，且必须显式传入 `--confirm-write YES_GENERATE_TEST_DATA`。必须使用与 HAR/YAML 匹配的环境，不能把 UAT 内部模板/组织值硬搬到 SIT 写库。原始 HAR、写入事件、截图只能保存在 `tmp/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
 
 ## 核心设计决策
 

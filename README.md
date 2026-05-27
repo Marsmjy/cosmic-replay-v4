@@ -244,6 +244,20 @@ cosmic-replay-v4/
 
 `--open-menu-samples` 只接受 `子应用:菜单` 格式，并会拦截新增、保存、提交、删除、审核、导入、上传以及中高风险菜单。默认不启用，必须显式指定。
 
+### 受控写入 Smoke
+
+当你明确允许生成测试数据时，推荐先复用已验证 HAR/YAML runner，而不是让 Playwright 直接猜字段：
+
+```bash
+./venv/bin/python scripts/write_smoke_run.py \
+  --env uat \
+  --case cases/UA提报保存.yaml \
+  --confirm-write YES_GENERATE_TEST_DATA \
+  --var test_description=CRPLY_WRITE_${timestamp}
+```
+
+写入 smoke 会从 `config/envs/<env>.yaml` 读取环境信息，不打印账号密码；执行证据写入 `tmp/write_smoke_runs/`，该目录不入 Git。脚本只接受包含保存/提交/确认动作的 YAML，并要求显式 `--confirm-write`，避免误写库。注意使用与 HAR/YAML 匹配的环境；例如 UA 提报保存样本是 UAT 链路，跨到 SIT 会因为组织/模板内部值不同而在保存前校验失败。
+
 如果要试探性打开少量安全菜单，可以显式指定点击数量：
 
 ```bash

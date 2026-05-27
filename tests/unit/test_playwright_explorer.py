@@ -19,6 +19,16 @@ from lib.playwright_explorer import (
     summarize_menu_tree,
 )
 from scripts.playwright_discover import _parse_menu_samples
+from scripts.write_smoke_run import (
+    CONFIRM_TOKEN,
+    apply_disabled_steps,
+    apply_optional_steps,
+    apply_pick_overrides,
+    apply_prefetch_pick_steps,
+    build_safe_summary,
+    parse_pick_override,
+    parse_var_override,
+)
 
 
 def test_normalize_base_url_keeps_app_path_and_strips_query():
@@ -128,6 +138,42 @@ def test_parse_menu_samples_cli_shape():
         {"app_label": "薪资数据集成", "menu_label": "业务数据提报"},
         {"app_label": "薪资核算", "menu_label": "计薪人员"},
     ]
+
+
+def test_write_smoke_helpers_are_safe_and_summary_focused():
+    assert CONFIRM_TOKEN == "YES_GENERATE_TEST_DATA"
+    assert parse_var_override("test_description=CRPLY") == ("test_description", "CRPLY")
+    assert parse_pick_override("pick_org_id=00|环宇国际集团有限公司") == ("pick_org_id", "00", "环宇国际集团有限公司")
+    case = {"pick_fields": {"pick_org_id": {"field_key": "org", "auto_resolve": True}}}
+    apply_pick_overrides(case, [("pick_org_id", "00", "环宇国际集团有限公司")])
+    assert case["pick_fields"]["pick_org_id"]["value_id"] == "00"
+    assert case["pick_fields"]["pick_org_id"]["auto_resolve"] is False
+    case_steps = {"steps": [{"id": "pick_org_ctx"}, {"id": "save"}]}
+    apply_optional_steps(case_steps, ["pick_org_ctx"])
+    assert case_steps["steps"][0]["optional"] is True
+    assert "optional" not in case_steps["steps"][1]
+    disabled_case = {"steps": [{"id": "pick_org_ctx"}, {"id": "save"}]}
+    apply_disabled_steps(disabled_case, ["pick_org_ctx"])
+    assert [step["id"] for step in disabled_case["steps"]] == ["save"]
+    assert disabled_case["write_smoke_disabled_steps"] == ["pick_org_ctx"]
+    prefetch_case = {"steps": [{"id": "pick_bizitemgroup", "type": "pick_basedata"}]}
+    apply_prefetch_pick_steps(prefetch_case, ["pick_bizitemgroup"])
+    assert prefetch_case["steps"][0]["prefetch_lookup"] is True
+    assert prefetch_case["steps"][0]["prefetch_lookup_args"] == [["%", "", "%", 0, 20, 0]]
+    summary = build_safe_summary(
+        {"name": "demo", "main_form_id": "demo_form", "vars": {"test_description": "CRPLY"}},
+        [
+            {"event": "step_start", "payload": {"id": "save"}},
+            {"event": "step_ok", "payload": {"id": "click_bar_save", "response": {"msg": "保存成功"}}},
+            {"event": "step_ok", "payload": {"id": "load", "pageid_trace": {"runtime_pageid_type": "L2"}}},
+        ],
+        True,
+        1.23,
+    )
+
+    assert summary["passed"] is True
+    assert summary["write_events"][0]["step_id"] == "click_bar_save"
+    assert summary["write_events"][0]["response_tokens"] == ["保存成功"]
 
 
 def test_salary_cloud_catalog_fixture_is_value_safe():

@@ -200,11 +200,6 @@ _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
         "org",
         "otclassify",
     ),
-    # 业务数据提报选模板页：HAR 中 org 由 loadData 默认带出，后续选择
-    # bizitemgroup 依赖该上下文；API 回放中缺失时会提示“请选择算发薪管理组织”。
-    "hpdi_bizdatabillchoicetpl": (
-        "org",
-    ),
 }
 
 
@@ -1649,6 +1644,7 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
 def extract_steps(har: dict) -> list[dict]:
     steps: list[dict] = []
     counter = 0
+    pending_lookup: dict[tuple[str, str, str], dict[str, Any]] = {}
     for i, entry in enumerate(har.get("log", {}).get("entries", [])):
         req = entry.get("request", {})
         url = req.get("url", "")
@@ -1663,6 +1659,26 @@ def extract_steps(har: dict) -> list[dict]:
         form_id = qs.get("f", [""])[0]
         app_id = qs.get("appId", [""])[0]
         ac = qs.get("ac", [""])[0]
+
+        if "invokeAction" in path and ac == "getLookUpList":
+            params_raw = body_params.get("params", [""])[0]
+            req_page_id = body_params.get("pageId", [""])[0]
+            try:
+                actions = json.loads(params_raw) if params_raw else []
+            except Exception:
+                actions = []
+            for action in actions:
+                if not isinstance(action, dict):
+                    continue
+                key = str(action.get("key") or "")
+                if not key:
+                    continue
+                pending_lookup[(form_id, app_id, key)] = {
+                    "args": action.get("args") or [["%", "", "%", 0, 20, 0]],
+                    "_har_index": i,
+                    "_har_page_id": req_page_id,
+                }
+            continue
 
         if "batchInvokeAction" in path and ac:
             params_raw = body_params.get("params", [""])[0]
@@ -1701,6 +1717,11 @@ def extract_steps(har: dict) -> list[dict]:
                     "_har_page_id": req_page_id,   # HAR 原始 pageId
                     "_tier": tier,
                 }
+                if action.get("methodName") == "setItemByIdFromClient" and action.get("key"):
+                    lookup = pending_lookup.get((form_id, app_id, str(action.get("key") or "")))
+                    if lookup:
+                        step_dict["_prefetch_lookup"] = True
+                        step_dict["_prefetch_lookup_args"] = lookup.get("args") or [["%", "", "%", 0, 20, 0]]
                 if _is_l2_page_id(req_page_id):
                     step_dict["preserve_l2_page"] = True
                 # 保留有限响应体：setItem 用于提取 value_name；通知用于识别录制期业务校验点。
@@ -1913,7 +1934,23 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
     ⭐ 规则改进：同时提取 postData 中的多语言字段（如 name）生成 update_fields 步骤，
     避免字段丢失。"""
     out: list[dict] = []
+    pending_lookup: dict[tuple[str, str, str], dict[str, Any]] = {}
     for s in steps:
+        if (
+            s.get("type") == "invoke"
+            and (s.get("method") == "getLookUpList" or s.get("ac") == "getLookUpList")
+            and s.get("key")
+        ):
+            pending_lookup[(
+                str(s.get("form_id") or ""),
+                str(s.get("app_id") or ""),
+                str(s.get("key") or ""),
+            )] = {
+                "args": s.get("args") or [["%", "", "%", 0, 20, 0]],
+                "_har_index": s.get("_har_index"),
+                "_har_page_id": s.get("_har_page_id", ""),
+            }
+            continue
         if (s.get("type") == "invoke" and s.get("method") == "setItemByIdFromClient"
                 and s.get("args")):
             args = s["args"]
@@ -2004,6 +2041,17 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "_har_index": s.get("_har_index"),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
+                lookup = pending_lookup.get((
+                    str(s.get("form_id") or ""),
+                    str(s.get("app_id") or ""),
+                    str(s.get("key") or ""),
+                ))
+                if s.get("_prefetch_lookup"):
+                    pick_step["prefetch_lookup"] = True
+                    pick_step["prefetch_lookup_args"] = s.get("_prefetch_lookup_args") or [["%", "", "%", 0, 20, 0]]
+                elif lookup:
+                    pick_step["prefetch_lookup"] = True
+                    pick_step["prefetch_lookup_args"] = lookup.get("args") or [["%", "", "%", 0, 20, 0]]
                 if value_code:
                     pick_step["value_code"] = value_code
                 if value_number:
@@ -3944,7 +3992,8 @@ def build_yaml_case(
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
                   "navigation_form_id", "expected_notifications",
-                  "continue_on_expected_error", "preserve_l2_page"):
+                  "continue_on_expected_error", "preserve_l2_page",
+                  "prefetch_lookup", "prefetch_lookup_args"):
             if k in s:
                 entry[k] = s[k]
         # ⭐ 自动生成步骤业务描述

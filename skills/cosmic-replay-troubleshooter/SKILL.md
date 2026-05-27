@@ -309,13 +309,14 @@ post_data:
 2. 对照 run events / debug 日志中的实际 pageId，确认 L2 (`^\d+root[0-9a-f]{32}$`) 与 L3 (`^[0-9a-f]{32}$`) 切换点是否一致。
 3. 若列表/树/工具栏步骤被替换成 L3，检查 YAML 是否缺少 `preserve_l2_page: true`，以及 `runner.py` 的 `_step_allows_l2_pageid()` 是否覆盖该 `ac/method`。
 4. 若保存步骤仍使用 L2，再回到“类型B：L2 pageId 屏蔽问题”，检查 `_pending_by_app` 和预验证降级。
-5. 若 pageId 链路正确但中间模板/选择页报必填（例如 `hpdi_bizdatabillchoicetpl` 提示缺“算发薪管理组织”），检查 HAR `loadData` 响应默认字段是否被按 `form_id` 记录并转为显式上下文 `pick_basedata`，而不是直接补 `save.post_data`。
+5. 若 pageId 链路正确但中间模板/选择页报必填（例如 `hpdi_bizdatabillchoicetpl` 提示缺“算发薪管理组织”），先检查 HAR 是否存在 `invokeAction.do/getLookUpList → setItemByIdFromClient` 预热链路；模板默认组织没有显式 setItem 时不要误补成 pick，否则可能清空锁定上下文。
 
 **修复原则**:
 - L2 应保留给 `menuItemClick`、`loadData`、`treeNodeClick`、`treeMenuClick`、`postExpandNodes`、`queryTreeNodeChildren`、`entryRowClick`、`refresh`、`itemClick` 等列表/树/工具栏动作。
 - L3 应用于真实编辑页的字段更新、保存、提交、确认等表单态动作。
 - HAR 导入阶段应为原始 L2 步骤写入 `preserve_l2_page: true`，runner 执行阶段根据 `_step_allows_l2_pageid()` 决定是否替换为 pending L3。
-- 对 `loadData` 响应默认带出的必填基础资料，优先按 `form_id` 记录并生成可维护环境字段；这是 pageId 服务端模型上下文的一部分。
+- 对 `loadData` 响应默认带出的必填基础资料，优先按 `form_id` 记录为环境上下文；只有确认字段可编辑且 API 回放会丢失时才生成补偿步骤，模板页默认组织这类服务端模型值应优先由 pageId 链路保留。
+- 对 HAR 中以 `invokeAction.do/getLookUpList` 预热的选择器，生成 `prefetch_lookup: true`，runner 必须在 `pick_basedata` 前按原端点预热候选。
 - 不要通过追加 `save.post_data` 或删除锁定字段断言来掩盖 pageId 链路问题。只有确认 pageId 链路正确后，才进入字段解析、pick_fields 或业务补偿。
 
 ### 类型B-3：showForm 的 billFormId 别名漏绑导致半成功
