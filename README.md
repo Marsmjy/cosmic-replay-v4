@@ -210,6 +210,16 @@ cosmic-replay-v4/
 ./venv/bin/python scripts/playwright_discover.py --env sit
 ```
 
+围绕某个应用做只读探索并录制本地 HAR：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har
+```
+
+探索器会先尝试直接识别目标应用；若首页没有文字入口，会只读打开左上角“全部应用”入口，并在“搜索应用/表单”中尝试目标关键词及安全变体（如“薪酬”“薪资”“福利”）。如果当前账号看不到目标应用，报告会记录为目标应用不可见，而不是误判为 HAR 解析失败。
+
+报告中会额外输出 `app_tree`，用于沉淀“云应用 → 子应用”的近似树。例如薪酬福利云会识别薪酬管理、薪资核算、薪资数据集成、薪酬成本、工资条、员工薪酬服务、薪酬基础服务、中国社保等入口，后续再按 Level 0/1/2 分级采集具体菜单和 HAR 样本。
+
 如果要试探性打开少量安全菜单，可以显式指定点击数量：
 
 ```bash
@@ -220,7 +230,7 @@ cosmic-replay-v4/
 
 - 默认 `--max-menu-clicks 0`，不会点击菜单，更不会写库。
 - 即使开启菜单点击，也会拦截“新增、保存、提交、删除、审核、导入、上传、确定、确认”等写入/高风险动作。
-- 输出写到 `tmp/playwright_discovery/`，该目录不入 Git，也不会进入顾问交付包。
+- 探索报告写到 `tmp/playwright_discovery/`；原始 HAR 写到 `tmp/playwright_hars/`，HAR 可能包含 cookie/token，目录已被 `.gitignore` 排除，不能提交或外发。
 - 该能力用于补知识和生成候选 YAML，不替代现有 HAR/YAML 回放和 HAR 回归门禁。
 
 ---

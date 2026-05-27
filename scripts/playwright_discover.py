@@ -33,7 +33,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--datacenter-id", default=os.environ.get("COSMIC_DATACENTER_ID", ""))
     parser.add_argument("--datacenter-name", default=os.environ.get("COSMIC_DATACENTER_NAME", ""))
     parser.add_argument("--form-id", default="home_page")
+    parser.add_argument("--app-keyword", default="", help="Target app/menu keyword, e.g. 薪酬福利云")
     parser.add_argument("--headful", action="store_true", help="Show browser window")
+    parser.add_argument("--record-har", action="store_true", help="Record a local ignored HAR under tmp/playwright_hars")
+    parser.add_argument("--har-output", default="", help="Override HAR output path")
     parser.add_argument("--max-menu-clicks", type=int, default=0, help="Default is 0: collect only, no clicks")
     parser.add_argument("--timeout-ms", type=int, default=30_000)
     parser.add_argument(
@@ -67,6 +70,10 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         raise SystemExit(f"Missing required options: {', '.join(missing)}")
 
+    har_output = ""
+    if args.record_har:
+        har_output = args.har_output or f"tmp/playwright_hars/discovery_{datetime.now():%Y%m%d_%H%M%S}.har"
+
     report = run_discovery(
         ExplorerConfig(
             base_url=base_url,
@@ -79,12 +86,17 @@ def main(argv: list[str] | None = None) -> int:
             timeout_ms=args.timeout_ms,
             max_menu_clicks=args.max_menu_clicks,
             output=Path(args.output),
+            target_app_keyword=args.app_keyword,
+            record_har_path=Path(har_output) if har_output else None,
         )
     )
     print(f"Discovery report: {Path(args.output).resolve()}")
     print(f"Title: {report.title}")
     print(f"Safe menu candidates: {len(report.menu_candidates)}")
     print(f"Captured Kingdee network events: {len(report.network)}")
+    if report.har_path:
+        print(f"HAR: {Path(report.har_path).resolve()}")
+        print(f"HAR Kingdee events: {report.har_summary.get('kingdee_event_count', 0)}")
     if report.warnings:
         print("Warnings:")
         for item in report.warnings:

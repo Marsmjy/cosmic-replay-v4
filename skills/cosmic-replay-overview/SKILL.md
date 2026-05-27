@@ -64,12 +64,23 @@ Playwright 探索器是辅助知识采集层，不替代 HAR/YAML 回放：
 scripts/playwright_discover.py --env sit
     ↓ 复用 cosmic_login 登录并注入浏览器 Cookie
 lib/playwright_explorer.py
-    ↓ 只读打开首页 / 采集菜单候选 / 记录 batchInvokeAction 元信息
+    ↓ 只读打开首页 / 可搜索目标应用 / 采集菜单候选 / 记录 batchInvokeAction 与 HAR pageId 摘要
 tmp/playwright_discovery/*.json
     ↓ 为自然语言生成 YAML、pageId 经验库和 HAR 模板补全提供上下文
 ```
 
-安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。
+探索报告关键字段：
+- `app_tree`：从全部应用入口抽取“云应用 -> 子应用”近似树，薪酬福利云类入口需识别薪酬管理、薪资核算、薪资数据集成、薪酬成本、工资条、员工薪酬服务、薪酬基础服务、中国社保等。
+- `har_summary.pageid_trace`：只保留脱敏 URL、formId/appId、ac/method、pageId 类型和片段，用于分析 L0/L1/L2/L3 链路。
+- `target_app_status`：记录目标应用是否可见、是否通过应用搜索命中、是否需要降级为匹配入口，不把“目标不可见”误判成 HAR 解析失败。
+
+常用命令：
+
+```
+scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har
+```
+
+安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。原始 HAR 只能保存在 `tmp/playwright_hars/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
 
 ## 核心设计决策
 

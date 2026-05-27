@@ -99,6 +99,23 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 `step_id / form_id / app_id / ac / method / HAR pageId 类型 / 回放 pageId 类型 / preserve_l2_page / risk_codes`。
 若 `risk_codes` 出现 `missing_preserve_l2_page`、`runtime_l3_used_for_l2_step` 或 `runtime_l2_used_for_l3_step`，先修 pageId 链路，不要先补 `save` 字段。
 
+## Playwright 只读探索样本（2026-05-27）
+
+用途：当没有现成 HAR，或新菜单 pageId 链路未知时，先用 Playwright Level 0 只读探索采集入口、菜单候选和脱敏 HAR pageId 摘要，再决定是否进入 Level 1/2 录制样本。
+
+命令示例：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har --max-menu-clicks 0
+```
+
+已沉淀经验：
+1. 金蝶首页左上角“全部应用”是图标入口，非普通文本按钮；探索器应通过应用入口打开“搜索应用/表单”，再搜索目标云应用。
+2. 薪酬福利云搜索命中后，`app_tree` 应能输出“薪酬福利云 -> 薪酬管理 / 薪资核算 / 薪资数据集成 / 薪酬成本 / 工资条 / 员工薪酬服务 / 薪酬基础服务 / 中国社保”等近似树。
+3. 只读入口阶段常见请求仍是首页/门户 `loadData`、`clientCallBack`、`getFrequentData`，pageId 多为 L0 或 32hex 门户态；这不是业务表单 L2/L3 链路，不要拿它直接推断 save/submit 失败原因。
+4. 只有真正打开菜单/list 后出现 `menuItemClick/loadData/treeNodeClick/itemClick/addnew`，才进入 L2/L3 链路判断；后续新增、选择器、子弹窗、保存/提交仍必须按 HAR 原始链路比对。
+5. 原始 Playwright HAR 只能留在 ignored 目录（如 `tmp/playwright_hars/`），排障和提交只能使用脱敏结构摘要，不得提交 cookie、token、账号、真实业务数据。
+
 ```python
 # 在 invoke() 方法中加临时调试
 def invoke(self, form_id, app_id, ac, actions, page_id=None):

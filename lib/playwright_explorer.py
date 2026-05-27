@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -58,11 +59,42 @@ SAFE_MENU_HINTS = (
     "申请",
     "提报",
     "报销",
+    "薪酬",
+    "薪资",
+    "福利",
+    "社保",
+    "公积金",
+    "计薪",
+    "任职",
+    "工资条",
     "基础",
     "设置",
     "门户",
     "中心",
 )
+
+L2_CONTEXT_ACS = {
+    "addnew",
+    "entryRowClick",
+    "itemClick",
+    "loadData",
+    "menuItemClick",
+    "postExpandNodes",
+    "queryTreeNodeChildren",
+    "refresh",
+    "treeMenuClick",
+    "treeNodeClick",
+}
+
+L3_WRITE_ACS = {
+    "audit",
+    "save",
+    "saveandaudit",
+    "saveandeffect",
+    "submit",
+    "submitandeffect",
+    "unaudit",
+}
 
 
 @dataclass
@@ -78,6 +110,9 @@ class ExplorerConfig:
     max_menu_clicks: int = 0
     output: Path = Path("tmp/playwright_discovery/latest.json")
     safe_only: bool = True
+    target_app_keyword: str = ""
+    record_har_path: Path | None = None
+    search_app_launcher: bool = True
 
 
 @dataclass
@@ -101,9 +136,16 @@ class DiscoveryReport:
     datacenter_id: str
     title: str = ""
     final_url: str = ""
+    target_app_keyword: str = ""
+    target_app_status: dict[str, Any] = field(default_factory=dict)
     menu_candidates: list[dict[str, str]] = field(default_factory=list)
+    app_tree: list[dict[str, Any]] = field(default_factory=list)
+    menu_tree: list[dict[str, Any]] = field(default_factory=list)
     clicked_menus: list[dict[str, Any]] = field(default_factory=list)
     network: list[NetworkEvent] = field(default_factory=list)
+    har_path: str = ""
+    har_summary: dict[str, Any] = field(default_factory=dict)
+    pageid_trace: list[dict[str, Any]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -146,6 +188,15 @@ def is_safe_menu_label(label: str) -> bool:
     if is_write_action_label(text):
         return False
     return any(hint in text for hint in SAFE_MENU_HINTS)
+
+
+def risk_level_for_label(label: str) -> str:
+    text = normalize_label(label)
+    if is_write_action_label(text):
+        return "high"
+    if any(keyword in text for keyword in ("发放", "计算", "结账", "导入", "审批", "批量")):
+        return "medium"
+    return "low"
 
 
 def expand_menu_candidates(raw_candidates: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -194,6 +245,102 @@ def summarize_kingdee_request(url: str, post_data: str | None = "") -> dict[str,
     }
 
 
+def infer_pageid_context_role(ac: str = "", method: str = "") -> str:
+    ac = str(ac or "")
+    method = str(method or "")
+    if ac in L3_WRITE_ACS:
+        return "L3_write"
+    if ac in L2_CONTEXT_ACS or method == "itemClick":
+        return "L2_context"
+    if ac == "click" or method == "click":
+        return "L3_or_ui_action"
+    return "unknown"
+
+
+def keyword_variants(keyword: str) -> list[str]:
+    """Build safe search variants for app/menu discovery."""
+    text = normalize_label(keyword)
+    if not text:
+        return []
+    variants = [text]
+    trimmed = re.sub(r"[云中心]+$", "", text)
+    if trimmed and trimmed != text:
+        variants.append(trimmed)
+    if "薪酬" in text:
+        variants.extend(["薪酬", "薪资"])
+    if "福利" in text:
+        variants.append("福利")
+    if "提报" in text:
+        variants.append("提报")
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in variants:
+        item = normalize_label(item)
+        if item and item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
+
+
+def summarize_har_file(path: Path) -> dict[str, Any]:
+    """Return a value-safe HAR summary focused on Kingdee protocol shape."""
+    if not path or not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"error": f"failed_to_read_har: {type(exc).__name__}"}
+
+    entries = data.get("log", {}).get("entries", [])
+    pageid_rows: list[dict[str, Any]] = []
+    ac_counter: Counter[str] = Counter()
+    form_counter: Counter[str] = Counter()
+    pageid_counter: Counter[str] = Counter()
+
+    for index, entry in enumerate(entries):
+        req = entry.get("request") or {}
+        url = str(req.get("url") or "")
+        if "batchInvokeAction.do" not in url and "getEntityType.do" not in url and "showForm.do" not in url:
+            continue
+        post_data = _har_post_data_text(req.get("postData") or {})
+        hints = summarize_kingdee_request(url, post_data)
+        ac_counter[hints["ac"] or "-"] += 1
+        form_counter[hints["form_id"] or "-"] += 1
+        pageid_counter[hints["pageid_type"] or "missing"] += 1
+        row = {
+            "index": index,
+            "url": redact_url(url),
+            "method": req.get("method", ""),
+            "status": (entry.get("response") or {}).get("status"),
+            **hints,
+            "expected_pageid_role": infer_pageid_context_role(hints.get("ac", ""), hints.get("invoke_method", "")),
+        }
+        pageid_rows.append(row)
+
+    return {
+        "entry_count": len(entries),
+        "kingdee_event_count": len(pageid_rows),
+        "ac_counts": dict(ac_counter.most_common()),
+        "form_counts": dict(form_counter.most_common(20)),
+        "pageid_type_counts": dict(pageid_counter.most_common()),
+        "pageid_trace": pageid_rows[:300],
+    }
+
+
+def _har_post_data_text(post_data: dict[str, Any]) -> str:
+    text = post_data.get("text")
+    if isinstance(text, str):
+        return text
+    params = post_data.get("params") or []
+    if not isinstance(params, list):
+        return ""
+    return "&".join(
+        f"{item.get('name', '')}={item.get('value', '')}"
+        for item in params
+        if isinstance(item, dict) and item.get("name")
+    )
+
+
 def parse_cookie_header(cookie_header: str, base_url: str) -> list[dict[str, Any]]:
     host = urlparse(base_url).hostname or ""
     secure = urlparse(base_url).scheme == "https"
@@ -217,6 +364,36 @@ def parse_cookie_header(cookie_header: str, base_url: str) -> list[dict[str, Any
             }
         )
     return cookies
+
+
+def summarize_menu_tree(
+    menu_candidates: list[dict[str, str]],
+    network_events: list[NetworkEvent],
+    *,
+    app_name: str = "",
+    url: str = "",
+) -> list[dict[str, Any]]:
+    first_event = network_events[0] if network_events else NetworkEvent(url="")
+    rows: list[dict[str, Any]] = []
+    for item in menu_candidates:
+        label = item.get("text", "")
+        rows.append(
+            {
+                "menu_text": label,
+                "app_name": app_name,
+                "form_id": first_event.form_id,
+                "app_id": first_event.app_id,
+                "url": url,
+                "first_request": asdict(first_event) if first_event.url else {},
+                "pageid_type": first_event.pageid_type or "missing",
+                "readonly": risk_level_for_label(label) != "high",
+                "has_new_button": False,
+                "has_save_button": False,
+                "has_submit_button": False,
+                "risk_level": risk_level_for_label(label),
+            }
+        )
+    return rows
 
 
 def resolve_datacenter_id(base_url: str, datacenter_id: str = "", datacenter_name: str = "") -> str:
@@ -266,6 +443,269 @@ def _collect_menu_candidates_script() -> str:
 """
 
 
+def _button_state_script() -> str:
+    return """
+() => {
+  const text = Array.from(document.querySelectorAll('button,a,[role="button"],span,div'))
+    .map(el => (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(' ');
+  return {
+    has_new_button: /新增|新建/.test(text),
+    has_save_button: /保存/.test(text),
+    has_submit_button: /提交/.test(text)
+  };
+}
+"""
+
+
+def _collect_app_tree_script() -> str:
+    return """
+() => {
+  const clouds = Array.from(document.querySelectorAll('.kd-cq-tile-cloud-item'));
+  const rows = [];
+  const seenClouds = new Set();
+  for (const cloud of clouds) {
+    const cloudText = (cloud.innerText || cloud.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!cloudText || seenClouds.has(cloudText)) continue;
+    seenClouds.add(cloudText);
+    const root = cloud.closest('li') || cloud.parentElement;
+    if (!root) continue;
+    const apps = [];
+    const seenApps = new Set();
+    for (const item of Array.from(root.querySelectorAll('.kd-cq-tile-app-list-item, li, span, div'))) {
+      const text = (item.innerText || item.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (!text || text === cloudText || text.length > 40 || seenApps.has(text)) continue;
+      const rect = item.getBoundingClientRect();
+      if (rect.width < 8 || rect.height < 8) continue;
+      seenApps.add(text);
+      apps.push({
+        text,
+        tag: item.tagName.toLowerCase(),
+        className: String(item.className || '').slice(0, 120)
+      });
+      if (apps.length >= 80) break;
+    }
+    const rect = cloud.getBoundingClientRect();
+    rows.push({
+      cloud_text: cloudText,
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      app_count: apps.length,
+      apps
+    });
+    if (rows.length >= 120) break;
+  }
+  return rows;
+}
+"""
+
+
+def collect_app_tree(page: Any) -> list[dict[str, Any]]:
+    """Collect a value-safe app cloud tree from Kingdee's all-app launcher."""
+    try:
+        raw_rows = page.evaluate(_collect_app_tree_script())
+    except Exception:
+        return []
+    rows: list[dict[str, Any]] = []
+    for row in raw_rows or []:
+        apps = []
+        for item in row.get("apps") or []:
+            text = normalize_label(str(item.get("text", "")))
+            if not text:
+                continue
+            apps.append(
+                {
+                    "text": text,
+                    "risk_level": risk_level_for_label(text),
+                    "readonly": not is_write_action_label(text),
+                    "tag": str(item.get("tag", "")),
+                    "className": str(item.get("className", "")),
+                }
+            )
+        rows.append(
+            {
+                "cloud_text": normalize_label(str(row.get("cloud_text", ""))),
+                "app_count": len(apps),
+                "apps": apps,
+            }
+        )
+    return rows
+
+
+def _visible_app_search_inputs_script() -> str:
+    return """
+() => Array.from(document.querySelectorAll('input'))
+  .map((el, index) => {
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return {
+      index,
+      placeholder: el.getAttribute('placeholder') || '',
+      visible: rect.width > 8 && rect.height > 8 && style.display !== 'none' && style.visibility !== 'hidden',
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      className: String(el.className || '').slice(0, 120)
+    };
+  })
+  .filter(item => item.placeholder || item.visible)
+"""
+
+
+def _try_open_app_launcher(page: Any, timeout_ms: int = 2_000) -> dict[str, Any]:
+    """Open the Kingdee all-app launcher without touching business actions."""
+    result: dict[str, Any] = {"ok": False, "method": ""}
+    selectors = [
+        '[class*="quanbuyingyong"]',
+        '[aria-label*="应用"]',
+        '[title*="应用"]',
+    ]
+    for selector in selectors:
+        try:
+            locator = page.locator(selector).first
+            if locator.count() < 1:
+                continue
+            locator.click(timeout=timeout_ms)
+            page.wait_for_timeout(800)
+            result.update({"ok": True, "method": f"selector:{selector}"})
+            break
+        except Exception as exc:
+            result.setdefault("selector_errors", []).append({"selector": selector, "error": type(exc).__name__})
+
+    if not result.get("ok"):
+        try:
+            # Kingdee desktop keeps the all-app icon at the top-left corner.
+            # This is still a read-only launcher open, not a business action.
+            page.mouse.click(24, 24)
+            page.wait_for_timeout(800)
+            result.update({"ok": True, "method": "coordinate:24,24"})
+        except Exception as exc:
+            result.update({"error": type(exc).__name__})
+
+    try:
+        result["search_inputs"] = page.evaluate(_visible_app_search_inputs_script())
+    except Exception:
+        result["search_inputs"] = []
+    if not any(item.get("visible") and item.get("placeholder") for item in result.get("search_inputs", [])):
+        result["ok"] = False
+        result.setdefault("error", "search_input_not_visible")
+    return result
+
+
+def _try_search_app_launcher(page: Any, keyword: str, timeout_ms: int = 2_000) -> dict[str, Any]:
+    """Search the app/form launcher and return value-safe visible matches."""
+    text = normalize_label(keyword)
+    result: dict[str, Any] = {"keyword": text, "ok": False, "matches": []}
+    if not text:
+        result["error"] = "empty_keyword"
+        return result
+    selectors = [
+        'input[placeholder="搜索应用/表单"]',
+        'input[placeholder="请输入表单名称"]',
+    ]
+    for selector in selectors:
+        try:
+            locator = page.locator(selector).first
+            if locator.count() < 1:
+                continue
+            box = locator.bounding_box(timeout=timeout_ms)
+            if not box or box.get("width", 0) <= 8 or box.get("height", 0) <= 8:
+                continue
+            locator.fill(text, timeout=timeout_ms)
+            page.wait_for_timeout(1_200)
+            result.update({"ok": True, "selector": selector})
+            break
+        except Exception as exc:
+            result.setdefault("selector_errors", []).append({"selector": selector, "error": type(exc).__name__})
+
+    if not result.get("ok"):
+        try:
+            js_result = page.evaluate(
+                """
+keyword => {
+  const candidates = Array.from(document.querySelectorAll('input'))
+    .filter(el => {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const placeholder = el.getAttribute('placeholder') || '';
+      return rect.width > 8 && rect.height > 8
+        && style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && /搜索应用|表单名称/.test(placeholder);
+    });
+  const el = candidates[0];
+  if (!el) return { ok: false, error: 'visible_search_input_not_found' };
+  el.focus();
+  el.value = keyword;
+  el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: keyword }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return { ok: true, placeholder: el.getAttribute('placeholder') || '' };
+}
+""",
+                text,
+            )
+            if js_result.get("ok"):
+                page.wait_for_timeout(1_200)
+                result.update({"ok": True, "selector": f"js:{js_result.get('placeholder', '')}"})
+            else:
+                result.update(js_result)
+        except Exception as exc:
+            result.update({"error": type(exc).__name__})
+
+    try:
+        result["matches"] = [
+            item.get("text", "")
+            for item in expand_menu_candidates(page.evaluate(_collect_menu_candidates_script()))
+            if any(part in item.get("text", "") for part in keyword_variants(text))
+        ][:40]
+    except Exception:
+        result["matches"] = []
+    return result
+
+
+def _try_click_text(page: Any, label: str, timeout_ms: int = 3_000) -> dict[str, Any]:
+    started = time.time()
+    result: dict[str, Any] = {"text": label, "ok": False}
+    if is_write_action_label(label):
+        result["blocked"] = "write_action"
+        return result
+    try:
+        locator = page.get_by_text(label, exact=True)
+        total = locator.count()
+        if total < 1:
+            locator = page.get_by_text(label, exact=False)
+            total = locator.count()
+        if total < 1:
+            result["error"] = "not_found"
+            return result
+        target = None
+        for index in range(min(total, 12)):
+            item = locator.nth(index)
+            try:
+                box = item.bounding_box(timeout=500)
+            except Exception:
+                box = None
+            if box and box.get("width", 0) > 8 and box.get("height", 0) > 8:
+                target = item
+                break
+        if target is None:
+            result["error"] = "visible_target_not_found"
+            return result
+        try:
+            target.click(timeout=timeout_ms)
+        except Exception:
+            # Some Kingdee tile/list items are visually clickable but wrapped by
+            # overlay containers. Force is only used after write labels are blocked.
+            target.click(timeout=timeout_ms, force=True)
+        page.wait_for_timeout(1_000)
+        result.update({"ok": True, "url": redact_url(page.url), "elapsed_ms": int((time.time() - started) * 1000)})
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
 def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
     try:
         from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -292,11 +732,26 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
     if not login_result.get("success"):
         raise RuntimeError(f"login failed: {login_result.get('error', 'unknown error')}")
 
-    report = DiscoveryReport(base_url=base_url, home_url=home_url, datacenter_id=account_id)
+    report = DiscoveryReport(
+        base_url=base_url,
+        home_url=home_url,
+        datacenter_id=account_id,
+        target_app_keyword=normalize_label(config.target_app_keyword),
+    )
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=config.headless)
-        context = browser.new_context(ignore_https_errors=True)
+        context_kwargs: dict[str, Any] = {"ignore_https_errors": True}
+        if config.record_har_path:
+            config.record_har_path.parent.mkdir(parents=True, exist_ok=True)
+            context_kwargs.update({
+                "record_har_path": str(config.record_har_path),
+                # full + embed keeps request postData, which is required to
+                # inspect pageId chains. HAR files remain local/ignored.
+                "record_har_mode": "full",
+                "record_har_content": "embed",
+            })
+        context = browser.new_context(**context_kwargs)
         context.add_cookies(parse_cookie_header(login_result.get("cookie", ""), base_url))
         if login_result.get("csrf_token"):
             context.set_extra_http_headers({"kd-csrf-token": login_result["csrf_token"]})
@@ -332,6 +787,65 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
         report.final_url = redact_url(page.url)
         raw_candidates = page.evaluate(_collect_menu_candidates_script())
         report.menu_candidates = expand_menu_candidates(raw_candidates)[:120]
+        report.app_tree = collect_app_tree(page)
+
+        if config.target_app_keyword:
+            report.target_app_status = _try_click_text(page, config.target_app_keyword)
+            if not report.target_app_status.get("ok"):
+                if config.search_app_launcher:
+                    launcher_result = _try_open_app_launcher(page, timeout_ms=2_000)
+                    search_attempts = []
+                    for keyword in keyword_variants(config.target_app_keyword):
+                        search_result = _try_search_app_launcher(page, keyword, timeout_ms=2_000)
+                        search_attempts.append(search_result)
+                        if search_result.get("matches"):
+                            break
+                    matched_labels = [
+                        normalize_label(match)
+                        for search_result in search_attempts
+                        for match in (search_result.get("matches") or [])
+                    ]
+                    if normalize_label(config.target_app_keyword) in matched_labels:
+                        retry_result = _try_click_text(page, config.target_app_keyword)
+                    else:
+                        retry_result = {
+                            "text": config.target_app_keyword,
+                            "ok": False,
+                            "error": "target_label_not_visible_after_search",
+                        }
+                    fallback_result: dict[str, Any] = {}
+                    if not retry_result.get("ok"):
+                        fallback_label = ""
+                        if matched_labels:
+                            fallback_label = matched_labels[0]
+                        if fallback_label:
+                            fallback_result = _try_click_text(page, fallback_label)
+                    report.target_app_status = {
+                        "text": config.target_app_keyword,
+                        "ok": bool(retry_result.get("ok") or fallback_result.get("ok")),
+                        "launcher": launcher_result,
+                        "search_attempts": search_attempts,
+                        "retry": retry_result,
+                        "fallback": fallback_result,
+                    }
+                for opener in ("全部应用", "我的应用", "应用", "更多应用", "工作台"):
+                    if report.target_app_status.get("ok"):
+                        break
+                    opener_result = _try_click_text(page, opener, timeout_ms=2_000)
+                    if opener_result.get("ok"):
+                        report.target_app_status.setdefault("openers", []).append(opener_result)
+                        retry_result = _try_click_text(page, config.target_app_keyword)
+                        report.target_app_status = {
+                            "text": config.target_app_keyword,
+                            "ok": bool(retry_result.get("ok")),
+                            "after_opener": opener,
+                            "retry": retry_result,
+                        }
+                        break
+            raw_candidates = page.evaluate(_collect_menu_candidates_script())
+            report.menu_candidates = expand_menu_candidates(raw_candidates)[:120]
+            report.app_tree = collect_app_tree(page)
+            report.final_url = redact_url(page.url)
 
         click_budget = max(0, int(config.max_menu_clicks))
         for item in report.menu_candidates[:click_budget]:
@@ -348,8 +862,29 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
                 click_info.update({"error": type(exc).__name__})
             report.clicked_menus.append(click_info)
 
+        try:
+            button_state = page.evaluate(_button_state_script())
+        except Exception:
+            button_state = {}
+        report.menu_tree = summarize_menu_tree(
+            report.menu_candidates,
+            report.network,
+            app_name=config.target_app_keyword,
+            url=report.final_url,
+        )
+        for row in report.menu_tree:
+            row.update({
+                "has_new_button": bool(button_state.get("has_new_button")),
+                "has_save_button": bool(button_state.get("has_save_button")),
+                "has_submit_button": bool(button_state.get("has_submit_button")),
+            })
         context.close()
         browser.close()
+
+    if config.record_har_path and config.record_har_path.exists():
+        report.har_path = str(config.record_har_path)
+        report.har_summary = summarize_har_file(config.record_har_path)
+        report.pageid_trace = report.har_summary.get("pageid_trace", [])
 
     config.output.parent.mkdir(parents=True, exist_ok=True)
     config.output.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
