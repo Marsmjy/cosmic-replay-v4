@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime
@@ -65,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--record-har", action="store_true", help="Record a local ignored HAR under tmp/playwright_hars")
     parser.add_argument("--har-output", default="", help="Override HAR output path")
     parser.add_argument("--max-menu-clicks", type=int, default=0, help="Default is 0: collect only, no clicks")
+    parser.add_argument("--deep-action-plan", type=Path, help="JSON plan for controlled deeper UI actions")
+    parser.add_argument("--confirm-write", default="", help="Required for save/new/fill actions in deep plans")
+    parser.add_argument("--confirm-workflow", default="", help="Required for submit/audit workflow actions in deep plans")
     parser.add_argument("--timeout-ms", type=int, default=30_000)
     parser.add_argument(
         "--output",
@@ -102,6 +106,9 @@ def main(argv: list[str] | None = None) -> int:
         har_output = args.har_output or f"tmp/playwright_hars/discovery_{datetime.now():%Y%m%d_%H%M%S}.har"
     drilldown_apps = [item.strip() for item in args.drilldown_apps.split(",") if item.strip()]
     menu_samples = _parse_menu_samples(args.open_menu_samples)
+    deep_action_plan = {}
+    if args.deep_action_plan:
+        deep_action_plan = json.loads(args.deep_action_plan.read_text(encoding="utf-8"))
 
     report = run_discovery(
         ExplorerConfig(
@@ -119,6 +126,9 @@ def main(argv: list[str] | None = None) -> int:
             record_har_path=Path(har_output) if har_output else None,
             drilldown_apps=drilldown_apps,
             open_menu_samples=menu_samples,
+            deep_action_plan=deep_action_plan,
+            deep_confirm_write=args.confirm_write,
+            deep_confirm_workflow=args.confirm_workflow,
         )
     )
     print(f"Discovery report: {Path(args.output).resolve()}")
@@ -126,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Safe menu candidates: {len(report.menu_candidates)}")
     print(f"Sub-app explorations: {len(report.subapp_explorations)}")
     print(f"Menu sample explorations: {len(report.menu_sample_explorations)}")
+    if report.deep_action_capture:
+        validation = report.deep_action_capture.get("validation", {})
+        print(f"Deep action plan: {'ok' if validation.get('ok') else 'blocked'}")
     print(f"Captured Kingdee network events: {len(report.network)}")
     if report.har_path:
         print(f"HAR: {Path(report.har_path).resolve()}")

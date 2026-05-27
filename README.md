@@ -258,6 +258,41 @@ cosmic-replay-v4/
 
 写入 smoke 会从 `config/envs/<env>.yaml` 读取环境信息，不打印账号密码；执行证据写入 `tmp/write_smoke_runs/`，该目录不入 Git。脚本只接受包含保存/提交/确认动作的 YAML，并要求显式 `--confirm-write`，避免误写库。注意使用与 HAR/YAML 匹配的环境；例如 UA 提报保存样本是 UAT 链路，跨到 SIT 会因为组织/模板内部值不同而在保存前校验失败。
 
+### 深链路 Playwright 录制
+
+更深层的新增、保存、提交、审核探索使用动作计划 JSON。动作计划只允许操作 `CRPLY_` 前缀测试数据；保存/新增/填写必须传 `YES_GENERATE_TEST_DATA`，提交/审核还必须额外传 `YES_SUBMIT_OR_AUDIT_TEST_DATA`。删除、反审核、导入、上传、批量等动作当前硬拦截。
+
+```json
+{
+  "name": "salary-deep-sample",
+  "owned_test_data": true,
+  "test_prefix": "CRPLY_DEEP",
+  "actions": [
+    {"type": "click_text", "text": "新增"},
+    {"type": "fill_text", "label": "名称", "value": "CRPLY_DEEP_${timestamp}"},
+    {"type": "click_text", "text": "保存"},
+    {"type": "click_text", "text": "提交"}
+  ]
+}
+```
+
+```bash
+./venv/bin/python scripts/playwright_discover.py \
+  --env sit \
+  --app-keyword 薪酬福利云 \
+  --open-menu-samples '薪资数据集成:业务数据提报' \
+  --record-har \
+  --deep-action-plan tmp/deep_action_plan.json \
+  --confirm-write YES_GENERATE_TEST_DATA \
+  --confirm-workflow YES_SUBMIT_OR_AUDIT_TEST_DATA
+
+./venv/bin/python scripts/har_chain_probe.py \
+  --manifest tests/fixtures/har_regression/manifest.json \
+  --output tests/fixtures/har_regression/chain_experience_catalog.json
+```
+
+推荐闭环：Playwright 录 HAR → `scripts/har_chain_probe.py` 生成链路画像 → HAR 导入生成 YAML → `scripts/write_smoke_run.py` 受控执行 → 稳定样本加入 HAR 回归 baseline。
+
 如果要试探性打开少量安全菜单，可以显式指定点击数量：
 
 ```bash

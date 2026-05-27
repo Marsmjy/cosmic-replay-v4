@@ -40,7 +40,10 @@ description: Cosmic Replay 项目架构、模块职责、HAR 导入、YAML 生�
 | `lib/report_exporter.py` | - | HTML 报告导出，内嵌离线图表资源 |
 | `lib/db/dao.py` | - | 数据访问对象（SQLite） |
 | `lib/playwright_explorer.py` | - | Playwright 只读探索器：登录、菜单候选、表单/接口/pageId 摘要采集 |
+| `lib/playwright_deep_actions.py` | - | 深层 Playwright 动作计划风险校验：新增/保存/提交/审核测试数据护栏 |
+| `lib/har_chain_probe.py` | - | HAR 原始链路探测：lookup 预热、showForm/billFormId、默认上下文、写库锚点经验画像 |
 | `scripts/playwright_discover.py` | - | Playwright 探索 CLI，默认不点击、不写库，输出到 `tmp/playwright_discovery/` |
+| `scripts/har_chain_probe.py` | - | 从 HAR 或回归 manifest 生成脱敏链路经验库 |
 
 ## 模块调用链
 
@@ -82,10 +85,12 @@ tmp/playwright_discovery/*.json
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --drilldown-apps '薪酬管理,薪资核算,薪资数据集成,薪酬成本,工资条,员工薪酬服务,薪酬基础服务,中国社保' --record-har
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --open-menu-samples '薪资数据集成:业务数据提报,薪资核算:计薪人员' --record-har
+scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --open-menu-samples '薪资数据集成:业务数据提报' --record-har --deep-action-plan tmp/deep_action_plan.json --confirm-write YES_GENERATE_TEST_DATA --confirm-workflow YES_SUBMIT_OR_AUDIT_TEST_DATA
+scripts/har_chain_probe.py --manifest tests/fixtures/har_regression/manifest.json --output tests/fixtures/har_regression/chain_experience_catalog.json
 scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-write YES_GENERATE_TEST_DATA --var test_description=CRPLY_WRITE_${timestamp}
 ```
 
-安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。写入阶段优先使用已生成 YAML 的 `scripts/write_smoke_run.py`，且必须显式传入 `--confirm-write YES_GENERATE_TEST_DATA`。必须使用与 HAR/YAML 匹配的环境，不能把 UAT 内部模板/组织值硬搬到 SIT 写库。原始 HAR、写入事件、截图只能保存在 `tmp/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
+安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。深层动作计划只允许操作 `CRPLY_` 前缀测试数据；保存/新增/填写必须传 `YES_GENERATE_TEST_DATA`，提交/审核还必须传 `YES_SUBMIT_OR_AUDIT_TEST_DATA`。写入阶段优先使用已生成 YAML 的 `scripts/write_smoke_run.py`，且必须显式传入 `--confirm-write YES_GENERATE_TEST_DATA`。必须使用与 HAR/YAML 匹配的环境，不能把 UAT 内部模板/组织值硬搬到 SIT 写库。原始 HAR、写入事件、截图只能保存在 `tmp/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
 
 ## 核心设计决策
 

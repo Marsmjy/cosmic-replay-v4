@@ -29,6 +29,12 @@ from scripts.write_smoke_run import (
     parse_pick_override,
     parse_var_override,
 )
+from lib.playwright_deep_actions import (
+    WORKFLOW_CONFIRM_TOKEN,
+    WRITE_CONFIRM_TOKEN,
+    classify_action_risk,
+    validate_action_plan,
+)
 
 
 def test_normalize_base_url_keeps_app_path_and_strips_query():
@@ -138,6 +144,43 @@ def test_parse_menu_samples_cli_shape():
         {"app_label": "薪资数据集成", "menu_label": "业务数据提报"},
         {"app_label": "薪资核算", "menu_label": "计薪人员"},
     ]
+
+
+def test_deep_action_plan_requires_explicit_write_and_workflow_tokens():
+    plan = {
+        "owned_test_data": True,
+        "test_prefix": "CRPLY_DEEP",
+        "actions": [
+            {"type": "click_text", "text": "新增"},
+            {"type": "fill_text", "label": "名称", "value": "CRPLY_DEEP_001"},
+            {"type": "click_text", "text": "提交"},
+            {"type": "click_text", "text": "删除"},
+        ],
+    }
+
+    assert classify_action_risk({"type": "click_text", "text": "查询"}) == "read"
+    assert classify_action_risk({"type": "click_text", "text": "保存"}) == "write"
+    assert classify_action_risk({"type": "click_text", "text": "审核"}) == "workflow"
+    assert classify_action_risk({"type": "click_text", "text": "删除"}) == "forbidden"
+
+    blocked = validate_action_plan(plan)
+    assert blocked["ok"] is False
+    assert any("write_requires" in item for item in blocked["errors"])
+    assert any("workflow_requires" in item for item in blocked["errors"])
+    assert any("forbidden_action" in item for item in blocked["errors"])
+
+    workflow_only = {
+        "owned_test_data": True,
+        "test_prefix": "CRPLY_DEEP",
+        "actions": [{"type": "click_text", "text": "提交"}],
+    }
+    allowed = validate_action_plan(
+        workflow_only,
+        confirm_write=WRITE_CONFIRM_TOKEN,
+        confirm_workflow=WORKFLOW_CONFIRM_TOKEN,
+    )
+    assert allowed["ok"] is True
+    assert allowed["summary"]["risk_counts"] == {"workflow": 1}
 
 
 def test_write_smoke_helpers_are_safe_and_summary_focused():

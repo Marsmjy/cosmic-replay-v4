@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 
 from . import cosmic_login
 from .pageid_trace import classify_pageid, pageid_fragment
+from .playwright_deep_actions import validate_action_plan
 
 
 WRITE_ACTION_KEYWORDS = (
@@ -123,6 +124,9 @@ class ExplorerConfig:
     search_app_launcher: bool = True
     drilldown_apps: list[str] = field(default_factory=list)
     open_menu_samples: list[dict[str, str]] = field(default_factory=list)
+    deep_action_plan: dict[str, Any] = field(default_factory=dict)
+    deep_confirm_write: str = ""
+    deep_confirm_workflow: str = ""
 
 
 @dataclass
@@ -154,6 +158,7 @@ class DiscoveryReport:
     menu_sample_explorations: list[dict[str, Any]] = field(default_factory=list)
     menu_tree: list[dict[str, Any]] = field(default_factory=list)
     clicked_menus: list[dict[str, Any]] = field(default_factory=list)
+    deep_action_capture: dict[str, Any] = field(default_factory=dict)
     network: list[NetworkEvent] = field(default_factory=list)
     har_path: str = ""
     har_summary: dict[str, Any] = field(default_factory=dict)
@@ -821,6 +826,83 @@ def _try_click_text(page: Any, label: str, timeout_ms: int = 3_000) -> dict[str,
     return result
 
 
+def _click_text_without_risk_check(page: Any, label: str, timeout_ms: int = 3_000) -> dict[str, Any]:
+    """Click text after the whole deep action plan has passed risk validation."""
+    started = time.time()
+    result: dict[str, Any] = {"text": normalize_label(label), "ok": False}
+    try:
+        locator = page.get_by_text(label, exact=True)
+        if locator.count() < 1:
+            locator = page.get_by_text(label, exact=False)
+        target = locator.first
+        target.click(timeout=timeout_ms)
+        page.wait_for_timeout(800)
+        result.update({"ok": True, "url": redact_url(page.url), "elapsed_ms": int((time.time() - started) * 1000)})
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _fill_text_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_000) -> dict[str, Any]:
+    label = normalize_label(str(action.get("label") or action.get("placeholder") or action.get("selector") or ""))
+    value = str(action.get("value") or "")
+    result: dict[str, Any] = {"label": label, "ok": False, "value_shape": "empty" if not value else "literal"}
+    try:
+        selector = str(action.get("selector") or "")
+        if selector:
+            locator = page.locator(selector).first
+        elif action.get("placeholder"):
+            locator = page.get_by_placeholder(str(action["placeholder"]), exact=False).first
+        else:
+            locator = page.get_by_label(label, exact=False).first
+        locator.fill(value, timeout=timeout_ms)
+        page.wait_for_timeout(300)
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _execute_deep_action_plan(
+    page: Any,
+    plan: dict[str, Any],
+    *,
+    confirm_write: str,
+    confirm_workflow: str,
+) -> dict[str, Any]:
+    validation = validate_action_plan(
+        plan,
+        confirm_write=confirm_write,
+        confirm_workflow=confirm_workflow,
+    )
+    result: dict[str, Any] = {"validation": validation, "actions": []}
+    if not validation.get("ok"):
+        result["blocked"] = True
+        return result
+
+    for index, action in enumerate(plan.get("actions") or []):
+        if not isinstance(action, dict):
+            continue
+        action_type = str(action.get("type") or "click_text")
+        row = {"index": index, "type": action_type, "id": action.get("id", "")}
+        if action_type == "click_text":
+            row.update(_click_text_without_risk_check(page, str(action.get("text") or ""), timeout_ms=3_000))
+        elif action_type in {"fill", "fill_text"}:
+            row.update(_fill_text_control(page, action, timeout_ms=3_000))
+        elif action_type == "wait":
+            ms = int(action.get("ms") or 800)
+            page.wait_for_timeout(max(0, min(ms, 10_000)))
+            row["ok"] = True
+            row["ms"] = ms
+        else:
+            row.update({"ok": False, "error": "unsupported_action_type"})
+        result["actions"].append(row)
+        if not row.get("ok") and not action.get("optional"):
+            result["stopped_at"] = index
+            break
+    return result
+
+
 def _try_click_tile_text(page: Any, label: str, selector: str, timeout_ms: int = 3_000) -> dict[str, Any]:
     """Click an exact visible Kingdee app launcher tile by selector and text."""
     text = normalize_label(label)
@@ -1125,6 +1207,19 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
                     menu_label=menu_label,
                 )
             )
+
+        if config.deep_action_plan:
+            start_network = len(report.network)
+            report.deep_action_capture = _execute_deep_action_plan(
+                page,
+                config.deep_action_plan,
+                confirm_write=config.deep_confirm_write,
+                confirm_workflow=config.deep_confirm_workflow,
+            )
+            report.deep_action_capture["network_delta"] = [
+                asdict(item) for item in report.network[start_network:]
+            ]
+            report.deep_action_capture["final_url"] = redact_url(page.url)
 
         click_budget = max(0, int(config.max_menu_clicks))
         for item in report.menu_candidates[:click_budget]:

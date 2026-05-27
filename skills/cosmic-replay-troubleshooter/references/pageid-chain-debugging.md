@@ -140,6 +140,23 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 4. 若写入 PASS 但入库未验证，查看保存响应是否有 `pkValue/billId/saveResult/保存成功` 等证据；缺证据时补后置查询或人工确认，不要直接把 PASS 等同于已入库。
 5. 2026-05-27 UA 提报保存验证：UAT 环境使用 `prefetch_lookup` 后 44 步写入 Smoke 通过；同一 YAML 跨 SIT 会在模板确认前失败，原因是默认组织/业务数据模板内部值不一致，不应视为 pageId 修复失败。
 
+## 深链路探索闭环（2026-05-27）
+
+目标：用 Playwright 继续探索薪酬福利云下新增、保存、提交、审核、子弹窗、选人、明细等真实链路，录制新 HAR 后立即反哺 HAR/YAML 解析。
+
+闭环顺序：
+1. Playwright 用 `--open-menu-samples 子应用:菜单` 打开目标业务菜单，并用 `--record-har` 采集原始 HAR。
+2. 若要继续新增/保存/提交/审核，必须传 `--deep-action-plan`。动作计划只允许 `CRPLY_` 前缀测试数据；写库动作需要 `YES_GENERATE_TEST_DATA`，提交/审核还需要 `YES_SUBMIT_OR_AUDIT_TEST_DATA`。
+3. 原始 HAR 进入 `scripts/har_chain_probe.py`，先生成脱敏链路画像：`lookup_prefetches`、`showform_aliases`、`default_contexts`、`write_anchors`、L2/L3 风险。
+4. 再导入 HAR 生成 YAML，检查是否保留 `prefetch_lookup`、`billFormId` 别名、明细弹窗 L3、保存断言和环境字段。
+5. 用 `scripts/write_smoke_run.py` 执行 YAML；若失败，先用链路画像和 `pageid_trace` 判断是 pageId 链路、候选预热、默认上下文、变量/环境字段，还是业务校验。
+6. 稳定、脱敏且有代表性的样本才加入 `tests/fixtures/har_regression/manifest.json` 与 `chain_experience_catalog.json`。
+
+重点原则：
+- Playwright 可以点击更深，但不能随机点“删除/反审核/导入/上传/批量”等动作。
+- 提交/审核只允许作用于本次由 `CRPLY_` 前缀创建并可识别的测试数据。
+- 新 HAR 的经验先沉淀为链路画像，再决定是否修改 parser/runner；不要为了让单个 YAML 变绿而删步骤或硬补 `save.post_data`。
+
 ```python
 # 在 invoke() 方法中加临时调试
 def invoke(self, form_id, app_id, ac, actions, page_id=None):
