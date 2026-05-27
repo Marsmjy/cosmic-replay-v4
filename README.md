@@ -297,7 +297,8 @@ cosmic-replay-v4/
 
 - `薪资数据集成 / 业务数据提报`：UAT 写入 smoke 通过，覆盖主表、选人弹窗、子弹窗明细和保存。
 - `薪资核算 / 薪酬项目类别`：SIT 写入 smoke 通过，覆盖菜单 L2、新增 L3、`treeview.focus`、`taglevel` lookup 预热和弹窗 `btnsave` 保存。
-- `薪资核算 / 薪酬项目`、`薪资核算 / 薪资期间`：已采集新增页链路，后续继续补必填字段和保存闭环。
+- `薪资核算 / 薪酬项目`：SIT 写入 smoke 通过，覆盖菜单 L2、新增 L3、`salaryitemtype` lookup 自动解析、`ispayoutitem` 枚举和标准 `bar_save` 保存。
+- `薪资核算 / 薪资期间`：已采集新增页链路，后续继续补期间行、日期、频度和 `entrysave/saveandnew` 场景。
 - `中国社保 / 社保体系`：当前账号下未发现可写新增入口，按只读/需人工确认处理。
 
 经验原则：Playwright 更适合采集真实菜单、新增、弹窗和 pageId 链路；真正验证“可回放、可入库”应落到 YAML runner。若 Playwright 原生填输入框没有形成 `updateValue/save` 请求，不要误判为 HAR 解析问题，应改为用采集到的 L2/L3 链路生成协议 YAML，再用 `write_smoke_run.py` 验证。

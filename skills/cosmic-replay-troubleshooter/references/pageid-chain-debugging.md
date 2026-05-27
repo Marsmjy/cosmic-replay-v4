@@ -162,11 +162,12 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 已沉淀位置：
 - `tests/fixtures/deep_chain_factory/catalog.json`
 - `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml`
+- `tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml`
 
 薪酬福利云当前代表样本：
 1. `薪资数据集成 / 业务数据提报`：UAT 写入 smoke 通过，覆盖主单、选人弹窗、子弹窗明细、lookup 预热和保存。
 2. `薪资核算 / 薪酬项目类别`：SIT 写入 smoke 通过，覆盖 `menuItemClick L2 -> new L2 -> showForm L3 -> update_fields/pick_basedata -> btnsave`。
-3. `薪资核算 / 薪酬项目`：已采集新增页，保存前缺 `salaryitemtype` 和 `ispayoutitem`，不能只补 number/name。
+3. `薪资核算 / 薪酬项目`：SIT 写入 smoke 通过，覆盖 `menuItemClick L2 -> new L2 -> showForm/loadData L3 -> update_fields(number/name/ispayoutitem) -> pick_basedata(salaryitemtype) -> bar_save`。
 4. `薪资核算 / 薪资期间`：已采集新增页，涉及期间行、日期、频度和 entrysave/saveandnew，不适合作为简单保存样本。
 5. `中国社保 / 社保体系`：当前账号下未发现新增入口，归类为只读/需人工确认。
 
@@ -175,6 +176,7 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 - 对这类样本，Playwright 的价值是采集菜单 L2、新增 L3、`treeview.focus`、`showForm` 和 lookup 候选；最终闭环应由协议 YAML + runner 完成。
 - 弹窗底部保存可能是 `ac=click/key=btnsave/method=click`，不是主工具栏 `ac=save/key=tbmain/args=[bar_save, save]`。
 - 新增树形基础资料时，`treeview.focus` 是环境上下文，必须保留并作为环境字段暴露；不要删除新增步骤的 `post_data`。
+- `hsbs_salaryitem` 这类表单里，`loadData` 默认带出的 `createorg/datatype/dataprecision/dataround/areatype/ctrlstrategy` 属于 pageId 服务端上下文；排障时不要一上来把这些默认值硬补到 save。真正用户维护缺口是 `number/name/salaryitemtype/ispayoutitem`，其中 `salaryitemtype` 要 lookup 预热，`ispayoutitem` 是可维护枚举字段。
 
 ```python
 # 在 invoke() 方法中加临时调试

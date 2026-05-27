@@ -115,6 +115,7 @@ def _is_l2_pageid(pid: str) -> bool:
 - L2 不是错误本身。列表、树、工具栏和 `addnew` 前置桥接步骤依赖 L2 上下文；进入真实编辑页后才应切换到 L3。
 - 很多保存字段保存在 pageId 对应的服务端模型里。排障时先比对 HAR 原始 pageId 链路，再看字段解析和补偿；不要一上来硬补 `save` 请求体。
 - 深链路样本经验见 `tests/fixtures/deep_chain_factory/catalog.json`。例如 `薪资核算 / 薪酬项目类别` 的正确闭环是 `menuItemClick` 绑定 L2、`new` 保留 L2、`showForm/loadData` 切 L3、再执行 `update_fields`、`pick_basedata(taglevel)` 和弹窗 `btnsave`。Playwright UI 填框没有触发 `updateValue/save` 时，应改用协议 YAML 验证，不要误判为 parser 失败。
+- `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
 
 ---
 

@@ -1,0 +1,185 @@
+name: deep_salary_item_protocol_save
+description: 受控写入【薪酬项目】 · Playwright 探链路 + runner 协议保存闭环
+env:
+  base_url: ${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}
+  username: ${env:COSMIC_USERNAME}
+  password: ${env:COSMIC_PASSWORD}
+  datacenter_id: ${env:COSMIC_DATACENTER_ID}
+vars:
+  test_number: "CRPLY_ITEM_${rand:6}"
+  test_name: "CRPLY薪酬项目${rand:6}"
+vars_labels:
+  test_number: 编码
+  test_name: 名称
+vars_meta:
+  test_number:
+    label: 编码
+    field_key: number
+    form_id: hsbs_salaryitem
+    form_label: 薪酬项目
+    group_key: "hsbs_salaryitem:click_bar_save"
+    group_label: 薪酬项目 / 保存
+    source_step_id: fill_required_fields
+    write_step_id: click_bar_save
+  test_name:
+    label: 名称
+    field_key: name
+    form_id: hsbs_salaryitem
+    form_label: 薪酬项目
+    group_key: "hsbs_salaryitem:click_bar_save"
+    group_label: 薪酬项目 / 保存
+    source_step_id: fill_required_fields
+    write_step_id: click_bar_save
+pick_fields:
+  pick_salaryitemtype_id:
+    value_id: 个税相关项目
+    value_name: 个税相关项目
+    value_code: ""
+    label: 薪酬项目系统分类
+    env_sensitive: medium
+    field_key: salaryitemtype
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    auto_resolve: true
+    resolve_by: value_name
+    resolve_status: pending
+    form_label: 薪酬项目
+    group_key: "hsbs_salaryitem:click_bar_save"
+    group_label: 薪酬项目 / 保存
+    source_step_id: pick_salaryitemtype
+    write_step_id: click_bar_save
+  enum_ispayoutitem:
+    value_id: "0"
+    value_name: "0"
+    label: 实发项目
+    env_sensitive: low
+    field_key: ispayoutitem
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    form_label: 薪酬项目
+    group_key: "hsbs_salaryitem:click_bar_save"
+    group_label: 薪酬项目 / 保存
+    source_step_id: fill_required_fields
+    write_step_id: click_bar_save
+main_form_id: hsbs_salaryitem
+steps:
+  - id: open_portal
+    type: open_form
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    description: 打开「门户首页」
+  - id: menuItemClick_salary_item
+    type: invoke
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    ac: menuItemClick
+    key: appnavigationmenuap
+    method: menuItemClick
+    args:
+      - menuId: 00LY8Y4AUU9Q
+        appId: /UHMBBGZQ65X
+        cloudId: /U+QDTL900//
+    post_data:
+      - {}
+      - []
+    target_form: hsbs_salaryitem
+    target_forms:
+      - hsas_apphome
+      - hsbs_salaryitem
+    env_sensitive: high
+    resolve_by: menu_path_or_form
+    navigation_form_id: hsbs_salaryitem
+    description: 点击菜单进入「薪酬项目」
+  - id: selectTab_salary_item
+    type: invoke
+    form_id: home_page
+    app_id: bos
+    ac: selectTab
+    key: tabap
+    method: selectTab
+    args:
+      - hsasroot${session.root_base_id}
+    post_data:
+      - {}
+      - []
+    optional: true
+    description: 切换到薪资核算 tab
+  - id: load_salaryitem_list
+    type: invoke
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    preserve_l2_page: true
+    description: 加载「薪酬项目」列表
+  - id: click_tblnew
+    type: invoke
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    ac: new
+    key: toolbarap
+    method: itemClick
+    args:
+      - tblnew
+      - new
+    post_data:
+      - {}
+      - []
+    preserve_l2_page: true
+    description: 点击「新增」
+  - id: load_salaryitem_edit
+    type: invoke
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    description: 加载「薪酬项目」编辑态
+  - id: fill_required_fields
+    type: update_fields
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    fields:
+      number: ${vars.test_number}
+      name:
+        zh_CN: ${vars.test_name}
+        zh_TW: ${vars.test_name}
+      ispayoutitem: "0"
+    description: 填写「编码/名称/实发项目」
+  - id: pick_salaryitemtype
+    type: pick_basedata
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    field_key: salaryitemtype
+    value_id: 个税相关项目
+    value_name: 个税相关项目
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "个税相关项目", "%", 0, 20, 0]
+    description: 选择「薪酬项目系统分类」
+  - id: click_bar_save
+    type: invoke
+    form_id: hsbs_salaryitem
+    app_id: hsbs
+    ac: save
+    key: tbmain
+    method: itemClick
+    args:
+      - bar_save
+      - save
+    post_data:
+      - {}
+      - []
+    description: 💾 保存【薪酬项目】
+assertions:
+  - type: no_save_failure
+    step: click_bar_save
+  - type: no_error_actions
+    step: click_bar_save

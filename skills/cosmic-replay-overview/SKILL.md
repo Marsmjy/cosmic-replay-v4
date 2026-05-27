@@ -96,6 +96,7 @@ scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-
 
 - `tests/fixtures/deep_chain_factory/catalog.json` 记录薪酬福利云 3-5 个代表菜单的成熟度：已写入通过、已采集新增页、只读/不可写。
 - `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml` 是最小闭环样本：Playwright 采集 `薪资核算 / 薪酬项目类别` 的菜单 L2、新增 L3 和 `treeview.focus`，runner 协议补齐 `number/name/taglevel` 后保存成功。
+- `tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml` 记录 `薪资核算 / 薪酬项目`：`salaryitemtype` 是必填 lookup，需要 `getLookUpList` 预热和按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段维护；保存是标准 `ac=save/key=tbmain/args=[bar_save, save]`。
 - 若 Playwright UI 填框没有产生 `updateValue` 或 `save` 网络请求，不能把“没写库”归因给 HAR 解析；应优先用 Playwright HAR 提供的 pageId 链路和 lookup 候选生成协议 YAML，再由 runner 验证。
 
 ## 核心设计决策

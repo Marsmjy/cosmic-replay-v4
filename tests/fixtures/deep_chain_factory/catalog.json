@@ -47,18 +47,17 @@
       "app_label": "薪资核算",
       "menu_label": "薪酬项目",
       "form_ids": ["hsbs_salaryitem"],
-      "status": "level1_new_page_collected",
+      "status": "closed_write_passed",
       "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml",
       "latest_local_har": "tmp/playwright_hars/deep_salary_pay_item_new_v3.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_item_fixture_20260528.json",
       "lessons": [
         "薪酬项目列表打开后需要等待业务表单 loadData 完成再点新增。",
-        "保存前除 number/name 外还必须补薪酬项目系统分类 salaryitemtype 和实发项目 ispayoutitem。",
-        "loadData 默认带出的 createorg/datatype/dataprecision/dataround 属于 pageId 服务端上下文，不应转成用户 pick。"
-      ],
-      "next_steps": [
-        "采集 salaryitemtype lookup 候选。",
-        "确认 ispayoutitem 枚举值。",
-        "补协议 YAML 后跑 write_smoke。"
+        "保存前除 number/name 外还必须补薪酬项目系统分类 salaryitemtype 和实发项目 ispayoutitem；salaryitemtype 需要 getLookUpList 预热并按名称自动解析。",
+        "loadData 默认带出的 createorg/datatype/dataprecision/dataround 属于 pageId 服务端上下文，不应转成用户 pick。",
+        "实发项目 ispayoutitem 是 ComboField，可作为 enum 环境字段暴露；当前 smoke 使用录制/列表一致的值 0。",
+        "该表单保存使用标准工具栏 ac=save/key=tbmain/args=[bar_save, save]，与薪酬项目类别弹窗 btnsave 不同。"
       ]
     },
     {

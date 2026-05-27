@@ -15,7 +15,7 @@ def test_deep_chain_factory_catalog_tracks_closed_salary_samples():
     scenarios = {item["id"]: item for item in catalog["scenarios"]}
     assert scenarios["salary_data_integration_ua_submit_save"]["status"] == "closed_write_passed"
     assert scenarios["salary_item_category_protocol_save"]["status"] == "closed_write_passed"
-    assert scenarios["salary_item_new_validation"]["status"] == "level1_new_page_collected"
+    assert scenarios["salary_item_new_validation"]["status"] == "closed_write_passed"
 
 
 def test_salary_item_category_protocol_fixture_preserves_l2_to_l3_chain():
@@ -30,3 +30,21 @@ def test_salary_item_category_protocol_fixture_preserves_l2_to_l3_chain():
     assert steps["click_save"]["key"] == "btnsave"
     assert steps["click_save"]["method"] == "click"
     assert {item["type"] for item in case["assertions"]} == {"no_save_failure", "no_error_actions"}
+
+
+def test_salary_item_protocol_fixture_resolves_required_lookup_before_save():
+    case_path = PROJECT_ROOT / "tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml"
+    case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in case["steps"]}
+    pick_fields = case["pick_fields"]
+
+    assert steps["load_salaryitem_list"]["preserve_l2_page"] is True
+    assert steps["click_tblnew"]["preserve_l2_page"] is True
+    assert steps["pick_salaryitemtype"]["prefetch_lookup"] is True
+    assert steps["pick_salaryitemtype"]["auto_resolve"] is True
+    assert steps["fill_required_fields"]["fields"]["ispayoutitem"] == "0"
+    assert steps["click_bar_save"]["ac"] == "save"
+    assert steps["click_bar_save"]["key"] == "tbmain"
+    assert steps["click_bar_save"]["args"] == ["bar_save", "save"]
+    assert pick_fields["pick_salaryitemtype_id"]["resolve_by"] == "value_name"
+    assert pick_fields["enum_ispayoutitem"]["field_key"] == "ispayoutitem"
