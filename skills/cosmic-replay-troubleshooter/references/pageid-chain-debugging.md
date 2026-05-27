@@ -157,6 +157,25 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 - 提交/审核只允许作用于本次由 `CRPLY_` 前缀创建并可识别的测试数据。
 - 新 HAR 的经验先沉淀为链路画像，再决定是否修改 parser/runner；不要为了让单个 YAML 变绿而删步骤或硬补 `save.post_data`。
 
+## 深链路场景工厂经验（2026-05-28）
+
+已沉淀位置：
+- `tests/fixtures/deep_chain_factory/catalog.json`
+- `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml`
+
+薪酬福利云当前代表样本：
+1. `薪资数据集成 / 业务数据提报`：UAT 写入 smoke 通过，覆盖主单、选人弹窗、子弹窗明细、lookup 预热和保存。
+2. `薪资核算 / 薪酬项目类别`：SIT 写入 smoke 通过，覆盖 `menuItemClick L2 -> new L2 -> showForm L3 -> update_fields/pick_basedata -> btnsave`。
+3. `薪资核算 / 薪酬项目`：已采集新增页，保存前缺 `salaryitemtype` 和 `ispayoutitem`，不能只补 number/name。
+4. `薪资核算 / 薪资期间`：已采集新增页，涉及期间行、日期、频度和 entrysave/saveandnew，不适合作为简单保存样本。
+5. `中国社保 / 社保体系`：当前账号下未发现新增入口，归类为只读/需人工确认。
+
+排障启发：
+- UI 自动化填框后如果没有 `updateValue` 或 `save` 请求，先判断是 Playwright 原生输入未触发苍穹组件事件，不要误判为 HAR 解析失败。
+- 对这类样本，Playwright 的价值是采集菜单 L2、新增 L3、`treeview.focus`、`showForm` 和 lookup 候选；最终闭环应由协议 YAML + runner 完成。
+- 弹窗底部保存可能是 `ac=click/key=btnsave/method=click`，不是主工具栏 `ac=save/key=tbmain/args=[bar_save, save]`。
+- 新增树形基础资料时，`treeview.focus` 是环境上下文，必须保留并作为环境字段暴露；不要删除新增步骤的 `post_data`。
+
 ```python
 # 在 invoke() 方法中加临时调试
 def invoke(self, form_id, app_id, ac, actions, page_id=None):

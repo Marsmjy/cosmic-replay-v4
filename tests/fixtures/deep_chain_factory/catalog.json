@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "target_cloud": "薪酬福利云",
+  "updated_at": "2026-05-28",
+  "purpose": "记录 Playwright 深链路探索到 HAR/YAML/runner 写入闭环的脱敏经验，不提交原始 HAR、cookie、token、截图或运行日志。",
+  "safety": {
+    "test_data_prefix": "CRPLY_",
+    "raw_har_policy": "tmp/playwright_hars/ only; never commit",
+    "write_evidence_policy": "tmp/write_smoke_runs/ only; never commit",
+    "workflow_actions": "submit/audit/delete/import/upload remain blocked unless explicitly approved"
+  },
+  "scenarios": [
+    {
+      "id": "salary_data_integration_ua_submit_save",
+      "app_label": "薪资数据集成",
+      "menu_label": "业务数据提报",
+      "form_ids": ["hpdi_bizdatabill", "hpdi_bizdatabillnewentry", "hsbs_empposf7querylist"],
+      "status": "closed_write_passed",
+      "env": "uat",
+      "case_file": "cases/UA提报保存.yaml",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_ua_submit_save_20260528.json",
+      "lessons": [
+        "主页面列表/工具栏动作保留 L2；明细弹窗和保存前字段维护使用 L3。",
+        "选人弹窗和业务数据提报新增子窗必须保留，不可因主单保存成功就裁剪。",
+        "getLookUpList -> setItemByIdFromClient 属于 lookup 预热链路，解析和 runner 都要保留。"
+      ]
+    },
+    {
+      "id": "salary_item_category_protocol_save",
+      "app_label": "薪资核算",
+      "menu_label": "薪酬项目类别",
+      "form_ids": ["hsbs_statisticstag"],
+      "status": "closed_write_passed",
+      "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_item_category_new.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_item_category_protocol_min.json",
+      "lessons": [
+        "Playwright 负责采集真实菜单 L2、新增 L3、treeview.focus 和 lookup 候选；runner 负责协议级 update_fields/pick/save 验证。",
+        "新增按钮请求使用列表 L2 pageId，new 响应 showForm 下发同 form 的 L3 pageId，后续字段和保存必须切到 L3。",
+        "薪酬项目类别层级 taglevel 是必填 lookup，需要 prefetch_lookup 后再 setItemByIdFromClient。",
+        "弹窗底部保存是 ac=click/key=btnsave/method=click，不是标准 tbmain/bar_save。"
+      ]
+    },
+    {
+      "id": "salary_item_new_validation",
+      "app_label": "薪资核算",
+      "menu_label": "薪酬项目",
+      "form_ids": ["hsbs_salaryitem"],
+      "status": "level1_new_page_collected",
+      "env": "sit",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_pay_item_new_v3.har",
+      "lessons": [
+        "薪酬项目列表打开后需要等待业务表单 loadData 完成再点新增。",
+        "保存前除 number/name 外还必须补薪酬项目系统分类 salaryitemtype 和实发项目 ispayoutitem。",
+        "loadData 默认带出的 createorg/datatype/dataprecision/dataround 属于 pageId 服务端上下文，不应转成用户 pick。"
+      ],
+      "next_steps": [
+        "采集 salaryitemtype lookup 候选。",
+        "确认 ispayoutitem 枚举值。",
+        "补协议 YAML 后跑 write_smoke。"
+      ]
+    },
+    {
+      "id": "salary_period_new_validation",
+      "app_label": "薪资核算",
+      "menu_label": "薪资期间",
+      "form_ids": ["hsbs_calperiodtype"],
+      "status": "level1_new_page_collected",
+      "env": "sit",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_period_new.har",
+      "lessons": [
+        "薪资期间新增会从 L2 列表切到 L3 编辑态。",
+        "该表单有期间行、日期和频度等多组必填字段，不适合用作第一批简单保存样本。",
+        "entrysave/saveandnew 等 opKey 与普通基础资料保存不同，后续要单独沉淀。"
+      ]
+    },
+    {
+      "id": "social_security_system_menu",
+      "app_label": "中国社保",
+      "menu_label": "社保体系",
+      "form_ids": [],
+      "status": "menu_open_not_writable",
+      "env": "sit",
+      "latest_local_har": "tmp/playwright_hars/deep_social_security_system_new.har",
+      "lessons": [
+        "当前菜单点击未发现新增按钮或业务表单写入链路。",
+        "场景工厂应将这种菜单归类为只读/需人工确认，而不是强行点击高风险动作。"
+      ]
+    }
+  ]
+}

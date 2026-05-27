@@ -834,10 +834,37 @@ def _click_text_without_risk_check(page: Any, label: str, timeout_ms: int = 3_00
         locator = page.get_by_text(label, exact=True)
         if locator.count() < 1:
             locator = page.get_by_text(label, exact=False)
-        target = locator.first
-        target.click(timeout=timeout_ms)
+        total = locator.count()
+        if total < 1:
+            result["error"] = "not_found"
+            return result
+        target = None
+        target_box = None
+        for index in range(min(total, 20)):
+            item = locator.nth(index)
+            try:
+                box = item.bounding_box(timeout=500)
+            except Exception:
+                box = None
+            if box and box.get("width", 0) > 8 and box.get("height", 0) > 8:
+                target = item
+                target_box = box
+                break
+        if target is None:
+            result["error"] = "visible_target_not_found"
+            return result
+        try:
+            target.click(timeout=timeout_ms)
+        except Exception:
+            target.click(timeout=timeout_ms, force=True)
         page.wait_for_timeout(800)
-        result.update({"ok": True, "url": redact_url(page.url), "elapsed_ms": int((time.time() - started) * 1000)})
+        result.update({
+            "ok": True,
+            "url": redact_url(page.url),
+            "elapsed_ms": int((time.time() - started) * 1000),
+            "x": round(target_box.get("x", 0)) if target_box else None,
+            "y": round(target_box.get("y", 0)) if target_box else None,
+        })
     except Exception as exc:
         result.update({"error": type(exc).__name__})
     return result

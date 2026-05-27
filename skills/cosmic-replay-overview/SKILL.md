@@ -92,6 +92,12 @@ scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-
 
 安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。深层动作计划只允许操作 `CRPLY_` 前缀测试数据；保存/新增/填写必须传 `YES_GENERATE_TEST_DATA`，提交/审核还必须传 `YES_SUBMIT_OR_AUDIT_TEST_DATA`。写入阶段优先使用已生成 YAML 的 `scripts/write_smoke_run.py`，且必须显式传入 `--confirm-write YES_GENERATE_TEST_DATA`。必须使用与 HAR/YAML 匹配的环境，不能把 UAT 内部模板/组织值硬搬到 SIT 写库。原始 HAR、写入事件、截图只能保存在 `tmp/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
 
+深链路场景工厂经验库：
+
+- `tests/fixtures/deep_chain_factory/catalog.json` 记录薪酬福利云 3-5 个代表菜单的成熟度：已写入通过、已采集新增页、只读/不可写。
+- `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml` 是最小闭环样本：Playwright 采集 `薪资核算 / 薪酬项目类别` 的菜单 L2、新增 L3 和 `treeview.focus`，runner 协议补齐 `number/name/taglevel` 后保存成功。
+- 若 Playwright UI 填框没有产生 `updateValue` 或 `save` 网络请求，不能把“没写库”归因给 HAR 解析；应优先用 Playwright HAR 提供的 pageId 链路和 lookup 候选生成协议 YAML，再由 runner 验证。
+
 ## 核心设计决策
 
 ### 1. PageId 四层跃迁
