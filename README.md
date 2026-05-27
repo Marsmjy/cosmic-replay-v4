@@ -193,6 +193,38 @@ cosmic-replay-v4/
 
 ---
 
+## Playwright 菜单/表单探索（实验能力）
+
+用于让 AI Agent 在真实金蝶环境里做“只读探索”：登录、打开首页、采集菜单候选、捕获 `batchInvokeAction.do` / 元数据请求，为后续自然语言生成 YAML、HAR 模板补全和 pageId 链路分析提供知识。
+
+首次使用需要安装浏览器内核：
+
+```bash
+./venv/bin/pip install -r requirements.txt
+./venv/bin/python -m playwright install chromium
+```
+
+默认只采集，不点击任何菜单：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py --env sit
+```
+
+如果要试探性打开少量安全菜单，可以显式指定点击数量：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py --env sit --max-menu-clicks 5
+```
+
+安全边界：
+
+- 默认 `--max-menu-clicks 0`，不会点击菜单，更不会写库。
+- 即使开启菜单点击，也会拦截“新增、保存、提交、删除、审核、导入、上传、确定、确认”等写入/高风险动作。
+- 输出写到 `tmp/playwright_discovery/`，该目录不入 Git，也不会进入顾问交付包。
+- 该能力用于补知识和生成候选 YAML，不替代现有 HAR/YAML 回放和 HAR 回归门禁。
+
+---
+
 ## 排故索引
 
 | 症状 | 排查方向 |

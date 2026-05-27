@@ -39,6 +39,8 @@ description: Cosmic Replay 项目架构、模块职责、HAR 导入、YAML 生�
 | `lib/agent_evidence.py` | - | AI Agent 修复证据包：YAML、运行事件、报告上下文、技能护栏 |
 | `lib/report_exporter.py` | - | HTML 报告导出，内嵌离线图表资源 |
 | `lib/db/dao.py` | - | 数据访问对象（SQLite） |
+| `lib/playwright_explorer.py` | - | Playwright 只读探索器：登录、菜单候选、表单/接口/pageId 摘要采集 |
+| `scripts/playwright_discover.py` | - | Playwright 探索 CLI，默认不点击、不写库，输出到 `tmp/playwright_discovery/` |
 
 ## 模块调用链
 
@@ -55,6 +57,19 @@ replay.py (协议层: PageId 状态机) ← diagnoser.py ← advisor.py
     ↓ 执行事件
 task_manager.py (批量验收报告: PASS/FAIL + 入库证据 + 下一步)
 ```
+
+Playwright 探索器是辅助知识采集层，不替代 HAR/YAML 回放：
+
+```
+scripts/playwright_discover.py --env sit
+    ↓ 复用 cosmic_login 登录并注入浏览器 Cookie
+lib/playwright_explorer.py
+    ↓ 只读打开首页 / 采集菜单候选 / 记录 batchInvokeAction 元信息
+tmp/playwright_discovery/*.json
+    ↓ 为自然语言生成 YAML、pageId 经验库和 HAR 模板补全提供上下文
+```
+
+安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。
 
 ## 核心设计决策
 
