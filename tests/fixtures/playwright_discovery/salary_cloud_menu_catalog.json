@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "source": "playwright_discover_level0",
+  "validated_at": "2026-05-27",
+  "target_cloud": "薪酬福利云",
+  "safety_level": "Level 0: application/menu catalog only; no business menu click; no write action",
+  "network_summary": {
+    "ac_counts": {
+      "loadData": 14,
+      "getMenuData": 9,
+      "clientCallBack": 6,
+      "getFrequentData": 1
+    },
+    "pageid_type_counts": {
+      "L1_or_L3": 23,
+      "L0": 7
+    },
+    "pageid_role_counts": {
+      "L2_context": 14,
+      "portal_callback": 6,
+      "app_menu_catalog": 10
+    },
+    "notes": [
+      "getMenuData belongs to app menu catalog discovery, not a business form L2/L3 chain.",
+      "Business pageId chain analysis starts after a concrete business menu/list is opened."
+    ]
+  },
+  "menu_samples": [
+    {
+      "app_label": "薪资数据集成",
+      "menu_label": "业务数据提报",
+      "safety_level": "Level 0: opened list/home page only; no add/save/submit",
+      "observed_ac_sequence": [
+        "getMenuData",
+        "menuItemClick",
+        "customEvent",
+        "selectTab",
+        "loadData"
+      ],
+      "observed_form_ids": [
+        "hpdi_apphome",
+        "hpdi_bizdatabill",
+        "hpdi_bizdataerrorchart",
+        "hpdi_bizdataerrorcompare",
+        "hpdi_bizdatabillcard"
+      ],
+      "pageid_observation": "Menu open starts from portal/menu catalog pageId; target business list hpdi_bizdatabill loadData uses an L2 pageId."
+    },
+    {
+      "app_label": "薪资核算",
+      "menu_label": "计薪人员",
+      "safety_level": "Level 0: opened list/home page only; no add/save/submit",
+      "observed_ac_sequence": [
+        "getMenuData",
+        "menuItemClick",
+        "customEvent",
+        "selectTab",
+        "loadData"
+      ],
+      "observed_form_ids": [
+        "hsas_apphome",
+        "hsbs_employeequerylist",
+        "hsas_payschplatform",
+        "gbs_flowcard"
+      ],
+      "pageid_observation": "Employee salary list opens with compound_root and 32hex list/card contexts; toolbar may be visible, but no write action is clicked in Level 0."
+    }
+  ],
+  "subapps": [
+    {
+      "app_label": "薪酬管理",
+      "menus": [
+        "薪酬设计",
+        "薪酬结构",
+        "薪酬标准表",
+        "薪酬标准系数表",
+        "薪酬标准系数",
+        "薪酬体系",
+        "定调薪档案管理",
+        "定调薪管理",
+        "候选人定薪申请单",
+        "员工定调薪申请单",
+        "报表管理"
+      ]
+    },
+    {
+      "app_label": "招商局DEMO",
+      "menus": [
+        "薪资档案",
+        "薪资核算任务",
+        "薪资报表",
+        "中国社保",
+        "社保明细二开报表",
+        "人员社保信息维护"
+      ]
+    },
+    {
+      "app_label": "薪资核算",
+      "menus": [
+        "薪资档案管理",
+        "薪资档案",
+        "薪资档案历史",
+        "计薪人员",
+        "社保业务数据",
+        "人员变动记录",
+        "人员分段事件",
+        "薪资回溯事件",
+        "中国个税管理",
+        "薪资核算",
+        "薪资核算任务",
+        "薪资明细结果模板",
+        "薪资发放",
+        "薪资代发单",
+        "支付形式管理",
+        "工资条安全设置",
+        "停缓发管理",
+        "薪资报表",
+        "员工薪资明细表",
+        "薪资汇总表",
+        "组织薪资月汇总表",
+        "薪资差异对比表",
+        "薪资日程管理",
+        "薪资日程",
+        "薪资日程模板",
+        "时间窗口约束设置",
+        "薪资核算配置",
+        "薪酬项目系统分类",
+        "薪酬项目类别",
+        "薪酬项目",
+        "薪酬结果取数配置",
+        "薪资回溯原因",
+        "薪资回溯结转配置",
+        "薪资核算体系",
+        "薪资期间",
+        "薪资核算场景",
+        "薪资核算组"
+      ]
+    },
+    {
+      "app_label": "薪资数据集成",
+      "menus": [
+        "业务数据提报",
+        "业务数据提报异常记录"
+      ]
+    },
+    {
+      "app_label": "薪酬成本",
+      "menus": [
+        "成本核算设置",
+        "薪酬项目成本设置",
+        "组织薪酬成本设置",
+        "岗位薪酬成本设置",
+        "员工薪酬成本设置",
+        "薪资档案成本设置",
+        "档案项目成本设置",
+        "薪酬项目映射",
+        "算发薪管理组织层映射",
+        "薪资核算组层映射"
+      ]
+    },
+    {
+      "app_label": "工资条",
+      "menus": [
+        "工资条配置"
+      ]
+    },
+    {
+      "app_label": "员工薪酬服务",
+      "menus": [
+        "收入证明代申请"
+      ]
+    },
+    {
+      "app_label": "薪酬基础服务",
+      "menus": [
+        "薪资期间",
+        "薪酬项目类别层级",
+        "社保基数取数配置",
+        "社保项目映射方案",
+        "薪资核算服务",
+        "薪资结果转存配置"
+      ]
+    },
+    {
+      "app_label": "中国社保",
+      "menus": [
+        "社保档案",
+        "社保计算",
+        "社保补缴明细",
+        "社保申报",
+        "社保体系",
+        "险种参数设置",
+        "社保期间",
+        "社保明细显示方案",
+        "社保计算公式"
+      ]
+    }
+  ]
+}

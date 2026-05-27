@@ -220,6 +220,30 @@ cosmic-replay-v4/
 
 报告中会额外输出 `app_tree`，用于沉淀“云应用 → 子应用”的近似树。例如薪酬福利云会识别薪酬管理、薪资核算、薪资数据集成、薪酬成本、工资条、员工薪酬服务、薪酬基础服务、中国社保等入口，后续再按 Level 0/1/2 分级采集具体菜单和 HAR 样本。
 
+只读展开子应用菜单：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py \
+  --env sit \
+  --app-keyword 薪酬福利云 \
+  --drilldown-apps '薪酬管理,薪资核算,薪资数据集成,薪酬成本,工资条,员工薪酬服务,薪酬基础服务,中国社保' \
+  --record-har
+```
+
+该命令只展开应用菜单，不点击具体业务菜单；报告中的 `subapp_explorations` 会记录每个子应用下的菜单候选、风险等级、`getMenuData` 网络摘要和脱敏 pageId 片段。
+
+显式打开少量低风险业务菜单列表页，采集真正的 `menuItemClick/loadData` 链路：
+
+```bash
+./venv/bin/python scripts/playwright_discover.py \
+  --env sit \
+  --app-keyword 薪酬福利云 \
+  --open-menu-samples '薪资数据集成:业务数据提报,薪资核算:计薪人员' \
+  --record-har
+```
+
+`--open-menu-samples` 只接受 `子应用:菜单` 格式，并会拦截新增、保存、提交、删除、审核、导入、上传以及中高风险菜单。默认不启用，必须显式指定。
+
 如果要试探性打开少量安全菜单，可以显式指定点击数量：
 
 ```bash

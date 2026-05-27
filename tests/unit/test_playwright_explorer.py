@@ -1,4 +1,9 @@
+import json
+from pathlib import Path
+
 from lib.playwright_explorer import (
+    DiscoveryReport,
+    ExplorerConfig,
     build_home_url,
     expand_menu_candidates,
     infer_pageid_context_role,
@@ -13,6 +18,7 @@ from lib.playwright_explorer import (
     summarize_kingdee_request,
     summarize_menu_tree,
 )
+from scripts.playwright_discover import _parse_menu_samples
 
 
 def test_normalize_base_url_keeps_app_path_and_strips_query():
@@ -36,6 +42,8 @@ def test_safe_menu_classifier_blocks_write_actions():
     assert not is_safe_menu_label("新增")
     assert not is_safe_menu_label("保存")
     assert not is_safe_menu_label("批量导入")
+    assert not is_safe_menu_label("开发者门户")
+    assert not is_safe_menu_label("查询我的登录历史忽略")
     assert is_write_action_label("提交并审核")
     assert risk_level_for_label("保存") == "high"
     assert risk_level_for_label("薪资计算") == "medium"
@@ -57,7 +65,7 @@ def test_expand_menu_candidates_splits_compound_home_block():
     labels = {item["text"] for item in items}
     assert "出差申请" in labels
     assert "差旅报销" in labels
-    assert "开发者门户" in labels
+    assert "开发者门户" not in labels
     assert "快速发起" not in labels
 
 
@@ -95,11 +103,45 @@ def test_infer_pageid_context_role():
     assert infer_pageid_context_role("loadData", "") == "L2_context"
     assert infer_pageid_context_role("save", "") == "L3_write"
     assert infer_pageid_context_role("click", "") == "L3_or_ui_action"
+    assert infer_pageid_context_role("getMenuData", "") == "app_menu_catalog"
+    assert infer_pageid_context_role("selectTab", "") == "portal_callback"
 
 
 def test_keyword_variants_for_salary_cloud_search():
     assert keyword_variants("薪酬福利云") == ["薪酬福利云", "薪酬福利", "薪酬", "薪资", "福利"]
     assert keyword_variants("业务数据提报") == ["业务数据提报", "提报"]
+
+
+def test_discovery_report_serializes_subapp_explorations():
+    cfg = ExplorerConfig(base_url="https://example.test/ierp", drilldown_apps=["薪酬管理"])
+    report = DiscoveryReport(base_url=cfg.base_url, home_url="https://example.test/ierp/?formId=home_page", datacenter_id="dc")
+    report.subapp_explorations.append({"app_label": "薪酬管理", "menu_candidates": [{"text": "薪酬设计"}]})
+
+    data = report.to_dict()
+
+    assert cfg.drilldown_apps == ["薪酬管理"]
+    assert data["subapp_explorations"][0]["app_label"] == "薪酬管理"
+
+
+def test_parse_menu_samples_cli_shape():
+    assert _parse_menu_samples("薪资数据集成:业务数据提报,薪资核算:计薪人员") == [
+        {"app_label": "薪资数据集成", "menu_label": "业务数据提报"},
+        {"app_label": "薪资核算", "menu_label": "计薪人员"},
+    ]
+
+
+def test_salary_cloud_catalog_fixture_is_value_safe():
+    path = Path("tests/fixtures/playwright_discovery/salary_cloud_menu_catalog.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = path.read_text(encoding="utf-8")
+
+    assert data["target_cloud"] == "薪酬福利云"
+    assert len(data["subapps"]) == 9
+    assert len(data["menu_samples"]) == 2
+    assert data["network_summary"]["ac_counts"]["getMenuData"] == 9
+    assert "cookie" not in raw.lower()
+    assert "token" not in raw.lower()
+    assert "http" not in raw.lower()
 
 
 def test_summarize_menu_tree_uses_first_network_context():

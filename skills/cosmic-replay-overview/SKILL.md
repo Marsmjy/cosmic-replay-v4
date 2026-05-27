@@ -71,6 +71,8 @@ tmp/playwright_discovery/*.json
 
 探索报告关键字段：
 - `app_tree`：从全部应用入口抽取“云应用 -> 子应用”近似树，薪酬福利云类入口需识别薪酬管理、薪资核算、薪资数据集成、薪酬成本、工资条、员工薪酬服务、薪酬基础服务、中国社保等。
+- `subapp_explorations`：只读点击子应用后抽取右侧业务菜单候选，记录风险等级、网络增量和菜单目录 pageId 摘要。
+- `menu_sample_explorations`：仅当显式传入 `--open-menu-samples 子应用:菜单` 时打开低风险业务菜单列表页，用于采集 `menuItemClick/loadData` 的真实 pageId 链路。
 - `har_summary.pageid_trace`：只保留脱敏 URL、formId/appId、ac/method、pageId 类型和片段，用于分析 L0/L1/L2/L3 链路。
 - `target_app_status`：记录目标应用是否可见、是否通过应用搜索命中、是否需要降级为匹配入口，不把“目标不可见”误判成 HAR 解析失败。
 
@@ -78,6 +80,8 @@ tmp/playwright_discovery/*.json
 
 ```
 scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --record-har
+scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --drilldown-apps '薪酬管理,薪资核算,薪资数据集成,薪酬成本,工资条,员工薪酬服务,薪酬基础服务,中国社保' --record-har
+scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 --open-menu-samples '薪资数据集成:业务数据提报,薪资核算:计薪人员' --record-har
 ```
 
 安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。原始 HAR 只能保存在 `tmp/playwright_hars/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。

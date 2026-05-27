@@ -73,6 +73,14 @@ SAFE_MENU_HINTS = (
     "中心",
 )
 
+NOISE_MENU_LABELS = {
+    "开发者门户",
+    "跨环境传输中心",
+    "帮助中心",
+    "查询我的登录历史",
+    "查询我的登录历史忽略",
+}
+
 L2_CONTEXT_ACS = {
     "addnew",
     "entryRowClick",
@@ -113,6 +121,8 @@ class ExplorerConfig:
     target_app_keyword: str = ""
     record_har_path: Path | None = None
     search_app_launcher: bool = True
+    drilldown_apps: list[str] = field(default_factory=list)
+    open_menu_samples: list[dict[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -140,6 +150,8 @@ class DiscoveryReport:
     target_app_status: dict[str, Any] = field(default_factory=dict)
     menu_candidates: list[dict[str, str]] = field(default_factory=list)
     app_tree: list[dict[str, Any]] = field(default_factory=list)
+    subapp_explorations: list[dict[str, Any]] = field(default_factory=list)
+    menu_sample_explorations: list[dict[str, Any]] = field(default_factory=list)
     menu_tree: list[dict[str, Any]] = field(default_factory=list)
     clicked_menus: list[dict[str, Any]] = field(default_factory=list)
     network: list[NetworkEvent] = field(default_factory=list)
@@ -184,6 +196,8 @@ def normalize_label(label: str) -> str:
 def is_safe_menu_label(label: str) -> bool:
     text = normalize_label(label)
     if not text or len(text) > 40:
+        return False
+    if text in NOISE_MENU_LABELS or "登录历史" in text:
         return False
     if is_write_action_label(text):
         return False
@@ -248,6 +262,10 @@ def summarize_kingdee_request(url: str, post_data: str | None = "") -> dict[str,
 def infer_pageid_context_role(ac: str = "", method: str = "") -> str:
     ac = str(ac or "")
     method = str(method or "")
+    if ac in {"getMenuData", "getFrequentData"}:
+        return "app_menu_catalog"
+    if ac in {"clientCallBack", "customEvent", "selectTab"}:
+        return "portal_callback"
     if ac in L3_WRITE_ACS:
         return "L3_write"
     if ac in L2_CONTEXT_ACS or method == "itemClick":
@@ -443,6 +461,39 @@ def _collect_menu_candidates_script() -> str:
 """
 
 
+def collect_menu_candidates(page: Any, *, min_x: int = 0, limit: int = 120) -> list[dict[str, str]]:
+    """Collect value-safe visible text candidates, optionally excluding the left app tree."""
+    try:
+        raw_candidates = page.evaluate(
+            """
+minX => {
+  const nodes = Array.from(document.querySelectorAll('a,button,[role="menuitem"],li,span,div'));
+  const seen = new Set();
+  const out = [];
+  for (const el of nodes) {
+    const text = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!text || text.length > 40 || seen.has(text)) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8 || rect.x < minX) continue;
+    seen.add(text);
+    out.push({
+      text,
+      tag: el.tagName.toLowerCase(),
+      role: el.getAttribute('role') || '',
+      className: String(el.className || '').slice(0, 120)
+    });
+    if (out.length >= 300) break;
+  }
+  return out;
+}
+""",
+            min_x,
+        )
+    except Exception:
+        raw_candidates = page.evaluate(_collect_menu_candidates_script())
+    return expand_menu_candidates(raw_candidates)[:limit]
+
+
 def _button_state_script() -> str:
     return """
 () => {
@@ -594,6 +645,20 @@ def _try_open_app_launcher(page: Any, timeout_ms: int = 2_000) -> dict[str, Any]
     return result
 
 
+def _is_app_launcher_open(page: Any) -> bool:
+    try:
+        inputs = page.evaluate(_visible_app_search_inputs_script())
+    except Exception:
+        return False
+    return any(item.get("visible") and item.get("placeholder") for item in inputs)
+
+
+def _ensure_app_launcher_open(page: Any, timeout_ms: int = 2_000) -> dict[str, Any]:
+    if _is_app_launcher_open(page):
+        return {"ok": True, "method": "already_open"}
+    return _try_open_app_launcher(page, timeout_ms=timeout_ms)
+
+
 def _try_search_app_launcher(page: Any, keyword: str, timeout_ms: int = 2_000) -> dict[str, Any]:
     """Search the app/form launcher and return value-safe visible matches."""
     text = normalize_label(keyword)
@@ -665,6 +730,56 @@ keyword => {
     return result
 
 
+def _try_click_main_area_text(page: Any, label: str, min_x: int = 245, timeout_ms: int = 2_000) -> dict[str, Any]:
+    text = normalize_label(label)
+    risk = risk_level_for_label(text)
+    result: dict[str, Any] = {"text": text, "ok": False, "risk_level": risk}
+    if is_write_action_label(text) or risk == "high":
+        result["blocked"] = "write_action"
+        return result
+    if risk == "medium":
+        result["blocked"] = "medium_risk_requires_explicit_human_review"
+        return result
+    try:
+        js_result = page.evaluate(
+            """
+({ text, minX }) => {
+  const normalize = value => (value || '').replace(/\\s+/g, ' ').trim();
+  const nodes = Array.from(document.querySelectorAll('a,button,[role="menuitem"],li,span,div'));
+  const el = nodes.find(node => {
+    const label = normalize(node.innerText || node.textContent || '');
+    const rect = node.getBoundingClientRect();
+    return label === text && rect.width > 8 && rect.height > 8 && rect.x >= minX;
+  });
+  if (!el) return { ok: false, error: 'visible_menu_not_found' };
+  el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  const rect = el.getBoundingClientRect();
+  const eventInit = { bubbles: true, cancelable: true, clientX: rect.x + 10, clientY: rect.y + 10 };
+  el.dispatchEvent(new MouseEvent('mouseover', eventInit));
+  el.dispatchEvent(new MouseEvent('mouseenter', eventInit));
+  el.dispatchEvent(new MouseEvent('mousedown', eventInit));
+  el.click();
+  el.dispatchEvent(new MouseEvent('mouseup', eventInit));
+  return {
+    ok: true,
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height)
+  };
+}
+""",
+            {"text": text, "minX": min_x},
+        )
+        result.update(js_result)
+        if js_result.get("ok"):
+            page.wait_for_timeout(timeout_ms)
+            result["url"] = redact_url(page.url)
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
 def _try_click_text(page: Any, label: str, timeout_ms: int = 3_000) -> dict[str, Any]:
     started = time.time()
     result: dict[str, Any] = {"text": label, "ok": False}
@@ -704,6 +819,143 @@ def _try_click_text(page: Any, label: str, timeout_ms: int = 3_000) -> dict[str,
     except Exception as exc:
         result.update({"error": type(exc).__name__})
     return result
+
+
+def _try_click_tile_text(page: Any, label: str, selector: str, timeout_ms: int = 3_000) -> dict[str, Any]:
+    """Click an exact visible Kingdee app launcher tile by selector and text."""
+    text = normalize_label(label)
+    result: dict[str, Any] = {"text": text, "ok": False, "selector": selector}
+    if is_write_action_label(text):
+        result["blocked"] = "write_action"
+        return result
+    if not text:
+        result["error"] = "empty_label"
+        return result
+    try:
+        js_result = page.evaluate(
+            """
+({ selector, text }) => {
+  const normalize = value => (value || '').replace(/\\s+/g, ' ').trim();
+  const nodes = Array.from(document.querySelectorAll(selector));
+  const el = nodes.find(node => {
+    const label = normalize(node.innerText || node.textContent || '');
+    const rect = node.getBoundingClientRect();
+    return label === text && rect.width > 8 && rect.height > 8;
+  });
+  if (!el) return { ok: false, error: 'visible_tile_not_found' };
+  el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  const rect = el.getBoundingClientRect();
+  const eventInit = { bubbles: true, cancelable: true, clientX: rect.x + 10, clientY: rect.y + 10 };
+  el.dispatchEvent(new MouseEvent('mouseover', eventInit));
+  el.dispatchEvent(new MouseEvent('mouseenter', eventInit));
+  el.dispatchEvent(new MouseEvent('mousedown', eventInit));
+  el.click();
+  el.dispatchEvent(new MouseEvent('mouseup', eventInit));
+  return {
+    ok: true,
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height)
+  };
+}
+""",
+            {"selector": selector, "text": text},
+        )
+        if js_result.get("ok"):
+            page.wait_for_timeout(timeout_ms)
+            result.update(js_result)
+            result["url"] = redact_url(page.url)
+        else:
+            result.update(js_result)
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _explore_subapp_menu(
+    page: Any,
+    report: DiscoveryReport,
+    app_label: str,
+    *,
+    min_x: int = 245,
+) -> dict[str, Any]:
+    """Reveal a child app's read-only menu panel and capture menu/pageId hints."""
+    started_network = len(report.network)
+    click_result = _try_click_tile_text(page, app_label, ".kd-cq-tile-app-list-item", timeout_ms=1_200)
+    candidates = collect_menu_candidates(page, min_x=min_x, limit=160)
+    try:
+        button_state = page.evaluate(_button_state_script())
+    except Exception:
+        button_state = {}
+    network_delta = report.network[started_network:]
+    menu_tree = summarize_menu_tree(
+        candidates,
+        network_delta or report.network,
+        app_name=app_label,
+        url=redact_url(page.url),
+    )
+    for row in menu_tree:
+        row.update({
+            "has_new_button": bool(button_state.get("has_new_button")),
+            "has_save_button": bool(button_state.get("has_save_button")),
+            "has_submit_button": bool(button_state.get("has_submit_button")),
+        })
+    return {
+        "app_label": normalize_label(app_label),
+        "click": click_result,
+        "menu_candidates": candidates,
+        "menu_tree": menu_tree,
+        "network_delta": [asdict(item) for item in network_delta],
+        "risk_summary": dict(Counter(row.get("risk_level", "unknown") for row in menu_tree)),
+    }
+
+
+def _open_menu_sample(
+    page: Any,
+    report: DiscoveryReport,
+    *,
+    cloud_label: str,
+    app_label: str,
+    menu_label: str,
+) -> dict[str, Any]:
+    """Open one explicitly requested low-risk business menu and capture network deltas."""
+    start_network = len(report.network)
+    launcher_result = _ensure_app_launcher_open(page, timeout_ms=2_000)
+    search_result: dict[str, Any] = {}
+    cloud_click: dict[str, Any] = {}
+    app_click: dict[str, Any] = {}
+    if launcher_result.get("ok"):
+        if cloud_label:
+            search_result = _try_search_app_launcher(page, cloud_label, timeout_ms=2_000)
+            cloud_click = _try_click_tile_text(page, cloud_label, ".kd-cq-tile-cloud-item", timeout_ms=800)
+        app_click = _try_click_tile_text(page, app_label, ".kd-cq-tile-app-list-item", timeout_ms=1_200)
+    before_menu_network = len(report.network)
+    menu_click = _try_click_main_area_text(page, menu_label, min_x=245, timeout_ms=2_500)
+    menu_network_delta = report.network[before_menu_network:]
+    candidates = collect_menu_candidates(page, min_x=245, limit=120)
+    try:
+        button_state = page.evaluate(_button_state_script())
+    except Exception:
+        button_state = {}
+    return {
+        "app_label": normalize_label(app_label),
+        "menu_label": normalize_label(menu_label),
+        "launcher": launcher_result,
+        "search": search_result,
+        "cloud_click": cloud_click,
+        "app_click": app_click,
+        "menu_click": menu_click,
+        "network_delta": [asdict(item) for item in report.network[start_network:]],
+        "menu_network_delta": [asdict(item) for item in menu_network_delta],
+        "visible_candidates_after_open": candidates,
+        "button_state": {
+            "has_new_button": bool(button_state.get("has_new_button")),
+            "has_save_button": bool(button_state.get("has_save_button")),
+            "has_submit_button": bool(button_state.get("has_submit_button")),
+        },
+        "final_url": redact_url(page.url),
+    }
 
 
 def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
@@ -785,8 +1037,7 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
 
         report.title = page.title()
         report.final_url = redact_url(page.url)
-        raw_candidates = page.evaluate(_collect_menu_candidates_script())
-        report.menu_candidates = expand_menu_candidates(raw_candidates)[:120]
+        report.menu_candidates = collect_menu_candidates(page)
         report.app_tree = collect_app_tree(page)
 
         if config.target_app_keyword:
@@ -842,10 +1093,38 @@ def run_discovery(config: ExplorerConfig) -> DiscoveryReport:
                             "retry": retry_result,
                         }
                         break
-            raw_candidates = page.evaluate(_collect_menu_candidates_script())
-            report.menu_candidates = expand_menu_candidates(raw_candidates)[:120]
+            report.menu_candidates = collect_menu_candidates(page)
             report.app_tree = collect_app_tree(page)
             report.final_url = redact_url(page.url)
+
+        if config.drilldown_apps:
+            if config.target_app_keyword:
+                cloud_result = _try_click_tile_text(
+                    page,
+                    config.target_app_keyword,
+                    ".kd-cq-tile-cloud-item",
+                    timeout_ms=800,
+                )
+                report.target_app_status.setdefault("cloud_click", cloud_result)
+            for app_label in config.drilldown_apps:
+                report.subapp_explorations.append(_explore_subapp_menu(page, report, app_label))
+            if report.subapp_explorations:
+                report.menu_candidates = report.subapp_explorations[-1].get("menu_candidates", [])
+
+        for sample in config.open_menu_samples:
+            app_label = normalize_label(str(sample.get("app_label", "")))
+            menu_label = normalize_label(str(sample.get("menu_label", "")))
+            if not app_label or not menu_label:
+                continue
+            report.menu_sample_explorations.append(
+                _open_menu_sample(
+                    page,
+                    report,
+                    cloud_label=config.target_app_keyword,
+                    app_label=app_label,
+                    menu_label=menu_label,
+                )
+            )
 
         click_budget = max(0, int(config.max_menu_clicks))
         for item in report.menu_candidates[:click_budget]:

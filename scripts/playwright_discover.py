@@ -15,6 +15,23 @@ from lib.config import Config
 from lib.playwright_explorer import ExplorerConfig, run_discovery
 
 
+def _parse_menu_samples(value: str) -> list[dict[str, str]]:
+    samples: list[dict[str, str]] = []
+    for part in (value or "").split(","):
+        item = part.strip()
+        if not item:
+            continue
+        if ":" not in item:
+            raise SystemExit(f"Invalid --open-menu-samples item: {item!r}; expected 子应用:菜单")
+        app_label, menu_label = item.split(":", 1)
+        app_label = app_label.strip()
+        menu_label = menu_label.strip()
+        if not app_label or not menu_label:
+            raise SystemExit(f"Invalid --open-menu-samples item: {item!r}; expected 子应用:菜单")
+        samples.append({"app_label": app_label, "menu_label": menu_label})
+    return samples
+
+
 def _config_from_env(env_id: str):
     if not env_id:
         return None
@@ -34,6 +51,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--datacenter-name", default=os.environ.get("COSMIC_DATACENTER_NAME", ""))
     parser.add_argument("--form-id", default="home_page")
     parser.add_argument("--app-keyword", default="", help="Target app/menu keyword, e.g. 薪酬福利云")
+    parser.add_argument(
+        "--drilldown-apps",
+        default="",
+        help="Comma-separated child app labels to reveal read-only menu panels, e.g. 薪酬管理,薪资核算",
+    )
+    parser.add_argument(
+        "--open-menu-samples",
+        default="",
+        help="Comma-separated low-risk samples in 子应用:菜单 format, e.g. 薪资数据集成:业务数据提报",
+    )
     parser.add_argument("--headful", action="store_true", help="Show browser window")
     parser.add_argument("--record-har", action="store_true", help="Record a local ignored HAR under tmp/playwright_hars")
     parser.add_argument("--har-output", default="", help="Override HAR output path")
@@ -73,6 +100,8 @@ def main(argv: list[str] | None = None) -> int:
     har_output = ""
     if args.record_har:
         har_output = args.har_output or f"tmp/playwright_hars/discovery_{datetime.now():%Y%m%d_%H%M%S}.har"
+    drilldown_apps = [item.strip() for item in args.drilldown_apps.split(",") if item.strip()]
+    menu_samples = _parse_menu_samples(args.open_menu_samples)
 
     report = run_discovery(
         ExplorerConfig(
@@ -88,11 +117,15 @@ def main(argv: list[str] | None = None) -> int:
             output=Path(args.output),
             target_app_keyword=args.app_keyword,
             record_har_path=Path(har_output) if har_output else None,
+            drilldown_apps=drilldown_apps,
+            open_menu_samples=menu_samples,
         )
     )
     print(f"Discovery report: {Path(args.output).resolve()}")
     print(f"Title: {report.title}")
     print(f"Safe menu candidates: {len(report.menu_candidates)}")
+    print(f"Sub-app explorations: {len(report.subapp_explorations)}")
+    print(f"Menu sample explorations: {len(report.menu_sample_explorations)}")
     print(f"Captured Kingdee network events: {len(report.network)}")
     if report.har_path:
         print(f"HAR: {Path(report.har_path).resolve()}")

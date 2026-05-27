@@ -112,9 +112,12 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 已沉淀经验：
 1. 金蝶首页左上角“全部应用”是图标入口，非普通文本按钮；探索器应通过应用入口打开“搜索应用/表单”，再搜索目标云应用。
 2. 薪酬福利云搜索命中后，`app_tree` 应能输出“薪酬福利云 -> 薪酬管理 / 薪资核算 / 薪资数据集成 / 薪酬成本 / 工资条 / 员工薪酬服务 / 薪酬基础服务 / 中国社保”等近似树。
-3. 只读入口阶段常见请求仍是首页/门户 `loadData`、`clientCallBack`、`getFrequentData`，pageId 多为 L0 或 32hex 门户态；这不是业务表单 L2/L3 链路，不要拿它直接推断 save/submit 失败原因。
-4. 只有真正打开菜单/list 后出现 `menuItemClick/loadData/treeNodeClick/itemClick/addnew`，才进入 L2/L3 链路判断；后续新增、选择器、子弹窗、保存/提交仍必须按 HAR 原始链路比对。
-5. 原始 Playwright HAR 只能留在 ignored 目录（如 `tmp/playwright_hars/`），排障和提交只能使用脱敏结构摘要，不得提交 cookie、token、账号、真实业务数据。
+3. 点击薪酬福利云子应用后会出现 `getMenuData`，其 pageId 多为 32hex 门户/菜单目录态，只能说明“菜单目录已加载”，还不是业务表单 L2/L3 链路。
+4. 当前已验证可只读展开的薪酬福利云子应用包括：薪酬管理、招商局DEMO、薪资核算、薪资数据集成、薪酬成本、工资条、员工薪酬服务、薪酬基础服务、中国社保。
+5. 只读入口阶段常见请求仍是首页/门户 `loadData`、`clientCallBack`、`getFrequentData`、`getMenuData`；这不是业务表单 L2/L3 链路，不要拿它直接推断 save/submit 失败原因。
+6. 已验证低风险业务菜单样本：`薪资数据集成:业务数据提报` 打开后目标列表 `hpdi_bizdatabill` 使用 L2 pageId；`薪资核算:计薪人员` 打开后会出现 `hsbs_employeequerylist` 等列表上下文。这里只能证明 list 链路，不能代表新增/保存链路已经正确。
+7. 只有真正打开业务菜单/list 后出现 `menuItemClick/loadData/treeNodeClick/itemClick/addnew`，才进入 L2/L3 链路判断；后续新增、选择器、子弹窗、保存/提交仍必须按 HAR 原始链路比对。
+8. 原始 Playwright HAR 只能留在 ignored 目录（如 `tmp/playwright_hars/`），排障和提交只能使用脱敏结构摘要，不得提交 cookie、token、账号、真实业务数据。
 
 ```python
 # 在 invoke() 方法中加临时调试
