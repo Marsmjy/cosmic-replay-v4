@@ -25,7 +25,7 @@ from lib.runner import (
     STEP_HANDLERS, ASSERTION_HANDLERS, _auto_resolve_pick_basedata_step,
     _step_allows_l2_pageid, _case_targets_form_via_menu,
     _claim_pending_pageid_for_form, _apply_pick_fields,
-    _auto_resolve_selector_row_step,
+    _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
@@ -280,6 +280,57 @@ class TestReplayErrorDetection:
         assert _claim_pending_pageid_for_form(replay, "hpdi_bizdatabillnewentry", "hpdi") is True
         assert replay.page_ids["hpdi_bizdatabillnewentry"] == "abcdef0123456789abcdef0123456789"
         assert "hpdi" not in replay._pending_by_app
+
+    def test_tree_menu_l2_binding_targets_business_form(self):
+        class FakeSession:
+            root_base_id = "0123456789abcdef0123456789abcdef"
+
+        class FakeReplay:
+            def __init__(self):
+                self.s = FakeSession()
+                self.page_ids = {}
+
+        step = {
+            "target_form": "haos_orgchangereason",
+            "target_forms": ["haos_orgchangereason"],
+        }
+        replay = FakeReplay()
+
+        pid = _bind_l2_targets_from_navigation_step(
+            step,
+            replay,
+            {"main_form_id": "haos_orgchangereason"},
+            "1655715311321754624",
+        )
+
+        assert pid == "1655715311321754624root0123456789abcdef0123456789abcdef"
+        assert replay.page_ids["haos_orgchangereason"] == pid
+
+    def test_tree_menu_l2_binding_keeps_existing_target_when_not_overwriting(self):
+        class FakeSession:
+            root_base_id = "0123456789abcdef0123456789abcdef"
+
+        class FakeReplay:
+            def __init__(self):
+                self.s = FakeSession()
+                self.page_ids = {"haos_orgchangereason": "existing-page"}
+
+        step = {
+            "target_form": "haos_orgchangereason",
+            "target_forms": ["haos_orgchangereason"],
+        }
+        replay = FakeReplay()
+
+        pid = _bind_l2_targets_from_navigation_step(
+            step,
+            replay,
+            {"main_form_id": "haos_orgchangereason"},
+            "1655715311321754624",
+            overwrite=False,
+        )
+
+        assert pid == "1655715311321754624root0123456789abcdef0123456789abcdef"
+        assert replay.page_ids["haos_orgchangereason"] == "existing-page"
 
     def test_show_form_harvest_binds_bill_form_id_alias(self):
         sess = CosmicSession(

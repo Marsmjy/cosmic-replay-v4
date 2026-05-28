@@ -187,6 +187,8 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 - 业务组件校验（如“规则分组/常用筛选不能为空”）属于真实业务验证点，排障顺序是：先确认 L2/L3 链路一致，再补组件处理器或用户可维护字段；不要把业务校验误判成保存接口失败。
 - 新增树形基础资料时，`treeview.focus` 是环境上下文，必须保留并作为环境字段暴露；不要删除新增步骤的 `post_data`。
 - `hsbs_salaryitem` 这类表单里，`loadData` 默认带出的 `createorg/datatype/dataprecision/dataround/areatype/ctrlstrategy` 属于 pageId 服务端上下文；排障时不要一上来把这些默认值硬补到 save。真正用户维护缺口是 `number/name/salaryitemtype/ispayoutitem`，其中 `salaryitemtype` 要 lookup 预热，`ispayoutitem` 是可维护枚举字段。
+- `haos_orgchangereason` 这类“受控基础资料”可能从 `homs_apphome/treeMenuClick` 进入，浏览器 HAR 的树菜单 L2 正常，但 API 回放不一定能重建 apphome shell。排障顺序：先确认原始 HAR 是 `treeMenuClick → list loadData(L2) → new(L2) → showForm/loadData(L3) → save(L3)`；若 API 无法真实建立树菜单 L2，不要伪造 L2 覆盖已预开的主表单 pageId，而应从 HAR 的新增态 `loadData` 和列表 `dataindex/rows` 提取服务端默认上下文。
+- 受控基础资料默认字段经验：`createorg` 保存时需要内部 Long id（例如从列表 `createorg_id` 解析到 `100000`），不是 `loadData` 显示元组；`ctrlstrategy` 是 ComboField，应从 `editor.st/comboItems` 解析编码与中文（如 `5=全局共享`）并作为可维护环境字段。补偿应生成 `update_fields` 写入模型上下文，不能追加到 `save.post_data`。
 
 ```python
 # 在 invoke() 方法中加临时调试

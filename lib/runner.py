@@ -385,6 +385,36 @@ def _claim_pending_pageid_for_form(replay, form_id: str, app_id: str) -> bool:
     return True
 
 
+def _bind_l2_targets_from_navigation_step(
+    step: dict,
+    replay,
+    ctx: dict,
+    menu_id: str,
+    *,
+    overwrite: bool = True,
+) -> str:
+    """Bind a recorded menu/tree L2 pageId to the business target forms."""
+    menu_id = str(menu_id or "").strip()
+    if not menu_id or not getattr(replay.s, "root_base_id", ""):
+        return ""
+    l2_pid = f"{menu_id}root{replay.s.root_base_id}"
+    targets = list(step.get("target_forms") or [])
+    main_target = step.get("target_form") or ctx.get("main_form_id")
+    if main_target and main_target not in targets:
+        targets.insert(0, main_target)
+    for target in targets:
+        old_pid = replay.page_ids.get(target, "(none)")
+        if old_pid != "(none)" and not overwrite:
+            log.info(
+                f"[navigation-l2] keep existing pageId for {target}: "
+                f"{str(old_pid)[:30]}..., skip synthetic L2 overwrite"
+            )
+            continue
+        replay.page_ids[target] = l2_pid
+        log.info(f"[navigation-l2] L2 pageId for {target}: {l2_pid} (was: {old_pid[:30]})")
+    return l2_pid
+
+
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
     """invoke 执行前的 pageId 有效性预验证
 
@@ -466,6 +496,29 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     for fid in step.get("invalidate_pages", []):
         replay.page_ids.pop(fid, None)
 
+    if step.get("ac") == "treeMenuClick" and step.get("bind_l2_only"):
+        args = step.get("args", [])
+        menu_id = str(args[1] if len(args) >= 2 else (args[0] if args else "") or "")
+        # App-specific treeMenuClick often depends on a browser app-shell model
+        # that API replay cannot reconstruct. Treat it as a navigation hint:
+        # bind L2 only when the target form has no usable pageId yet; otherwise
+        # keep the pre-opened form context and rely on recorded default fields.
+        l2_pid = _bind_l2_targets_from_navigation_step(
+            step,
+            replay,
+            ctx,
+            menu_id,
+            overwrite=False,
+        )
+        return [{
+            "a": "syntheticL2Bind",
+            "p": [{
+                "targetCount": len(step.get("target_forms") or []),
+                "pageIdType": "L2" if l2_pid else "missing",
+                "overwrite": False,
+            }],
+        }]
+
     # ⭐ L2 pageId 有效性检查：防止菜单级 pageId 被误用于表单 loadData/open 操作
     # 但 toolbar 操作（如 startupflow、itemClick）应保留 L2 pageId，因为 toolbar 在 L2 页面上下文
     form_id = step["form_id"]
@@ -500,17 +553,7 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
         args = step.get("args", [])
         if args and isinstance(args[0], dict):
             menu_id = str(args[0].get("menuId", ""))
-            if menu_id and replay.s.root_base_id:
-                l2_pid = f"{menu_id}root{replay.s.root_base_id}"
-                # 收集所有需要 L2 pageId 的目标表单
-                targets = list(step.get("target_forms") or [])
-                main_target = step.get("target_form") or ctx.get("main_form_id")
-                if main_target and main_target not in targets:
-                    targets.insert(0, main_target)
-                for t in targets:
-                    old_pid = replay.page_ids.get(t, "(none)")
-                    replay.page_ids[t] = l2_pid
-                    log.info(f"[menuItemClick] L2 pageId for {t}: {l2_pid} (was: {old_pid[:30]})")
+            _bind_l2_targets_from_navigation_step(step, replay, ctx, menu_id)
 
     # saveandeffect / submitandeffect 后，被操作表单的 pageId 通常已失效
     # 但某些场景（如连续新增）服务端保持 pageId 不变，此时需 keep_page: true
@@ -836,6 +879,10 @@ def _apply_pick_fields(case: dict):
                         continue
                     fields = step.get("fields") or {}
                     if field_key not in fields:
+                        continue
+                    if pf_meta.get("context_only") and not (
+                        pf_meta.get("manual_override") or pf_meta.get("user_overridden")
+                    ):
                         continue
                     new_value = inject_vid or inject_vname
                     if new_value:

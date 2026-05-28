@@ -117,6 +117,7 @@ def _is_l2_pageid(pid: str) -> bool:
 - 深链路样本经验见 `tests/fixtures/deep_chain_factory/catalog.json`。例如 `薪资核算 / 薪酬项目类别` 的正确闭环是 `menuItemClick` 绑定 L2、`new` 保留 L2、`showForm/loadData` 切 L3、再执行 `update_fields`、`pick_basedata(taglevel)` 和弹窗 `btnsave`。Playwright UI 填框没有触发 `updateValue/save` 时，应改用协议 YAML 验证，不要误判为 parser 失败。
 - 如果 `showForm` 返回的是 `bos_list` 但带 `billFormId`（如 `hsas_retroreason`），诊断时要确认 L2 已绑定到业务表单别名；否则列表 load/new 可能拿不到正确 pageId。
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
+- `基础资料-受控-变动原因` 已验证闭环：原始 HAR 通过 `homs_apphome/treeMenuClick` 建立树菜单 L2，但 API replay 可能无法重建 apphome shell。若保存提示“请按要求填写创建组织”，先检查是否从 HAR 的列表 `createorg_id` 和新增态 `loadData` 提取了 `createorg/ctrlstrategy` 默认上下文；`createorg` 要用内部 Long id 写 `update_fields`，`ctrlstrategy` 要解析 ComboField 编码/中文并暴露为环境字段，不要硬补 `save.post_data`。
 
 ---
 

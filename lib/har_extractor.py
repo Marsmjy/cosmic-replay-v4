@@ -201,6 +201,12 @@ _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
         "otclassify",
     ),
 }
+_RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM = {
+    "haos_orgchangereason": (
+        "createorg",
+        "ctrlstrategy",
+    ),
+}
 
 
 def _recorded_default_value_id(field_key: str, value_code: str, value_name: str = "") -> str:
@@ -424,6 +430,7 @@ _FIELD_LABELS = {
     'biztype':            '业务类型',
     'useorg':             '使用组织',
     'createorg':          '创建组织',
+    'ctrlstrategy':        '控制策略',
     'entity':             '实体',
     'entityobjecttype':   '实体对象类型',
     'objecttype':         '对象类型',
@@ -956,10 +963,18 @@ def _iter_har_response_actions(har: dict):
             resp_json = json.loads(resp_text)
         except Exception:
             continue
-        if isinstance(resp_json, list):
-            for cmd in resp_json:
-                if isinstance(cmd, dict) and cmd.get("a"):
-                    yield idx, form_id, app_id, cmd
+        def walk(obj: Any):
+            if isinstance(obj, dict):
+                if obj.get("a"):
+                    yield obj
+                for child in obj.values():
+                    if isinstance(child, (dict, list)):
+                        yield from walk(child)
+            elif isinstance(obj, list):
+                for child in obj:
+                    yield from walk(child)
+
+        yield from ((idx, form_id, app_id, cmd) for cmd in walk(resp_json))
 
 
 def _collect_har_field_observations(har: dict) -> dict[str, Any]:
@@ -967,11 +982,21 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
     locked_events: dict[int, set[str]] = {}
     response_values: dict[str, dict[str, str]] = {}
     response_values_by_form: dict[str, dict[str, dict[str, str]]] = {}
+    response_raw_values_by_form: dict[str, dict[str, Any]] = {}
+    response_internal_ids_by_form: dict[str, dict[str, str]] = {}
+    combo_options_by_form: dict[str, dict[str, dict[str, str]]] = {}
+    labels_by_form: dict[str, dict[str, str]] = {}
 
     def mark_locked(har_index: int, field_key: Any) -> None:
         key = str(field_key or "").strip().lower()
         if key:
             locked_events.setdefault(har_index, set()).add(key)
+
+    def _is_recorded_scalar_default(form_id: str, key: str) -> bool:
+        return key in {
+            str(item).lower()
+            for item in _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM.get(form_id, ())
+        }
 
     def remember_value(field_key: Any, value: Any, form_id: str = "") -> None:
         key = str(field_key or "").strip().lower()
@@ -981,9 +1006,13 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
         if parts:
             response_values[key] = parts
             if form_id:
+                response_raw_values_by_form.setdefault(form_id, {})[key] = value
                 response_values_by_form.setdefault(form_id, {})[key] = parts
             return
-        if value not in (None, "") and key in _DEFAULT_CONTEXT_FIELD_KEYS:
+        if value not in (None, "") and (
+            key in _DEFAULT_CONTEXT_FIELD_KEYS
+            or _is_recorded_scalar_default(form_id, key)
+        ):
             fallback = {
                 "value_code": str(value),
                 "value_name": str(value),
@@ -991,16 +1020,97 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
             }
             response_values.setdefault(key, fallback)
             if form_id:
+                response_raw_values_by_form.setdefault(form_id, {})[key] = value
                 response_values_by_form.setdefault(form_id, {}).setdefault(key, fallback)
+
+    def remember_control_meta(form_id: str, meta: dict) -> None:
+        def visit(obj: Any) -> None:
+            if isinstance(obj, dict):
+                field_key = str(obj.get("dataIndex") or obj.get("id") or "").strip().lower()
+                if field_key:
+                    meta_form_id = str(obj.get("entity") or form_id or "").strip()
+                    header = obj.get("header")
+                    if isinstance(header, dict):
+                        label = str(header.get("zh_CN") or header.get("name") or "").strip()
+                        if label and meta_form_id:
+                            labels_by_form.setdefault(meta_form_id, {})[field_key] = _clean_display_label(label)
+                    editor = obj.get("editor")
+                    if isinstance(editor, dict) and editor.get("type") == "combo":
+                        options: dict[str, str] = {}
+                        for row in editor.get("st") or []:
+                            if not (isinstance(row, list) and len(row) >= 2):
+                                continue
+                            value = str(row[0] or "").strip()
+                            name_obj = row[1]
+                            if isinstance(name_obj, dict):
+                                name = str(name_obj.get("zh_CN") or name_obj.get("name") or "").strip()
+                            else:
+                                name = str(name_obj or "").strip()
+                            if value and name and value != "******" and name != "******":
+                                options[value] = _clean_display_label(name)
+                        if options and meta_form_id:
+                            combo_options_by_form.setdefault(meta_form_id, {})[field_key] = options
+                for child in obj.values():
+                    if isinstance(child, (dict, list)):
+                        visit(child)
+            elif isinstance(obj, list):
+                for child in obj:
+                    visit(child)
+
+        visit(meta)
+
+    def remember_list_row_ids(form_id: str, node: Any) -> None:
+        if isinstance(node, dict):
+            dataindex = node.get("dataindex")
+            rows = node.get("rows")
+            if isinstance(dataindex, dict) and isinstance(rows, list):
+                for base_key in ("createorg", "useorg", "org", "parentorg"):
+                    id_key = f"{base_key}_id"
+                    name_key = f"{base_key}_name"
+                    if id_key not in dataindex:
+                        continue
+                    id_idx = dataindex.get(id_key)
+                    name_idx = dataindex.get(name_key)
+                    if not isinstance(id_idx, int):
+                        continue
+                    for row in rows:
+                        if not isinstance(row, list) or id_idx >= len(row):
+                            continue
+                        internal_id = str(row[id_idx] or "").strip()
+                        if not internal_id:
+                            continue
+                        display_name = ""
+                        if isinstance(name_idx, int) and name_idx < len(row):
+                            display_name = str(row[name_idx] or "").strip()
+                        response_internal_ids_by_form.setdefault(form_id, {})[base_key] = internal_id
+                        parts = response_values_by_form.get(form_id, {}).get(base_key)
+                        if isinstance(parts, dict):
+                            parts["value_number"] = internal_id
+                            if display_name and not parts.get("value_name"):
+                                parts["value_name"] = display_name
+                        top_parts = response_values.get(base_key)
+                        if isinstance(top_parts, dict):
+                            top_parts["value_number"] = internal_id
+                        break
+            for child in node.values():
+                if isinstance(child, (dict, list)):
+                    remember_list_row_ids(form_id, child)
+        elif isinstance(node, list):
+            for child in node:
+                remember_list_row_ids(form_id, child)
 
     for har_index, form_id, _app_id, cmd in _iter_har_response_actions(har):
         action = cmd.get("a")
         params = cmd.get("p") or []
+        if isinstance(cmd, dict):
+            remember_control_meta(form_id, cmd)
+            remember_list_row_ids(form_id, cmd)
         if action == "updateControlMetadata" and isinstance(params, list):
             for i in range(0, len(params) - 1, 2):
                 meta = params[i + 1]
                 if not isinstance(meta, dict):
                     continue
+                remember_control_meta(form_id, meta)
                 item_meta = meta.get("item") if isinstance(meta.get("item"), dict) else {}
                 if meta.get("mi") is True or item_meta.get("mi") is True:
                     mark_locked(har_index, params[i])
@@ -1008,11 +1118,30 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
             for item in params:
                 if isinstance(item, dict) and "k" in item:
                     remember_value(item.get("k"), item.get("v"), form_id)
+        elif action == "showForm" and isinstance(params, list):
+            for item in params:
+                if isinstance(item, dict):
+                    remember_control_meta(form_id, item)
+
+    for form_id, fields in response_values_by_form.items():
+        options_for_form = combo_options_by_form.get(form_id) or {}
+        for field_key, parts in fields.items():
+            options = options_for_form.get(field_key) or {}
+            value_code = str(parts.get("value_code") or "").strip()
+            option_label = options.get(value_code, "")
+            if option_label:
+                parts["value_name"] = option_label
+                if field_key in response_values:
+                    response_values[field_key]["value_name"] = option_label
 
     return {
         "locked_events": locked_events,
         "response_values": response_values,
         "response_values_by_form": response_values_by_form,
+        "response_raw_values_by_form": response_raw_values_by_form,
+        "response_internal_ids_by_form": response_internal_ids_by_form,
+        "combo_options_by_form": combo_options_by_form,
+        "labels_by_form": labels_by_form,
     }
 
 
@@ -2236,6 +2365,8 @@ def _has_context_bridge_into_main_form(steps: list[dict], main_form: str) -> boo
 
         prev_ac = prev.get("ac", "")
         prev_method = prev.get("method", "")
+        if prev_ac in {"postExpandNodes", "commonSearch"}:
+            return True
         if prev_ac == "entryRowClick" and prev_method in (
             "hyperLinkClick",
             "entryRowClick",
@@ -2719,6 +2850,81 @@ def _append_recorded_default_pick_steps(
     return out
 
 
+def _append_recorded_default_update_steps(
+    steps: list[dict],
+    observations: dict[str, Any],
+    *,
+    main_form: str,
+    app_id: str,
+) -> list[dict]:
+    """Replay scalar server defaults captured from addnew/loadData responses.
+
+    Browser-side pageId carries combo/boolean defaults such as ctrlstrategy.
+    When API replay cannot reconstruct the exact menu shell, preserve behavior
+    by writing those recorded defaults back into the form model before save.
+    This is a model-context update, not a hard patch to save.post_data.
+    """
+    if not steps or not _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM:
+        return steps
+
+    values_by_form = observations.get("response_values_by_form") or {}
+    raw_values_by_form = observations.get("response_raw_values_by_form") or {}
+    internal_ids_by_form = observations.get("response_internal_ids_by_form") or {}
+    out = list(steps)
+    injected_by_form: dict[str, dict[str, Any]] = {}
+
+    for form_id, default_fields in _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM.items():
+        if not any(step.get("form_id") == form_id for step in out):
+            continue
+        values = values_by_form.get(form_id) or {}
+        raw_values = raw_values_by_form.get(form_id) or {}
+        internal_ids = internal_ids_by_form.get(form_id) or {}
+        if not values:
+            continue
+        existing_fields = {
+            str(field_key).lower()
+            for step in out
+            if step.get("form_id") == form_id and step.get("type") == "update_fields"
+            for field_key in (step.get("fields") or {}).keys()
+        }
+        form_app_id = next((str(step.get("app_id") or "") for step in out if step.get("form_id") == form_id), app_id)
+        fields: dict[str, Any] = {}
+        for field_key in default_fields:
+            field_key_l = str(field_key or "").lower()
+            if field_key_l in existing_fields:
+                continue
+            parts = values.get(field_key_l)
+            if not isinstance(parts, dict):
+                continue
+            if field_key_l in internal_ids:
+                fields[field_key_l] = internal_ids[field_key_l]
+                continue
+            if field_key_l in raw_values:
+                fields[field_key_l] = raw_values[field_key_l]
+                continue
+            value_code = str(parts.get("value_code") or "").strip()
+            if value_code:
+                fields[field_key_l] = value_code
+        if fields:
+            injected_by_form[form_id] = {
+                "type": "update_fields",
+                "id": f"fill_{_sanitize(form_id) or 'form'}_recorded_defaults",
+                "form_id": form_id,
+                "app_id": form_app_id,
+                "fields": fields,
+                "_tier": "core",
+                "_is_recorded_default": True,
+            }
+
+    if not injected_by_form:
+        return steps
+
+    for form_id, injected in injected_by_form.items():
+        insert_pos = _write_anchor_pos_for_form(out, form_id)
+        out.insert(insert_pos, injected)
+    return out
+
+
 def _infer_context_field_modes(main_form: str, meta_resolver=None) -> dict[str, str]:
     """推断需要由上下文补偿的字段及其写入方式。"""
     modes: dict[str, str] = {}
@@ -2906,7 +3112,7 @@ def _yaml_scalar(v: Any, key: Any | None = None) -> str:
     # 运行时再写回文本字段时会触发 ClassCastException。
     if key in _MULTILANG_KEYS and s and _RX_INTEGER.match(s):
         return json.dumps(s, ensure_ascii=False)
-    if key in {"value_id", "value_code", "value_number", "recorded_value_id"} and s and _RX_INTEGER.match(s):
+    if key in {"value_id", "value_code", "value_number", "recorded_value_id", "ctrlstrategy"} and s and _RX_INTEGER.match(s):
         return json.dumps(s, ensure_ascii=False)
     # 业务编码常有前导 0（如国家 001、城市 00407），必须保持字符串。
     if s and re.match(r"^0\d+$", s):
@@ -2992,6 +3198,13 @@ def _is_write_anchor_step(step: dict) -> bool:
         }
         or "save" in sid
     )
+
+
+def _write_anchor_pos_for_form(steps: list[dict], form_id: str) -> int:
+    return next((
+        idx for idx, step in enumerate(steps)
+        if step.get("form_id") == form_id and _is_write_anchor_step(step)
+    ), len(steps))
 
 
 _VAR_REF_RE = re.compile(r"\$\{vars\.([A-Za-z_][A-Za-z0-9_]*)\}")
@@ -3539,6 +3752,13 @@ def build_yaml_case(
                     cleaned.pop(i)
                     break
 
+    # ⭐ 规则13c：treeMenuClick 属于 apphome 树菜单外壳，API 回放通常无法
+    # 重建浏览器 app-shell 的服务端模型。为兼容已通过样本，不用它绑定
+    # target_form/L2；后续通过 open_form + HAR 记录的默认上下文字段补齐。
+    for s in cleaned:
+        if s.get("ac") == "treeMenuClick":
+            s.setdefault("optional", True)
+
     # ⭐ 规则4补充：确保 appItemClick / menuItemClick 之前有对应的 open_portal 步骤
     # 如果裁剪后第一个 appItemClick/menuItemClick 引用了 bos_portal_* 但没有对应的 open_form，注入一个
     for i, s in enumerate(cleaned):
@@ -3612,6 +3832,12 @@ def build_yaml_case(
         main_form=main_form,
         app_id=_context_app_id,
     )
+    cleaned = _append_recorded_default_update_steps(
+        cleaned,
+        field_observations,
+        main_form=main_form,
+        app_id=_context_app_id,
+    )
     cleaned = _drop_locked_update_fields(cleaned, field_observations)
     _mark_navigation_steps_optional(cleaned, main_form)
 
@@ -3657,6 +3883,7 @@ def build_yaml_case(
         "certificatetype": "证件类型",
         "ba_e_laborrelstatus": "用工状态",
         "laborreltypecls": "用工关系分类",
+        "ctrlstrategy": "控制策略",
         "status": "状态",
         "type": "类型",
     }
@@ -3826,16 +4053,36 @@ def build_yaml_case(
                 if not step_id:
                     continue
                 fv = fields[fk]
-                display_val = ""
-                if isinstance(fv, dict):
+                parts = _extract_basedata_parts(fv)
+                if parts:
+                    display_val = parts.get("value_code") or parts.get("value_name") or ""
+                    display_name = parts.get("value_name") or display_val
+                elif isinstance(fv, dict):
                     display_val = fv.get("zh_CN", "") or str(fv)
+                    display_name = display_val
                 elif isinstance(fv, str):
                     display_val = fv
+                    display_name = display_val
                 elif fv is not None:
                     display_val = str(fv)
+                    display_name = display_val
+                else:
+                    display_val = ""
+                    display_name = ""
+                observed_parts = (
+                    (field_observations.get("response_values_by_form") or {})
+                    .get(step_form_id, {})
+                    .get(fk_lower, {})
+                )
+                if (
+                    s.get("_is_recorded_default")
+                    and isinstance(observed_parts, dict)
+                    and observed_parts.get("value_name")
+                ):
+                    display_name = str(observed_parts.get("value_name") or display_name)
                 pick_fields_map[step_id] = OrderedDict([
                     ("value_id", display_val),
-                    ("value_name", display_val),
+                    ("value_name", display_name),
                     ("label", _PF_ENV_RELATED_FIELDS[fk_lower]),
                     ("env_sensitive", "medium"),
                     ("field_key", fk_lower),
@@ -3843,7 +4090,42 @@ def build_yaml_case(
                     ("app_id", s.get("app_id", "")),
                     ("auto_resolve", False),
                     ("resolve_by", ""),
-                    ("resolve_status", "manual"),
+                    ("resolve_status", "context" if s.get("_is_recorded_default") else "manual"),
+                    ("context_only", bool(s.get("_is_recorded_default"))),
+                    ("source", "server_default" if s.get("_is_recorded_default") else ""),
+                ])
+                continue
+            if fk_lower in _PF_ENUM_FIELDS:
+                step_id = _scoped_pick_field_id(
+                    f"pick_{fk_lower}_id",
+                    pick_fields_map,
+                    form_id=step_form_id,
+                    source_step_id=s.get("id", ""),
+                )
+                if not step_id:
+                    continue
+                fv = fields[fk]
+                display_val = str(fv) if fv is not None else ""
+                combo_options = (
+                    (field_observations.get("combo_options_by_form") or {})
+                    .get(step_form_id, {})
+                    .get(fk_lower, {})
+                )
+                display_name = combo_options.get(display_val, display_val)
+                pick_fields_map[step_id] = OrderedDict([
+                    ("value_id", display_val),
+                    ("value_name", display_name),
+                    ("value_code", display_val),
+                    ("label", _PF_ENUM_FIELDS[fk_lower]),
+                    ("env_sensitive", "low"),
+                    ("field_key", fk_lower),
+                    ("form_id", step_form_id),
+                    ("app_id", s.get("app_id", "")),
+                    ("auto_resolve", False),
+                    ("resolve_by", ""),
+                    ("resolve_status", "context" if s.get("_is_recorded_default") else "manual"),
+                    ("context_only", bool(s.get("_is_recorded_default"))),
+                    ("source", "server_default" if s.get("_is_recorded_default") else ""),
                 ])
                 continue
             if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
@@ -3992,7 +4274,7 @@ def build_yaml_case(
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
                   "navigation_form_id", "expected_notifications",
-                  "continue_on_expected_error", "preserve_l2_page",
+                  "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
                   "prefetch_lookup", "prefetch_lookup_args"):
             if k in s:
                 entry[k] = s[k]
@@ -4202,6 +4484,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         main_form=main_form,
         app_id=_preview_app_id,
     )
+    preview_steps = _append_recorded_default_update_steps(
+        preview_steps,
+        field_observations,
+        main_form=main_form,
+        app_id=_preview_app_id,
+    )
     _mark_recorded_business_validations(preview_steps)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
@@ -4255,6 +4543,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "certificatetype": "证件类型",
         "ba_e_laborrelstatus": "用工状态",
         "laborreltypecls": "用工关系分类",
+        "ctrlstrategy": "控制策略",
         "status": "状态",
         "type": "类型",
     }
@@ -4429,24 +4718,79 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     if not step_id:
                         continue
                     fv = fields[fk]
-                    if isinstance(fv, dict):
+                    parts = _extract_basedata_parts(fv)
+                    if parts:
+                        display_val = parts.get("value_code") or parts.get("value_name") or ""
+                        display_name = parts.get("value_name") or display_val
+                    elif isinstance(fv, dict):
                         display_val = fv.get("zh_CN", "") or str(fv)
+                        display_name = display_val
                     elif isinstance(fv, str):
                         display_val = fv
+                        display_name = display_val
                     else:
                         display_val = str(fv) if fv is not None else ""
+                        display_name = display_val
+                    observed_parts = (
+                        (field_observations.get("response_values_by_form") or {})
+                        .get(step_form_id, {})
+                        .get(fk_lower, {})
+                    )
+                    if (
+                        s.get("_is_recorded_default")
+                        and isinstance(observed_parts, dict)
+                        and observed_parts.get("value_name")
+                    ):
+                        display_name = str(observed_parts.get("value_name") or display_name)
                     item = {
                         "id": step_id,
                         "field_key": fk_lower,
                         "label": _ENV_RELATED_FIELDS[fk_lower],
                         "env_sensitive": "medium",
                         "value_id": display_val,
-                        "value_name": display_val,
+                        "value_name": display_name,
                         "form_id": step_form_id,
                         "app_id": s.get("app_id", ""),
                         "auto_resolve": False,
                         "resolve_by": "",
-                        "resolve_status": "manual",
+                        "resolve_status": "context" if s.get("_is_recorded_default") else "manual",
+                        "context_only": bool(s.get("_is_recorded_default")),
+                        "source": "server_default" if s.get("_is_recorded_default") else "",
+                    }
+                    pick_fields.append(item)
+                    _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
+                    continue
+                if fk_lower in _ENUM_FIELDS:
+                    step_id = _scoped_pick_field_id(
+                        f"pick_{fk_lower}_id",
+                        _seen_pick_map,
+                        form_id=step_form_id,
+                        source_step_id=s.get("id", ""),
+                    )
+                    if not step_id:
+                        continue
+                    fv = fields[fk]
+                    display_val = str(fv) if fv is not None else ""
+                    combo_options = (
+                        (field_observations.get("combo_options_by_form") or {})
+                        .get(step_form_id, {})
+                        .get(fk_lower, {})
+                    )
+                    item = {
+                        "id": step_id,
+                        "field_key": fk_lower,
+                        "label": _ENUM_FIELDS[fk_lower],
+                        "env_sensitive": "low",
+                        "value_id": display_val,
+                        "value_name": combo_options.get(display_val, display_val),
+                        "value_code": display_val,
+                        "form_id": step_form_id,
+                        "app_id": s.get("app_id", ""),
+                        "auto_resolve": False,
+                        "resolve_by": "",
+                        "resolve_status": "context" if s.get("_is_recorded_default") else "manual",
+                        "context_only": bool(s.get("_is_recorded_default")),
+                        "source": "server_default" if s.get("_is_recorded_default") else "",
                     }
                     pick_fields.append(item)
                     _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
