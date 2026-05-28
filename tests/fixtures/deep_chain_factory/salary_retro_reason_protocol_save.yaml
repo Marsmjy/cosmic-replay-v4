@@ -1,0 +1,154 @@
+name: deep_salary_retro_reason_protocol_save
+description: 受控写入【薪资回溯原因】 · bos_list 别名到业务表单 + 标准保存闭环
+env:
+  base_url: ${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}
+  username: ${env:COSMIC_USERNAME}
+  password: ${env:COSMIC_PASSWORD}
+  datacenter_id: ${env:COSMIC_DATACENTER_ID}
+vars:
+  test_number: "CRPLY_RETRO_${rand:6}"
+  test_name: "CRPLY薪资回溯原因${rand:6}"
+  test_description: "cosmic replay deep chain factory"
+vars_labels:
+  test_number: 回溯原因编码
+  test_name: 回溯原因名称
+  test_description: 描述
+vars_meta:
+  test_number:
+    label: 回溯原因编码
+    field_key: number
+    form_id: hsas_retroreason
+    form_label: 薪资回溯原因
+    group_key: "hsas_retroreason:click_bar_save"
+    group_label: 薪资回溯原因 / 保存
+    source_step_id: fill_retro_reason_fields
+    write_step_id: click_bar_save
+  test_name:
+    label: 回溯原因名称
+    field_key: name
+    form_id: hsas_retroreason
+    form_label: 薪资回溯原因
+    group_key: "hsas_retroreason:click_bar_save"
+    group_label: 薪资回溯原因 / 保存
+    source_step_id: fill_retro_reason_fields
+    write_step_id: click_bar_save
+  test_description:
+    label: 描述
+    field_key: description
+    form_id: hsas_retroreason
+    form_label: 薪资回溯原因
+    group_key: "hsas_retroreason:click_bar_save"
+    group_label: 薪资回溯原因 / 保存
+    source_step_id: fill_retro_reason_fields
+    write_step_id: click_bar_save
+main_form_id: hsas_retroreason
+steps:
+  - id: open_portal
+    type: open_form
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    description: 打开「门户首页」
+  - id: menuItemClick_salary_retro_reason
+    type: invoke
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    ac: menuItemClick
+    key: appnavigationmenuap
+    method: menuItemClick
+    args:
+      - menuId: "2026200534876210176"
+        appId: /UHMBBGZQ65X
+        cloudId: /U+QDTL900//
+    post_data:
+      - {}
+      - []
+    target_form: hsas_retroreason
+    target_forms:
+      - hsas_apphome
+      - hsas_retroreason
+    env_sensitive: high
+    resolve_by: menu_path_or_form
+    navigation_form_id: hsas_retroreason
+    description: 点击菜单进入「薪资回溯原因」
+  - id: selectTab_salary_retro_reason
+    type: invoke
+    form_id: home_page
+    app_id: bos
+    ac: selectTab
+    key: tabap
+    method: selectTab
+    args:
+      - hsasroot${session.root_base_id}
+    post_data:
+      - {}
+      - []
+    optional: true
+    description: 切换到薪资核算 tab
+  - id: load_retro_reason_list
+    type: invoke
+    form_id: hsas_retroreason
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    preserve_l2_page: true
+    description: 加载「薪资回溯原因」列表
+  - id: click_tblnew
+    type: invoke
+    form_id: hsas_retroreason
+    app_id: hsas
+    ac: new
+    key: toolbarap
+    method: itemClick
+    args:
+      - tblnew
+      - new
+    post_data:
+      - {}
+      - []
+    preserve_l2_page: true
+    description: 点击「新增」
+  - id: load_retro_reason_edit
+    type: invoke
+    form_id: hsas_retroreason
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    description: 加载「薪资回溯原因」编辑态
+  - id: fill_retro_reason_fields
+    type: update_fields
+    form_id: hsas_retroreason
+    app_id: hsas
+    fields:
+      number: ${vars.test_number}
+      name:
+        zh_CN: ${vars.test_name}
+        zh_TW: ${vars.test_name}
+      description:
+        zh_CN: ${vars.test_description}
+        zh_TW: ${vars.test_description}
+    description: 填写编码/名称/描述
+  - id: click_bar_save
+    type: invoke
+    form_id: hsas_retroreason
+    app_id: hsas
+    ac: save
+    key: tbmain
+    method: itemClick
+    args:
+      - bar_save
+      - save
+    post_data:
+      - {}
+      - []
+    description: 💾 保存【薪资回溯原因】
+assertions:
+  - type: no_save_failure
+    step: click_bar_save
+  - type: no_error_actions
+    step: click_bar_save

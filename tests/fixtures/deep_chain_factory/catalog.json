@@ -78,6 +78,54 @@
       ]
     },
     {
+      "id": "salary_calc_group_protocol_save",
+      "app_label": "薪资核算",
+      "menu_label": "薪资核算组",
+      "form_ids": ["hsas_payrollgrp", "hbp_reviselogpage"],
+      "status": "closed_write_passed",
+      "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_calc_group_protocol_save.yaml",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_calc_group_new.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_calc_group_fixture_20260528.json",
+      "lessons": [
+        "薪资核算组列表使用菜单 L2 pageId，新增返回同 form 的 L3 编辑态；字段、pick 和保存必须使用 L3。",
+        "loadData 默认带出 org/hrorg/index/islssuepayslip/payrollsceneentry 空行等服务端上下文，不应盲目转成用户维护字段。",
+        "最小保存需要 number/name/bsed，以及 country/currency/exratetable 三个基础资料字段；三者都应作为可维护环境字段并用 lookup 预热自动解析。",
+        "保存使用标准工具栏 ac=save/key=tbmain/args=[bar_save,save]。"
+      ]
+    },
+    {
+      "id": "salary_retro_reason_protocol_save",
+      "app_label": "薪资核算",
+      "menu_label": "薪资回溯原因",
+      "form_ids": ["hsas_retroreason"],
+      "status": "closed_write_passed",
+      "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_retro_reason_protocol_save.yaml",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_retro_reason_new.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_retro_reason_fixture_20260528.json",
+      "lessons": [
+        "该菜单由 bos_list 列表别名打开，showForm 中 billFormId=hsas_retroreason，runner 必须把 bos_list L2 绑定给业务 form。",
+        "列表 loadData 和新增 itemClick 使用 L2；新增响应 showForm 后，编辑态 loadData、字段维护和保存切到 hsas_retroreason 的 L3。",
+        "该表单最小保存只需要 number/name，description 可作为智能变量暴露；保存使用标准 tbmain/bar_save。"
+      ]
+    },
+    {
+      "id": "salary_calc_scene_rule_group_blocked",
+      "app_label": "薪资核算",
+      "menu_label": "薪资核算场景",
+      "form_ids": ["hsas_payrollscene", "hbp_reviselogpage"],
+      "status": "blocked_component_rule_group_filter",
+      "env": "sit",
+      "latest_local_har": "tmp/playwright_hars/deep_salary_calc_scene_new.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_calc_scene_protocol_try_20260528.json",
+      "lessons": [
+        "菜单打开后是 compound_root L2 风格，新增返回 L3，pageId 链路本身未见异常。",
+        "保存失败原因是业务组件规则分组“默认规则”下常用筛选至少一行必填，不是 save 字段缺失或 pageId 错乱。",
+        "后续要补规则分组/常用筛选组件处理器，不能删除规则分组、硬补 save.post_data 或放宽 no_save_failure 来绕过。"
+      ]
+    },
+    {
       "id": "social_security_system_menu",
       "app_label": "中国社保",
       "menu_label": "社保体系",

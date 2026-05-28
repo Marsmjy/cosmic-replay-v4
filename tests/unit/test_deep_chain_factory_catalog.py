@@ -17,6 +17,9 @@ def test_deep_chain_factory_catalog_tracks_closed_salary_samples():
     assert scenarios["salary_item_category_protocol_save"]["status"] == "closed_write_passed"
     assert scenarios["salary_item_new_validation"]["status"] == "closed_write_passed"
     assert scenarios["salary_period_new_validation"]["status"] == "closed_write_passed"
+    assert scenarios["salary_calc_group_protocol_save"]["status"] == "closed_write_passed"
+    assert scenarios["salary_retro_reason_protocol_save"]["status"] == "closed_write_passed"
+    assert scenarios["salary_calc_scene_rule_group_blocked"]["status"] == "blocked_component_rule_group_filter"
 
 
 def test_salary_item_category_protocol_fixture_preserves_l2_to_l3_chain():
@@ -71,3 +74,38 @@ def test_salary_period_protocol_fixture_adds_entry_after_frequency_rule():
     assert pick_fields["pick_calfrequency_id"]["resolve_by"] == "value_name"
     assert pick_fields["enum_halfmonthfirstday"]["field_key"] == "halfmonthfirstday"
     assert pick_fields["enum_halfmonthsecday"]["field_key"] == "halfmonthsecday"
+
+
+def test_salary_calc_group_protocol_fixture_resolves_three_required_basedata_fields():
+    case_path = PROJECT_ROOT / "tests/fixtures/deep_chain_factory/salary_calc_group_protocol_save.yaml"
+    case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in case["steps"]}
+    pick_fields = case["pick_fields"]
+
+    assert steps["load_calc_group_list"]["preserve_l2_page"] is True
+    assert steps["click_tblnew"]["preserve_l2_page"] is True
+    assert steps["fill_calc_group_required_fields"]["fields"]["bsed"] == "${vars.begin_date}"
+    assert steps["pick_country"]["prefetch_lookup"] is True
+    assert steps["pick_currency"]["prefetch_lookup"] is True
+    assert steps["pick_exratetable"]["prefetch_lookup"] is True
+    assert steps["click_bar_save"]["ac"] == "save"
+    assert steps["click_bar_save"]["key"] == "tbmain"
+    assert steps["click_bar_save"]["args"] == ["bar_save", "save"]
+    assert pick_fields["pick_country_id"]["field_key"] == "country"
+    assert pick_fields["pick_currency_id"]["field_key"] == "currency"
+    assert pick_fields["pick_exratetable_id"]["field_key"] == "exratetable"
+
+
+def test_salary_retro_reason_protocol_fixture_handles_bos_list_alias():
+    case_path = PROJECT_ROOT / "tests/fixtures/deep_chain_factory/salary_retro_reason_protocol_save.yaml"
+    case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in case["steps"]}
+
+    assert case["main_form_id"] == "hsas_retroreason"
+    assert "hsas_retroreason" in steps["menuItemClick_salary_retro_reason"]["target_forms"]
+    assert steps["load_retro_reason_list"]["preserve_l2_page"] is True
+    assert steps["click_tblnew"]["preserve_l2_page"] is True
+    assert steps["fill_retro_reason_fields"]["fields"]["description"]["zh_CN"] == "${vars.test_description}"
+    assert steps["click_bar_save"]["ac"] == "save"
+    assert steps["click_bar_save"]["key"] == "tbmain"
+    assert steps["click_bar_save"]["args"] == ["bar_save", "save"]

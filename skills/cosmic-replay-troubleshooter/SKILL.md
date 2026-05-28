@@ -115,6 +115,7 @@ def _is_l2_pageid(pid: str) -> bool:
 - L2 不是错误本身。列表、树、工具栏和 `addnew` 前置桥接步骤依赖 L2 上下文；进入真实编辑页后才应切换到 L3。
 - 很多保存字段保存在 pageId 对应的服务端模型里。排障时先比对 HAR 原始 pageId 链路，再看字段解析和补偿；不要一上来硬补 `save` 请求体。
 - 深链路样本经验见 `tests/fixtures/deep_chain_factory/catalog.json`。例如 `薪资核算 / 薪酬项目类别` 的正确闭环是 `menuItemClick` 绑定 L2、`new` 保留 L2、`showForm/loadData` 切 L3、再执行 `update_fields`、`pick_basedata(taglevel)` 和弹窗 `btnsave`。Playwright UI 填框没有触发 `updateValue/save` 时，应改用协议 YAML 验证，不要误判为 parser 失败。
+- 如果 `showForm` 返回的是 `bos_list` 但带 `billFormId`（如 `hsas_retroreason`），诊断时要确认 L2 已绑定到业务表单别名；否则列表 load/new 可能拿不到正确 pageId。
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
 
 ---
@@ -334,6 +335,8 @@ post_data:
 - `_harvest_page_ids()` 处理 `showForm` 时同时绑定 `formId` 和 `billFormId` 到同一个 32hex pageId。
 - 进入子明细补录的 `click/newentry` 不能标 optional；失败要中断，避免保存主单后误报成功。
 - 高级面板分录“增行”可能不是普通按钮 click。已验证的薪资期间样本使用 `ac=newentry/key=advcontoolbarap/method=itemClick/args=[addrow,newentry]`；若返回“请先维护频度/期间起始规则”，先补前置字段（如 `calfrequency`、`halfmonthfirstday`、`halfmonthsecday`），不要把后续 `row_index` 写入报错误判为 runner 问题。
+- 遇到多个必填基础资料缺失（如薪资核算组的 `country/currency/exratetable`），先确认 pageId `loadData` 默认上下文是否已带值；若未带出，应通过 `pick_basedata + prefetch_lookup` 按业务编码/名称解析，禁止直接硬补长整数内码。
+- 遇到“规则分组/常用筛选不能为空”这类业务组件校验（已见于薪资核算场景），先确认 pageId 链路没错，再补规则分组组件处理器或把筛选行暴露为可维护变量；不要删除 `no_save_failure` 或硬补保存包体。
 - `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。

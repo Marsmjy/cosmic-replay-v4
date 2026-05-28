@@ -1,0 +1,212 @@
+name: deep_salary_calc_group_protocol_save
+description: 受控写入【薪资核算组】 · 主表基础资料三连 pick + 标准保存闭环
+env:
+  base_url: ${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}
+  username: ${env:COSMIC_USERNAME}
+  password: ${env:COSMIC_PASSWORD}
+  datacenter_id: ${env:COSMIC_DATACENTER_ID}
+vars:
+  test_number: "CRPLY_PGRP_${rand:6}"
+  test_name: "CRPLY薪资核算组${rand:6}"
+  begin_date: "2026-06-01"
+vars_labels:
+  test_number: 薪资核算组编码
+  test_name: 薪资核算组名称
+  begin_date: 生效日期
+pick_fields:
+  pick_country_id:
+    value_id: 中国
+    value_name: 中国
+    label: 国家/地区
+    env_sensitive: medium
+    field_key: country
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    auto_resolve: true
+    resolve_by: value_name
+    resolve_status: pending
+    form_label: 薪资核算组
+    group_key: "hsas_payrollgrp:click_bar_save"
+    group_label: 薪资核算组 / 保存
+    source_step_id: pick_country
+    write_step_id: click_bar_save
+  pick_currency_id:
+    value_id: 人民币
+    value_name: 人民币
+    label: 核算币种
+    env_sensitive: medium
+    field_key: currency
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    auto_resolve: true
+    resolve_by: value_name
+    resolve_status: pending
+    form_label: 薪资核算组
+    group_key: "hsas_payrollgrp:click_bar_save"
+    group_label: 薪资核算组 / 保存
+    source_step_id: pick_currency
+    write_step_id: click_bar_save
+  pick_exratetable_id:
+    value_id: CNYTEST001
+    value_name: CNYTEST001
+    label: 汇率表
+    env_sensitive: medium
+    field_key: exratetable
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    auto_resolve: true
+    resolve_by: value_name
+    resolve_status: pending
+    form_label: 薪资核算组
+    group_key: "hsas_payrollgrp:click_bar_save"
+    group_label: 薪资核算组 / 保存
+    source_step_id: pick_exratetable
+    write_step_id: click_bar_save
+main_form_id: hsas_payrollgrp
+steps:
+  - id: open_portal
+    type: open_form
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    description: 打开「门户首页」
+  - id: menuItemClick_salary_calc_group
+    type: invoke
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    ac: menuItemClick
+    key: appnavigationmenuap
+    method: menuItemClick
+    args:
+      - menuId: 01GT0E9JYHGP
+        appId: /UHMBBGZQ65X
+        cloudId: /U+QDTL900//
+    post_data:
+      - {}
+      - []
+    target_form: hsas_payrollgrp
+    target_forms:
+      - hsas_apphome
+      - hsas_payrollgrp
+    env_sensitive: high
+    resolve_by: menu_path_or_form
+    navigation_form_id: hsas_payrollgrp
+    description: 点击菜单进入「薪资核算组」
+  - id: selectTab_salary_calc_group
+    type: invoke
+    form_id: home_page
+    app_id: bos
+    ac: selectTab
+    key: tabap
+    method: selectTab
+    args:
+      - hsasroot${session.root_base_id}
+    post_data:
+      - {}
+      - []
+    optional: true
+    description: 切换到薪资核算 tab
+  - id: load_calc_group_list
+    type: invoke
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    preserve_l2_page: true
+    description: 加载「薪资核算组」列表
+  - id: click_tblnew
+    type: invoke
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    ac: new
+    key: toolbarap
+    method: itemClick
+    args:
+      - tblnew
+      - new
+    post_data:
+      - {}
+      - []
+    preserve_l2_page: true
+    description: 点击「新增」
+  - id: load_calc_group_edit
+    type: invoke
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    description: 加载「薪资核算组」编辑态
+  - id: fill_calc_group_required_fields
+    type: update_fields
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    fields:
+      number: ${vars.test_number}
+      name:
+        zh_CN: ${vars.test_name}
+        zh_TW: ${vars.test_name}
+      bsed: ${vars.begin_date}
+    description: 填写编码/名称/生效日期
+  - id: pick_country
+    type: pick_basedata
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    field_key: country
+    value_id: 中国
+    value_name: 中国
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "中国", "%", 0, 20, 0]
+    description: 选择「国家/地区」
+  - id: pick_currency
+    type: pick_basedata
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    field_key: currency
+    value_id: 人民币
+    value_name: 人民币
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "人民币", "%", 0, 20, 0]
+    description: 选择「核算币种」
+  - id: pick_exratetable
+    type: pick_basedata
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    field_key: exratetable
+    value_id: CNYTEST001
+    value_name: CNYTEST001
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "CNYTEST001", "%", 0, 20, 0]
+    description: 选择「汇率表」
+  - id: click_bar_save
+    type: invoke
+    form_id: hsas_payrollgrp
+    app_id: hsas
+    ac: save
+    key: tbmain
+    method: itemClick
+    args:
+      - bar_save
+      - save
+    post_data:
+      - {}
+      - []
+    description: 💾 保存【薪资核算组】
+assertions:
+  - type: no_save_failure
+    step: click_bar_save
+  - type: no_error_actions
+    step: click_bar_save
