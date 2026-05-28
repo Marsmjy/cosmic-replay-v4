@@ -1,0 +1,263 @@
+name: deep_salary_period_protocol_save
+description: 受控写入【薪资期间】 · 主表频度规则 + 期间分录 + 标准保存闭环
+env:
+  base_url: ${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}
+  username: ${env:COSMIC_USERNAME}
+  password: ${env:COSMIC_PASSWORD}
+  datacenter_id: ${env:COSMIC_DATACENTER_ID}
+vars:
+  test_number: "CRPLY_PER_${rand:6}"
+  test_name: "CRPLY薪资期间${rand:6}"
+  period_date: "2026-06-01"
+  period_end: "2026-06-30"
+  pay_date: "2026-07-05"
+vars_labels:
+  test_number: 期间类型编码
+  test_name: 期间类型名称
+  period_date: 期间开始/所属日期
+  period_end: 期间结束日期
+  pay_date: 预计支付日期
+vars_meta:
+  test_number:
+    label: 期间类型编码
+    field_key: number
+    form_id: hsbs_calperiodtype
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_period_type_fields
+    write_step_id: click_bar_save
+  test_name:
+    label: 期间类型名称
+    field_key: name
+    form_id: hsbs_calperiodtype
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_period_type_fields
+    write_step_id: click_bar_save
+  period_date:
+    label: 期间开始/所属日期
+    field_key: startdate
+    form_id: hsbs_calperiodtype
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_entry_row
+    write_step_id: click_bar_save
+  period_end:
+    label: 期间结束日期
+    field_key: enddate
+    form_id: hsbs_calperiodtype
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_entry_row
+    write_step_id: click_bar_save
+  pay_date:
+    label: 预计支付日期
+    field_key: paydate
+    form_id: hsbs_calperiodtype
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_entry_row
+    write_step_id: click_bar_save
+pick_fields:
+  pick_calfrequency_id:
+    value_id: 半月
+    value_name: 半月
+    value_code: ""
+    label: 频度
+    env_sensitive: medium
+    field_key: calfrequency
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    auto_resolve: true
+    resolve_by: value_name
+    resolve_status: pending
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: pick_calfrequency
+    write_step_id: click_bar_save
+  enum_halfmonthfirstday:
+    value_id: "1"
+    value_name: "1"
+    label: 半月的初选择日
+    env_sensitive: low
+    field_key: halfmonthfirstday
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_period_type_fields
+    write_step_id: click_bar_save
+  enum_halfmonthsecday:
+    value_id: "16"
+    value_name: "16"
+    label: 半月的次选择日
+    env_sensitive: low
+    field_key: halfmonthsecday
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    form_label: 薪资期间
+    group_key: "hsbs_calperiodtype:click_bar_save"
+    group_label: 薪资期间 / 保存
+    source_step_id: fill_period_type_fields
+    write_step_id: click_bar_save
+main_form_id: hsbs_calperiodtype
+steps:
+  - id: open_portal
+    type: open_form
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    description: 打开「门户首页」
+  - id: menuItemClick_salary_period
+    type: invoke
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    ac: menuItemClick
+    key: appnavigationmenuap
+    method: menuItemClick
+    args:
+      - menuId: "1408840528191068160"
+        appId: /UHMBBGZQ65X
+        cloudId: /U+QDTL900//
+    post_data:
+      - {}
+      - []
+    target_form: hsbs_calperiodtype
+    target_forms:
+      - hsas_apphome
+      - hsbs_calperiodtype
+    env_sensitive: high
+    resolve_by: menu_path_or_form
+    navigation_form_id: hsbs_calperiodtype
+    description: 点击菜单进入「薪资期间」
+  - id: selectTab_salary_period
+    type: invoke
+    form_id: home_page
+    app_id: bos
+    ac: selectTab
+    key: tabap
+    method: selectTab
+    args:
+      - hsasroot${session.root_base_id}
+    post_data:
+      - {}
+      - []
+    optional: true
+    description: 切换到薪资核算 tab
+  - id: load_period_list
+    type: invoke
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    preserve_l2_page: true
+    description: 加载「薪资期间」列表
+  - id: click_tblnew
+    type: invoke
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    ac: new
+    key: toolbarap
+    method: itemClick
+    args:
+      - tblnew
+      - new
+    post_data:
+      - {}
+      - []
+    preserve_l2_page: true
+    description: 点击「新增」
+  - id: load_period_edit
+    type: invoke
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    description: 加载「薪资期间」编辑态
+  - id: fill_period_type_fields
+    type: update_fields
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    fields:
+      number: ${vars.test_number}
+      name:
+        zh_CN: ${vars.test_name}
+        zh_TW: ${vars.test_name}
+      halfmonthfirstday: "1"
+      halfmonthsecday: "16"
+    description: 填写期间类型编码/名称和半月起始规则
+  - id: pick_calfrequency
+    type: pick_basedata
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    field_key: calfrequency
+    value_id: 半月
+    value_name: 半月
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "半月", "%", 0, 20, 0]
+    description: 选择「频度」
+  - id: click_addrow
+    type: invoke
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    ac: newentry
+    key: advcontoolbarap
+    method: itemClick
+    args:
+      - addrow
+      - newentry
+    post_data:
+      - {}
+      - []
+    description: 新增一行期间分录
+  - id: fill_entry_row
+    type: update_fields
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    row_index: 0
+    fields:
+      periodnumber: ${vars.test_number}_01
+      periodname:
+        zh_CN: ${vars.test_name}01
+        zh_TW: ${vars.test_name}01
+      startdate: ${vars.period_date}
+      enddate: ${vars.period_end}
+      ratedate: ${vars.period_date}
+      paydate: ${vars.pay_date}
+      periodyear: ${vars.period_date}
+      perioddate: ${vars.period_date}
+    description: 填写第一行期间分录
+  - id: click_bar_save
+    type: invoke
+    form_id: hsbs_calperiodtype
+    app_id: hsbs
+    ac: save
+    key: tbmain
+    method: itemClick
+    args:
+      - bar_save
+      - save
+    post_data:
+      - {}
+      - []
+    description: 💾 保存【薪资期间】
+assertions:
+  - type: no_save_failure
+    step: click_bar_save
+  - type: no_error_actions
+    step: click_bar_save

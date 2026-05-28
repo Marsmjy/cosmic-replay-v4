@@ -333,6 +333,7 @@ post_data:
 **修复原则**:
 - `_harvest_page_ids()` 处理 `showForm` 时同时绑定 `formId` 和 `billFormId` 到同一个 32hex pageId。
 - 进入子明细补录的 `click/newentry` 不能标 optional；失败要中断，避免保存主单后误报成功。
+- 高级面板分录“增行”可能不是普通按钮 click。已验证的薪资期间样本使用 `ac=newentry/key=advcontoolbarap/method=itemClick/args=[addrow,newentry]`；若返回“请先维护频度/期间起始规则”，先补前置字段（如 `calfrequency`、`halfmonthfirstday`、`halfmonthsecday`），不要把后续 `row_index` 写入报错误判为 runner 问题。
 - `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。

@@ -16,6 +16,7 @@ def test_deep_chain_factory_catalog_tracks_closed_salary_samples():
     assert scenarios["salary_data_integration_ua_submit_save"]["status"] == "closed_write_passed"
     assert scenarios["salary_item_category_protocol_save"]["status"] == "closed_write_passed"
     assert scenarios["salary_item_new_validation"]["status"] == "closed_write_passed"
+    assert scenarios["salary_period_new_validation"]["status"] == "closed_write_passed"
 
 
 def test_salary_item_category_protocol_fixture_preserves_l2_to_l3_chain():
@@ -48,3 +49,25 @@ def test_salary_item_protocol_fixture_resolves_required_lookup_before_save():
     assert steps["click_bar_save"]["args"] == ["bar_save", "save"]
     assert pick_fields["pick_salaryitemtype_id"]["resolve_by"] == "value_name"
     assert pick_fields["enum_ispayoutitem"]["field_key"] == "ispayoutitem"
+
+
+def test_salary_period_protocol_fixture_adds_entry_after_frequency_rule():
+    case_path = PROJECT_ROOT / "tests/fixtures/deep_chain_factory/salary_period_protocol_save.yaml"
+    case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in case["steps"]}
+    pick_fields = case["pick_fields"]
+
+    assert steps["load_period_list"]["preserve_l2_page"] is True
+    assert steps["click_tblnew"]["preserve_l2_page"] is True
+    assert steps["pick_calfrequency"]["prefetch_lookup"] is True
+    assert steps["pick_calfrequency"]["auto_resolve"] is True
+    assert steps["fill_period_type_fields"]["fields"]["halfmonthfirstday"] == "1"
+    assert steps["fill_period_type_fields"]["fields"]["halfmonthsecday"] == "16"
+    assert steps["click_addrow"]["ac"] == "newentry"
+    assert steps["click_addrow"]["key"] == "advcontoolbarap"
+    assert steps["click_addrow"]["args"] == ["addrow", "newentry"]
+    assert steps["fill_entry_row"]["row_index"] == 0
+    assert steps["click_bar_save"]["args"] == ["bar_save", "save"]
+    assert pick_fields["pick_calfrequency_id"]["resolve_by"] == "value_name"
+    assert pick_fields["enum_halfmonthfirstday"]["field_key"] == "halfmonthfirstday"
+    assert pick_fields["enum_halfmonthsecday"]["field_key"] == "halfmonthsecday"

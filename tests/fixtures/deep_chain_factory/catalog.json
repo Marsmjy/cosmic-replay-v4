@@ -65,13 +65,16 @@
       "app_label": "薪资核算",
       "menu_label": "薪资期间",
       "form_ids": ["hsbs_calperiodtype"],
-      "status": "level1_new_page_collected",
+      "status": "closed_write_passed",
       "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_period_protocol_save.yaml",
       "latest_local_har": "tmp/playwright_hars/deep_salary_period_new.har",
+      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_period_fixture_20260528.json",
       "lessons": [
-        "薪资期间新增会从 L2 列表切到 L3 编辑态。",
-        "该表单有期间行、日期和频度等多组必填字段，不适合用作第一批简单保存样本。",
-        "entrysave/saveandnew 等 opKey 与普通基础资料保存不同，后续要单独沉淀。"
+        "薪资期间新增会从 L2 列表切到 L3 编辑态，字段维护和保存都必须使用 L3。",
+        "期间分录的“增行”不是普通 click；真实协议是 ac=newentry/key=advcontoolbarap/method=itemClick/args=[addrow,newentry]。",
+        "增行前必须维护频度 calfrequency 和半月起始规则 halfmonthfirstday/halfmonthsecday，否则后端只返回业务提示且不会创建 row。",
+        "期间分录字段使用 row_index=0 写入 startdate/enddate/ratedate/paydate/periodyear/perioddate 后，标准 tbmain/bar_save 可以保存通过。"
       ]
     },
     {
