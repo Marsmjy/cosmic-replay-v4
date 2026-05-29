@@ -17,6 +17,7 @@ from lib.deep_chain_pipeline import (
     DEFAULT_OUTPUT_DIR,
     build_readback_plan,
     build_auto_pipeline_report,
+    build_experience_candidate,
     build_report_from_paths,
     build_sample_expansion_plan,
     load_catalog,
@@ -83,6 +84,13 @@ def main(argv: list[str] | None = None) -> int:
     match_cmd.add_argument("--har", type=Path, help="Raw local ignored HAR to probe; never committed.")
     match_cmd.add_argument("--limit", type=int, default=3)
     match_cmd.add_argument("--output", type=Path, help="Optional JSON output path.")
+    candidate_cmd = sub.add_parser("experience-candidate", help="Build a value-safe catalog candidate from HAR/YAML/smoke evidence.")
+    candidate_cmd.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
+    candidate_cmd.add_argument("--scenario-id", required=True)
+    candidate_cmd.add_argument("--case", type=Path, help="YAML case path; defaults to catalog case_file.")
+    candidate_cmd.add_argument("--har", type=Path, help="Raw local ignored HAR to probe; never committed.")
+    candidate_cmd.add_argument("--smoke-evidence", type=Path, help="Local write_smoke_run evidence JSON.")
+    candidate_cmd.add_argument("--output", type=Path, help="Optional JSON output path.")
     run_cmd = sub.add_parser("run-scenario", help="Run a value-safe HAR→YAML→report closed-loop pipeline.")
     run_cmd.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
     run_cmd.add_argument("--scenario-id", required=True)
@@ -162,6 +170,21 @@ def main(argv: list[str] | None = None) -> int:
             output = write_json_report(result, args.output)
             print(f"Experience match report: {output.resolve()}")
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.cmd == "experience-candidate":
+        report = build_report_from_paths(
+            catalog_path=args.catalog,
+            scenario_id=args.scenario_id,
+            case_path=args.case,
+            har_path=args.har,
+            smoke_evidence_path=args.smoke_evidence,
+        )
+        candidate = report.get("experience_candidate") or build_experience_candidate({})
+        if args.output:
+            output = write_json_report(candidate, args.output)
+            print(f"Experience candidate: {output.resolve()}")
+        print(json.dumps(candidate, ensure_ascii=False, indent=2))
         return 0
 
     if args.cmd == "run-scenario":

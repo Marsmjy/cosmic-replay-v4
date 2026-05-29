@@ -337,7 +337,7 @@ cosmic-replay-v4/
   --case tests/fixtures/deep_chain_factory/salary_calc_scene_protocol_save.yaml
 ```
 
-报告会统一输出：当前成熟度、HAR 链路风险、YAML smoke 结果、失败分类、入库验证策略。若保存响应只有“保存成功”但没有主键，系统会建议按编码/名称/描述等业务键做后置回查；`readback-plan` 会给出推荐查询表单、首选业务键、兜底业务键和安全边界。不能把 PASS 直接等同于真实入库。
+报告会统一输出：当前成熟度、HAR 链路风险、YAML smoke 结果、失败分类、入库验证策略和 `experience_candidate`。若保存响应只有“保存成功”但没有主键，系统会建议按编码/名称/描述等业务键做后置回查；`readback-plan` 会给出推荐查询表单、首选业务键、兜底业务键和安全边界。不能把 PASS 直接等同于真实入库。
 
 也可以把新 HAR/YAML 与已闭环样本做脱敏经验匹配：
 
@@ -348,6 +348,15 @@ cosmic-replay-v4/
 ```
 
 `match-experience` 只比较 `form_id/app_id`、pageId 链路特征、lookup/showForm/write anchor 等结构信息，不读取或提交业务值、cookie、token。AI 证据包也会附带 `experience_matches`，便于失败时优先复用相似样本的 pageId、F7、子弹窗和入库回查经验。
+
+当某条新样本跑通或失败后，可以生成“经验库候选”，用于人工确认后沉淀到 `tests/fixtures/deep_chain_factory/catalog.json`。候选只包含结构信息和 reusable lessons，不包含 HAR 原文、请求体、cookie、token 或真实业务值：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py experience-candidate \
+  --scenario-id salary_item_new_validation \
+  --case tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml \
+  --smoke-evidence tmp/write_smoke_runs/deep_salary_item_fixture_20260528.json
+```
 
 下一阶段闭环可直接使用 `run-scenario` 编排。默认只做 HAR 画像、YAML 生成/复用、经验匹配、入库回查计划和报告，不会写库：
 

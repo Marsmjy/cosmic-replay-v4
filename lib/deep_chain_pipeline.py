@@ -786,7 +786,7 @@ def build_scenario_report(
 ) -> dict[str, Any]:
     smoke_summary = (smoke_evidence or {}).get("summary") or {}
     verification = infer_write_verification_strategy(case or {}, smoke_summary)
-    return {
+    report = {
         "schema_version": 1,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "scenario": {
@@ -816,6 +816,203 @@ def build_scenario_report(
             "stores_credentials": False,
         },
     }
+    report["experience_candidate"] = build_experience_candidate(
+        scenario,
+        case=case or {},
+        har_probe=har_probe or {},
+        smoke_evidence=smoke_evidence or {},
+        scenario_report=report,
+    )
+    return report
+
+
+def build_experience_candidate(
+    scenario: dict[str, Any],
+    *,
+    case: dict[str, Any] | None = None,
+    har_probe: dict[str, Any] | None = None,
+    smoke_evidence: dict[str, Any] | None = None,
+    scenario_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a value-safe catalog candidate from one closed-loop attempt.
+
+    This does not update the catalog. It gives reviewers a sanitized patch-like
+    object containing only structural facts and reusable lessons, so successful
+    or failed samples can become future matching experience without carrying
+    raw HAR bodies, cookies, tokens or business values.
+    """
+    case = case or {}
+    har_probe = har_probe or {}
+    smoke_summary = (smoke_evidence or {}).get("summary") or {}
+    report = scenario_report or {}
+    verification = report.get("write_verification") or infer_write_verification_strategy(case, smoke_summary)
+    failure = report.get("failure_or_gap") or classify_pipeline_outcome(
+        case=case,
+        smoke_summary=smoke_summary,
+        har_probe=har_probe,
+    )
+    risk_codes = [str(item.get("code") or "") for item in har_probe.get("risks") or [] if item.get("code")]
+    lesson_codes = [str(item.get("code") or "") for item in har_probe.get("lessons") or [] if item.get("code")]
+    forms = sorted(_query_form_ids(case, har_probe) or {str(item) for item in scenario.get("form_ids") or [] if item})
+    apps = sorted(_query_app_ids(case, har_probe) or {_guess_app_id_from_form(form_id) for form_id in forms})
+    feature_tags = sorted(_query_feature_tags(har_probe) | _scenario_lesson_tags(scenario))
+    status = _experience_candidate_status(
+        smoke_summary=smoke_summary,
+        verification=verification,
+        failure=failure,
+        risk_codes=risk_codes,
+    )
+    lessons = _experience_candidate_lessons(
+        forms=forms,
+        feature_tags=feature_tags,
+        risk_codes=risk_codes,
+        lesson_codes=lesson_codes,
+        verification=verification,
+        failure=failure,
+    )
+    catalog_status = "closed_write_passed" if status == "ready" else f"candidate_{status}"
+    return {
+        "schema_version": 1,
+        "status": status,
+        "reason": _experience_candidate_reason(status, verification=verification, failure=failure, risk_codes=risk_codes),
+        "scenario_id": scenario.get("id", ""),
+        "app_label": scenario.get("app_label", ""),
+        "menu_label": scenario.get("menu_label", ""),
+        "env": scenario.get("env", ""),
+        "forms": forms,
+        "apps": apps,
+        "feature_tags": feature_tags,
+        "risk_codes": risk_codes,
+        "lesson_codes": lesson_codes,
+        "write_verification_status": verification.get("status", "not_checked"),
+        "failure_category": failure.get("category", ""),
+        "reusable_lessons": lessons,
+        "catalog_patch": {
+            "id": scenario.get("id", ""),
+            "app_label": scenario.get("app_label", ""),
+            "menu_label": scenario.get("menu_label", ""),
+            "form_ids": forms,
+            "status": catalog_status,
+            "env": scenario.get("env", ""),
+            "case_file": scenario.get("case_file", ""),
+            "lessons": lessons,
+        },
+        "next_actions": _experience_candidate_next_actions(status),
+        "value_safety": {
+            "raw_har_included": False,
+            "request_bodies_included": False,
+            "auth_headers_included": False,
+            "business_values_included": False,
+        },
+        "guardrails": [
+            "这是经验库候选，不会自动写入 catalog；合入前需人工确认脱敏和代表性。",
+            "只能沉淀结构经验：form_id/app_id/pageId/组件/断言策略，不记录真实业务值。",
+            "若 status 不是 ready，不能加入 closed_write_passed；应先修复或补入库回查。",
+        ],
+    }
+
+
+def _experience_candidate_status(
+    *,
+    smoke_summary: dict[str, Any],
+    verification: dict[str, Any],
+    failure: dict[str, Any],
+    risk_codes: list[str],
+) -> str:
+    if smoke_summary.get("passed") is False:
+        return "repair_first"
+    if smoke_summary.get("passed") is True:
+        if verification.get("status") == "verified_by_response" and not risk_codes:
+            return "ready"
+        if verification.get("status") == "verified_by_response":
+            return "review"
+        return "needs_readback"
+    if failure.get("category") and failure.get("category") != "pipeline_evidence_missing":
+        return "review"
+    return "not_ready"
+
+
+def _experience_candidate_reason(
+    status: str,
+    *,
+    verification: dict[str, Any],
+    failure: dict[str, Any],
+    risk_codes: list[str],
+) -> str:
+    if status == "ready":
+        return "执行和入库证据已闭环，且未发现 HAR 链路高风险，可人工确认后沉淀经验库。"
+    if status == "needs_readback":
+        return verification.get("reason") or "执行已通过，但仍缺少自动入库回查证据。"
+    if status == "repair_first":
+        return failure.get("root_cause") or "执行失败，需先修复后再沉淀经验。"
+    if status == "review" and risk_codes:
+        return f"HAR 链路存在需复核风险：{', '.join(risk_codes)}。"
+    return "证据不足，需补 HAR 链路画像、YAML smoke 或入库验证。"
+
+
+def _experience_candidate_next_actions(status: str) -> list[str]:
+    return {
+        "ready": [
+            "人工确认 catalog_patch 脱敏且具代表性后，再加入 deep_chain_factory catalog。",
+            "若样本可稳定复现，再考虑加入 HAR 回归 baseline。",
+        ],
+        "needs_readback": [
+            "先按 write_verification.readback_plan 补 readback_by_business_key 断言。",
+            "重跑 smoke，拿到 verified_by_response 或只读回查证据后再沉淀。",
+        ],
+        "repair_first": [
+            "按 failure_analysis.diagnosis_priority 或 failure_or_gap 推荐动作修复。",
+            "修复后重跑 run-scenario；不能加入 closed_write_passed，也不要把失败样本标为已闭环。",
+        ],
+        "review": [
+            "复核 HAR pageId 风险和组件链路，确认不是侥幸通过。",
+            "必要时补单测或 HAR 回归再沉淀。",
+        ],
+        "not_ready": [
+            "补充 HAR、YAML 或 smoke 证据。",
+            "不要把证据不足样本加入经验库。",
+        ],
+    }.get(status, ["人工确认下一步。"])
+
+
+def _experience_candidate_lessons(
+    *,
+    forms: list[str],
+    feature_tags: list[str],
+    risk_codes: list[str],
+    lesson_codes: list[str],
+    verification: dict[str, Any],
+    failure: dict[str, Any],
+) -> list[str]:
+    lessons: list[str] = []
+    if forms:
+        lessons.append(f"涉及表单：{', '.join(forms[:5])}。")
+    if "l2_l3_switch" in feature_tags or "write_anchor" in feature_tags:
+        lessons.append("菜单/列表/工具栏动作优先保留 L2；showForm/open_form 后字段维护、保存和提交使用 L3。")
+    if "lookup_prefetch" in feature_tags or "f7_selector" in feature_tags:
+        lessons.append("存在 lookup/F7 预热或选择链路；候选值应暴露为可维护环境字段，并在执行时解析内部 id。")
+    if "newentry_dialog" in feature_tags:
+        lessons.append("存在 newentry/子弹窗/明细链路；必须确认确定响应或主保存响应包含明细回填。")
+    if "showform_alias" in feature_tags:
+        lessons.append("存在 showForm/billFormId 或列表别名，需确认业务 form 与列表 L2 绑定正确。")
+    if "default_context" in feature_tags:
+        lessons.append("存在 loadData 默认上下文；优先沉淀为环境字段或模型上下文，不硬补 save.post_data。")
+    if risk_codes:
+        lessons.append(f"HAR 链路风险需复核：{', '.join(risk_codes[:5])}。")
+    if lesson_codes:
+        lessons.append(f"HAR 画像经验码：{', '.join(lesson_codes[:5])}。")
+    if verification.get("readback_plan", {}).get("status") == "ready":
+        plans = verification.get("readback_plan", {}).get("plans") or []
+        filters = [
+            str((plan.get("preferred_filter") or {}).get("field_key") or "")
+            for plan in plans
+            if (plan.get("preferred_filter") or {}).get("field_key")
+        ]
+        if filters:
+            lessons.append(f"入库回查优先业务键：{', '.join(filters[:4])}。")
+    if failure.get("category") and failure.get("category") != "closed_or_ready":
+        lessons.append(f"失败/缺口分类：{failure.get('category')}，后续按诊断优先级修复。")
+    return _dedupe_preserve_order(lessons)[:8]
 
 
 def _compact_probe(probe: dict[str, Any]) -> dict[str, Any]:

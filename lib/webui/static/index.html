@@ -1375,9 +1375,9 @@
                 <div class="text-lg" :class="harEnvStats().needConfirm ? 'text-amber-300' : 'text-emerald-300'" x-text="harEnvStats().needConfirm"></div>
               </div>
               <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
-                <div class="text-xs text-slate-500">未知组件</div>
-                <div class="text-lg" :class="(harPreview?.components?.summary?.unsupported_steps || 0) ? 'text-rose-300' : 'text-emerald-300'"
-                     x-text="harPreview?.components?.summary?.unsupported_steps || 0"></div>
+                <div class="text-xs text-slate-500">入库回查</div>
+                <div class="text-lg" :class="harReadbackPlanCount() ? 'text-emerald-300' : 'text-slate-400'"
+                     x-text="harReadbackPlanCount() ? '已开启' : '自动'"></div>
               </div>
             </div>
           </div>
@@ -1392,19 +1392,18 @@
                 生成 YAML
               </button>
             </div>
-            <label x-show="harReadbackPlanCount() > 0"
-                   class="flex items-start gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-3 py-2 cursor-pointer">
-              <input type="checkbox" x-model="harIncludeReadbackAssertions"
-                     class="mt-0.5 rounded border-slate-600 bg-slate-950 text-emerald-500">
+            <div x-show="harReadbackPlanCount() > 0"
+                 class="rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-3 py-2">
               <span class="text-xs text-emerald-100 leading-relaxed">
-                生成时附加入库回查断言
+                已自动附加入库回查
                 <span class="text-emerald-400" x-text="'（' + harReadbackPlanCount() + ' 条）'"></span>
                 <span class="block text-slate-400">执行 PASS 后会按业务键只读回查，报告可自动显示“入库已验证”。</span>
               </span>
-            </label>
+            </div>
             <button @click="harAdvancedOpen = !harAdvancedOpen"
+                    x-show="harNeedsAdvancedReview() || harAdvancedOpen"
                     class="w-full text-xs text-slate-400 hover:text-slate-200 py-1">
-              <span x-text="harAdvancedOpen ? '收起高级诊断' : '查看高级诊断'"></span>
+              <span x-text="harAdvancedOpen ? '收起技术诊断' : '技术诊断（给 AI/研发）'"></span>
             </button>
           </div>
         </div>
@@ -3961,6 +3960,17 @@ function app() {
       return this.harPreview?.preflight || null;
     },
 
+    harNeedsAdvancedReview() {
+      const preflight = this.harPreflight();
+      const decision = preflight?.decision || '';
+      const pageRisk = this.harPreview?.pageid_alignment?.risk_level || '';
+      return decision === 'blocked'
+        || decision === 'risky'
+        || !!this.harPreview?.quality?.blocking
+        || (this.harPreview?.components?.summary?.unsupported_steps || 0) > 0
+        || pageRisk === 'high';
+    },
+
     harReadiness() {
       const preflight = this.harPreflight();
       if (preflight) {
@@ -3968,9 +3978,9 @@ function app() {
           return {
             level: 'blocked',
             icon: '!',
-            title: preflight.decision === 'blocked' ? '暂不建议直接生成' : '建议先确认风险',
-            detail: preflight.summary || 'HAR 导入预审发现高风险项，建议先查看高级诊断。',
-            badge: preflight.decision === 'blocked' ? '暂不建议' : '需处理',
+            title: preflight.decision === 'blocked' ? '建议先处理后生成' : '可生成，建议先确认',
+            detail: preflight.summary || '系统发现少量会影响执行稳定性的风险；字段确认后可生成，失败时会自动准备 AI 修复上下文。',
+            badge: preflight.decision === 'blocked' ? '需处理' : '需确认',
             cardClass: 'border-rose-700/70 bg-rose-950/20',
             badgeClass: 'bg-rose-900/60 text-rose-200',
             iconClass: 'bg-rose-500 text-white',
@@ -3980,8 +3990,8 @@ function app() {
           return {
             level: 'ready',
             icon: '✓',
-            title: '已通过导入预审',
-            detail: preflight.summary || 'HAR 结构、pageId 和组件覆盖较稳，可生成 YAML 后执行验证。',
+            title: '已解析完成，可直接生成 YAML',
+            detail: '系统已完成主链路、字段和回查策略检查；生成后直接运行验证即可。',
             badge: '可执行',
             cardClass: 'border-emerald-700/70 bg-emerald-950/20',
             badgeClass: 'bg-emerald-900/60 text-emerald-200',
@@ -3997,10 +4007,10 @@ function app() {
         return {
           level: 'blocked',
           icon: '!',
-          title: '建议先确认风险',
+          title: '可生成，建议先确认',
           detail: unsupported > 0
-            ? `发现 ${unsupported} 个未知组件，仍可生成 YAML，但建议先查看高级诊断。`
-            : '主链路或保存动作存在高风险，仍可生成 YAML，但建议先确认提示项。',
+            ? '系统发现少量页面动作需要验证；可以先确认字段，生成后运行一次，失败时让 AI 修复。'
+            : '系统发现主链路或保存动作存在风险；仍可生成 YAML，但建议先确认字段值。',
           badge: '需处理',
           cardClass: 'border-rose-700/70 bg-rose-950/20',
           badgeClass: 'bg-rose-900/60 text-rose-200',
@@ -4011,8 +4021,8 @@ function app() {
         return {
           level: 'review',
           icon: '?',
-          title: '可生成，但有环境字段需确认',
-          detail: `${env.needConfirm} 个环境字段需要确认 value_id；确认后跨环境执行更稳。`,
+          title: '可生成，建议确认字段值',
+          detail: `${env.needConfirm} 个环境相关字段建议确认；确认后生成的 YAML 跨环境执行更稳。`,
           badge: '需确认',
           cardClass: 'border-amber-700/70 bg-amber-950/20',
           badgeClass: 'bg-amber-900/60 text-amber-200',

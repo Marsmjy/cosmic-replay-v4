@@ -2,6 +2,7 @@ import json
 
 from lib.deep_chain_pipeline import (
     build_auto_pipeline_report,
+    build_experience_candidate,
     build_readback_plan,
     build_report_from_paths,
     build_sample_expansion_plan,
@@ -222,9 +223,89 @@ def test_scenario_report_is_value_safe_and_highlights_verification_gap(tmp_path)
     assert report["write_verification"]["status"] == "needs_readback"
     assert report["failure_or_gap"]["category"] == "write_verification_gap"
     assert report["experience_matches"]["status"] == "matched"
+    assert report["experience_candidate"]["status"] == "needs_readback"
+    assert report["experience_candidate"]["catalog_patch"]["status"] == "candidate_needs_readback"
     raw = json.dumps(report, ensure_ascii=False)
     assert "password" not in raw.lower()
     assert "cookie" not in raw.lower()
+
+
+def test_experience_candidate_ready_is_value_safe_and_builds_catalog_patch():
+    case = {
+        "main_form_id": "hsbs_salaryitem",
+        "vars": {"test_number": "CRPLY_${rand:4}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "hsbs_salaryitem",
+                "app_id": "hsbs",
+            }
+        },
+        "steps": [
+            {"form_id": "hsbs_salaryitem", "type": "menuItemClick", "app_id": "hsbs"},
+            {"form_id": "hsbs_salaryitem", "type": "invoke", "ac": "save"},
+        ],
+    }
+    har_probe = {
+        "summary": {
+            "forms": ["hsbs_salaryitem"],
+            "lookup_prefetch_count": 1,
+            "showform_alias_count": 0,
+            "write_anchor_count": 1,
+            "default_context_count": 1,
+        },
+        "lessons": [{"code": "lookup_prefetch_before_pick"}],
+        "risks": [],
+    }
+    smoke_evidence = {
+        "summary": {
+            "passed": True,
+            "write_events": [{"step_id": "click_bar_save", "response_tokens": ["pkvalue"]}],
+        }
+    }
+
+    candidate = build_experience_candidate(
+        {
+            "id": "salary_item_candidate",
+            "app_label": "薪资核算",
+            "menu_label": "薪酬项目",
+            "env": "sit",
+            "case_file": "cases/demo.yaml",
+        },
+        case=case,
+        har_probe=har_probe,
+        smoke_evidence=smoke_evidence,
+    )
+
+    assert candidate["status"] == "ready"
+    assert candidate["catalog_patch"]["status"] == "closed_write_passed"
+    assert candidate["catalog_patch"]["form_ids"] == ["hsbs_salaryitem"]
+    assert "lookup_prefetch" in candidate["feature_tags"]
+    assert any("L2" in lesson and "L3" in lesson for lesson in candidate["reusable_lessons"])
+    raw = json.dumps(candidate, ensure_ascii=False)
+    assert "CRPLY_" not in raw
+    assert "cookie" not in raw.lower()
+
+
+def test_experience_candidate_failed_sample_requires_repair_first():
+    candidate = build_experience_candidate(
+        {"id": "failed", "app_label": "薪资核算", "menu_label": "复杂链路"},
+        case={"main_form_id": "hsas_payrollscene"},
+        smoke_evidence={
+            "summary": {
+                "passed": False,
+                "failed_steps": [{
+                    "id": "click_bar_save",
+                    "error": "规则分组常用筛选不允许为空，请至少填写一行数据。",
+                }],
+            }
+        },
+    )
+
+    assert candidate["status"] == "repair_first"
+    assert candidate["failure_category"] == "component_rule_group_filter_missing"
+    assert candidate["catalog_patch"]["status"] == "candidate_repair_first"
+    assert any("不能加入 closed_write_passed" in action for action in candidate["next_actions"])
 
 
 def test_match_experience_catalog_prefers_closed_form_and_feature_match():
