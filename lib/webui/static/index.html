@@ -3612,6 +3612,10 @@ function app() {
         await this.openCase(name);
       }
 
+      if (this.currentCase?.name === name && this.yamlDirty) {
+        await this.saveYaml();
+      }
+
       // 如果这个 case 有未结束的 run，直接恢复状态而不是新起一次
       if (this.activeRuns[name] && this.activeRuns[name].running) {
         this.hydrateFromActive(name);
@@ -4492,6 +4496,7 @@ function app() {
     pickFieldStoredDisplayValue(pf) {
       if (!pf) return '';
       if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
+      if (pf.context_only && pf.value_id) return String(pf.value_code || pf.value_number || pf.value_id || pf.value_name || '');
       return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
     },
 
@@ -4535,6 +4540,7 @@ function app() {
 
     pickFieldDisplayKind(pf) {
       if (!pf) return 'id';
+      if (pf.context_only && pf.value_id) return 'code';
       if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
       return 'id';
@@ -6537,10 +6543,12 @@ function app() {
             ...payload,
             value_id: pf.value_id || '',
             value_code: newValue,
+            value_number: newValue,
             resolve_by: 'value_code',
             auto_resolve: true,
             resolve_status: 'pending',
             manual_override: false,
+            user_overridden: true,
           };
         } else if (kind === 'name') {
           pf.value_name = newValue;
@@ -6557,6 +6565,7 @@ function app() {
             auto_resolve: true,
             resolve_status: 'pending',
             manual_override: false,
+            user_overridden: true,
           };
         } else {
           pf.value_id = newValue;
@@ -6571,10 +6580,12 @@ function app() {
             ...payload,
             value_id: pf.value_id || '',
             value_code: newValue,
+            value_number: newValue,
             resolve_by: 'value_code',
             auto_resolve: true,
             resolve_status: 'pending',
             manual_override: false,
+            user_overridden: true,
           };
         } else if (pf && kind === 'name') {
           payload = {
@@ -6585,6 +6596,7 @@ function app() {
             auto_resolve: true,
             resolve_status: 'pending',
             manual_override: false,
+            user_overridden: true,
           };
         } else {
           payload = {...payload, value_id: newValue, manual_override: true};

@@ -98,6 +98,7 @@ sys.path.insert(0, str(SKILL_ROOT))
 
 from lib.config import Config, CONFIG_DIR
 from lib.runner import run_case, load_yaml
+from lib.failure_analysis import classify_run_failure
 from lib import har_extractor
 from lib.report_exporter import export_html
 from lib.agent_evidence import build_repair_evidence_package, save_repair_evidence_package
@@ -1003,6 +1004,31 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
         else:
             errors = payload.get("errors") or []
             error = payload.get("error") or ("; ".join(str(item) for item in errors[:3]) if errors else "")
+    unknown_root = str((failure_analysis or {}).get("root_cause") or "")
+    generic_unknown = (
+        not failure_analysis
+        or (
+            failure_analysis.get("category") == "unknown"
+            and (not unknown_root or "暂未匹配" in unknown_root or "未捕获" in unknown_root)
+        )
+    )
+    if generic_unknown and (
+        any(not item.get("ok") for item in assertions) or failed_event
+    ):
+        failed_phases = [
+            {
+                **p,
+                "ok": False,
+                "error": p.get("error") or "; ".join(str(item) for item in (p.get("errors") or [])),
+            }
+            for p in phases
+            if p.get("status") == "fail" and not str(p.get("id") or "").startswith("assert:")
+        ]
+        failure_analysis = classify_run_failure(
+            steps=failed_phases,
+            assertions=assertions,
+            case={"name": case_name},
+        )
 
     passed = bool(summary.get("passed")) if summary else False
     result = CaseResult(
@@ -1613,6 +1639,8 @@ def _apply_pick_field_manual_update(
         item["auto_resolve"] = auto_resolve
     if resolve_status is not None:
         item["resolve_status"] = resolve_status
+    if value_id or value_name is not None or value_code is not None:
+        item["user_overridden"] = True
     if manual_override:
         item["auto_resolve"] = False
         item["resolve_status"] = "manual"

@@ -4293,6 +4293,8 @@ def build_yaml_case(
                 pick_fields_map[step_id] = OrderedDict([
                     ("value_id", display_val),
                     ("value_name", display_name),
+                    ("value_code", display_val if s.get("_is_recorded_default") and display_val and not _looks_like_internal_id(display_val) else ""),
+                    ("value_number", display_val if s.get("_is_recorded_default") and display_val and not _looks_like_internal_id(display_val) else ""),
                     ("label", _PF_ENV_RELATED_FIELDS[fk_lower]),
                     ("env_sensitive", "medium"),
                     ("field_key", fk_lower),
@@ -4440,6 +4442,8 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["auto_resolve"] = bool(pf_cfg["auto_resolve"])
                 if "resolve_status" in pf_cfg and not manual_override:
                     pick_fields_map[pf_id]["resolve_status"] = str(pf_cfg["resolve_status"] or "")
+                if pf_cfg.get("user_overridden"):
+                    pick_fields_map[pf_id]["user_overridden"] = True
                 if manual_override:
                     pick_fields_map[pf_id]["auto_resolve"] = False
                     pick_fields_map[pf_id]["resolve_status"] = "manual"

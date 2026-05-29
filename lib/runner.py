@@ -1004,6 +1004,26 @@ def _apply_pick_fields(case: dict):
     steps = case.get("steps") or []
     step_map = {s.get("id", ""): s for s in steps}
 
+    def _model_context_value(pf_meta: dict, *, fallback_id: Any = "", fallback_name: Any = "") -> str:
+        """Return the value that should be written into update_fields model context.
+
+        For recorded defaults such as createorg/ctrlstrategy, the editable UI
+        displays a business code when possible, while the step must receive the
+        model value. Prefer explicit user-maintained code/number first, then the
+        stored id, then name as a last resort.
+        """
+        if str(pf_meta.get("resolve_by") or "") == "value_code" and pf_meta.get("value_code"):
+            return str(pf_meta.get("value_code") or "")
+        for key in ("value_code", "value_number", "value_id", "value_name"):
+            value = pf_meta.get(key)
+            if value not in (None, ""):
+                return str(value)
+        if fallback_id not in (None, ""):
+            return str(fallback_id)
+        if fallback_name not in (None, ""):
+            return str(fallback_name)
+        return ""
+
     for pf_id, pf_meta in pick_fields.items():
         if not isinstance(pf_meta, dict):
             continue
@@ -1119,7 +1139,11 @@ def _apply_pick_fields(case: dict):
                         pf_meta.get("manual_override") or pf_meta.get("user_overridden")
                     ):
                         continue
-                    new_value = inject_vid or inject_vname
+                    new_value = _model_context_value(
+                        pf_meta,
+                        fallback_id=inject_vid,
+                        fallback_name=inject_vname,
+                    )
                     if new_value:
                         fields[field_key] = str(new_value)
                         log.debug(f"[pick inject->update_fields] {pf_id} → step[{step.get('id', '')}].fields[{field_key}]={new_value}")

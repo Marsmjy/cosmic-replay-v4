@@ -380,10 +380,38 @@ def test_org_change_reason_har_replays_recorded_control_defaults_when_local_har_
     assert defaults["fields"]["createorg"] == "100000"
     assert defaults["fields"]["ctrlstrategy"] == "5"
     assert case["pick_fields"]["pick_createorg_id"]["value_id"] == "100000"
+    assert case["pick_fields"]["pick_createorg_id"]["value_code"] == "100000"
     assert case["pick_fields"]["pick_createorg_id"]["value_name"] == "环宇国际集团有限公司"
     assert case["pick_fields"]["pick_ctrlstrategy_id"]["label"] == "控制策略"
     assert case["pick_fields"]["pick_ctrlstrategy_id"]["value_name"] == "全局共享"
     assert steps_by_id["click_6"]["key"] == "btnsave"
+
+
+def test_org_change_reason_pick_override_marks_user_overridden_when_generated():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1779951981_基础资料-受控-变动原因.har"
+    if not har_path.exists():
+        pytest.skip("local ignored org change reason HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="regression_org_change_reason_override",
+        pick_field_overrides={
+            "pick_createorg_id": {
+                "value_id": "100000",
+                "value_code": "200000",
+                "value_number": "200000",
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "pending",
+                "user_overridden": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+
+    createorg = case["pick_fields"]["pick_createorg_id"]
+    assert createorg["value_code"] == "200000"
+    assert createorg["user_overridden"] is True
 
 
 def test_build_yaml_case_adds_business_block_metadata_for_vars_and_pick_fields():

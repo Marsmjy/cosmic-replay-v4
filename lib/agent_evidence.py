@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from .deep_chain_pipeline import DEFAULT_CATALOG, build_readback_plan, load_catalog, match_experience_catalog
+from .failure_analysis import classify_run_failure
 from .pageid_trace import build_pageid_trace
 
 
@@ -26,7 +27,7 @@ def build_repair_evidence_package(
     run_events: list[dict[str, Any]],
     skill_root: Path,
 ) -> dict[str, Any]:
-    case_result = _find_case_result(report_data, case_name)
+    case_result = _normalize_case_result_analysis(_find_case_result(report_data, case_name), case_name=case_name)
     yaml_text = case_path.read_text(encoding="utf-8") if case_path.exists() else ""
     try:
         case_data = yaml.safe_load(yaml_text) if yaml_text else {}
@@ -143,6 +144,45 @@ def _find_case_result(report_data: dict[str, Any], case_name: str) -> dict[str, 
         if item.get("name") == case_name:
             return item
     return {"name": case_name}
+
+
+def _normalize_case_result_analysis(case_result: dict[str, Any], *, case_name: str) -> dict[str, Any]:
+    """Reclassify old run histories whose stored failure_analysis was unknown."""
+    if not isinstance(case_result, dict):
+        return {"name": case_name}
+    failure_analysis = case_result.get("failure_analysis") or {}
+    if failure_analysis and failure_analysis.get("category") != "unknown":
+        return case_result
+    unknown_root = str(failure_analysis.get("root_cause") or "") if isinstance(failure_analysis, dict) else ""
+    if failure_analysis and unknown_root and "暂未匹配" not in unknown_root and "未捕获" not in unknown_root:
+        return case_result
+    assertions = case_result.get("assertions") or []
+    phases = case_result.get("phases") or []
+    if not assertions and not phases and not case_result.get("error"):
+        return case_result
+    next_result = dict(case_result)
+    failed_phases = [
+        {
+            **p,
+            "ok": False,
+            "error": p.get("error") or "; ".join(str(item) for item in (p.get("errors") or [])),
+        }
+        for p in phases
+        if p.get("status") == "fail" and not str(p.get("id") or "").startswith("assert:")
+    ]
+    analysis = classify_run_failure(
+        steps=failed_phases,
+        assertions=assertions,
+        case={"name": case_name},
+    )
+    next_result["failure_analysis"] = analysis
+    next_result["error_category"] = analysis.get("category", next_result.get("error_category", ""))
+    if analysis.get("category") == "readback_assertion_gap":
+        next_result["next_action"] = "ai_agent"
+        next_result["ai_reason"] = "保存/提交已执行，但通用入库回查未命中；需确认真实入库或补表单专用回查策略。"
+    elif not next_result.get("ai_reason"):
+        next_result["ai_reason"] = analysis.get("root_cause", "")
+    return next_result
 
 
 def _safe_name(value: str) -> str:

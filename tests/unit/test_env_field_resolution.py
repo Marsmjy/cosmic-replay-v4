@@ -299,6 +299,35 @@ def test_manual_pick_field_update_disables_auto_resolve_and_clears_stale_name():
     assert item["auto_resolve"] is False
     assert item["resolve_status"] == "manual"
     assert item["manual_override"] is True
+    assert item["user_overridden"] is True
+
+
+def test_pick_field_update_by_code_marks_user_override_without_manual_mode():
+    item = {
+        "value_id": "100000",
+        "value_name": "环宇国际集团有限公司",
+        "value_code": "100000",
+        "auto_resolve": True,
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "context_only": True,
+    }
+
+    _apply_pick_field_manual_update(
+        item,
+        "100000",
+        value_code="200000",
+        resolve_by="value_code",
+        auto_resolve=True,
+        resolve_status="pending",
+        manual_override=False,
+    )
+
+    assert item["value_code"] == "200000"
+    assert item["value_id"] == "100000"
+    assert item["user_overridden"] is True
+    assert item["auto_resolve"] is True
+    assert item.get("manual_override") is not True
 
 
 def test_generated_pick_fields_carry_auto_resolve_metadata():
@@ -314,6 +343,49 @@ def test_generated_pick_fields_carry_auto_resolve_metadata():
     assert adminorg["resolve_status"] == "pending"
     assert adminorg["form_id"] == "hbpm_positionhr"
     assert adminorg["app_id"] == "hbpm"
+
+
+def test_user_overridden_context_pick_field_updates_recorded_update_fields():
+    case = {
+        "pick_fields": {
+            "pick_createorg_id": {
+                "field_key": "createorg",
+                "value_id": "100000",
+                "value_name": "环宇国际集团有限公司",
+                "value_code": "200000",
+                "value_number": "200000",
+                "form_id": "haos_orgchangereason",
+                "source_step_id": "fill_defaults",
+                "context_only": True,
+                "user_overridden": True,
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "pending",
+            },
+            "pick_ctrlstrategy_id": {
+                "field_key": "ctrlstrategy",
+                "value_id": "5",
+                "value_name": "全局共享",
+                "value_code": "7",
+                "form_id": "haos_orgchangereason",
+                "source_step_id": "fill_defaults",
+                "context_only": True,
+                "user_overridden": True,
+                "resolve_by": "value_code",
+            },
+        },
+        "steps": [{
+            "id": "fill_defaults",
+            "type": "update_fields",
+            "form_id": "haos_orgchangereason",
+            "fields": {"createorg": "100000", "ctrlstrategy": "5"},
+        }],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["fields"]["createorg"] == "200000"
+    assert case["steps"][0]["fields"]["ctrlstrategy"] == "7"
 
 
 def test_manual_har_pick_field_override_disables_auto_resolve():

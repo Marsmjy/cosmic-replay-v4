@@ -194,6 +194,45 @@ def test_single_run_agent_evidence_endpoint_builds_report_context(tmp_path, monk
     assert data["report_context"]["acceptance"]["status"] == "needs_ai"
 
 
+def test_single_run_evidence_reclassifies_old_unknown_readback_gap(tmp_path, monkeypatch):
+    from lib.webui import server
+
+    case_path = tmp_path / "readback_gap.yaml"
+    case_path.write_text("name: readback_gap\nsteps: []\n", encoding="utf-8")
+    evidence_path = server.SKILL_ROOT / "logs/agent_evidence/run_gap_readback_gap.json"
+
+    monkeypatch.setattr(server, "case_path_from_name", lambda _name: case_path)
+    monkeypatch.setattr(server.LOG_STORE, "read_run", lambda _run_id: [
+        {
+            "type": "assertion_fail",
+            "data": {
+                "type": "readback_by_business_key",
+                "msg": "入库回查未找到：haos_orgchangereason.number = KKK852860（只读 commonSearch，响应未包含 grid 行或业务键文本）",
+            },
+        },
+        {
+            "type": "failure_analysis",
+            "data": {
+                "category": "unknown",
+                "root_cause": "暂未匹配到已知失败模式。",
+            },
+        },
+        {"type": "case_done", "data": {"passed": False}},
+    ])
+    monkeypatch.setattr(
+        server,
+        "save_repair_evidence_package",
+        lambda _package, _output_dir: evidence_path,
+    )
+
+    response = TestClient(server.APP).get("/api/runs/gap/agent-evidence/readback_gap")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["problem_summary"]["failure_analysis"]["category"] == "readback_assertion_gap"
+    assert "通用入库回查未命中" in data["problem_summary"]["ai_reason"]
+
+
 def test_single_run_diagnosis_flags_passed_empty_save_response(monkeypatch):
     from lib.webui import server
 
