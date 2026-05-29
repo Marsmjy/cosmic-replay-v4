@@ -795,29 +795,29 @@
             </div>
           </div>
 
-          <div x-show="failureAnalysis && !summary?.passed"
-               class="bg-slate-900 border border-amber-800/60 rounded-lg overflow-hidden mb-3">
-            <div class="px-4 py-3 border-b border-slate-800 bg-amber-950/30">
-              <div class="text-amber-200 font-medium flex items-center gap-2">
-                <span>自动归因</span>
-                <span class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300"
-                      x-text="failureCategoryLabel(failureAnalysis?.category)"></span>
-                <span class="text-xs text-slate-500" x-text="'置信度 ' + (failureAnalysis?.confidence || '-')"></span>
-              </div>
-            </div>
-            <div class="p-4 space-y-2">
-              <div class="text-sm text-slate-200" x-text="failureAnalysis?.root_cause"></div>
-              <div class="text-xs text-slate-500 mono truncate" x-show="failureAnalysis?.evidence" x-text="failureAnalysis?.evidence"></div>
-              <div class="space-y-1">
-                <template x-for="(act, i) in failureAnalysis?.recommended_actions || []" :key="i">
-                  <div class="text-xs text-slate-400 flex gap-2">
-                    <span class="text-amber-400" x-text="i + 1 + '.'"></span>
-                    <span x-text="act"></span>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </div>
+<!--          <div x-show="failureAnalysis && !summary?.passed"-->
+<!--               class="bg-slate-900 border border-amber-800/60 rounded-lg overflow-hidden mb-3">-->
+<!--            <div class="px-4 py-3 border-b border-slate-800 bg-amber-950/30">-->
+<!--              <div class="text-amber-200 font-medium flex items-center gap-2">-->
+<!--                <span>自动归因</span>-->
+<!--                <span class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300"-->
+<!--                      x-text="failureCategoryLabel(failureAnalysis?.category)"></span>-->
+<!--                <span class="text-xs text-slate-500" x-text="'置信度 ' + (failureAnalysis?.confidence || '-')"></span>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="p-4 space-y-2">-->
+<!--              <div class="text-sm text-slate-200" x-text="failureAnalysis?.root_cause"></div>-->
+<!--              <div class="text-xs text-slate-500 mono truncate" x-show="failureAnalysis?.evidence" x-text="failureAnalysis?.evidence"></div>-->
+<!--              <div class="space-y-1">-->
+<!--                <template x-for="(act, i) in failureAnalysis?.recommended_actions || []" :key="i">-->
+<!--                  <div class="text-xs text-slate-400 flex gap-2">-->
+<!--                    <span class="text-amber-400" x-text="i + 1 + '.'"></span>-->
+<!--                    <span x-text="act"></span>-->
+<!--                  </div>-->
+<!--                </template>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
 
           <!-- 合并：运行变量 + 环境字段 -->
           <div x-show="(resolved_vars||[]).length > 0 || (envFields||[]).length > 0"
