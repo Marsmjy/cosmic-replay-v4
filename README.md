@@ -316,6 +316,12 @@ cosmic-replay-v4/
 ./venv/bin/python scripts/deep_chain_pipeline.py status
 ```
 
+生成下一批真实探索样本扩容计划（只输出 L0/L1/L2 风险分级和推荐命令，不执行写库）：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py expansion-plan --limit 5
+```
+
 为某个样本生成脱敏闭环报告（原始 HAR 和 smoke 证据仍只放在 `tmp/`，不提交）：
 
 ```bash

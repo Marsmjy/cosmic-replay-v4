@@ -28,6 +28,18 @@ _PAGE_ID_PATTERNS = (
     "表单会话超时",
 )
 
+_OPEN_FORM_CONTEXT_PATTERNS = (
+    "got list without pageId",
+    "without pageId",
+    "open_form(",
+)
+
+_TEMPLATE_CONTEXT_PATTERNS = (
+    "业务数据模板数据缺失",
+    "重新选择模板",
+    "业务数据模板",
+)
+
 _SERVICE_PATTERNS = (
     "未发现AppIdName",
     "服务或访问服务网络异常",
@@ -61,6 +73,41 @@ _MISSING_PATTERNS = (
 _RULE_GROUP_FILTER_PATTERNS = (
     "规则分组",
     "常用筛选",
+)
+
+_ENV_CONTEXT_FIELD_PATTERNS = (
+    "创建组织",
+    "createorg",
+    "控制策略",
+    "ctrlstrategy",
+    "默认组织",
+    "所属组织",
+    "组织上下文",
+)
+
+_F7_LOOKUP_PATTERNS = (
+    "getLookUpList",
+    "F7",
+    "entryRowClick",
+    "select_f7",
+    "setItemByIdFromClient",
+    "候选",
+    "基础资料选择",
+    "选人",
+    "选择人员",
+    "lookup",
+)
+
+_DIALOG_DETAIL_PATTERNS = (
+    "newentry",
+    "明细",
+    "子窗口",
+    "子窗",
+    "弹窗",
+    "btnok",
+    "entryentity",
+    "groupcontent",
+    "分录",
 )
 
 _DUPLICATE_PATTERNS = (
@@ -170,6 +217,23 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
     form_id = str(step.get("form_id") or "")
     step_id = str(step.get("id") or "")
     main_form = str(case.get("main_form_id") or "")
+
+    if _matches_expected_notification(text, step):
+        return _result(
+            "business_validation_expected",
+            "low",
+            False,
+            "该业务校验提示已存在于录制 HAR 中，应作为验证点继续执行，而不是失败。",
+            text,
+            [
+                "确认 YAML 步骤包含 expected_notifications/continue_on_expected_error。",
+                "确认 assertions 中有 expected_notification，且后续补录字段或确认动作仍完整回放。",
+                "不要删除该校验步骤；它是录制流程的一部分。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
 
     if _contains(text, _LOCKED_FIELD_PATTERNS):
         field = _extract_field_caption(text)
@@ -289,6 +353,42 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="medium",
         )
 
+    if _contains(text, _TEMPLATE_CONTEXT_PATTERNS):
+        return _result(
+            "business_template_context_missing",
+            "high",
+            False,
+            "业务数据模板上下文缺失，通常是模板选择、选人、子弹窗前置链路没有完整回放。",
+            text,
+            [
+                "先比对 HAR 原始 pageId 与回放 pageId，确认菜单/列表/新增保持 L2，子窗和编辑态切到 L3。",
+                "检查模板选择、选人 F7、entryRowClick、btnok、子弹窗字段维护和确定动作是否都保留。",
+                "将模板、人员、业务归属日期等可变上下文字段暴露为环境字段或智能变量。",
+                "不要只因主单保存成功就裁剪子弹窗链路，也不要硬补 save.post_data。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if _contains(text, _OPEN_FORM_CONTEXT_PATTERNS):
+        return _result(
+            "open_form_context_blocked",
+            "high",
+            False,
+            "open_form 没有拿到新 pageId，而是收到业务提示列表；根因通常在前置选择、模板或子窗上下文。",
+            text,
+            [
+                "先看 pageid_trace：open_form 前的列表/工具栏步骤是否仍在 L2，showForm 响应是否产生 L3。",
+                "再检查 HAR 中 open_form 前是否有 getLookUpList、entryRowClick、btnok 或模板选择动作被解析遗漏。",
+                "如果业务提示来自录制中的预期校验，应标为 expected_notification 并继续后续步骤。",
+                "不要把该问题简单归为网络异常，也不要硬补保存字段。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _PAGE_ID_PATTERNS):
         return _result(
             "pageid_context",
@@ -323,6 +423,25 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if _is_env_context_field_missing(text):
+        field = _extract_field_caption(text)
+        return _result(
+            "environment_field_context_missing",
+            "high",
+            False,
+            f"环境上下文字段缺失或未回填{f'：{field}' if field else ''}，常见于创建组织、控制策略、默认组织等服务端模型字段。",
+            text,
+            [
+                "先确认 pageId 链路没有异常，再从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取默认上下文。",
+                "将 createorg/ctrlstrategy/默认组织等字段解析为可维护环境字段；显示编码/中文，执行时用内部 id。",
+                "这些字段应进入 update_fields 或模型上下文，不要直接硬补 save.post_data。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            field_caption=field,
+            confidence="high",
+        )
+
     if _is_rule_group_filter_missing(text):
         return _result(
             "component_rule_group_filter_missing",
@@ -336,6 +455,40 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
                 "继续维护 attachcondition，必要时维护 calbordermulbd；这些行级字段应进入环境字段或智能变量。",
                 "将常用筛选行里的基础资料、枚举和日期字段暴露为环境字段或智能变量，避免写死长整数内码。",
                 "不要删除 no_save_failure，不要硬补 save.post_data，也不要仅选择 callistrule 来替代常用筛选行。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if _is_f7_lookup_chain_missing(text):
+        return _result(
+            "f7_lookup_chain_missing",
+            "high",
+            False,
+            "F7/基础资料/选人候选链路不完整，导致后续字段或子窗无法回填。",
+            text,
+            [
+                "检查 HAR 中 getLookUpList、entryRowClick/select_f7_list_row、btnok/setItemByIdFromClient 是否被解析并按顺序回放。",
+                "候选值应作为环境字段可维护；预览展示编码/名称，执行时解析内部 id。",
+                "如果选择结果回填到明细或子窗，必须确认后续 update_fields/save 使用同一个 L3 上下文。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if _is_dialog_detail_chain_missing(text):
+        return _result(
+            "dialog_detail_chain_incomplete",
+            "high",
+            False,
+            "子弹窗或明细分录链路不完整，主保存可能只入库了一部分数据。",
+            text,
+            [
+                "逐步核对 newentry/addrow → F7/entryRowClick → 子窗字段维护 → btnok/确定 → 主保存。",
+                "确认确认响应或主保存响应包含明细字段回填；PASS 但明细缺失时应归为断言盲区或入库验证缺口。",
+                "将子窗字段按表单/步骤作用域暴露为智能变量或环境字段，避免用户无法维护。",
             ],
             step_id=step_id,
             form_id=form_id,
@@ -447,6 +600,7 @@ def _result(
         "root_cause": root_cause,
         "evidence": evidence[:800],
         "recommended_actions": recommended_actions,
+        "diagnosis_priority": _diagnosis_priority_for(category),
         "step_id": step_id,
         "form_id": form_id,
         "field_caption": field_caption,
@@ -461,6 +615,36 @@ def _is_rule_group_filter_missing(text: str) -> bool:
     if not _contains(text, _RULE_GROUP_FILTER_PATTERNS):
         return False
     return any(token in text for token in ("不允许为空", "至少填写一行", "不能为空", "请至少填写"))
+
+
+def _is_env_context_field_missing(text: str) -> bool:
+    if not _contains(text, _ENV_CONTEXT_FIELD_PATTERNS):
+        return False
+    return _contains(text, _MISSING_PATTERNS) or any(token in text for token in ("缺失", "未回填", "不存在", "无效"))
+
+
+def _is_f7_lookup_chain_missing(text: str) -> bool:
+    if not _contains(text, _F7_LOOKUP_PATTERNS):
+        return False
+    return any(token in text for token in ("缺失", "找不到", "未选中", "未回填", "为空", "不能为空", "请选择", "失败", "无候选"))
+
+
+def _is_dialog_detail_chain_missing(text: str) -> bool:
+    if not _contains(text, _DIALOG_DETAIL_PATTERNS):
+        return False
+    return any(token in text for token in ("缺失", "未回填", "为空", "不能为空", "请至少", "保存成功但", "只入库"))
+
+
+def _matches_expected_notification(text: str, step: dict) -> bool:
+    specs = step.get("expected_notifications") or step.get("expected_errors") or []
+    for spec in specs:
+        if isinstance(spec, str) and spec and spec in text:
+            return True
+        if isinstance(spec, dict):
+            needle = str(spec.get("content") or spec.get("contains") or spec.get("msg") or "")
+            if needle and needle in text:
+                return True
+    return False
 
 
 def _is_navigation_form(form_id: str, main_form: str) -> bool:
@@ -486,3 +670,62 @@ def _extract_field_caption(text: str) -> str:
         if m:
             return m.group(1).strip()
     return ""
+
+
+def _diagnosis_priority_for(category: str) -> list[str]:
+    priorities = {
+        "pageid_context": [
+            "比对 HAR 原始 pageId 与 pageid_trace 回放 pageId",
+            "确认 L2/L3 切换和 preserve_l2_page/target_forms",
+            "再检查变量、环境字段和异步等待",
+        ],
+        "open_form_context_blocked": [
+            "确认 open_form 前置 L2/L3 链路",
+            "检查模板/F7/子弹窗前置选择是否遗漏",
+            "判断业务提示是否为录制中的预期校验",
+        ],
+        "business_template_context_missing": [
+            "检查模板选择和选人/F7 链路",
+            "确认子弹窗字段维护和确定动作完整",
+            "将模板/人员/业务日期暴露为可维护字段",
+        ],
+        "environment_field_context_missing": [
+            "从 HAR loadData/showForm/list rows 提取默认上下文",
+            "解析为环境字段并保留内部 id 执行",
+            "不要硬补 save.post_data",
+        ],
+        "f7_lookup_chain_missing": [
+            "检查 getLookUpList/entryRowClick/btnok 顺序",
+            "确认候选值可维护且能解析内部 id",
+            "确认回填发生在正确 L3 表单上下文",
+        ],
+        "dialog_detail_chain_incomplete": [
+            "核对 newentry/F7/子窗字段/确定/主保存全链路",
+            "确认明细回填证据和入库回查断言",
+            "补表单/步骤作用域变量，不裁剪子窗",
+        ],
+        "component_rule_group_filter_missing": [
+            "先确认 pageId 链路无异常",
+            "补常用筛选 F7 子窗口回填链",
+            "确认 entryentity/groupcontent 已回填再保存",
+        ],
+        "business_validation_expected": [
+            "确认 expected_notification 断言存在",
+            "继续执行录制中后续补录/确认步骤",
+            "不要把预期业务校验当失败修掉",
+        ],
+        "business_missing_required": [
+            "先查 pageId 链路和默认上下文",
+            "再查 HAR 变量/环境字段是否漏识别",
+            "最后判断是否真实业务必填未录制",
+        ],
+        "transient_protocol": [
+            "先重试并确认 NO_PROXY/网络",
+            "连续失败再查目标服务状态",
+        ],
+    }
+    return priorities.get(category, [
+        "先查 pageId 链路",
+        "再查变量/环境字段/组件处理器",
+        "保留证据后补 failure_analysis 规则",
+    ])

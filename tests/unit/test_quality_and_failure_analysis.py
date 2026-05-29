@@ -19,6 +19,10 @@ def test_preview_har_returns_quality_for_known_position_har():
     assert quality["checks"]["persistence_step_count"] >= 1
     assert quality["checks"]["detected_var_count"] >= 2
     assert all(issue["severity"] != "critical" for issue in quality["issues"])
+    assert preview["preflight"]["score"] >= 60
+    assert preview["preflight"]["allow_generate"] is True
+    assert preview["pageid_alignment"]["score"] >= 60
+    assert "risk_counts" in preview["pageid_alignment"]["checks"]
 
 
 def test_quality_flags_missing_main_form_and_save_step():
@@ -199,3 +203,64 @@ def test_failure_analysis_classifies_server_stack_exception():
 
     assert analysis["category"] == "environment_server_exception"
     assert "TraceId" in analysis["recommended_actions"][0]
+
+
+def test_failure_analysis_marks_recorded_validation_as_expected():
+    result = classify_error(
+        "ShowNotificationMsg: 请选择所属L1流程：ITM下的L2流程",
+        step={
+            "id": "click_new_save",
+            "form_id": "haos_adminorgdetail",
+            "expected_notifications": [{"content": "请选择所属L1流程：ITM下的L2流程"}],
+        },
+        case={"main_form_id": "haos_adminorgdetail"},
+    )
+
+    assert result["category"] == "business_validation_expected"
+    assert result["severity"] == "low"
+    assert any("expected_notifications" in action for action in result["recommended_actions"])
+
+
+def test_failure_analysis_classifies_template_context_before_plain_pageid():
+    result = classify_error(
+        "ProtocolError: open_form(hpdi_bizdatabillnewentry) got list without pageId: 当前业务数据模板数据缺失，请重新选择模板并创建提报单。",
+        step={"id": "open_detail", "form_id": "hpdi_bizdatabillnewentry"},
+        case={"main_form_id": "hpdi_bizdatabill"},
+    )
+
+    assert result["category"] == "business_template_context_missing"
+    assert result["confidence"] == "high"
+    assert any("模板" in item for item in result["diagnosis_priority"])
+
+
+def test_failure_analysis_classifies_environment_context_fields():
+    result = classify_error(
+        "业务必填字段缺失：创建组织不能为空，控制策略未回填。",
+        step={"id": "click_save", "form_id": "homs_chgreason"},
+        case={"main_form_id": "homs_chgreason"},
+    )
+
+    assert result["category"] == "environment_field_context_missing"
+    assert any("loadData" in action for action in result["recommended_actions"])
+
+
+def test_failure_analysis_classifies_f7_lookup_gap():
+    result = classify_error(
+        "getLookUpList 候选为空，请选择人员后再确定。",
+        step={"id": "select_person", "form_id": "hpdi_bizdatabillnewentry"},
+        case={"main_form_id": "hpdi_bizdatabill"},
+    )
+
+    assert result["category"] == "f7_lookup_chain_missing"
+    assert any("getLookUpList" in action for action in result["recommended_actions"])
+
+
+def test_failure_analysis_classifies_dialog_detail_gap():
+    result = classify_error(
+        "子窗口明细分录未回填，主单保存成功但工作加班小时只入库为空。",
+        step={"id": "click_btnok", "form_id": "hpdi_bizdatabillnewentry"},
+        case={"main_form_id": "hpdi_bizdatabill"},
+    )
+
+    assert result["category"] == "dialog_detail_chain_incomplete"
+    assert any("newentry" in item for item in result["diagnosis_priority"])

@@ -23,6 +23,8 @@ class ComponentMatch:
     risk: str
     reason: str
     suggestion: str = ""
+    remediation: str = "none"
+    remediation_reason: str = ""
 
     @property
     def supported(self) -> bool:
@@ -64,11 +66,13 @@ def analyze_component_coverage(steps: list[Step]) -> dict[str, Any]:
     handler_counts: Counter[str] = Counter()
     component_counts: Counter[str] = Counter()
     unsupported: list[dict[str, Any]] = []
+    remediation_counts: Counter[str] = Counter()
 
     for index, step in enumerate(steps or []):
         match = classify_step(step)
         handler_counts[match.handler_id] += 1
         component_counts[match.component] += 1
+        remediation_counts[match.remediation] += 1
         report = {
             "index": index,
             "step_id": step.get("id", ""),
@@ -112,6 +116,8 @@ def analyze_component_coverage(steps: list[Step]) -> dict[str, Any]:
             for component, count in component_counts.most_common()
         ],
         "unsupported": unsupported[:20],
+        "gap_suggestions": _gap_suggestions(unsupported),
+        "remediation_counts": dict(sorted(remediation_counts.items())),
         "steps": step_reports,
     }
 
@@ -123,14 +129,17 @@ def classify_step(step: Step) -> ComponentMatch:
             return match
     ac = str(step.get("ac") or "")
     method = str(step.get("method") or "")
+    remediation, risk, suggestion = _unknown_remediation(step)
     return ComponentMatch(
         handler_id="unknown_action",
         component="未知组件/动作",
         category="unknown",
         support_level="unsupported",
-        risk="medium",
+        risk=risk,
         reason=f"未登记的动作 ac={ac or '-'} method={method or '-'}",
-        suggestion="为该 ac/method 增加组件处理器，或确认可安全降级为 optional。",
+        suggestion=suggestion,
+        remediation=remediation,
+        remediation_reason=_remediation_reason(remediation),
     )
 
 
@@ -140,6 +149,73 @@ def _risk_level(coverage: int, unsupported_count: int, partial_count: int) -> st
     if partial_count > 0 or coverage < 90:
         return "medium"
     return "low"
+
+
+def _gap_suggestions(unsupported: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for item in unsupported[:20]:
+        rows.append({
+            "step_id": item.get("step_id", ""),
+            "form_id": item.get("form_id", ""),
+            "ac": item.get("ac", ""),
+            "method": item.get("method", ""),
+            "remediation": item.get("remediation", ""),
+            "risk": item.get("risk", ""),
+            "suggestion": item.get("suggestion", ""),
+        })
+    return rows
+
+
+def _unknown_remediation(step: Step) -> tuple[str, str, str]:
+    blob = _id_blob(step)
+    ac = str(step.get("ac") or "").lower()
+    method = _method(step).lower()
+    key = _key(step).lower()
+    if any(token in blob for token in ("save", "submit", "audit", "confirm", "btnok", "newentry")):
+        return (
+            "must_preserve",
+            "high",
+            "该未知动作像写入、确认或分录关键动作，不能 optional；优先新增专用 handler 或映射到保存/弹窗/分录处理器。",
+        )
+    if method in {"getitembyidfromclient", "setitembyidfromclient", "setitemvaluebyidfromclient"}:
+        return (
+            "reuse_existing_handler",
+            "medium",
+            "该动作接近基础资料选择器，可优先复用 pick_basedata/lookup 处理链。",
+        )
+    if ac in {"gethints", "gethint", "gethintscroll"} or any(token in blob for token in ("hint", "scroll", "tooltip")):
+        return (
+            "safe_noise_optional",
+            "low",
+            "该动作像提示/滚动类 UI 噪声；若不影响写库，可标记 optional 或保持低风险联动。",
+        )
+    if any(token in blob for token in ("entry", "grid", "row", "table")):
+        return (
+            "add_handler",
+            "medium",
+            "该动作像表格/分录组件，建议新增按行/列定位的组件处理器。",
+        )
+    if key or method:
+        return (
+            "add_handler",
+            "medium",
+            "该动作包含明确 key/method，若位于主链路应新增组件处理器；若失败点不在此处再降级 optional。",
+        )
+    return (
+        "review_optional",
+        "medium",
+        "先确认是否位于主链路；若只是页面装饰或后台联动，可降级 optional，否则新增 handler。",
+    )
+
+
+def _remediation_reason(remediation: str) -> str:
+    return {
+        "must_preserve": "写入、确认、弹窗或分录关键动作，直接删除会造成假通过。",
+        "reuse_existing_handler": "与现有基础资料、lookup 或弹窗处理器相似，应优先复用。",
+        "safe_noise_optional": "更像 UI 噪声，通常可降级 optional。",
+        "add_handler": "缺少专用组件处理器，失败时需要补 handler。",
+        "review_optional": "信息不足，需要结合步骤位置人工判断。",
+    }.get(remediation, "")
 
 
 def _handler_name(handler_id: str) -> str:

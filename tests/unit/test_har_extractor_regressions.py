@@ -10,8 +10,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from lib.har_extractor import (
     _append_readback_assertions,
     _append_recorded_default_pick_steps,
+    _annotate_env_field_sources,
     _attach_pick_field_scopes,
     _build_preview_readback_plan,
+    _build_preview_business_blocks,
     _clean_display_label,
     _scoped_pick_field_id,
     build_yaml_case,
@@ -89,6 +91,65 @@ def test_preview_readback_plan_uses_detected_var_metadata():
     assert plan["status"] == "ready"
     assert plan["plans"][0]["suggested_assertion"]["type"] == "readback_by_business_key"
     assert plan["plans"][0]["suggested_assertion"]["value"] == "${vars.test_name}"
+
+
+def test_env_field_source_annotation_explains_metadata_and_lookup_sources():
+    pick_fields = {
+        "pick_org_id": {
+            "field_key": "org",
+            "form_id": "demo_form",
+            "auto_resolve": True,
+            "resolve_by": "value_code",
+        }
+    }
+    observations = {
+        "response_values_by_form": {
+            "demo_form": {
+                "org": {"value_code": "ORG001", "value_name": "演示组织"},
+            }
+        },
+        "response_internal_ids_by_form": {
+            "demo_form": {"org": "1234567890"},
+        },
+        "combo_options_by_form": {},
+        "labels_by_form": {"demo_form": {"org": "组织"}},
+    }
+
+    _annotate_env_field_sources(pick_fields, observations)
+
+    meta = pick_fields["pick_org_id"]
+    assert meta["source_type"] == "loadData_response"
+    assert "list_dataindex" in meta["source_detail"]
+    assert "auto_resolve:value_code" in meta["source_detail"]
+
+
+def test_preview_business_blocks_group_vars_and_env_fields_by_form_action():
+    blocks = _build_preview_business_blocks(
+        [{
+            "name": "test_name",
+            "label": "名称",
+            "field_key": "name",
+            "form_id": "form_a",
+            "form_label": "表单A",
+            "group_key": "form_a:save",
+            "group_label": "表单A / 保存",
+            "write_step_id": "save_a",
+        }],
+        [{
+            "id": "pick_org_id",
+            "label": "组织",
+            "field_key": "org",
+            "form_id": "form_b",
+            "form_label": "表单B",
+            "group_key": "form_b:save",
+            "group_label": "表单B / 保存",
+            "source_type": "loadData_response",
+        }],
+    )
+
+    assert [block["key"] for block in blocks] == ["form_a:save", "form_b:save"]
+    assert blocks[0]["smart_var_count"] == 1
+    assert blocks[1]["env_field_count"] == 1
 
 
 def test_clean_display_label_hides_deprecated_suffix_for_user_facing_labels():

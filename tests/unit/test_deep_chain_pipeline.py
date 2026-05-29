@@ -4,6 +4,7 @@ from lib.deep_chain_pipeline import (
     build_auto_pipeline_report,
     build_readback_plan,
     build_report_from_paths,
+    build_sample_expansion_plan,
     classify_pipeline_outcome,
     infer_write_verification_strategy,
     load_catalog,
@@ -22,6 +23,50 @@ def test_deep_chain_pipeline_progress_reports_current_stage():
     assert progress["blocked"] == 0
     assert progress["current_phase"] == "stage_2_auto_pipeline_and_readback"
     assert progress["next_focus"][0]["stage"] == "readonly_or_not_writable"
+    assert progress["sample_expansion"]["next_batch"][0]["allowed_level"] == "L0"
+
+
+def test_sample_expansion_plan_sorts_safe_next_actions_and_keeps_guardrails():
+    catalog = {
+        "target_cloud": "薪酬福利云",
+        "scenarios": [
+            {
+                "id": "closed",
+                "app_label": "薪资核算",
+                "menu_label": "薪酬项目",
+                "status": "closed_write_passed",
+            },
+            {
+                "id": "blocked",
+                "app_label": "薪资核算",
+                "menu_label": "复杂子窗",
+                "status": "blocked_missing_component",
+            },
+            {
+                "id": "ready",
+                "app_label": "薪资核算",
+                "menu_label": "待 smoke",
+                "status": "draft",
+                "case_file": "cases/demo.yaml",
+            },
+            {
+                "id": "har",
+                "app_label": "中国社保",
+                "menu_label": "已录 HAR",
+                "status": "draft",
+                "latest_local_har": "tmp/playwright_hars/demo.har",
+            },
+        ],
+    }
+
+    plan = build_sample_expansion_plan(catalog)
+
+    assert plan["reference_closed_samples"] == 1
+    assert [item["scenario_id"] for item in plan["next_batch"][:3]] == ["blocked", "ready", "har"]
+    assert plan["next_batch"][0]["allowed_level"] == "repair_first"
+    assert plan["next_batch"][1]["required_confirmation"] == "YES_GENERATE_TEST_DATA"
+    assert "--confirm-write YES_GENERATE_TEST_DATA" in plan["next_batch"][1]["command_hint"]
+    assert any("不能提交 Git" in guard for guard in plan["guardrails"])
 
 
 def test_write_verification_strategy_prefers_business_key_readback_for_success_only():
@@ -85,6 +130,8 @@ def test_build_readback_plan_groups_business_keys_by_form():
     assert main_plan["preferred_filter"]["field_key"] == "description"
     assert main_plan["preferred_filter"]["value_ref"] == "${vars.test_description}"
     assert main_plan["app_id"] == "hpdi"
+    assert main_plan["strategy"]["strategy_id"] == "ua_submit_business_key"
+    assert main_plan["strategy"]["source"] == "strategy_library"
     assert main_plan["suggested_assertion"] == {
         "type": "readback_by_business_key",
         "form_id": "hpdi_bizdatabill",
@@ -93,6 +140,24 @@ def test_build_readback_plan_groups_business_keys_by_form():
         "value": "${vars.test_description}",
     }
     assert any("不允许新增、保存" in guard for guard in plan["guardrails"])
+
+
+def test_readback_plan_uses_generic_strategy_for_unknown_forms():
+    case = {
+        "main_form_id": "custom_form",
+        "vars": {"test_number": "CRPLY_${rand:4}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "custom_form",
+            }
+        },
+    }
+
+    plan = build_readback_plan(case)
+
+    assert plan["plans"][0]["strategy"]["strategy_id"] == "generic_business_key"
+    assert plan["plans"][0]["strategy"]["manual_fallback"]
 
 
 def test_pipeline_failure_classification_uses_existing_failure_analysis_rules():

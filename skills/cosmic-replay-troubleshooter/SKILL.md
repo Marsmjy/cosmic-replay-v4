@@ -477,19 +477,22 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 
 1. 先读 `skills_to_use` 中的 overview 与 troubleshooter。
 2. 只基于 evidence package 中的 HAR/YAML/run events 诊断，不凭空猜业务字段。
-3. 判断问题类型：
-   - pageId / target_forms 链路错误（优先检查 HAR 原始 pageId 与回放 pageId 是否一致）
-   - HAR 解析变量遗漏
-   - 保存断言盲区
-   - 环境字段缺失或跨环境 value_id 错误
-   - 业务校验错误
-4. 输出最小补丁：
+3. 先读取 `problem_summary.failure_analysis`，如果存在 `diagnosis_priority`，按该列表排查；但仍必须先比对 HAR 原始 pageId 与回放 pageId。
+4. 判断问题类型：
+   - `pageid_context` / `open_form_context_blocked`：优先检查 L2/L3 切换、`preserve_l2_page`、`target_forms`、`showForm` 是否产生 L3。
+   - `business_template_context_missing`：检查模板选择、选人 F7、entryRowClick、btnok、子弹窗字段维护和确定动作是否完整。
+   - `environment_field_context_missing`：检查 `createorg`、`ctrlstrategy`、默认组织等是否从 HAR `loadData`、`showForm`、列表 rows 解析为环境字段。
+   - `f7_lookup_chain_missing`：检查 `getLookUpList` 预热、候选选择、内部 id 解析和回填表单上下文。
+   - `dialog_detail_chain_incomplete`：检查 `newentry/addrow → F7/entryRowClick → 子窗字段维护 → btnok/确定 → 主保存` 全链路，不能只看主单 PASS。
+   - `business_validation_expected`：录制中出现且后续有补录动作的业务校验应保留为 `expected_notification`，不是失败。
+   - HAR 解析变量遗漏、保存断言盲区、环境字段缺失或跨环境 value_id 错误、真实业务校验错误、执行器问题。
+5. 输出最小补丁：
    - 优先改当前 YAML。
    - 只有确认是通用规则缺陷时才改 `har_extractor.py` / `runner.py` / `repair_planner.py`。
-5. 必跑验证：
+6. 必跑验证：
    - `./venv/bin/python -m pytest -q tests/unit tests/test_core.py`
    - `./venv/bin/python scripts/har_regression_report.py compare --fail-on-diff`
-6. 输出影响说明：
+7. 输出影响说明：
    - 是否影响 10 类基准 HAR（8 个 SIT + 2 个 UAT）。
    - 是否需要用户确认环境字段。
    - 是否需要真实环境写库回查。

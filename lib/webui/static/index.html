@@ -1466,6 +1466,94 @@
         </div>
       </div>
 
+      <!-- HAR 导入预审 + pageId 链路评分 -->
+      <div x-show="harAdvancedOpen && harPreview?.preflight"
+           class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div class="bg-slate-950 border rounded-lg p-4"
+             :class="{
+               'border-emerald-800/60': harPreview?.preflight?.decision === 'ready',
+               'border-sky-800/60': harPreview?.preflight?.decision === 'review',
+               'border-amber-700/60': harPreview?.preflight?.decision === 'risky',
+               'border-rose-700/60': harPreview?.preflight?.decision === 'blocked',
+             }">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-medium text-slate-200">导入预审</span>
+                <span class="text-xs px-2 py-0.5 rounded"
+                      :class="{
+                        'bg-emerald-900/50 text-emerald-300': harPreview?.preflight?.decision === 'ready',
+                        'bg-sky-900/50 text-sky-300': harPreview?.preflight?.decision === 'review',
+                        'bg-amber-900/50 text-amber-300': harPreview?.preflight?.decision === 'risky',
+                        'bg-rose-900/50 text-rose-300': harPreview?.preflight?.decision === 'blocked',
+                      }"
+                      x-text="{ready:'建议生成',review:'确认后生成',risky:'先处理风险',blocked:'暂不建议'}[harPreview?.preflight?.decision] || '待确认'"></span>
+              </div>
+              <div class="text-xs text-slate-400" x-text="harPreview?.preflight?.summary"></div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-2xl font-semibold text-slate-100" x-text="harPreview?.preflight?.score || 0"></div>
+              <div class="text-xs text-slate-500" x-text="'等级 ' + (harPreview?.preflight?.grade || '-')"></div>
+            </div>
+          </div>
+          <div class="mt-3 space-y-1">
+            <template x-for="action in (harPreview?.preflight?.next_actions || []).slice(0, 3)" :key="action">
+              <div class="text-xs text-slate-400 bg-slate-900 rounded px-2 py-1" x-text="action"></div>
+            </template>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 border rounded-lg p-4"
+             :class="{
+               'border-emerald-800/60': harPreview?.pageid_alignment?.risk_level === 'low',
+               'border-amber-700/60': harPreview?.pageid_alignment?.risk_level === 'medium',
+               'border-rose-700/60': harPreview?.pageid_alignment?.risk_level === 'high',
+             }">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-medium text-slate-200">pageId 链路评分</span>
+                <span class="text-xs px-2 py-0.5 rounded"
+                      :class="{
+                        'bg-emerald-900/50 text-emerald-300': harPreview?.pageid_alignment?.risk_level === 'low',
+                        'bg-amber-900/50 text-amber-300': harPreview?.pageid_alignment?.risk_level === 'medium',
+                        'bg-rose-900/50 text-rose-300': harPreview?.pageid_alignment?.risk_level === 'high',
+                      }"
+                      x-text="'风险 ' + (harPreview?.pageid_alignment?.risk_level || '-')"></span>
+              </div>
+              <div class="text-xs text-slate-400" x-text="harPreview?.pageid_alignment?.summary"></div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-2xl font-semibold text-cyan-200" x-text="harPreview?.pageid_alignment?.score || 0"></div>
+              <div class="text-xs text-slate-500">L2/L3</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">L2 保留</div>
+              <div class="text-slate-200" x-text="harPreview?.pageid_alignment?.checks?.preserve_l2_step_count || 0"></div>
+            </div>
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">风险数</div>
+              <div class="text-slate-200"
+                   x-text="Object.values(harPreview?.pageid_alignment?.checks?.risk_counts || {}).reduce((a,b)=>a+b,0)"></div>
+            </div>
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">关键步</div>
+              <div class="text-slate-200" x-text="harPreview?.pageid_alignment?.checks?.interesting_steps || 0"></div>
+            </div>
+          </div>
+          <div x-show="(harPreview?.pageid_alignment?.issues || []).length" class="mt-3 space-y-1">
+            <template x-for="issue in (harPreview?.pageid_alignment?.issues || []).slice(0, 3)" :key="issue.code + issue.message">
+              <div class="text-xs bg-slate-900 rounded px-2 py-1.5">
+                <div class="text-slate-300" x-text="issue.message"></div>
+                <div class="text-slate-500" x-text="issue.suggestion"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
       <div x-show="harAdvancedOpen" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-slate-950 border border-slate-800 rounded p-3">
           <div class="text-xs text-slate-400">主表单</div>
@@ -1482,6 +1570,29 @@
         <div class="bg-slate-950 border border-slate-800 rounded p-3">
           <div class="text-xs text-slate-500">噪声（默认去掉）</div>
           <div class="text-2xl mt-1 text-slate-500" x-text="harPreview?.tier_counts?.noise || 0"></div>
+        </div>
+      </div>
+
+      <div x-show="harAdvancedOpen && (harPreview?.business_blocks || []).length"
+           class="bg-slate-950 border border-indigo-900/50 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-sm font-medium text-indigo-200">业务块识别</div>
+            <div class="text-xs text-slate-500">按表单和写入动作分组，长链路可分别维护 A/B/C 表单字段。</div>
+          </div>
+          <div class="text-xs text-slate-500" x-text="(harPreview?.business_blocks || []).length + ' 个业务块'"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <template x-for="block in (harPreview?.business_blocks || []).slice(0, 6)" :key="block.key">
+            <div class="bg-slate-900 rounded px-3 py-2">
+              <div class="text-xs text-indigo-200 truncate" x-text="block.label"></div>
+              <div class="text-[11px] text-slate-500 truncate" x-show="block.form_id" x-text="block.form_id"></div>
+              <div class="flex gap-2 mt-1 text-[11px]">
+                <span class="text-purple-300" x-text="'变量 ' + (block.smart_var_count || 0)"></span>
+                <span class="text-orange-300" x-text="'环境字段 ' + (block.env_field_count || 0)"></span>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -1546,7 +1657,7 @@
             <template x-for="u in (harPreview?.components?.unsupported || []).slice(0, 6)" :key="u.index + u.step_id">
               <div class="text-xs py-0.5">
                 <code class="text-rose-300" x-text="u.step_id || u.ac || '-'"></code>
-                <span class="text-slate-500 ml-1" x-text="u.reason"></span>
+                <span class="text-slate-500 ml-1" x-text="u.remediation ? '[' + u.remediation + '] ' + u.suggestion : u.reason"></span>
               </div>
             </template>
           </div>
@@ -1665,6 +1776,7 @@
                 <span class="block text-[10px] text-amber-300" x-show="pf.user_overridden">已修改，生成 YAML 后生效</span>
                 <span class="block text-xs text-cyan-300" x-show="pf.value_id && pickFieldDisplayValue(pf) !== pf.value_id" x-text="'ID ' + pf.value_id"></span>
                 <span class="text-xs text-slate-500" x-show="pf.value_name && pf.value_name !== pickFieldDisplayValue(pf)" x-text="pf.value_name"></span>
+                <span class="block text-[10px] text-slate-500 truncate" x-show="pf.source_type" x-text="'来源: ' + pf.source_type"></span>
               </div>
               <!-- 敏感度文字 -->
               <div class="w-12 shrink-0 text-right">
@@ -3845,7 +3957,38 @@ function app() {
       return (this.harReadbackPlan().plans || []).filter(p => p?.suggested_assertion?.field_key).length;
     },
 
+    harPreflight() {
+      return this.harPreview?.preflight || null;
+    },
+
     harReadiness() {
+      const preflight = this.harPreflight();
+      if (preflight) {
+        if (preflight.decision === 'blocked' || preflight.decision === 'risky') {
+          return {
+            level: 'blocked',
+            icon: '!',
+            title: preflight.decision === 'blocked' ? '暂不建议直接生成' : '建议先确认风险',
+            detail: preflight.summary || 'HAR 导入预审发现高风险项，建议先查看高级诊断。',
+            badge: preflight.decision === 'blocked' ? '暂不建议' : '需处理',
+            cardClass: 'border-rose-700/70 bg-rose-950/20',
+            badgeClass: 'bg-rose-900/60 text-rose-200',
+            iconClass: 'bg-rose-500 text-white',
+          };
+        }
+        if (preflight.decision === 'ready') {
+          return {
+            level: 'ready',
+            icon: '✓',
+            title: '已通过导入预审',
+            detail: preflight.summary || 'HAR 结构、pageId 和组件覆盖较稳，可生成 YAML 后执行验证。',
+            badge: '可执行',
+            cardClass: 'border-emerald-700/70 bg-emerald-950/20',
+            badgeClass: 'bg-emerald-900/60 text-emerald-200',
+            iconClass: 'bg-emerald-500 text-white',
+          };
+        }
+      }
       const score = this.harPreview?.quality?.score || 0;
       const blocking = !!this.harPreview?.quality?.blocking;
       const unsupported = this.harPreview?.components?.summary?.unsupported_steps || 0;
@@ -4706,8 +4849,8 @@ function app() {
                 `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
-        '1. 先读取证据包、YAML、运行事件、pageid_trace 和失败/入库证据。',
-        '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '1. 先读取证据包、YAML、运行事件、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
         '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
         '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
@@ -4745,8 +4888,8 @@ function app() {
         `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
-        '1. 先读取证据包、YAML、运行事件、pageid_trace、失败步骤和断言结果。',
-        '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '1. 先读取证据包、YAML、运行事件、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
         '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
         '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',

@@ -26,6 +26,57 @@ PRIMARY_KEY_TOKENS = {"pkvalue", "billid", "saveresult", "bos_operationresult"}
 BUSINESS_KEY_FIELDS = {"number", "billno", "code", "name", "description"}
 KEY_PRIORITY = {"number": 0, "billno": 1, "code": 2, "name": 3, "description": 4}
 
+READBACK_STRATEGY_LIBRARY: dict[str, dict[str, Any]] = {
+    "hpdi_bizdatabill": {
+        "strategy_id": "ua_submit_business_key",
+        "preferred_fields": ["description", "billno", "number", "name"],
+        "method": "business_key_with_template_context",
+        "uniqueness_hint": "UA 提报建议使用 CRPLY_ 描述/单据号，并结合业务模板或创建时间缩小范围。",
+    },
+    "hpdi_bizdatabillnewentry": {
+        "strategy_id": "ua_submit_entry_business_key",
+        "preferred_fields": ["name", "description", "billno", "number"],
+        "method": "entry_business_key_query",
+        "uniqueness_hint": "子窗明细保存后优先回查主单或明细业务键，避免只看主保存 PASS。",
+    },
+    "hsas_payrollscene": {
+        "strategy_id": "salary_scene_number_name",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_name_common_search",
+        "uniqueness_hint": "薪资核算场景优先使用 CRPLY_ 编码回查；规则分组/F7 子窗必须先确认回填。",
+    },
+    "hsbs_salaryitem": {
+        "strategy_id": "salary_item_number_name",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_name_common_search",
+        "uniqueness_hint": "薪酬项目编码应唯一，优先按 number 回查。",
+    },
+    "hsbs_statisticstag": {
+        "strategy_id": "salary_category_number_name",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_name_common_search",
+        "uniqueness_hint": "薪酬项目类别通常按编码/名称回查；层级 taglevel 是环境字段。",
+    },
+    "hsbs_calperiodtype": {
+        "strategy_id": "salary_period_number_name",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_name_common_search",
+        "uniqueness_hint": "薪资期间建议按编码回查，并关注期间分录日期是否完整。",
+    },
+    "hsas_payrollgrp": {
+        "strategy_id": "salary_group_number_org",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_with_org_context",
+        "uniqueness_hint": "薪资核算组建议按 number + 组织上下文回查。",
+    },
+    "hsas_retroreason": {
+        "strategy_id": "retro_reason_number_name",
+        "preferred_fields": ["number", "name", "description"],
+        "method": "number_name_common_search",
+        "uniqueness_hint": "薪资回溯原因可按 number/name 回查；注意 bos_list/billFormId 别名。",
+    },
+}
+
 
 def load_catalog(path: Path | str = DEFAULT_CATALOG) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -69,6 +120,9 @@ def summarize_progress(catalog: dict[str, Any]) -> dict[str, Any]:
         "app_counts": dict(sorted(app_counts.items())),
         "current_phase": _current_phase(total, closed, stage_counts),
         "next_focus": build_next_focus(catalog, limit=5),
+        "sample_expansion": {
+            "next_batch": build_sample_expansion_plan(catalog, limit=5)["next_batch"],
+        },
     }
 
 
@@ -107,6 +161,142 @@ def build_next_focus(catalog: dict[str, Any], *, limit: int = 5) -> list[dict[st
         })
     rows.sort(key=lambda row: (priority.get(row["stage"], 99), row["app_label"], row["menu_label"]))
     return rows[:limit]
+
+
+def build_sample_expansion_plan(catalog: dict[str, Any], *, limit: int = 8) -> dict[str, Any]:
+    """Build the next safe expansion batch for real-environment HAR samples.
+
+    The plan is deliberately value-safe and non-executing. It translates the
+    catalog into concrete Level 0/1/2 tasks so the team can keep collecting new
+    HAR experience without letting automation silently submit, audit or delete
+    business data.
+    """
+    candidates = []
+    reference_count = 0
+    for scenario in catalog.get("scenarios") or []:
+        stage = scenario_stage(scenario)
+        if stage == "closed_write_passed":
+            reference_count += 1
+            continue
+        candidates.append(_expansion_candidate_for_scenario(scenario, stage=stage))
+    candidates.sort(key=lambda item: (item["priority"], item["app_label"], item["menu_label"]))
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "target_cloud": catalog.get("target_cloud", ""),
+        "reference_closed_samples": reference_count,
+        "candidate_count": len(candidates),
+        "levels": [
+            {
+                "level": "L0",
+                "name": "只读采集",
+                "allowed": "登录、展开应用、打开列表、查询、刷新、采集 HAR/pageId 摘要。",
+                "blocked": "不点新增、保存、提交、审核、删除、导入、上传。",
+            },
+            {
+                "level": "L1",
+                "name": "打开新增不保存",
+                "allowed": "打开新增页、采集 showForm/L3、识别字段和组件，不写库。",
+                "blocked": "不保存、不提交、不点确定类写入按钮。",
+            },
+            {
+                "level": "L2",
+                "name": "测试数据写入闭环",
+                "allowed": "仅 CRPLY_ 前缀测试数据，显式确认后保存并做只读回查。",
+                "blocked": "提交、审核、删除、反审核、导入、上传、批量操作。",
+            },
+            {
+                "level": "L3",
+                "name": "高风险动作",
+                "allowed": "当前默认禁止，除非用户单独批准并提供回滚方案。",
+                "blocked": "提交、审核、生效、删除、上传、导入、批量处理。",
+            },
+        ],
+        "guardrails": [
+            "原始 HAR、cookie、token、截图和真实运行日志只能放 ignored 目录，不能提交 Git。",
+            "写库 smoke 必须显式传 --confirm-write YES_GENERATE_TEST_DATA，并使用 CRPLY_ 测试数据。",
+            "PASS 后必须按 readback_plan 做主键/业务键只读回查；没有回查证据不能沉淀 baseline。",
+            "发现解析失败时优先查 pageId 链路、组件链路和环境字段，不允许硬补 save.post_data。",
+        ],
+        "next_batch": candidates[:limit],
+    }
+
+
+def _expansion_candidate_for_scenario(scenario: dict[str, Any], *, stage: str) -> dict[str, Any]:
+    scenario_id = str(scenario.get("id") or "")
+    case_file = str(scenario.get("case_file") or "")
+    har_path = str(scenario.get("latest_local_har") or "")
+    base = {
+        "scenario_id": scenario_id,
+        "app_label": str(scenario.get("app_label") or ""),
+        "menu_label": str(scenario.get("menu_label") or ""),
+        "stage": stage,
+        "env": str(scenario.get("env") or ""),
+        "required_confirmation": "",
+        "har_policy": "raw_har_local_ignored_only",
+    }
+    if stage == "blocked_needs_component_or_rule":
+        return {
+            **base,
+            "priority": 0,
+            "risk_level": "high",
+            "allowed_level": "repair_first",
+            "objective": "先补组件处理器或业务校验识别，再重新进入 HAR→YAML→smoke。",
+            "recommended_action": "读取 scenario-report 和 failure_analysis，补最小通用规则后重跑回归。",
+            "command_hint": f"./venv/bin/python scripts/deep_chain_pipeline.py scenario-report --scenario-id {scenario_id}",
+        }
+    if stage == "yaml_ready_needs_smoke":
+        return {
+            **base,
+            "priority": 1,
+            "risk_level": "medium",
+            "allowed_level": "L2",
+            "objective": "已有 YAML，下一步做测试数据写入 smoke 和入库回查。",
+            "recommended_action": "确认测试数据安全后运行 run-scenario --run-smoke，再按 readback_plan 验证。",
+            "required_confirmation": "YES_GENERATE_TEST_DATA",
+            "command_hint": (
+                f"./venv/bin/python scripts/deep_chain_pipeline.py run-scenario --scenario-id {scenario_id}"
+                f"{' --case ' + case_file if case_file else ''} --run-smoke --confirm-write YES_GENERATE_TEST_DATA"
+            ),
+        }
+    if stage == "har_captured_needs_yaml":
+        return {
+            **base,
+            "priority": 2,
+            "risk_level": "medium",
+            "allowed_level": "L1_to_L2",
+            "objective": "已有本地 HAR，先生成 YAML 和链路画像，再决定是否写入 smoke。",
+            "recommended_action": "运行 run-scenario 生成 YAML、pageId 画像和经验匹配；确认后再执行 smoke。",
+            "command_hint": (
+                f"./venv/bin/python scripts/deep_chain_pipeline.py run-scenario --scenario-id {scenario_id}"
+                f"{' --har ' + har_path if har_path else ''}"
+            ),
+        }
+    if stage == "discovered_needs_har":
+        return {
+            **base,
+            "priority": 3,
+            "risk_level": "low",
+            "allowed_level": "L0_to_L1",
+            "objective": "先录制只读/打开新增不保存 HAR，补齐 pageId 和组件画像。",
+            "recommended_action": "用 Playwright discovery record-har 打开菜单和新增页，但不保存。",
+            "command_hint": (
+                "./venv/bin/python scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 "
+                f"--open-menu-samples {base['app_label']}:{base['menu_label']} --record-har"
+            ),
+        }
+    return {
+        **base,
+        "priority": 4,
+        "risk_level": "low",
+        "allowed_level": "L0",
+        "objective": "当前识别为只读或未发现写入入口，先复核菜单能力边界。",
+        "recommended_action": "重新做只读 discovery，确认是否确实无新增/保存入口；不要强行写库。",
+        "command_hint": (
+            "./venv/bin/python scripts/playwright_discover.py --env sit --app-keyword 薪酬福利云 "
+            f"--open-menu-samples {base['app_label']}:{base['menu_label']} --record-har"
+        ),
+    }
 
 
 def match_experience_catalog(
@@ -401,12 +591,14 @@ def build_readback_plan(
                 "source": str(item.get("source") or ""),
             })
         strongest = filters[0] if filters else {}
+        readback_strategy = _readback_strategy_for_form(form_id, filters)
         plans.append({
             "form_id": form_id,
             "app_id": app_id,
             "query_method": "list_filter_or_common_search",
             "preferred_filter": strongest,
             "fallback_filters": filters[1:],
+            "strategy": readback_strategy,
             "success_criteria": "至少回查到 1 条记录，且首选业务键与本次运行变量一致。",
             "suggested_assertion": {
                 "type": "readback_by_business_key",
@@ -423,6 +615,31 @@ def build_readback_plan(
         "reason": "已从 YAML 识别可用于后置回查的业务键。",
         "plans": plans,
         "guardrails": _readback_guardrails(),
+    }
+
+
+def _readback_strategy_for_form(form_id: str, filters: list[dict[str, str]]) -> dict[str, Any]:
+    strategy = READBACK_STRATEGY_LIBRARY.get(form_id)
+    available_fields = [str(item.get("field_key") or "") for item in filters if item.get("field_key")]
+    if strategy:
+        preferred = [field for field in strategy["preferred_fields"] if field in available_fields]
+        return {
+            "strategy_id": strategy["strategy_id"],
+            "source": "strategy_library",
+            "method": strategy["method"],
+            "preferred_fields": preferred or strategy["preferred_fields"],
+            "available_fields": available_fields,
+            "uniqueness_hint": strategy["uniqueness_hint"],
+            "manual_fallback": "若按推荐字段回查不到，先确认变量值和 pageId 链路，再允许人工确认。",
+        }
+    return {
+        "strategy_id": "generic_business_key",
+        "source": "generic",
+        "method": "business_key_common_search",
+        "preferred_fields": available_fields[:2] or ["number", "name", "description"],
+        "available_fields": available_fields,
+        "uniqueness_hint": "通用策略：优先使用 CRPLY_ 编码/名称/描述等本次运行变量回查。",
+        "manual_fallback": "无稳定业务键或回查接口不可用时，才允许人工确认入库。",
     }
 
 

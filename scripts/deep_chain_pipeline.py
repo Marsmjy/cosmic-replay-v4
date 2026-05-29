@@ -18,6 +18,7 @@ from lib.deep_chain_pipeline import (
     build_readback_plan,
     build_auto_pipeline_report,
     build_report_from_paths,
+    build_sample_expansion_plan,
     load_catalog,
     load_yaml_case,
     match_experience_catalog,
@@ -57,6 +58,10 @@ def main(argv: list[str] | None = None) -> int:
     status_cmd = sub.add_parser("status", help="Summarize deep-chain factory progress.")
     status_cmd.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
     status_cmd.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    expansion_cmd = sub.add_parser("expansion-plan", help="Build the next safe Playwright/HAR sample expansion batch.")
+    expansion_cmd.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
+    expansion_cmd.add_argument("--limit", type=int, default=8)
+    expansion_cmd.add_argument("--output", type=Path, help="Optional JSON output path.")
 
     report_cmd = sub.add_parser("scenario-report", help="Build one value-safe scenario pipeline report.")
     report_cmd.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
@@ -108,6 +113,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, ensure_ascii=False, indent=2))
         else:
             _print_progress(report)
+        return 0
+
+    if args.cmd == "expansion-plan":
+        plan = build_sample_expansion_plan(load_catalog(args.catalog), limit=args.limit)
+        if args.output:
+            output = write_json_report(plan, args.output)
+            print(f"Sample expansion plan: {output.resolve()}")
+        print(json.dumps(plan, ensure_ascii=False, indent=2))
         return 0
 
     if args.cmd == "scenario-report":

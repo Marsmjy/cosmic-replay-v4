@@ -34,6 +34,8 @@ description: Cosmic Replay 项目架构、模块职责、HAR 导入、YAML 生�
 | `lib/kb_loader.py` | ~363 | 知识库懒加载：场景元数据 + shared entity_metadata 字段分类 |
 | `lib/field_resolver.py` | - | 基础资料跨环境解析 |
 | `lib/component_registry.py` | - | HAR 组件处理器注册表：给 preview step 打标签、统计未知组件风险 |
+| `lib/har_preflight.py` | - | HAR 导入预审：质量、pageId 对齐、组件覆盖率合并评分，不改写 YAML 主链路 |
+| `lib/failure_analysis.py` | - | 执行失败自动归因：pageId、模板/F7、环境字段、子窗明细、预期业务校验和环境问题分类 |
 | `lib/har_regression.py` | - | 10 类 HAR 结构基线、影响分级和回归门禁（8 个 SIT + 2 个 UAT） |
 | `lib/task_manager.py` | - | 任务管理、批量报告、入库证据和行动队列 |
 | `lib/agent_evidence.py` | - | AI Agent 修复证据包：YAML、运行事件、报告上下文、技能护栏 |
@@ -100,7 +102,7 @@ scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-
 - `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml` 是最小闭环样本：Playwright 采集 `薪资核算 / 薪酬项目类别` 的菜单 L2、新增 L3 和 `treeview.focus`，runner 协议补齐 `number/name/taglevel` 后保存成功。
 - `tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml` 记录 `薪资核算 / 薪酬项目`：`salaryitemtype` 是必填 lookup，需要 `getLookUpList` 预热和按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段维护；保存是标准 `ac=save/key=tbmain/args=[bar_save, save]`。
 - `薪资核算 / 薪资核算场景` 已从组件缺口推进到写入闭环：`规则分组/常用筛选` 需要 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok`，确认响应回填 `groupcontent/entryentity` 后再保存；不能只补 `callistrule` 或硬补保存包体。
-- `scripts/deep_chain_pipeline.py status` 用来回答当前推进阶段：已写入闭环、阻塞组件、只读/不可写和下一批建议；`scenario-report` 将 HAR 链路画像、YAML smoke、失败归因、入库验证策略合成脱敏报告。`readback-plan --case <yaml>` 可从 YAML 的 `number/billno/code/name/description` 变量生成后置回查计划，并输出可复制到 YAML 的 `readback_by_business_key` 断言。`match-experience --case <yaml> --har <har>` 会按 `form_id/app_id`、lookup、showForm、write anchor、pageId 特征匹配已闭环样本，供 AI 复用相似经验。`run-scenario` 是自动闭环编排入口：默认只做 HAR 画像、YAML 生成/复用、经验匹配、回查计划和报告；只有显式 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才会调用写入 smoke。PASS 但只有“保存成功”时必须建议业务键回查，不能直接视为已入库。
+- `scripts/deep_chain_pipeline.py status` 用来回答当前推进阶段：已写入闭环、阻塞组件、只读/不可写和下一批建议；`expansion-plan` 输出下一批真实探索样本的 L0/L1/L2 风险分级、推荐命令和写库确认门禁；`scenario-report` 将 HAR 链路画像、YAML smoke、失败归因、入库验证策略合成脱敏报告。`readback-plan --case <yaml>` 可从 YAML 的 `number/billno/code/name/description` 变量生成后置回查计划，并输出可复制到 YAML 的 `readback_by_business_key` 断言。`match-experience --case <yaml> --har <har>` 会按 `form_id/app_id`、lookup、showForm、write anchor、pageId 特征匹配已闭环样本，供 AI 复用相似经验。`run-scenario` 是自动闭环编排入口：默认只做 HAR 画像、YAML 生成/复用、经验匹配、回查计划和报告；只有显式 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才会调用写入 smoke。PASS 但只有“保存成功”时必须建议业务键回查，不能直接视为已入库。
 - `readback_by_business_key` 是只读入库断言：优先复用指定回查步骤响应；未指定 step 时仅发 `commonSearch` 查询。断言通过后，批量报告会把 `write_status` 计为 `verified`。
 - Web UI HAR 导入预览会返回 `readback_plan`；若有稳定业务键，默认勾选“生成时附加入库回查断言”。CLI 等价开关是 `python -m lib.har_extractor extract ... --with-readback-assertions`，默认关闭以保持 HAR 回归 baseline 稳定。
 - 若 Playwright UI 填框没有产生 `updateValue` 或 `save` 网络请求，不能把“没写库”归因给 HAR 解析；应优先用 Playwright HAR 提供的 pageId 链路和 lookup 候选生成协议 YAML，再由 runner 验证。
@@ -162,6 +164,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 - 当前 YAML
 - 最近运行事件和失败事件
 - 批量报告上下文
+- `failure_analysis.diagnosis_priority`：提示 AI 优先查 pageId、模板/F7、环境字段、子窗明细、预期业务校验或入库断言盲区
 - `cosmic-replay-troubleshooter`、pageId、断言盲区、HR 知识库路径
 - 安全护栏：不得删除 `menuItemClick`、`target_forms`、`pick_fields`、`no_save_failure` 来绕过问题
 

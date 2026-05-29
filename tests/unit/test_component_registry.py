@@ -41,6 +41,33 @@ def test_component_registry_reports_unknown_actions():
     assert match.handler_id == "unknown_action"
     assert match.support_level == "unsupported"
     assert match.risk == "medium"
+    assert match.remediation == "add_handler"
+    assert "组件处理器" in match.suggestion
+
+
+def test_component_registry_unknown_gap_suggestions_are_actionable():
+    report = analyze_component_coverage([
+        {
+            "id": "unknown_ok_bridge",
+            "type": "invoke",
+            "ac": "customAction",
+            "method": "doOk",
+            "key": "btnok",
+        },
+        {
+            "id": "unknown_hint",
+            "type": "invoke",
+            "ac": "customHintScroll",
+            "method": "scrollTooltip",
+        },
+    ])
+
+    assert report["summary"]["unsupported_steps"] == 2
+    assert report["remediation_counts"]["must_preserve"] == 1
+    assert report["remediation_counts"]["safe_noise_optional"] == 1
+    suggestions = {item["step_id"]: item for item in report["gap_suggestions"]}
+    assert suggestions["unknown_ok_bridge"]["remediation"] == "must_preserve"
+    assert suggestions["unknown_hint"]["remediation"] == "safe_noise_optional"
 
 
 def test_component_registry_classifies_ua_bridge_and_hint_scroll_as_known():

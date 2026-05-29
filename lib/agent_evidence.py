@@ -95,6 +95,7 @@ def build_repair_evidence_package(
             "如果缺少入库证据，优先补入库验证或 pageId 链路，不要把 PASS 当作成功。",
             "若 write_status=unverified，先按 write_verification.readback_plan 做只读业务键回查；不要新增、保存、提交或硬补 save.post_data。",
             "先查看 experience_matches：若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。",
+            "先查看 failure_analysis.diagnosis_priority：它会提示优先查 pageId、模板/F7、环境字段、子弹窗明细、预期业务校验或入库断言盲区。",
             "先比对 HAR 原始 pageId 链路与回放 pageId 是否一致，再看变量解析和字段补偿；不得用硬补 save 字段替代 pageId 修复。",
             "遇到 createorg/ctrlstrategy/默认组织/控制策略缺失时，从 HAR loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id，写入模型上下文而不是 save.post_data。",
         ],

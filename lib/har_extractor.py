@@ -3379,6 +3379,130 @@ def _attach_pick_field_scopes(pick_fields_map: OrderedDict, steps: list[dict], m
         pf_meta.setdefault("write_step_id", scope["write_step_id"])
 
 
+def _annotate_env_field_sources(
+    pick_fields_map: OrderedDict,
+    observations: dict[str, Any],
+    *,
+    meta_resolver=None,
+) -> None:
+    """Explain where each environment field came from without changing values."""
+    if not pick_fields_map:
+        return
+    values_by_form = observations.get("response_values_by_form") or {}
+    internal_ids_by_form = observations.get("response_internal_ids_by_form") or {}
+    combo_options_by_form = observations.get("combo_options_by_form") or {}
+    labels_by_form = observations.get("labels_by_form") or {}
+    for _pf_id, meta in pick_fields_map.items():
+        if not isinstance(meta, dict):
+            continue
+        form_id = str(meta.get("form_id") or "")
+        field_key = str(meta.get("field_key") or "").lower()
+        source = str(meta.get("source") or "")
+        sources: list[str] = []
+        if source:
+            sources.append(source)
+        if meta.get("selector_source"):
+            sources.append("f7_entry_row")
+        if meta.get("context_only"):
+            sources.append("server_default_context")
+        if form_id and field_key in (values_by_form.get(form_id) or {}):
+            sources.append("loadData_response")
+        if form_id and field_key in (internal_ids_by_form.get(form_id) or {}):
+            sources.append("list_dataindex")
+        if form_id and field_key in (combo_options_by_form.get(form_id) or {}):
+            sources.append("combo_options")
+        if form_id and field_key in (labels_by_form.get(form_id) or {}):
+            sources.append("control_metadata")
+        if meta.get("auto_resolve"):
+            resolve_by = str(meta.get("resolve_by") or "auto_resolve")
+            sources.append(f"auto_resolve:{resolve_by}")
+        field_type = ""
+        if meta_resolver and form_id and field_key:
+            try:
+                field_type = meta_resolver.get_field_type(form_id, field_key) or ""
+            except Exception:
+                field_type = ""
+        if field_type:
+            meta.setdefault("metadata_type", field_type)
+            sources.append("metadata")
+        meta.setdefault("source_type", _primary_env_source(sources, meta))
+        meta.setdefault("source_detail", " + ".join(_dedupe_strings(sources)) or "har_recorded")
+
+
+def _primary_env_source(sources: list[str], meta: dict[str, Any]) -> str:
+    ordered = [
+        "f7_entry_row",
+        "server_default_context",
+        "loadData_response",
+        "list_dataindex",
+        "combo_options",
+        "control_metadata",
+        "metadata",
+    ]
+    for item in ordered:
+        if item in sources:
+            return item
+    if meta.get("auto_resolve"):
+        return "auto_resolve"
+    if sources:
+        return sources[0]
+    return "har_recorded"
+
+
+def _dedupe_strings(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out = []
+    for item in items:
+        if item and item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
+
+
+def _build_preview_business_blocks(
+    var_items: list[dict[str, Any]],
+    pick_fields: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    blocks: OrderedDict[str, dict[str, Any]] = OrderedDict()
+
+    def ensure(item: dict[str, Any], fallback: str) -> dict[str, Any]:
+        form_id = str(item.get("form_id") or "")
+        group_key = str(item.get("group_key") or (f"{form_id}:context" if form_id else "default:unscoped"))
+        group_label = str(item.get("group_label") or item.get("form_label") or fallback)
+        if group_key not in blocks:
+            blocks[group_key] = {
+                "key": group_key,
+                "label": group_label,
+                "form_id": form_id,
+                "form_label": str(item.get("form_label") or ""),
+                "write_step_id": str(item.get("write_step_id") or ""),
+                "smart_var_count": 0,
+                "env_field_count": 0,
+                "smart_vars": [],
+                "env_fields": [],
+            }
+        return blocks[group_key]
+
+    for item in var_items or []:
+        block = ensure(item, "智能变量")
+        block["smart_var_count"] += 1
+        block["smart_vars"].append({
+            "name": item.get("name", ""),
+            "label": item.get("label", ""),
+            "field_key": item.get("field_key", ""),
+        })
+    for item in pick_fields or []:
+        block = ensure(item, "环境字段")
+        block["env_field_count"] += 1
+        block["env_fields"].append({
+            "id": item.get("id", ""),
+            "label": item.get("label", ""),
+            "field_key": item.get("field_key", ""),
+            "source_type": item.get("source_type", ""),
+        })
+    return list(blocks.values())
+
+
 def _has_expected_notification(step: dict) -> bool:
     return bool(step.get("expected_notifications") or step.get("expected_errors"))
 
@@ -4940,6 +5064,11 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             item = OrderedDict((k, v) for k, v in pf.items() if k != "id")
             _preview_pick_map[pf_id] = item
     _attach_pick_field_scopes(_preview_pick_map, preview_steps, main_form)
+    _annotate_env_field_sources(
+        _preview_pick_map,
+        field_observations,
+        meta_resolver=meta_resolver,
+    )
     pick_fields = [{"id": pf_id, **dict(meta)} for pf_id, meta in _preview_pick_map.items()]
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
@@ -4993,13 +5122,36 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         }
     component_steps = component_report.get("steps") or []
 
+    try:
+        from lib.har_chain_probe import probe_har_chain
+        har_probe = probe_har_chain(har_path)
+    except Exception as e:
+        log.warning("HAR 链路画像失败（非致命）: %s", e)
+        har_probe = {}
+    try:
+        from lib.har_preflight import assess_pageid_alignment
+        pageid_alignment = assess_pageid_alignment(preview_copy, har_probe=har_probe)
+    except Exception as e:
+        log.warning("pageId 链路评分失败（非致命）: %s", e)
+        pageid_alignment = {
+            "score": 0,
+            "grade": "E",
+            "risk_level": "high",
+            "summary": f"pageId 评分失败: {type(e).__name__}: {e}",
+            "issues": [],
+            "checks": {},
+            "steps": [],
+        }
+
     preview = {
         "main_form_id": main_form,
         "tier_counts": by_tier,
         "detected_vars": var_items,
         "pick_fields": pick_fields,
+        "business_blocks": _build_preview_business_blocks(var_items, pick_fields),
         "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,
+        "pageid_alignment": pageid_alignment,
         "steps": [
             {
                 "id": s.get("id"),
@@ -5036,6 +5188,31 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "dimensions": [],
             "issues": [],
             "checks": {},
+        }
+    try:
+        from lib.har_preflight import assess_har_preflight
+        preview["preflight"] = assess_har_preflight(
+            main_form_id=main_form,
+            tier_counts=by_tier,
+            steps=preview_copy,
+            detected_vars=var_items,
+            pick_fields=pick_fields,
+            component_report=component_report,
+            quality=preview.get("quality"),
+            pageid_alignment=pageid_alignment,
+        )
+    except Exception as e:
+        log.warning("HAR 导入预审失败（非致命）: %s", e)
+        preview["preflight"] = {
+            "score": 0,
+            "grade": "E",
+            "decision": "blocked",
+            "allow_generate": False,
+            "recommend_generate": False,
+            "summary": f"导入预审失败: {type(e).__name__}: {e}",
+            "issues": [],
+            "checks": {},
+            "next_actions": ["请先查看高级诊断或重新上传 HAR。"],
         }
     return preview
 
