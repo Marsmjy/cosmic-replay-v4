@@ -264,3 +264,17 @@ def test_failure_analysis_classifies_dialog_detail_gap():
 
     assert result["category"] == "dialog_detail_chain_incomplete"
     assert any("newentry" in item for item in result["diagnosis_priority"])
+
+
+def test_failure_analysis_classifies_readback_assertion_gap():
+    result = classify_error(
+        "断言 readback_by_business_key 入库回查未找到: "
+        "haos_orgchangereason.number = KKKaa720903 "
+        "(只读 commonSearch，响应未包含 grid 行或业务键文本)",
+        step={"id": "assert_readback", "form_id": "haos_orgchangereason"},
+        case={"main_form_id": "haos_orgchangereason"},
+    )
+
+    assert result["category"] == "readback_assertion_gap"
+    assert result["confidence"] == "high"
+    assert any("commonSearch" in item for item in result["diagnosis_priority"])

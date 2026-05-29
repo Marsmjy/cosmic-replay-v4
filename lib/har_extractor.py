@@ -3669,6 +3669,9 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
         if isinstance(a, dict)
     }
     for item in plan.get("plans") or []:
+        policy = item.get("assertion_policy") or {}
+        if policy.get("auto_append") is False:
+            continue
         suggested = item.get("suggested_assertion") or {}
         field_key = str(suggested.get("field_key") or "")
         value = str(suggested.get("value") or suggested.get("value_ref") or "")

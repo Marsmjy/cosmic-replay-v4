@@ -382,6 +382,9 @@ def enrich_case_result(result: CaseResult) -> None:
             result.next_action = "auto_repair"
         elif needs_confirm:
             result.next_action = "manual_confirm"
+        elif category == "readback_assertion_gap":
+            result.next_action = "ai_agent"
+            result.ai_reason = "保存/提交已执行，但通用入库回查未命中；需确认真实入库或补表单专用回查策略。"
         elif category in {"pageid_context", "unknown", "assertion_anchor_missing"}:
             result.next_action = "ai_agent"
             result.ai_reason = f"系统规则未生成安全修复，失败类型为 {category or 'unknown'}。"

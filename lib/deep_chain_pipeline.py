@@ -599,6 +599,7 @@ def build_readback_plan(
             "preferred_filter": strongest,
             "fallback_filters": filters[1:],
             "strategy": readback_strategy,
+            "assertion_policy": _readback_assertion_policy(readback_strategy),
             "success_criteria": "至少回查到 1 条记录，且首选业务键与本次运行变量一致。",
             "suggested_assertion": {
                 "type": "readback_by_business_key",
@@ -640,6 +641,27 @@ def _readback_strategy_for_form(form_id: str, filters: list[dict[str, str]]) -> 
         "available_fields": available_fields,
         "uniqueness_hint": "通用策略：优先使用 CRPLY_ 编码/名称/描述等本次运行变量回查。",
         "manual_fallback": "无稳定业务键或回查接口不可用时，才允许人工确认入库。",
+    }
+
+
+def _readback_assertion_policy(strategy: dict[str, Any]) -> dict[str, Any]:
+    """Decide whether a readback plan may become a hard YAML assertion.
+
+    A generic commonSearch plan is useful guidance, but not reliable enough to
+    fail a saved case: some Kingdee list forms do not expose freshly saved rows
+    through commonSearch with the bill form id. Only strategy-library entries
+    that we have explicitly modeled are auto-appended as hard assertions.
+    """
+    if strategy.get("source") == "strategy_library":
+        return {
+            "auto_append": True,
+            "mode": "strict",
+            "reason": "该表单已有专用入库回查策略，可自动生成硬断言。",
+        }
+    return {
+        "auto_append": False,
+        "mode": "advisory",
+        "reason": "通用 commonSearch 回查不保证所有表单可用，仅作为建议，不自动生成硬断言。",
     }
 
 

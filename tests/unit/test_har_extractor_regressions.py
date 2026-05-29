@@ -77,6 +77,26 @@ def test_append_readback_assertions_is_opt_in_and_uses_business_key():
     }
 
 
+def test_append_readback_assertions_skips_generic_common_search_plan():
+    case = {
+        "main_form_id": "custom_org_reason",
+        "vars": {"test_number": "CRPLY_${rand:6}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "custom_org_reason",
+            }
+        },
+        "assertions": [{"type": "no_save_failure", "step": "click_bar_save"}],
+    }
+
+    plan = _append_readback_assertions(case)
+
+    assert plan["status"] == "ready"
+    assert plan["plans"][0]["assertion_policy"]["auto_append"] is False
+    assert case["assertions"] == [{"type": "no_save_failure", "step": "click_bar_save"}]
+
+
 def test_preview_readback_plan_uses_detected_var_metadata():
     plan = _build_preview_readback_plan(
         "hsas_payrollscene",

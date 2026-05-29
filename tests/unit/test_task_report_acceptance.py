@@ -148,6 +148,31 @@ def test_task_manager_report_contains_acceptance_and_queues():
     assert data["action_queues"]["ai_agent"][0]["name"] == "case_a"
 
 
+def test_readback_assertion_gap_routes_to_ai_with_clear_reason():
+    result = CaseResult(
+        name="case_readback_gap",
+        passed=False,
+        error="断言 readback_by_business_key 入库回查未找到",
+        failure_analysis={
+            "category": "readback_assertion_gap",
+            "root_cause": "通用 commonSearch 不适配该表单",
+        },
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [{"p": "保存成功。"}],
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+
+    assert result.next_action == "ai_agent"
+    assert "通用入库回查未命中" in result.ai_reason
+
+
 def test_report_hydration_applies_manual_write_confirmation(monkeypatch):
     from lib.webui import server
 

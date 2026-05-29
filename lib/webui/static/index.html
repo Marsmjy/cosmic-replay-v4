@@ -801,7 +801,7 @@
               <div class="text-amber-200 font-medium flex items-center gap-2">
                 <span>自动归因</span>
                 <span class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300"
-                      x-text="failureAnalysis?.category"></span>
+                      x-text="failureCategoryLabel(failureAnalysis?.category)"></span>
                 <span class="text-xs text-slate-500" x-text="'置信度 ' + (failureAnalysis?.confidence || '-')"></span>
               </div>
             </div>
@@ -3953,7 +3953,8 @@ function app() {
     },
 
     harReadbackPlanCount() {
-      return (this.harReadbackPlan().plans || []).filter(p => p?.suggested_assertion?.field_key).length;
+      return (this.harReadbackPlan().plans || [])
+        .filter(p => p?.suggested_assertion?.field_key && p?.assertion_policy?.auto_append !== false).length;
     },
 
     harPreflight() {
@@ -4188,7 +4189,7 @@ function app() {
         })
             .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
         this.hydrateHarPickFieldDrafts();
-        this.harIncludeReadbackAssertions = (this.harPreview?.readback_plan?.status === 'ready');
+        this.harIncludeReadbackAssertions = this.harReadbackPlanCount() > 0;
         this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harAdvancedOpen = false;
         this.harStep = 2;
@@ -4831,10 +4832,30 @@ function app() {
     },
 
     singleRunDiagnosisText() {
+      const category = this.singleRunDiagnosis?.failure_analysis?.category || this.failureAnalysis?.category || '';
+      if (!this.summary?.passed && category === 'readback_assertion_gap') {
+        return '保存步骤已成功，但自动入库回查未命中。可先确认环境数据是否存在，再决定是否补专用回查策略。';
+      }
       if (!this.summary?.passed) {
         return '系统已准备好本次运行上下文。复制指令给 AI，可直接排查失败步骤、YAML、pageId 链路和环境字段。';
       }
       return '这次执行 PASS，但保存/提交响应缺少明确入库证据。复制指令给 AI，可排查 pageId 链路或补充入库断言。';
+    },
+
+    failureCategoryLabel(category) {
+      return {
+        readback_assertion_gap: '入库回查策略不适配',
+        pageid_context: 'pageId 链路异常',
+        assertion_anchor_missing: '断言锚点缺失',
+        business_missing_required: '业务必填缺失',
+        business_validation_expected: '预期业务校验',
+        environment_field_context_missing: '环境字段缺失',
+        f7_lookup_chain_missing: 'F7 选择链路缺失',
+        dialog_detail_chain_incomplete: '子窗明细链路不完整',
+        component_rule_group_filter_missing: '组件明细缺失',
+        transient_protocol: '环境/网络波动',
+        unknown: '待 AI 诊断',
+      }[category || 'unknown'] || category;
     },
 
     singleRunDiagnosisReason() {

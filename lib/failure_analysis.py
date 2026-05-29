@@ -110,6 +110,13 @@ _DIALOG_DETAIL_PATTERNS = (
     "分录",
 )
 
+_READBACK_ASSERTION_PATTERNS = (
+    "入库回查未找到",
+    "readback_by_business_key",
+    "只读 commonSearch",
+    "响应未包含 grid 行或业务键文本",
+)
+
 _DUPLICATE_PATTERNS = (
     "已存在",
     "重复",
@@ -495,6 +502,24 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if _is_readback_assertion_gap(text):
+        return _result(
+            "readback_assertion_gap",
+            "medium",
+            False,
+            "保存/提交已执行，但后置入库回查断言未找到业务键；常见原因是通用 commonSearch 不适配该表单，而不是保存链路失败。",
+            text,
+            [
+                "先确认保存步骤的 no_save_failure/no_error_actions 是否通过，保存响应是否包含保存成功、主键或回写字段。",
+                "若环境中确认已入库，应删除或降级该通用 readback_by_business_key 硬断言，改为表单专用回查策略或人工确认。",
+                "后续 HAR 生成只应对已有专用策略的表单自动追加硬回查断言；通用 commonSearch 只能作为建议。",
+                "不要修改 save.post_data，也不要删除保存失败断言来绕过问题。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _MISSING_PATTERNS):
         field = _extract_field_caption(text)
         return _result(
@@ -635,6 +660,10 @@ def _is_dialog_detail_chain_missing(text: str) -> bool:
     return any(token in text for token in ("缺失", "未回填", "为空", "不能为空", "请至少", "保存成功但", "只入库"))
 
 
+def _is_readback_assertion_gap(text: str) -> bool:
+    return _contains(text, _READBACK_ASSERTION_PATTERNS)
+
+
 def _matches_expected_notification(text: str, step: dict) -> bool:
     specs = step.get("expected_notifications") or step.get("expected_errors") or []
     for spec in specs:
@@ -703,6 +732,11 @@ def _diagnosis_priority_for(category: str) -> list[str]:
             "核对 newentry/F7/子窗字段/确定/主保存全链路",
             "确认明细回填证据和入库回查断言",
             "补表单/步骤作用域变量，不裁剪子窗",
+        ],
+        "readback_assertion_gap": [
+            "先确认保存响应是否已经成功",
+            "再确认 commonSearch 回查是否适配该表单",
+            "必要时移除通用硬回查断言或补表单专用回查",
         ],
         "component_rule_group_filter_missing": [
             "先确认 pageId 链路无异常",

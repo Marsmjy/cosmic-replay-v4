@@ -133,6 +133,8 @@ def test_build_readback_plan_groups_business_keys_by_form():
     assert main_plan["app_id"] == "hpdi"
     assert main_plan["strategy"]["strategy_id"] == "ua_submit_business_key"
     assert main_plan["strategy"]["source"] == "strategy_library"
+    assert main_plan["assertion_policy"]["auto_append"] is True
+    assert main_plan["assertion_policy"]["mode"] == "strict"
     assert main_plan["suggested_assertion"] == {
         "type": "readback_by_business_key",
         "form_id": "hpdi_bizdatabill",
@@ -159,6 +161,8 @@ def test_readback_plan_uses_generic_strategy_for_unknown_forms():
 
     assert plan["plans"][0]["strategy"]["strategy_id"] == "generic_business_key"
     assert plan["plans"][0]["strategy"]["manual_fallback"]
+    assert plan["plans"][0]["assertion_policy"]["auto_append"] is False
+    assert plan["plans"][0]["assertion_policy"]["mode"] == "advisory"
 
 
 def test_pipeline_failure_classification_uses_existing_failure_analysis_rules():
