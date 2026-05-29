@@ -1,0 +1,211 @@
+name: salary_calc_scene_protocol_save
+description: 受控写入【薪资核算场景】 · 规则分组常用筛选 F7 回填闭环
+env:
+  base_url: ${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}
+  username: ${env:COSMIC_USERNAME}
+  password: ${env:COSMIC_PASSWORD}
+  datacenter_id: ${env:COSMIC_DATACENTER_ID}
+vars:
+  test_number: "CRPLY_SCENE_${rand:6}"
+  test_name: "CRPLY薪资核算场景${rand:6}"
+main_form_id: hsas_payrollscene
+steps:
+  - id: open_portal
+    type: open_form
+    form_id: bos_portal_myapp_new
+    app_id: bos
+  - id: menuItemClick_salary_calc_scene
+    type: invoke
+    form_id: bos_portal_myapp_new
+    app_id: bos
+    ac: menuItemClick
+    key: appnavigationmenuap
+    method: menuItemClick
+    args:
+      - menuId: 01GT0E9JYHGR
+        appId: /UHMBBGZQ65X
+        cloudId: /U+QDTL900//
+    post_data:
+      - {}
+      - []
+    target_form: hsas_payrollscene
+    target_forms:
+      - hsas_apphome
+      - hsas_payrollscene
+    navigation_form_id: hsas_payrollscene
+  - id: selectTab_salary_calc_scene
+    type: invoke
+    form_id: home_page
+    app_id: bos
+    ac: selectTab
+    key: tabap
+    method: selectTab
+    args:
+      - hsasroot${session.root_base_id}
+    post_data:
+      - {}
+      - []
+    optional: true
+  - id: load_calc_scene_list
+    type: invoke
+    form_id: hsas_payrollscene
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+    preserve_l2_page: true
+  - id: click_tblnew
+    type: invoke
+    form_id: hsas_payrollscene
+    app_id: hsas
+    ac: new
+    key: toolbarap
+    method: itemClick
+    args:
+      - tblnew
+      - new
+    post_data:
+      - {}
+      - []
+    preserve_l2_page: true
+  - id: load_calc_scene_edit
+    type: invoke
+    form_id: hsas_payrollscene
+    app_id: hsas
+    ac: loadData
+    key: ""
+    method: loadData
+    args: []
+    post_data: []
+  - id: fill_calc_scene_basic
+    type: update_fields
+    form_id: hsas_payrollscene
+    app_id: hsas
+    fields:
+      number: ${vars.test_number}
+      name:
+        zh_CN: ${vars.test_name}
+        zh_TW: ${vars.test_name}
+      lssuepayslip: false
+      isenableatt: false
+  - id: pick_country
+    type: pick_basedata
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: country
+    value_id: 中国
+    value_name: 中国
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "中国", "%", 0, 20, 0]
+  - id: pick_periodtype
+    type: pick_basedata
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: periodtype
+    value_id: 验证架构优化001
+    value_name: 验证架构优化001
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "验证架构优化001", "%", 0, 20, 0]
+  - id: pick_calrule
+    type: pick_basedata
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: calrule
+    value_id: 验证架构优化001（不开启个税）
+    value_name: 验证架构优化001（不开启个税）
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "验证架构优化001", "%", 0, 20, 0]
+  - id: pick_callistview
+    type: pick_basedata
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: callistview
+    value_id: 验证架构优化001
+    value_name: 验证架构优化001
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "验证架构优化001", "%", 0, 20, 0]
+  - id: pick_callistrule
+    type: pick_basedata
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: callistrule
+    value_id: 验证架构优化001
+    value_name: 验证架构优化001
+    auto_resolve: true
+    resolve_by: value_name
+    prefetch_lookup: true
+    prefetch_lookup_args:
+      - ["%", "验证架构优化001", "%", 0, 20, 0]
+    description: 选择「核算名单规则」
+  - id: click_add_common_filter_labelap4
+    type: invoke
+    form_id: hsas_payrollscene
+    app_id: hsas
+    ac: click
+    key: labelap4
+    method: click
+    args: []
+    post_data:
+      - {}
+      - []
+    description: 点击规则分组【添加】打开算发薪方式 F7
+  - id: select_salarycalcstyle_f7
+    type: select_f7_list_row
+    form_id: hsbp_allowreturnnullf7
+    app_id: hsas
+    grid_key: billlistap
+    field_key: name
+    target_field_key: salarycalcstyle
+    value_code: 1010_S
+    value_name: 在职算薪
+    match_fields:
+      - number
+      - name
+    confirm_key: btnok
+    description: 选择算发薪方式并回填规则分组常用筛选
+  - id: click_bar_save
+    type: invoke
+    form_id: hsas_payrollscene
+    app_id: hsas
+    ac: save
+    key: tbmain
+    method: itemClick
+    args:
+      - bar_save
+      - save
+    post_data:
+      - {}
+      - []
+    description: 保存【薪资核算场景】
+assertions:
+  - type: no_save_failure
+    step: click_bar_save
+  - type: no_error_actions
+    step: click_bar_save
+pick_fields:
+  pick_salarycalcstyle_id:
+    value_id: 1010_S
+    value_name: 在职算薪
+    value_code: 1010_S
+    label: 算发薪方式
+    env_sensitive: medium
+    field_key: salarycalcstyle
+    form_id: hsbp_allowreturnnullf7
+    app_id: hsas
+    source_step_id: select_salarycalcstyle_f7
+    write_step_id: click_bar_save
+    resolve_status: manual

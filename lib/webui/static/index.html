@@ -1392,6 +1392,16 @@
                 生成 YAML
               </button>
             </div>
+            <label x-show="harReadbackPlanCount() > 0"
+                   class="flex items-start gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-3 py-2 cursor-pointer">
+              <input type="checkbox" x-model="harIncludeReadbackAssertions"
+                     class="mt-0.5 rounded border-slate-600 bg-slate-950 text-emerald-500">
+              <span class="text-xs text-emerald-100 leading-relaxed">
+                生成时附加入库回查断言
+                <span class="text-emerald-400" x-text="'（' + harReadbackPlanCount() + ' 条）'"></span>
+                <span class="block text-slate-400">执行 PASS 后会按业务键只读回查，报告可自动显示“入库已验证”。</span>
+              </span>
+            </label>
             <button @click="harAdvancedOpen = !harAdvancedOpen"
                     class="w-full text-xs text-slate-400 hover:text-slate-200 py-1">
               <span x-text="harAdvancedOpen ? '收起高级诊断' : '查看高级诊断'"></span>
@@ -1750,6 +1760,18 @@
           将生成文件: <code class="mono text-sky-400" x-text="`cases/${harCaseName || '<name>'}.yaml`"></code>
         </div>
       </div>
+      <label x-show="harReadbackPlanCount() > 0"
+             class="flex items-start gap-3 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-3 py-3 cursor-pointer">
+        <input type="checkbox" x-model="harIncludeReadbackAssertions"
+               class="mt-0.5 rounded border-slate-600 bg-slate-950 text-emerald-500">
+        <span class="text-sm text-emerald-100">
+          附加入库回查断言
+          <span class="text-xs text-emerald-400" x-text="'（' + harReadbackPlanCount() + ' 条建议）'"></span>
+          <span class="block text-xs text-slate-400 mt-1">
+            只做 commonSearch/已有响应回查，不会新增、保存或提交；通过后报告会自动显示入库已验证。
+          </span>
+        </span>
+      </label>
       <div class="flex justify-end gap-2 pt-2">
         <button @click="harStep=2" class="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100">← 返回</button>
         <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
@@ -3044,6 +3066,7 @@ function app() {
 	    harPickFields: [],    // ⭐ 环境相关字段（从 preview 初始化，用户可编辑）
 	    harPickFieldDrafts: {},
 	    harResolvingFields: false,
+	    harIncludeReadbackAssertions: false,
 	    metadataStatus: 'offline',  // ⭐ 元数据增强状态: online/offline/degraded
 	    harAdvancedOpen: false,
 	    dropHover: false,
@@ -3814,6 +3837,14 @@ function app() {
       };
     },
 
+    harReadbackPlan() {
+      return this.harPreview?.readback_plan || {status: 'not_ready', plans: []};
+    },
+
+    harReadbackPlanCount() {
+      return (this.harReadbackPlan().plans || []).filter(p => p?.suggested_assertion?.field_key).length;
+    },
+
     harReadiness() {
       const score = this.harPreview?.quality?.score || 0;
       const blocking = !!this.harPreview?.quality?.blocking;
@@ -3958,6 +3989,7 @@ function app() {
       this.harPickFields = [];
       this.harPickFieldDrafts = {};
       this.harResolvingFields = false;
+      this.harIncludeReadbackAssertions = false;
       this.metadataStatus = 'offline';
       this.harAdvancedOpen = false;
       this.dropHover = false;
@@ -4003,6 +4035,7 @@ function app() {
         })
             .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
         this.hydrateHarPickFieldDrafts();
+        this.harIncludeReadbackAssertions = (this.harPreview?.readback_plan?.status === 'ready');
         this.harCaseName = file.name.replace(/\.har$/i, '');
         this.harAdvancedOpen = false;
         this.harStep = 2;
@@ -4102,6 +4135,7 @@ function app() {
             env_id: this.currentEnv || '',
             var_overrides: varOverrides,
             pick_field_overrides: pickFieldOverrides,
+            include_readback_assertions: !!this.harIncludeReadbackAssertions,
           }),
         });
         if (!resp.ok) {
@@ -4676,10 +4710,12 @@ function app() {
         '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
         '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
-        '5. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '6. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '7. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '8. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
+        '6. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
+        '7. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '8. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '9. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '10. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
@@ -4713,10 +4749,12 @@ function app() {
         '2. 优先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
         '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
-        '5. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '6. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '7. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '8. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
+        '6. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
+        '7. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '8. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '9. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '10. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 

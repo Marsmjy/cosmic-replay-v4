@@ -117,7 +117,13 @@ def _is_l2_pageid(pid: str) -> bool:
 - 深链路样本经验见 `tests/fixtures/deep_chain_factory/catalog.json`。例如 `薪资核算 / 薪酬项目类别` 的正确闭环是 `menuItemClick` 绑定 L2、`new` 保留 L2、`showForm/loadData` 切 L3、再执行 `update_fields`、`pick_basedata(taglevel)` 和弹窗 `btnsave`。Playwright UI 填框没有触发 `updateValue/save` 时，应改用协议 YAML 验证，不要误判为 parser 失败。
 - 如果 `showForm` 返回的是 `bos_list` 但带 `billFormId`（如 `hsas_retroreason`），诊断时要确认 L2 已绑定到业务表单别名；否则列表 load/new 可能拿不到正确 pageId。
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
+- `薪资核算 / 薪资核算场景` 已验证写入闭环：保存提示“规则分组/常用筛选至少一行”时，pageId 链路通常已正常，缺的是 F7 子窗口回填链。正确链路是维护 `country` 后点击 `labelap4` 打开 `hsas_salarycalcstyle` F7，用 `select_f7_list_row` 按编码/名称选中算发薪方式并点击 `btnok`，确认响应回填 `groupcontent/entryentity` 后再保存；仅补选 `callistrule` 不会生成筛选行。
 - `基础资料-受控-变动原因` 已验证闭环：原始 HAR 通过 `homs_apphome/treeMenuClick` 建立树菜单 L2，但 API replay 可能无法重建 apphome shell。若保存提示“请按要求填写创建组织”，先检查是否从 HAR 的列表 `createorg_id` 和新增态 `loadData` 提取了 `createorg/ctrlstrategy` 默认上下文；`createorg` 要用内部 Long id 写 `update_fields`，`ctrlstrategy` 要解析 ComboField 编码/中文并暴露为环境字段，不要硬补 `save.post_data`。
+- 深链路样本排障完成后，运行 `scripts/deep_chain_pipeline.py scenario-report` 生成脱敏闭环报告，把 HAR 链路画像、YAML smoke、失败分类和入库验证策略沉淀到经验库。若执行 PASS 但只有“保存成功”提示，应先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>` 生成推荐查询表单和业务键，再把 `suggested_assertion` 补为 `readback_by_business_key` 只读断言；不能把 PASS 直接当作入库已验证。
+- 新 HAR 或失败证据包若包含 `experience_matches`，先看命中的已闭环样本和 `reusable_lessons`。也可运行 `scripts/deep_chain_pipeline.py match-experience --case <yaml> --har <har>`，按结构特征匹配成功经验。匹配结果只用于排障优先级，仍必须回到 HAR 原始 pageId 与回放 pageId 比对，不能因为命中样本就硬补 save 字段。
+- 若需要把新 HAR 从导入到执行串起来，优先用 `scripts/deep_chain_pipeline.py run-scenario`。默认模式只生成 HAR 画像、YAML、经验匹配、入库回查计划和报告；只有明确带 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才允许写入测试数据。AI 修复时应检查 `pipeline.status`、`baseline_candidate` 和 `next_actions`，不要绕过该流水线直接改已通过样本。
+- 若新 HAR 在 Web UI 生成时已勾选“附加入库回查断言”，优先检查 `assertions` 中的 `readback_by_business_key` 是否使用正确 `form_id/app_id/field_key/value`。若断言失败，不要改 save 包体；先确认业务键是否被用户修改、列表查询是否需要额外组织/状态过滤、pageId 是否仍在正确 L2/L3 链路。
+- 需要补录复杂 UI 组件 HAR 时，用 Playwright 深层动作计划；`click_selector/press/select_option` 默认视为写操作，必须带 `YES_GENERATE_TEST_DATA`，填写值可用 `${timestamp}`、`${today}`、`${rand:N}`，原始 HAR 仍只能放在 ignored 目录。
 
 ---
 
@@ -337,7 +343,7 @@ post_data:
 - 进入子明细补录的 `click/newentry` 不能标 optional；失败要中断，避免保存主单后误报成功。
 - 高级面板分录“增行”可能不是普通按钮 click。已验证的薪资期间样本使用 `ac=newentry/key=advcontoolbarap/method=itemClick/args=[addrow,newentry]`；若返回“请先维护频度/期间起始规则”，先补前置字段（如 `calfrequency`、`halfmonthfirstday`、`halfmonthsecday`），不要把后续 `row_index` 写入报错误判为 runner 问题。
 - 遇到多个必填基础资料缺失（如薪资核算组的 `country/currency/exratetable`），先确认 pageId `loadData` 默认上下文是否已带值；若未带出，应通过 `pick_basedata + prefetch_lookup` 按业务编码/名称解析，禁止直接硬补长整数内码。
-- 遇到“规则分组/常用筛选不能为空”这类业务组件校验（已见于薪资核算场景），先确认 pageId 链路没错，再补规则分组组件处理器或把筛选行暴露为可维护变量；不要删除 `no_save_failure` 或硬补保存包体。
+- 遇到“规则分组/常用筛选不能为空”这类业务组件校验（已见于薪资核算场景），先确认 pageId 链路没错，再检查 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok -> groupcontent/entryentity` 是否完整；仅补 `callistrule` 不等于补了 `entryentity` 常用筛选行。不要删除 `no_save_failure` 或硬补保存包体。
 - `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。
@@ -434,6 +440,8 @@ pick_fields:
    - 检查 `_pending_by_app` 是否被 L2 屏蔽。
 4. 若保存响应非空但无写库 token：
    - 补充保存后唯一字段回查断言，或增强 `no_save_failure`。
+   - 先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>`，优先用 `number/billno/code/name/description` 等本次运行变量生成只读回查计划。
+   - 优先补 `readback_by_business_key` 断言；它只复用回查步骤或发 `commonSearch`，不能改写保存请求。
    - 不要直接把此类用例标为成功。
 
 **修复原则**：

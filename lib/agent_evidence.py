@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from .deep_chain_pipeline import DEFAULT_CATALOG, build_readback_plan, load_catalog, match_experience_catalog
 from .pageid_trace import build_pageid_trace
 
 
@@ -31,7 +32,11 @@ def build_repair_evidence_package(
         case_data = yaml.safe_load(yaml_text) if yaml_text else {}
     except Exception:
         case_data = {}
+    if not isinstance(case_data, dict):
+        case_data = {}
     run_id = case_result.get("run_id", "")
+    readback_plan = build_readback_plan(case_data)
+    experience_matches = _build_experience_matches(skill_root, case_data)
     package = {
         "schema_version": "1.0",
         "created_at": datetime.now().isoformat(),
@@ -48,6 +53,11 @@ def build_repair_evidence_package(
             "ai_reason": case_result.get("ai_reason", ""),
             "failure_analysis": case_result.get("failure_analysis", {}),
         },
+        "write_verification": {
+            "readback_plan": readback_plan,
+            "when_to_use": "当执行 PASS 但 write_status=unverified，优先按本计划做只读业务键回查。",
+        },
+        "experience_matches": experience_matches,
         "case_artifacts": {
             "case_path": str(case_path),
             "yaml": yaml_text,
@@ -83,6 +93,8 @@ def build_repair_evidence_package(
             "不得修改已成功回归样本的 YAML baseline，除非影响报告明确为 none/review 且有理由。",
             "修复后必须运行 HAR 回归 compare --fail-on-diff 和相关单测。",
             "如果缺少入库证据，优先补入库验证或 pageId 链路，不要把 PASS 当作成功。",
+            "若 write_status=unverified，先按 write_verification.readback_plan 做只读业务键回查；不要新增、保存、提交或硬补 save.post_data。",
+            "先查看 experience_matches：若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。",
             "先比对 HAR 原始 pageId 链路与回放 pageId 是否一致，再看变量解析和字段补偿；不得用硬补 save 字段替代 pageId 修复。",
             "遇到 createorg/ctrlstrategy/默认组织/控制策略缺失时，从 HAR loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id，写入模型上下文而不是 save.post_data。",
         ],
@@ -98,6 +110,22 @@ def build_repair_evidence_package(
         },
     }
     return package
+
+
+def _build_experience_matches(skill_root: Path, case_data: dict[str, Any]) -> dict[str, Any]:
+    catalog_path = skill_root / DEFAULT_CATALOG
+    try:
+        catalog = load_catalog(catalog_path)
+    except Exception:
+        return {
+            "status": "catalog_unavailable",
+            "query": {"forms": [], "apps": [], "features": []},
+            "matches": [],
+            "guardrails": [
+                "未找到深链路经验库，仍需按 pageId、变量、环境字段、断言顺序排查。",
+            ],
+        }
+    return match_experience_catalog(catalog, case=case_data, limit=3)
 
 
 def save_repair_evidence_package(package: dict[str, Any], output_dir: Path) -> Path:

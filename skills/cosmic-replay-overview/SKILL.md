@@ -92,11 +92,17 @@ scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-
 
 安全原则：默认 `--max-menu-clicks 0`，不会点击菜单；即使开启少量菜单点击，也会拦截新增、保存、提交、删除、审核、导入、上传、确定/确认等写入或高风险动作。深层动作计划只允许操作 `CRPLY_` 前缀测试数据；保存/新增/填写必须传 `YES_GENERATE_TEST_DATA`，提交/审核还必须传 `YES_SUBMIT_OR_AUDIT_TEST_DATA`。写入阶段优先使用已生成 YAML 的 `scripts/write_smoke_run.py`，且必须显式传入 `--confirm-write YES_GENERATE_TEST_DATA`。必须使用与 HAR/YAML 匹配的环境，不能把 UAT 内部模板/组织值硬搬到 SIT 写库。原始 HAR、写入事件、截图只能保存在 `tmp/` 等 ignored 目录，不能提交 Git；可提交的只能是脱敏结构摘要、规则、测试和文档。
 
+深层动作计划支持 `click_text/fill_text/fill_at/click_selector/click_at/wait_for_selector/snapshot_controls/press/select_option/wait`，填写值可用 `${timestamp}`、`${today}`、`${rand:N}`。`snapshot_controls` 只读输出可见控件、文本和 selector/坐标线索；`click_selector/click_at/fill_at/press/select_option` 默认按写操作处理，除非明确标 `risk: read`；这用于录制规则分组、F7 弹窗和明细表格等文本定位不稳定的组件。
+
 深链路场景工厂经验库：
 
 - `tests/fixtures/deep_chain_factory/catalog.json` 记录薪酬福利云 3-5 个代表菜单的成熟度：已写入通过、已采集新增页、只读/不可写。
 - `tests/fixtures/deep_chain_factory/salary_item_category_protocol_save.yaml` 是最小闭环样本：Playwright 采集 `薪资核算 / 薪酬项目类别` 的菜单 L2、新增 L3 和 `treeview.focus`，runner 协议补齐 `number/name/taglevel` 后保存成功。
 - `tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml` 记录 `薪资核算 / 薪酬项目`：`salaryitemtype` 是必填 lookup，需要 `getLookUpList` 预热和按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段维护；保存是标准 `ac=save/key=tbmain/args=[bar_save, save]`。
+- `薪资核算 / 薪资核算场景` 已从组件缺口推进到写入闭环：`规则分组/常用筛选` 需要 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok`，确认响应回填 `groupcontent/entryentity` 后再保存；不能只补 `callistrule` 或硬补保存包体。
+- `scripts/deep_chain_pipeline.py status` 用来回答当前推进阶段：已写入闭环、阻塞组件、只读/不可写和下一批建议；`scenario-report` 将 HAR 链路画像、YAML smoke、失败归因、入库验证策略合成脱敏报告。`readback-plan --case <yaml>` 可从 YAML 的 `number/billno/code/name/description` 变量生成后置回查计划，并输出可复制到 YAML 的 `readback_by_business_key` 断言。`match-experience --case <yaml> --har <har>` 会按 `form_id/app_id`、lookup、showForm、write anchor、pageId 特征匹配已闭环样本，供 AI 复用相似经验。`run-scenario` 是自动闭环编排入口：默认只做 HAR 画像、YAML 生成/复用、经验匹配、回查计划和报告；只有显式 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才会调用写入 smoke。PASS 但只有“保存成功”时必须建议业务键回查，不能直接视为已入库。
+- `readback_by_business_key` 是只读入库断言：优先复用指定回查步骤响应；未指定 step 时仅发 `commonSearch` 查询。断言通过后，批量报告会把 `write_status` 计为 `verified`。
+- Web UI HAR 导入预览会返回 `readback_plan`；若有稳定业务键，默认勾选“生成时附加入库回查断言”。CLI 等价开关是 `python -m lib.har_extractor extract ... --with-readback-assertions`，默认关闭以保持 HAR 回归 baseline 稳定。
 - 若 Playwright UI 填框没有产生 `updateValue` 或 `save` 网络请求，不能把“没写库”归因给 HAR 解析；应优先用 Playwright HAR 提供的 pageId 链路和 lookup 候选生成协议 YAML，再由 runner 验证。
 
 ## 核心设计决策

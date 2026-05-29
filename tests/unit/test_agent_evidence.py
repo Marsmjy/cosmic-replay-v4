@@ -8,7 +8,20 @@ from lib.task_manager import CaseResult
 
 def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
     case_path = tmp_path / "case.yaml"
-    case_path.write_text("name: demo\nsteps: []\n", encoding="utf-8")
+    case_path.write_text(
+        "\n".join([
+            "name: demo",
+            "main_form_id: demo_form",
+            "vars:",
+            "  test_number: CRPLY_${rand:6}",
+            "vars_meta:",
+            "  test_number:",
+            "    field_key: number",
+            "    form_id: demo_form",
+            "steps: []",
+        ]),
+        encoding="utf-8",
+    )
     report = {
         "acceptance": {"status": "needs_ai"},
         "action_queues": {"ai_agent": [{"name": "demo"}]},
@@ -37,12 +50,60 @@ def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
     assert "name: demo" in package["case_artifacts"]["yaml"]
     assert package["run_artifacts"]["pageid_trace"]["summary"]["total_steps"] == 0
     assert package["skills_to_use"]
+    assert package["write_verification"]["readback_plan"]["status"] == "ready"
+    assert package["write_verification"]["readback_plan"]["plans"][0]["preferred_filter"]["value_ref"] == "${vars.test_number}"
     assert any("不得删除 menuItemClick" in rule for rule in package["guardrails"])
     assert any("先比对 HAR 原始 pageId 链路" in rule for rule in package["guardrails"])
+    assert any("readback_plan" in rule for rule in package["guardrails"])
+    assert package["experience_matches"]["status"] == "catalog_unavailable"
 
     saved = save_repair_evidence_package(package, tmp_path / "evidence")
     loaded = json.loads(saved.read_text(encoding="utf-8"))
     assert loaded["case_name"] == "demo"
+
+
+def test_agent_evidence_package_matches_deep_chain_experience(tmp_path):
+    catalog_path = tmp_path / "tests/fixtures/deep_chain_factory/catalog.json"
+    catalog_path.parent.mkdir(parents=True)
+    catalog_path.write_text(
+        json.dumps({
+            "scenarios": [
+                {
+                    "id": "salary_item_new_validation",
+                    "app_label": "薪资核算",
+                    "menu_label": "薪酬项目",
+                    "form_ids": ["hsbs_salaryitem"],
+                    "status": "closed_write_passed",
+                    "lessons": ["新增后 L2 切 L3，salaryitemtype 需要 getLookUpList 预热。"],
+                }
+            ]
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    case_path = tmp_path / "salary_item.yaml"
+    case_path.write_text(
+        "\n".join([
+            "name: salary_item",
+            "main_form_id: hsbs_salaryitem",
+            "steps:",
+            "  - id: open",
+            "    form_id: hsbs_salaryitem",
+        ]),
+        encoding="utf-8",
+    )
+
+    package = build_repair_evidence_package(
+        task_id="task_salary",
+        case_name="salary_item",
+        report_data={"case_results": [{"name": "salary_item", "passed": False}]},
+        case_path=case_path,
+        run_events=[],
+        skill_root=tmp_path,
+    )
+
+    assert package["experience_matches"]["status"] == "matched"
+    assert package["experience_matches"]["matches"][0]["scenario_id"] == "salary_item_new_validation"
+    assert any("experience_matches" in rule for rule in package["guardrails"])
 
 
 def test_agent_evidence_endpoint_uses_task_report_context(tmp_path, monkeypatch):

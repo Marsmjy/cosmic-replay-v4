@@ -137,7 +137,7 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 1. 写入 smoke 必须有显式确认 token，且测试数据应使用 `CRPLY_WRITE` 等前缀，方便环境清理。
 2. 执行证据只保存在 `tmp/write_smoke_runs/`，不能提交；若要沉淀经验，只提交流程摘要、菜单/表单 ID、pageId 类型和断言结论。
 3. 若写入失败，仍优先检查 HAR 原始 pageId 链路与回放 pageId 是否一致，再看变量、环境字段、业务校验和断言，不要靠硬补 `save.post_data`。
-4. 若写入 PASS 但入库未验证，查看保存响应是否有 `pkValue/billId/saveResult/保存成功` 等证据；缺证据时补后置查询或人工确认，不要直接把 PASS 等同于已入库。
+4. 若写入 PASS 但入库未验证，查看保存响应是否有 `pkValue/billId/saveResult/保存成功` 等证据；缺强证据时运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>`，按 `number/billno/code/name/description` 等业务键补 `readback_by_business_key` 只读断言或人工确认，不要直接把 PASS 等同于已入库。
 5. 2026-05-27 UA 提报保存验证：UAT 环境使用 `prefetch_lookup` 后 44 步写入 Smoke 通过；同一 YAML 跨 SIT 会在模板确认前失败，原因是默认组织/业务数据模板内部值不一致，不应视为 pageId 修复失败。
 
 ## 深链路探索闭环（2026-05-27）
@@ -174,7 +174,7 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 4. `薪资核算 / 薪资期间`：SIT 写入 smoke 通过，覆盖 `menuItemClick L2 -> new L2 -> loadData L3 -> pick_basedata(calfrequency) -> update_fields(halfmonthfirstday/halfmonthsecday) -> newentry(addrow) -> row_index=0 分录字段 -> bar_save`。
 5. `薪资核算 / 薪资核算组`：SIT 写入 smoke 通过，覆盖 `menuItemClick L2 -> new L2 -> loadData L3 -> update_fields(number/name/bsed) -> pick_basedata(country/currency/exratetable) -> bar_save`。
 6. `薪资核算 / 薪资回溯原因`：SIT 写入 smoke 通过，覆盖 `menuItemClick -> showForm(bos_list,billFormId=hsas_retroreason) -> loadData L2 -> new L2 -> loadData L3 -> update_fields(number/name/description) -> bar_save`。
-7. `薪资核算 / 薪资核算场景`：阻塞样本，pageId 链路正常，但保存被业务组件拦截：规则分组“默认规则”中常用筛选至少一行必填。后续应补规则分组/常用筛选组件处理器，不要硬补 `save.post_data` 或放宽 `no_save_failure`。
+7. `薪资核算 / 薪资核算场景`：已验证写入闭环，pageId 链路正常，原阻塞点是规则分组“默认规则”下常用筛选至少一行必填。仅补 `callistrule` 不会生成 `entryentity` 常用筛选行；正确链路是 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok`，确认响应会回填 `groupcontent/entryentity`，随后标准 `bar_save` 保存通过。不要硬补 `save.post_data` 或放宽 `no_save_failure`。
 8. `中国社保 / 社保体系`：当前账号下未发现新增入口，归类为只读/需人工确认。
 
 排障启发：
@@ -184,7 +184,7 @@ Cosmic 表单的 pageId 有三种来源，按照优先级从高到低：
 - 高级面板分录增行可能是 `ac=newentry/key=advcontoolbarap/method=itemClick/args=[addrow,newentry]`。如果响应只提示“请先维护基本信息中的频度/期间起始规则”，说明 row 没创建，后续 `row_index=0` 写入一定会越界；应先补前置规则字段，再增行。
 - 主表多个必填基础资料（如 `country/currency/exratetable`）缺失时，先检查 `loadData` 是否已经作为 pageId 默认上下文带出；没有带出时再生成 `pick_basedata + prefetch_lookup`，不要硬补长整数内码。
 - 当 `showForm` 的真实 `formId` 是 `bos_list`，但 `billFormId` 指向业务表单（如 `hsas_retroreason`）时，要把 L2 同时绑定给业务 form；否则后续 loadData/new 会找错 pageId。
-- 业务组件校验（如“规则分组/常用筛选不能为空”）属于真实业务验证点，排障顺序是：先确认 L2/L3 链路一致，再补组件处理器或用户可维护字段；不要把业务校验误判成保存接口失败。
+- 业务组件校验（如“规则分组/常用筛选不能为空”）属于真实业务验证点，排障顺序是：先确认 L2/L3 链路一致，再补组件处理器或用户可维护字段；若提示来自薪资核算场景，要检查 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok -> groupcontent/entryentity` 行级链路，而不是只补 `callistrule`；不要把业务校验误判成保存接口失败。
 - 新增树形基础资料时，`treeview.focus` 是环境上下文，必须保留并作为环境字段暴露；不要删除新增步骤的 `post_data`。
 - `hsbs_salaryitem` 这类表单里，`loadData` 默认带出的 `createorg/datatype/dataprecision/dataround/areatype/ctrlstrategy` 属于 pageId 服务端上下文；排障时不要一上来把这些默认值硬补到 save。真正用户维护缺口是 `number/name/salaryitemtype/ispayoutitem`，其中 `salaryitemtype` 要 lookup 预热，`ispayoutitem` 是可维护枚举字段。
 - `haos_orgchangereason` 这类“受控基础资料”可能从 `homs_apphome/treeMenuClick` 进入，浏览器 HAR 的树菜单 L2 正常，但 API 回放不一定能重建 apphome shell。排障顺序：先确认原始 HAR 是 `treeMenuClick → list loadData(L2) → new(L2) → showForm/loadData(L3) → save(L3)`；若 API 无法真实建立树菜单 L2，不要伪造 L2 覆盖已预开的主表单 pageId，而应从 HAR 的新增态 `loadData` 和列表 `dataindex/rows` 提取服务端默认上下文。

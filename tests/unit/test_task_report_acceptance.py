@@ -70,6 +70,37 @@ def test_acceptance_summary_routes_unverified_pass_to_ai_agent():
     assert summary["ai_required"] == 1
 
 
+def test_readback_assertion_marks_passed_write_as_verified():
+    result = CaseResult(
+        name="case_readback_verified",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+        assertions=[
+            {
+                "type": "readback_by_business_key",
+                "ok": True,
+                "msg": "入库回查通过",
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+    summary = build_acceptance_summary([result])
+
+    assert result.write_status == "verified"
+    assert result.next_action == "none"
+    assert "assertion:readback_by_business_key" in result.write_evidence["signals"]
+    assert summary["status"] == "ready"
+    assert summary["write_verified"] == 1
+
+
 def test_manual_write_confirmation_suppresses_ai_action():
     result = CaseResult(
         name="case_manual_confirmed",

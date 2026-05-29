@@ -3516,6 +3516,88 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     return assertions
 
 
+def _append_readback_assertions(case: OrderedDict) -> dict:
+    """Append optional post-save readback assertions from case business keys.
+
+    This is opt-in for HAR generation. Default output stays unchanged so the
+    existing regression baselines remain stable, while Web UI can enable it for
+    better write verification.
+    """
+    try:
+        from lib.deep_chain_pipeline import build_readback_plan
+    except Exception as e:
+        log.warning("readback plan unavailable: %s", e)
+        return {"status": "not_ready", "plans": []}
+
+    plan = build_readback_plan(dict(case))
+    if plan.get("status") != "ready":
+        return plan
+
+    assertions = case.setdefault("assertions", [])
+    seen = {
+        (
+            str(a.get("type") or ""),
+            str(a.get("form_id") or ""),
+            str(a.get("field_key") or ""),
+            str(a.get("value") or a.get("value_ref") or ""),
+        )
+        for a in assertions
+        if isinstance(a, dict)
+    }
+    for item in plan.get("plans") or []:
+        suggested = item.get("suggested_assertion") or {}
+        field_key = str(suggested.get("field_key") or "")
+        value = str(suggested.get("value") or suggested.get("value_ref") or "")
+        if not (field_key and value):
+            continue
+        sig = (
+            "readback_by_business_key",
+            str(suggested.get("form_id") or ""),
+            field_key,
+            value,
+        )
+        if sig in seen:
+            continue
+        assertions.append(OrderedDict([
+            ("type", "readback_by_business_key"),
+            ("form_id", suggested.get("form_id", "")),
+            ("app_id", suggested.get("app_id", "")),
+            ("field_key", field_key),
+            ("value", value),
+        ]))
+        seen.add(sig)
+    return plan
+
+
+def _build_preview_readback_plan(main_form: str, var_items: list[dict]) -> dict:
+    try:
+        from lib.deep_chain_pipeline import build_readback_plan
+    except Exception as e:
+        log.warning("preview readback plan unavailable: %s", e)
+        return {"status": "not_ready", "plans": []}
+    case = {
+        "main_form_id": main_form,
+        "vars": OrderedDict(),
+        "vars_meta": OrderedDict(),
+    }
+    for item in var_items or []:
+        name = str(item.get("name") or "")
+        if not name:
+            continue
+        case["vars"][name] = item.get("template", "")
+        case["vars_meta"][name] = OrderedDict([
+            ("label", item.get("label", "")),
+            ("field_key", item.get("field_key", "")),
+            ("form_id", item.get("form_id", "") or main_form),
+            ("form_label", item.get("form_label", "")),
+            ("group_key", item.get("group_key", "")),
+            ("group_label", item.get("group_label", "")),
+            ("source_step_id", item.get("source_step_id", "")),
+            ("write_step_id", item.get("write_step_id", "")),
+        ])
+    return build_readback_plan(case)
+
+
 def insert_loaddata_on_form_change(steps: list) -> list:
     """⭐ 规则14：form_id 变化时自动插入 loadData 保护步骤
 
@@ -3581,6 +3663,7 @@ def build_yaml_case(
     var_overrides: dict | None = None,
     pick_field_overrides: dict | None = None,
     meta_resolver=None,
+    include_readback_assertions: bool = False,
 ) -> str:
     har = load_har(har_path)
     field_observations = _collect_har_field_observations(har)
@@ -4323,6 +4406,8 @@ def build_yaml_case(
         ("steps", yaml_steps),
         ("assertions", _build_default_assertions(yaml_steps)),
     ])
+    if include_readback_assertions:
+        _append_readback_assertions(case)
 
     trim_note = (f"# 已裁剪前 {trimmed_skipped} 条首页/门户步骤（与主流程无关）"
                  if trimmed_skipped else "")
@@ -4913,6 +4998,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "tier_counts": by_tier,
         "detected_vars": var_items,
         "pick_fields": pick_fields,
+        "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,
         "steps": [
             {
@@ -4983,6 +5069,11 @@ def main():
     p_ext.add_argument("har", type=Path)
     p_ext.add_argument("-o", "--out", type=Path, required=True)
     p_ext.add_argument("-n", "--name")
+    p_ext.add_argument(
+        "--with-readback-assertions",
+        action="store_true",
+        help="按业务键附加入库只读回查断言（默认关闭，保持回归输出稳定）",
+    )
 
     p_prev = sub.add_parser("preview", help="只预览 HAR 结构，不写文件")
     p_prev.add_argument("har", type=Path)
@@ -4992,7 +5083,11 @@ def main():
         if not args.har.exists():
             print(f"ERROR: HAR not found: {args.har}", file=sys.stderr)
             sys.exit(2)
-        yaml = build_yaml_case(args.har, args.name)
+        yaml = build_yaml_case(
+            args.har,
+            args.name,
+            include_readback_assertions=args.with_readback_assertions,
+        )
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(yaml, encoding="utf-8")
         print(f"✓ 已生成: {args.out}")

@@ -209,6 +209,25 @@ def _is_entry_grid(step: Step) -> bool:
     )
 
 
+def _is_rule_group_filter_grid(step: Step) -> bool:
+    if str(step.get("form_id") or "") != "hsas_payrollscene":
+        return False
+    field_keys: set[str] = set()
+    fields = step.get("fields")
+    if isinstance(fields, dict):
+        field_keys.update(str(key).lower() for key in fields.keys())
+    for key_name in ("field_key", "key"):
+        if step.get(key_name):
+            field_keys.add(str(step.get(key_name)).lower())
+    blob = _id_blob(step)
+    return (
+        bool(field_keys & {"salarycalcstyle", "attachcondition", "calbordermulbd", "callistrule"})
+        or "entryentity" in blob
+        or "rulegroupsap" in blob
+        or "addgroup" in blob
+    )
+
+
 HANDLERS: tuple[ComponentHandler, ...] = (
     ComponentHandler(
         "open_form",
@@ -227,6 +246,26 @@ HANDLERS: tuple[ComponentHandler, ...] = (
         "low",
         "loadData 是表单初始化和 pageId 绑定核心动作。",
         lambda s: _is_invoke(s, "loadData"),
+    ),
+    ComponentHandler(
+        "rule_group_filter_grid",
+        "规则分组/常用筛选",
+        "field",
+        "partial",
+        "high",
+        "薪资核算场景依赖规则分组下的 entryentity 常用筛选行；缺行会导致保存被业务校验拦截。",
+        _is_rule_group_filter_grid,
+        "已验证前置 country 后点击 labelap4 会打开 hsas_salarycalcstyle F7；使用 select_f7_list_row 选中算发薪方式并点 btnok 后，会回填 groupcontent/entryentity。不要硬补 save.post_data。",
+    ),
+    ComponentHandler(
+        "f7_list_selector",
+        "F7 列表选择器",
+        "field",
+        "supported",
+        "low",
+        "F7 loadData -> entryRowClick -> btnok 已可用 select_f7_list_row 表达，确认响应应回填父表单上下文。",
+        lambda s: s.get("type") == "select_f7_list_row",
+        "用于子弹窗基础资料列表选择；优先按业务编码/名称匹配行，保留 pageId 链路，不要硬补最终保存包体。",
     ),
     ComponentHandler(
         "field_update",

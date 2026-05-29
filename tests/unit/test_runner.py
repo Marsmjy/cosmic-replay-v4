@@ -230,6 +230,85 @@ class TestReplayErrorDetection:
         assert row[0] == "2381390967690242999"
         assert row[3] == "012890006"
 
+    def test_select_f7_list_row_loads_selects_and_confirms(self):
+        calls = []
+        f7_row = [
+            1, 2, "组织", "1020_S", "离职后补发补扣", "1", None, None,
+            "1", "说明", True, "C", "1", "5", None, None, None, None,
+            "100000", "1276916607024658432",
+        ]
+
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                if ac == "loadData":
+                    return [{
+                        "a": "u",
+                        "p": [{
+                            "k": "billlistap",
+                            "data": {
+                                "dataindex": {
+                                    "rk": 0,
+                                    "number": 3,
+                                    "name": 4,
+                                    "hsas_salarycalcstyle_id": 19,
+                                },
+                                "rows": [f7_row],
+                            },
+                        }],
+                    }]
+                if ac == "entryRowClick":
+                    return [{"a": "InvokeControlMethod"}]
+                return [{"a": "sendDynamicFormAction", "p": [{"pageId": "parent", "actions": []}]}]
+
+        step = {
+            "type": "select_f7_list_row",
+            "form_id": "hsbp_allowreturnnullf7",
+            "app_id": "hsas",
+            "value_code": "1020_S",
+            "field_key": "name",
+        }
+
+        resp = STEP_HANDLERS["select_f7_list_row"](step, FakeReplay(), {})
+
+        assert resp[0]["a"] == "sendDynamicFormAction"
+        assert [call[2] for call in calls] == ["loadData", "entryRowClick", "click"]
+        select_action = calls[1][3][0]
+        assert select_action["key"] == "billlistap"
+        assert select_action["args"] == [1, "name"]
+        payload = select_action["postData"][0]["billlistap"]
+        assert payload["selRows"] == [1]
+        assert payload["selDatas"] == [f7_row]
+        assert calls[2][3][0]["key"] == "btnok"
+
+    def test_pick_field_override_updates_select_f7_list_row(self):
+        step = {
+            "id": "select_salarycalcstyle_f7",
+            "type": "select_f7_list_row",
+            "form_id": "hsbp_allowreturnnullf7",
+            "app_id": "hsas",
+            "value_code": "1010_S",
+            "value_name": "在职算薪",
+        }
+        case = {
+            "steps": [step],
+            "pick_fields": {
+                "pick_salarycalcstyle_id": {
+                    "field_key": "salarycalcstyle",
+                    "form_id": "hsbp_allowreturnnullf7",
+                    "source_step_id": "select_salarycalcstyle_f7",
+                    "value_id": "1020_S",
+                    "value_name": "离职后补发补扣",
+                    "value_code": "1020_S",
+                }
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        assert step["value_code"] == "1020_S"
+        assert step["value_name"] == "离职后补发补扣"
+
     def test_tree_node_click_preserves_l2_page_id(self):
         assert _step_allows_l2_pageid({
             "type": "invoke",
@@ -632,6 +711,10 @@ class TestAssertionHandlers:
         """response_contains处理器已注册"""
         assert "response_contains" in ASSERTION_HANDLERS
         assert callable(ASSERTION_HANDLERS["response_contains"])
+
+    def test_readback_by_business_key_handler_registered(self):
+        assert "readback_by_business_key" in ASSERTION_HANDLERS
+        assert callable(ASSERTION_HANDLERS["readback_by_business_key"])
     
     def test_no_error_actions_pass_on_empty(self):
         """无错误时通过"""
@@ -704,6 +787,72 @@ class TestAssertionHandlers:
         )
         assert passed == False
         assert "没找到" in msg or "not found" in msg.lower()
+
+    def test_readback_by_business_key_uses_recorded_grid_response(self):
+        ctx = {
+            "step_responses": {
+                "search_after_save": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"rk": 0, "number": 1, "name": 2},
+                            "rows": [[0, "CRPLY_001", "测试记录"]],
+                        },
+                    }],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "number",
+            "value": "CRPLY_001",
+        }, ctx)
+
+        assert passed is True
+        assert "入库回查通过" in msg
+
+    def test_readback_by_business_key_executes_common_search_when_no_step(self):
+        calls = []
+
+        class FakeReplay:
+            page_ids = {"demo_bill": "pid"}
+
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                return [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"rk": 0, "number": 1},
+                            "rows": [[0, "CRPLY_002"]],
+                        },
+                    }],
+                }]
+
+        ctx = {
+            "replay": FakeReplay(),
+            "step_responses": {},
+            "case": {"main_form_id": "demo_bill"},
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "number",
+            "value": "CRPLY_002",
+        }, ctx)
+
+        assert passed is True
+        assert calls[0][2] == "commonSearch"
+        assert calls[0][3][0]["key"] == "filtercontainerap"
+        assert "入库回查通过" in msg
     
     def test_all_assertion_handlers_callable(self):
         """所有断言处理器可调用"""

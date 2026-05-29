@@ -149,6 +149,26 @@ def test_failure_analysis_classifies_missing_root_org_prerequisite():
     assert "根行政组织初始化" in analysis["root_cause"]
 
 
+def test_failure_analysis_classifies_rule_group_filter_component_gap():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "click_bar_save",
+            "type": "invoke",
+            "form_id": "hsas_payrollscene",
+            "ok": False,
+            "error": "[Notification] 规则分组“默认规则”中，常用筛选不允许为空，请至少填写一行数据。",
+        }],
+        assertions=[],
+        case={"main_form_id": "hsas_payrollscene"},
+    )
+
+    assert analysis["category"] == "component_rule_group_filter_missing"
+    assert analysis["severity"] == "high"
+    assert "entryentity" in analysis["root_cause"]
+    assert any("select_f7_list_row" in action for action in analysis["recommended_actions"])
+    assert any("不要硬补 save.post_data" in action for action in analysis["recommended_actions"])
+
+
 def test_failure_analysis_classifies_database_schema_mismatch():
     analysis = classify_run_failure(
         steps=[{

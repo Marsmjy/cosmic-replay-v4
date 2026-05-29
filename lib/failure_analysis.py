@@ -58,6 +58,11 @@ _MISSING_PATTERNS = (
     "必填",
 )
 
+_RULE_GROUP_FILTER_PATTERNS = (
+    "规则分组",
+    "常用筛选",
+)
+
 _DUPLICATE_PATTERNS = (
     "已存在",
     "重复",
@@ -318,6 +323,25 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if _is_rule_group_filter_missing(text):
+        return _result(
+            "component_rule_group_filter_missing",
+            "high",
+            False,
+            "规则分组/常用筛选组件未回放完整，保存时 entryentity 仍为空；这通常不是 pageId 错误，也不能靠硬补 save 字段解决。",
+            text,
+            [
+                "先确认 pageid_trace：菜单/列表/新增工具栏步骤保留 L2，编辑态字段维护和保存切到 L3。",
+                "补录或补齐规则分组常用筛选完整链路：先维护 country，再点击 labelap4 打开 hsas_salarycalcstyle F7，使用 select_f7_list_row 按编码/名称选中算发薪方式并点 btnok，让确认响应回填 groupcontent/entryentity。",
+                "继续维护 attachcondition，必要时维护 calbordermulbd；这些行级字段应进入环境字段或智能变量。",
+                "将常用筛选行里的基础资料、枚举和日期字段暴露为环境字段或智能变量，避免写死长整数内码。",
+                "不要删除 no_save_failure，不要硬补 save.post_data，也不要仅选择 callistrule 来替代常用筛选行。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _MISSING_PATTERNS):
         field = _extract_field_caption(text)
         return _result(
@@ -431,6 +455,12 @@ def _result(
 
 def _contains(text: str, patterns: tuple[str, ...]) -> bool:
     return any(pattern in text for pattern in patterns)
+
+
+def _is_rule_group_filter_missing(text: str) -> bool:
+    if not _contains(text, _RULE_GROUP_FILTER_PATTERNS):
+        return False
+    return any(token in text for token in ("不允许为空", "至少填写一行", "不能为空", "请至少填写"))
 
 
 def _is_navigation_form(form_id: str, main_form: str) -> bool:

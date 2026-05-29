@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 
 from . import cosmic_login
 from .pageid_trace import classify_pageid, pageid_fragment
-from .playwright_deep_actions import validate_action_plan
+from .playwright_deep_actions import render_action_value, validate_action_plan
 
 
 WRITE_ACTION_KEYWORDS = (
@@ -872,7 +872,7 @@ def _click_text_without_risk_check(page: Any, label: str, timeout_ms: int = 3_00
 
 def _fill_text_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_000) -> dict[str, Any]:
     label = normalize_label(str(action.get("label") or action.get("placeholder") or action.get("selector") or ""))
-    value = str(action.get("value") or "")
+    value = str(render_action_value(action.get("value") or ""))
     result: dict[str, Any] = {"label": label, "ok": False, "value_shape": "empty" if not value else "literal"}
     try:
         selector = str(action.get("selector") or "")
@@ -884,6 +884,163 @@ def _fill_text_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_00
             locator = page.get_by_label(label, exact=False).first
         locator.fill(value, timeout=timeout_ms)
         page.wait_for_timeout(300)
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _click_selector_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_000) -> dict[str, Any]:
+    selector = str(action.get("selector") or "")
+    result: dict[str, Any] = {"selector": selector, "ok": False}
+    if not selector:
+        result["error"] = "selector_required"
+        return result
+    try:
+        locator = page.locator(selector).first
+        locator.click(timeout=timeout_ms, force=bool(action.get("force")))
+        page.wait_for_timeout(int(action.get("after_ms") or 500))
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _click_at_control(page: Any, action: dict[str, Any]) -> dict[str, Any]:
+    x = action.get("x")
+    y = action.get("y")
+    result: dict[str, Any] = {"x": x, "y": y, "ok": False}
+    try:
+        page.mouse.click(float(x), float(y))
+        page.wait_for_timeout(int(action.get("after_ms") or 500))
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _fill_at_control(page: Any, action: dict[str, Any]) -> dict[str, Any]:
+    x = action.get("x")
+    y = action.get("y")
+    value = str(render_action_value(action.get("value") or ""))
+    result: dict[str, Any] = {"x": x, "y": y, "ok": False, "value_shape": "empty" if not value else "literal"}
+    try:
+        page.mouse.click(float(x), float(y))
+        if action.get("clear"):
+            page.keyboard.press("Meta+A")
+            page.keyboard.press("Backspace")
+        page.keyboard.type(value, delay=int(action.get("delay_ms") or 20))
+        if action.get("press"):
+            page.keyboard.press(str(action.get("press")))
+        page.wait_for_timeout(int(action.get("after_ms") or 500))
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _press_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_000) -> dict[str, Any]:
+    selector = str(action.get("selector") or "")
+    key = str(action.get("key") or "Enter")
+    result: dict[str, Any] = {"selector": selector, "key": key, "ok": False}
+    try:
+        if selector:
+            page.locator(selector).first.press(key, timeout=timeout_ms)
+        else:
+            page.keyboard.press(key)
+        page.wait_for_timeout(int(action.get("after_ms") or 300))
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _wait_for_selector_control(page: Any, action: dict[str, Any], timeout_ms: int = 5_000) -> dict[str, Any]:
+    selector = str(action.get("selector") or "")
+    state = str(action.get("state") or "visible")
+    result: dict[str, Any] = {"selector": selector, "state": state, "ok": False}
+    if not selector:
+        result["error"] = "selector_required"
+        return result
+    try:
+        page.locator(selector).first.wait_for(state=state, timeout=timeout_ms)
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _select_option_control(page: Any, action: dict[str, Any], timeout_ms: int = 3_000) -> dict[str, Any]:
+    selector = str(action.get("selector") or "")
+    result: dict[str, Any] = {"selector": selector, "ok": False}
+    if not selector:
+        result["error"] = "selector_required"
+        return result
+    try:
+        locator = page.locator(selector).first
+        option_value = render_action_value(action.get("value"))
+        option_label = render_action_value(action.get("label"))
+        if option_value not in (None, ""):
+            locator.select_option(value=str(option_value), timeout=timeout_ms)
+        elif option_label not in (None, ""):
+            locator.select_option(label=str(option_label), timeout=timeout_ms)
+        else:
+            result["error"] = "value_or_label_required"
+            return result
+        page.wait_for_timeout(int(action.get("after_ms") or 300))
+        result["ok"] = True
+    except Exception as exc:
+        result.update({"error": type(exc).__name__})
+    return result
+
+
+def _snapshot_controls(page: Any, action: dict[str, Any]) -> dict[str, Any]:
+    selector = str(action.get("selector") or "body")
+    text_filter = normalize_label(str(action.get("text_filter") or "")).lower()
+    limit = max(1, min(int(action.get("limit") or 80), 200))
+    result: dict[str, Any] = {"selector": selector, "ok": False, "items": []}
+    script = """
+      ({ selector, textFilter, limit }) => {
+        const root = document.querySelector(selector) || document.body;
+        const candidates = Array.from(root.querySelectorAll(
+          'button,input,textarea,select,span,label,[role],a,[class*="button"],[class*="btn"],[class*="label"],[class*="grid"],[class*="toolbar"],[class*="panel"]'
+        ));
+        const rows = [];
+        for (const el of candidates) {
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          if (rect.width < 2 || rect.height < 2 || style.visibility === 'hidden' || style.display === 'none') continue;
+          const text = (el.innerText || el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder') || '').trim().replace(/\\s+/g, ' ');
+          if (textFilter && !text.toLowerCase().includes(textFilter)) continue;
+          const id = el.id || '';
+          const cls = (el.className && typeof el.className === 'string') ? el.className.split(/\\s+/).slice(0, 4).join('.') : '';
+          rows.push({
+            tag: el.tagName.toLowerCase(),
+            role: el.getAttribute('role') || '',
+            text: text.slice(0, 80),
+            placeholder: el.getAttribute('placeholder') || '',
+            title: el.getAttribute('title') || '',
+            aria: el.getAttribute('aria-label') || '',
+            data_key: el.getAttribute('data-key') || el.getAttribute('data-control-key') || el.getAttribute('data-page-id') || '',
+            id,
+            class_hint: cls,
+            selector_hint: id ? `#${id}` : (cls ? `${el.tagName.toLowerCase()}.${cls}` : el.tagName.toLowerCase()),
+            x: Math.round(rect.x),
+            y: Math.round(rect.y),
+            w: Math.round(rect.width),
+            h: Math.round(rect.height)
+          });
+          if (rows.length >= limit) break;
+        }
+        return rows;
+      }
+    """
+    try:
+        result["items"] = page.evaluate(script, {
+            "selector": selector,
+            "textFilter": text_filter,
+            "limit": limit,
+        })
         result["ok"] = True
     except Exception as exc:
         result.update({"error": type(exc).__name__})
@@ -916,6 +1073,20 @@ def _execute_deep_action_plan(
             row.update(_click_text_without_risk_check(page, str(action.get("text") or ""), timeout_ms=3_000))
         elif action_type in {"fill", "fill_text"}:
             row.update(_fill_text_control(page, action, timeout_ms=3_000))
+        elif action_type == "fill_at":
+            row.update(_fill_at_control(page, action))
+        elif action_type in {"click_selector", "click_locator"}:
+            row.update(_click_selector_control(page, action, timeout_ms=3_000))
+        elif action_type == "click_at":
+            row.update(_click_at_control(page, action))
+        elif action_type == "press":
+            row.update(_press_control(page, action, timeout_ms=3_000))
+        elif action_type == "wait_for_selector":
+            row.update(_wait_for_selector_control(page, action, timeout_ms=5_000))
+        elif action_type == "select_option":
+            row.update(_select_option_control(page, action, timeout_ms=3_000))
+        elif action_type == "snapshot_controls":
+            row.update(_snapshot_controls(page, action))
         elif action_type == "wait":
             ms = int(action.get("ms") or 800)
             page.wait_for_timeout(max(0, min(ms, 10_000)))

@@ -270,11 +270,19 @@ cosmic-replay-v4/
   "actions": [
     {"type": "click_text", "text": "新增"},
     {"type": "fill_text", "label": "名称", "value": "CRPLY_DEEP_${timestamp}"},
+    {"type": "wait_for_selector", "selector": ".kd-modal-container"},
+    {"type": "snapshot_controls", "selector": "body", "text_filter": "规则分组", "limit": 40},
+    {"type": "click_selector", "selector": ".kd-btn-primary", "risk": "write"},
+    {"type": "click_at", "x": 1060, "y": 678, "risk": "write"},
+    {"type": "fill_at", "x": 520, "y": 240, "value": "中国", "press": "Enter"},
+    {"type": "press", "selector": "input[role=combobox]", "key": "Enter"},
     {"type": "click_text", "text": "保存"},
     {"type": "click_text", "text": "提交"}
   ]
 }
 ```
+
+动作计划支持 `${timestamp}`、`${today}`、`${rand:N}` 占位符。`snapshot_controls` 是只读动作，会把可见按钮、输入框、role、placeholder、文本和 selector 线索写入本地探索报告；`click_selector`、`click_at`、`fill_at`、`press`、`select_option` 默认按写操作处理，必须显式传 `--confirm-write YES_GENERATE_TEST_DATA`；只有确认是纯 UI 展开/切页时，才允许给点击动作标 `risk: read`。这类 selector/坐标能力主要用于录制“规则分组/常用筛选”、F7 弹窗、明细表格等文本定位不稳定的组件。
 
 ```bash
 ./venv/bin/python scripts/playwright_discover.py \
@@ -286,12 +294,96 @@ cosmic-replay-v4/
   --confirm-write YES_GENERATE_TEST_DATA \
   --confirm-workflow YES_SUBMIT_OR_AUDIT_TEST_DATA
 
+./venv/bin/python scripts/playwright_discover.py \
+  --env sit \
+  --app-keyword 薪酬福利云 \
+  --open-menu-samples '薪资核算:薪资核算场景' \
+  --record-har \
+  --deep-action-plan tests/fixtures/deep_chain_factory/salary_calc_scene_common_filter_snapshot_plan.json \
+  --confirm-write YES_GENERATE_TEST_DATA \
+  --output tmp/playwright_discovery/salary_calc_scene_common_filter_snapshot.json
+
 ./venv/bin/python scripts/har_chain_probe.py \
   --manifest tests/fixtures/har_regression/manifest.json \
   --output tests/fixtures/har_regression/chain_experience_catalog.json
 ```
 
-推荐闭环：Playwright 录 HAR → `scripts/har_chain_probe.py` 生成链路画像 → HAR 导入生成 YAML → `scripts/write_smoke_run.py` 受控执行 → 稳定样本加入 HAR 回归 baseline 或深链路经验库。
+推荐闭环：Playwright 录 HAR → `scripts/har_chain_probe.py` 生成链路画像 → HAR 导入生成 YAML → `scripts/write_smoke_run.py` 受控执行 → `scripts/deep_chain_pipeline.py` 生成场景报告 → 稳定样本加入 HAR 回归 baseline 或深链路经验库。
+
+查看当前深链路场景工厂进展：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py status
+```
+
+为某个样本生成脱敏闭环报告（原始 HAR 和 smoke 证据仍只放在 `tmp/`，不提交）：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py scenario-report \
+  --scenario-id salary_item_new_validation \
+  --smoke-evidence tmp/write_smoke_runs/deep_salary_item_fixture_20260528.json
+```
+
+为某个 YAML 单独生成后置回查计划：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py readback-plan \
+  --case tests/fixtures/deep_chain_factory/salary_calc_scene_protocol_save.yaml
+```
+
+报告会统一输出：当前成熟度、HAR 链路风险、YAML smoke 结果、失败分类、入库验证策略。若保存响应只有“保存成功”但没有主键，系统会建议按编码/名称/描述等业务键做后置回查；`readback-plan` 会给出推荐查询表单、首选业务键、兜底业务键和安全边界。不能把 PASS 直接等同于真实入库。
+
+也可以把新 HAR/YAML 与已闭环样本做脱敏经验匹配：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py match-experience \
+  --case cases/demo.yaml \
+  --har tmp/playwright_hars/demo.har
+```
+
+`match-experience` 只比较 `form_id/app_id`、pageId 链路特征、lookup/showForm/write anchor 等结构信息，不读取或提交业务值、cookie、token。AI 证据包也会附带 `experience_matches`，便于失败时优先复用相似样本的 pageId、F7、子弹窗和入库回查经验。
+
+下一阶段闭环可直接使用 `run-scenario` 编排。默认只做 HAR 画像、YAML 生成/复用、经验匹配、入库回查计划和报告，不会写库：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py run-scenario \
+  --scenario-id salary_calc_scene_rule_group_blocked \
+  --har tmp/playwright_hars/new_sample.har \
+  --case-output tmp/deep_chain_pipeline/new_sample.yaml \
+  --output tmp/deep_chain_pipeline/new_sample_report.json
+```
+
+确认测试数据安全后，才允许显式执行写入 smoke：
+
+```bash
+./venv/bin/python scripts/deep_chain_pipeline.py run-scenario \
+  --scenario-id salary_calc_scene_rule_group_blocked \
+  --case tmp/deep_chain_pipeline/new_sample.yaml \
+  --run-smoke \
+  --confirm-write YES_GENERATE_TEST_DATA \
+  --output tmp/deep_chain_pipeline/new_sample_report.json
+```
+
+`run-scenario` 会输出当前状态、生成/复用的 YAML、smoke 证据、是否可沉淀 baseline、下一步建议。写库仍由 `scripts/write_smoke_run.py` 执行，必须显式确认，避免自动流水线误点保存、提交或审核。
+
+`readback-plan` 输出的 `suggested_assertion` 可以复制到 YAML `assertions` 中，例如：
+
+```yaml
+assertions:
+  - type: readback_by_business_key
+    form_id: hsas_payrollscene
+    app_id: hsas
+    field_key: number
+    value: ${vars.test_number}
+```
+
+该断言只做 `commonSearch`/已有回查响应校验，不会新增、保存或提交。断言通过后，批量报告会把这条用例计为“入库已验证”。
+
+在 Web UI 导入 HAR 时，如果系统识别到稳定业务键，会默认勾选“生成时附加入库回查断言”；命令行也可使用：
+
+```bash
+./venv/bin/python -m lib.har_extractor extract input.har -o cases/demo.yaml --with-readback-assertions
+```
 
 当前已沉淀的薪酬福利云深链路经验在 `tests/fixtures/deep_chain_factory/catalog.json`：
 
@@ -301,7 +393,7 @@ cosmic-replay-v4/
 - `薪资核算 / 薪资期间`：SIT 写入 smoke 通过，覆盖半月频度、起始规则、`advcontoolbarap/newentry` 分录增行、日期分录和标准 `bar_save` 保存。
 - `薪资核算 / 薪资核算组`：SIT 写入 smoke 通过，覆盖 `country/currency/exratetable` 三个必填基础资料字段的 lookup 预热和标准 `bar_save` 保存。
 - `薪资核算 / 薪资回溯原因`：SIT 写入 smoke 通过，覆盖 `bos_list` 的 `billFormId` 别名绑定、L2 列表到 L3 编辑态切换、描述字段变量化和标准 `bar_save` 保存。
-- `薪资核算 / 薪资核算场景`：已沉淀为阻塞样本，pageId 链路正常，但“规则分组/常用筛选”组件需要专门处理器，不能通过硬补 save 或删除断言绕过。
+- `薪资核算 / 薪资核算场景`：SIT 写入 smoke 通过，覆盖 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok`，确认响应回填 `groupcontent/entryentity` 后标准 `bar_save` 保存成功；仅补选 `callistrule` 不会生成常用筛选行，不能通过硬补 save 或删除断言绕过。
 - `中国社保 / 社保体系`：当前账号下未发现可写新增入口，按只读/需人工确认处理。
 
 经验原则：Playwright 更适合采集真实菜单、新增、弹窗和 pageId 链路；真正验证“可回放、可入库”应落到 YAML runner。若 Playwright 原生填输入框没有形成 `updateValue/save` 请求，不要误判为 HAR 解析问题，应改为用采集到的 L2/L3 链路生成协议 YAML，再用 `write_smoke_run.py` 验证。

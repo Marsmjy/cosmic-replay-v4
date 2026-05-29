@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "target_cloud": "薪酬福利云",
-  "updated_at": "2026-05-28",
+  "updated_at": "2026-05-29",
   "purpose": "记录 Playwright 深链路探索到 HAR/YAML/runner 写入闭环的脱敏经验，不提交原始 HAR、cookie、token、截图或运行日志。",
   "safety": {
     "test_data_prefix": "CRPLY_",
@@ -114,15 +114,18 @@
       "id": "salary_calc_scene_rule_group_blocked",
       "app_label": "薪资核算",
       "menu_label": "薪资核算场景",
-      "form_ids": ["hsas_payrollscene", "hbp_reviselogpage"],
-      "status": "blocked_component_rule_group_filter",
+      "form_ids": ["hsas_payrollscene", "hbp_reviselogpage", "hsbp_allowreturnnullf7", "hsas_salarycalcstyle"],
+      "status": "closed_write_passed",
       "env": "sit",
+      "case_file": "tests/fixtures/deep_chain_factory/salary_calc_scene_protocol_save.yaml",
       "latest_local_har": "tmp/playwright_hars/deep_salary_calc_scene_new.har",
-      "latest_local_evidence": "tmp/write_smoke_runs/deep_salary_calc_scene_protocol_try_20260528.json",
+      "latest_local_evidence": "tmp/write_smoke_runs/salary_calc_scene_rule_group_select_f7_save_20260529.json",
       "lessons": [
         "菜单打开后是 compound_root L2 风格，新增返回 L3，pageId 链路本身未见异常。",
         "保存失败原因是业务组件规则分组“默认规则”下常用筛选至少一行必填，不是 save 字段缺失或 pageId 错乱。",
-        "后续要补规则分组/常用筛选组件处理器，不能删除规则分组、硬补 save.post_data 或放宽 no_save_failure 来绕过。"
+        "已验证仅补选 callistrule 不会自动生成常用筛选行；必须走 country -> labelap4 -> hsas_salarycalcstyle F7 -> entryRowClick -> btnok 的子窗口回填链。",
+        "新增 select_f7_list_row 可按编码/名称选择 F7 列表行，确认响应会回填 groupcontent/entryentity，随后标准 tbmain/bar_save 保存通过。",
+        "该经验不能用硬补 save.post_data、删除规则分组、删除 no_save_failure 或仅补 callistrule 替代。"
       ]
     },
     {

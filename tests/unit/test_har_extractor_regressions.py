@@ -8,8 +8,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.har_extractor import (
+    _append_readback_assertions,
     _append_recorded_default_pick_steps,
     _attach_pick_field_scopes,
+    _build_preview_readback_plan,
     _clean_display_label,
     _scoped_pick_field_id,
     build_yaml_case,
@@ -46,6 +48,47 @@ def test_to_yaml_keeps_leading_zero_business_codes_as_strings():
     assert '"00407"' in yaml_text
     assert parsed["pick_fields"]["pick_city_id"]["value_id"] == "00407"
     assert parsed["pick_fields"]["pick_city_id"]["value_code"] == "00407"
+
+
+def test_append_readback_assertions_is_opt_in_and_uses_business_key():
+    case = {
+        "main_form_id": "hsas_payrollscene",
+        "vars": {"test_number": "CRPLY_${rand:6}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "hsas_payrollscene",
+            }
+        },
+        "assertions": [{"type": "no_save_failure", "step": "click_bar_save"}],
+    }
+
+    plan = _append_readback_assertions(case)
+
+    assert plan["status"] == "ready"
+    assert case["assertions"][-1] == {
+        "type": "readback_by_business_key",
+        "form_id": "hsas_payrollscene",
+        "app_id": "hsas",
+        "field_key": "number",
+        "value": "${vars.test_number}",
+    }
+
+
+def test_preview_readback_plan_uses_detected_var_metadata():
+    plan = _build_preview_readback_plan(
+        "hsas_payrollscene",
+        [{
+            "name": "test_name",
+            "template": "CRPLY_NAME_${rand:6}",
+            "field_key": "name",
+            "form_id": "hsas_payrollscene",
+        }],
+    )
+
+    assert plan["status"] == "ready"
+    assert plan["plans"][0]["suggested_assertion"]["type"] == "readback_by_business_key"
+    assert plan["plans"][0]["suggested_assertion"]["value"] == "${vars.test_name}"
 
 
 def test_clean_display_label_hides_deprecated_suffix_for_user_facing_labels():

@@ -1,0 +1,14 @@
+{
+  "name": "salary_calc_scene_common_filter_snapshot",
+  "owned_test_data": true,
+  "test_prefix": "CRPLY_CALC_SCENE",
+  "purpose": "打开薪资核算场景新增页后，只读抓取规则分组/常用筛选附近控件，用于生成下一条真实 HAR 动作计划。",
+  "actions": [
+    {"id": "wait_list_ready", "type": "wait", "ms": 5000},
+    {"id": "open_new_calc_scene", "type": "click_text", "text": "新增"},
+    {"id": "wait_new_calc_scene", "type": "wait", "ms": 3000},
+    {"id": "snapshot_rule_group", "type": "snapshot_controls", "selector": "body", "text_filter": "规则分组", "limit": 80},
+    {"id": "snapshot_common_filter", "type": "snapshot_controls", "selector": "body", "text_filter": "常用筛选", "limit": 80},
+    {"id": "snapshot_entry_controls", "type": "snapshot_controls", "selector": "body", "text_filter": "算发薪方式", "limit": 80}
+  ]
+}

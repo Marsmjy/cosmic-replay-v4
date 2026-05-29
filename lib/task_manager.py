@@ -404,6 +404,9 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
     if not result.passed:
         evidence["signals"].append("case_failed")
         return "failed", evidence
+    if _has_verified_readback_assertion(result):
+        evidence["signals"].append("assertion:readback_by_business_key")
+        return "verified", evidence
 
     for phase in write_phases:
         response = phase.get("response")
@@ -509,6 +512,13 @@ def _is_write_phase(phase: dict) -> bool:
         text + " " + req_text,
         ("save", "submit", "保存", "提交", "btnsave", "saveandeffect", "submitandeffect"),
     )
+
+
+def _has_verified_readback_assertion(result: CaseResult) -> bool:
+    for assertion in result.assertions or []:
+        if assertion.get("type") == "readback_by_business_key" and assertion.get("ok"):
+            return True
+    return False
 
 
 def _response_text(value: Any) -> str:

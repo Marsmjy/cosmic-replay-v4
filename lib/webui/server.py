@@ -1341,7 +1341,14 @@ def api_har_extract(body: dict = Body(...)):
         import importlib
         importlib.reload(har_extractor)
 
-        yaml_text = har_extractor.build_yaml_case(har_path, case_name, var_overrides=var_overrides, pick_field_overrides=pick_field_overrides, meta_resolver=meta_resolver)
+        yaml_text = har_extractor.build_yaml_case(
+            har_path,
+            case_name,
+            var_overrides=var_overrides,
+            pick_field_overrides=pick_field_overrides,
+            meta_resolver=meta_resolver,
+            include_readback_assertions=bool(body.get("include_readback_assertions")),
+        )
         # ⭐ 在 YAML 中注入 created_at 字段（在 name: 行之后插入）
         now_iso = datetime.now().isoformat(timespec='seconds')
         if re.search(r'^created_at:', yaml_text, flags=re.MULTILINE):

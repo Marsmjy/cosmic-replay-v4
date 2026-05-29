@@ -15,7 +15,7 @@ YAML 用例 schema（最小可用）：
     steps:
       - id: <step-id>
         type: open_form | invoke | update_fields | pick_basedata |
-              click_toolbar | sleep
+              select_f7_list_row | click_toolbar | sleep
         form_id: <form_id>
         app_id: <app_id>
         ...                       # 每种 type 字段见下文 STEP_HANDLERS
@@ -596,6 +596,124 @@ def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     )
 
 
+def _extract_grid_payload(resp: Any, grid_key: str = "billlistap") -> tuple[dict[str, int], list[list[Any]]]:
+    """Return dataindex + rows from a Kingdee grid response."""
+    def walk(obj: Any) -> tuple[dict[str, int], list[list[Any]]] | None:
+        if isinstance(obj, dict):
+            if obj.get("k") == grid_key and isinstance(obj.get("data"), dict):
+                data = obj["data"]
+                dataindex = data.get("dataindex")
+                rows = data.get("rows")
+                if isinstance(dataindex, dict) and isinstance(rows, list):
+                    return dataindex, rows
+            for value in obj.values():
+                found = walk(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = walk(item)
+                if found:
+                    return found
+        return None
+
+    found = walk(resp)
+    if not found:
+        return {}, []
+    dataindex, rows = found
+    clean_rows = [row for row in rows if isinstance(row, list)]
+    return {str(k): int(v) for k, v in dataindex.items() if isinstance(v, int)}, clean_rows
+
+
+def _grid_cell(row: list[Any], dataindex: dict[str, int], field: str) -> Any:
+    idx = dataindex.get(field)
+    if idx is None or idx < 0 or idx >= len(row):
+        return None
+    return row[idx]
+
+
+def _find_grid_row(
+    rows: list[list[Any]],
+    dataindex: dict[str, int],
+    *,
+    value_code: str = "",
+    value_name: str = "",
+    match_fields: list[str] | None = None,
+) -> tuple[int, list[Any]]:
+    needles = [str(v).strip() for v in (value_code, value_name) if str(v or "").strip()]
+    if not needles:
+        raise ProtocolError("select_f7_list_row requires value_code or value_name")
+    fields = match_fields or ["number", "name"]
+    for pos, row in enumerate(rows):
+        candidates = [str(_grid_cell(row, dataindex, field) or "").strip() for field in fields]
+        if any(needle == candidate for needle in needles for candidate in candidates):
+            row_idx = _grid_cell(row, dataindex, "rk")
+            if isinstance(row_idx, int):
+                return row_idx, row
+            return pos, row
+    raise ProtocolError(f"select_f7_list_row found no row for {needles!r} in fields {fields!r}")
+
+
+@step_handler("select_f7_list_row")
+def _h_select_f7_list_row(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
+    """Select one row in an F7/list dialog and optionally click OK.
+
+    This models Kingdee chains such as:
+    parent click(labelap4) -> showForm(F7) -> F7 loadData -> entryRowClick -> btnok
+    -> parent entry grid/groupcontent update. It keeps the child pageId chain
+    intact instead of hard-patching the final save request body.
+    """
+    form_id = step["form_id"]
+    app_id = step["app_id"]
+    grid_key = str(step.get("grid_key") or "billlistap")
+    field_key = str(step.get("field_key") or "name")
+    load_ac = str(step.get("load_ac") or "loadData")
+    load_key = str(step.get("load_key") or "")
+    load_method = str(step.get("load_method") or "loadData")
+    load_args = step.get("load_args") or []
+    load_post_data = step.get("load_post_data", [])
+
+    load_resp = replay.invoke(form_id, app_id, load_ac, [{
+        "key": load_key,
+        "methodName": load_method,
+        "args": load_args,
+        "postData": load_post_data,
+    }])
+    dataindex, rows = _extract_grid_payload(load_resp, grid_key)
+    row_index, row = _find_grid_row(
+        rows,
+        dataindex,
+        value_code=str(step.get("value_code") or ""),
+        value_name=str(step.get("value_name") or step.get("value_id") or ""),
+        match_fields=[str(x) for x in (step.get("match_fields") or ["number", "name"])],
+    )
+
+    select_resp = replay.invoke(form_id, app_id, str(step.get("select_ac") or "entryRowClick"), [{
+        "key": grid_key,
+        "methodName": str(step.get("select_method") or "entryRowClick"),
+        "args": step.get("select_args") or [row_index, field_key],
+        "postData": [{
+            grid_key: {
+                "fieldKey": field_key,
+                "row": row_index,
+                "selRows": [row_index],
+                "selDatas": [row],
+                "isClientNewRow": False,
+                "clientNewRows": "",
+            }
+        }, []],
+    }])
+
+    if step.get("confirm", True):
+        return replay.invoke(form_id, app_id, str(step.get("confirm_ac") or "click"), [{
+            "key": str(step.get("confirm_key") or "btnok"),
+            "methodName": str(step.get("confirm_method") or "click"),
+            "args": step.get("confirm_args") or [],
+            "postData": step.get("confirm_post_data", [{}, []]),
+        }])
+    return select_resp
+
+
 @step_handler("click_toolbar")
 def _h_click_toolbar(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     return replay.click_toolbar(
@@ -751,6 +869,111 @@ def _a_response_contains(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     return False, f"响应里没找到 '{needle}'"
 
 
+@assertion_handler("readback_by_business_key")
+def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
+    """Read-only post-save verification by a stable business key.
+
+    This assertion is intentionally conservative: it either inspects a recorded
+    readback step response, or sends one commonSearch request. It never clicks
+    save/submit and never patches the original save payload.
+    """
+    form_id = str(assert_spec.get("form_id") or ctx.get("main_form_id") or "")
+    app_id = str(assert_spec.get("app_id") or _guess_app_id(form_id, ctx.get("case") or {}) or "")
+    field_key = str(assert_spec.get("field_key") or "").strip()
+    value = str(assert_spec.get("value") or assert_spec.get("value_ref") or "").strip()
+    if not (form_id and app_id and field_key and value):
+        return False, "readback_by_business_key 缺少 form_id/app_id/field_key/value"
+
+    source_step = str(assert_spec.get("step") or assert_spec.get("search_step") or "").strip()
+    if source_step:
+        resp = ctx["step_responses"].get(source_step)
+        if resp is None:
+            return False, f"找不到回查步骤 '{source_step}' 的响应"
+        source_desc = f"步骤 {source_step}"
+    else:
+        replay = ctx["replay"]
+        if form_id not in replay.page_ids and assert_spec.get("open_if_missing", True):
+            replay.open_form(form_id, app_id, lazy=False)
+            replay.load_data(form_id, app_id)
+        resp = _run_business_key_readback_query(assert_spec, replay, form_id, app_id, field_key, value)
+        source_desc = "只读 commonSearch"
+
+    matched, detail = _response_contains_business_key(
+        resp,
+        field_key=field_key,
+        expected=value,
+        grid_key=str(assert_spec.get("grid_key") or "billlistap"),
+    )
+    ctx.setdefault("readback_results", []).append({
+        "form_id": form_id,
+        "app_id": app_id,
+        "field_key": field_key,
+        "value": value,
+        "matched": matched,
+        "source": source_desc,
+        "detail": detail,
+    })
+    if matched:
+        return True, f"✅ 入库回查通过：{form_id}.{field_key} = {value}（{source_desc}，{detail}）"
+    return False, f"入库回查未找到：{form_id}.{field_key} = {value}（{source_desc}，{detail}）"
+
+
+def _run_business_key_readback_query(
+    assert_spec: dict,
+    replay: CosmicFormReplay,
+    form_id: str,
+    app_id: str,
+    field_key: str,
+    value: str,
+) -> Any:
+    key = str(assert_spec.get("key") or "filtercontainerap")
+    search_form_id = str(assert_spec.get("search_form_id") or form_id)
+    extra_filters = assert_spec.get("extra_filters")
+    if not isinstance(extra_filters, list):
+        extra_filters = []
+    args = [
+        [{"FieldName": [field_key], "Value": [value]}],
+        extra_filters,
+        search_form_id,
+    ]
+    post_data = assert_spec.get("post_data")
+    if not isinstance(post_data, list):
+        post_data = [{key: {"triggerSearch": True}}, []]
+    return replay.invoke(form_id, app_id, "commonSearch", [{
+        "key": key,
+        "methodName": "commonSearch",
+        "args": args,
+        "postData": post_data,
+    }])
+
+
+def _response_contains_business_key(
+    resp: Any,
+    *,
+    field_key: str,
+    expected: str,
+    grid_key: str = "billlistap",
+) -> tuple[bool, str]:
+    expected_s = str(expected or "").strip()
+    if not expected_s:
+        return False, "业务键为空"
+    dataindex, rows = _extract_grid_payload(resp, grid_key)
+    if dataindex and rows:
+        if field_key in dataindex:
+            for row in rows:
+                if str(_grid_cell(row, dataindex, field_key) or "").strip() == expected_s:
+                    return True, f"grid {grid_key} 命中字段 {field_key}"
+            return False, f"grid {grid_key} 有 {len(rows)} 行，但字段 {field_key} 未命中"
+        for row in rows:
+            if any(str(cell or "").strip() == expected_s for cell in row):
+                return True, f"grid {grid_key} 命中任意列"
+        return False, f"grid {grid_key} 有 {len(rows)} 行，但未命中业务键"
+    text = json.dumps(resp, ensure_ascii=False, default=str)
+    if expected_s in text:
+        return True, "响应文本包含业务键"
+    return False, "响应未包含 grid 行或业务键文本"
+
+
 # =============================================================
 # pick_fields 运行时值注入
 # =============================================================
@@ -869,6 +1092,18 @@ def _apply_pick_fields(case: dict):
                         step["auto_resolve"] = bool(pf_meta.get("auto_resolve"))
                         step["resolve_by"] = str(pf_meta.get("resolve_by") or step.get("resolve_by") or "")
                         log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
+                        applied = True
+                    elif step.get("type") == "select_f7_list_row":
+                        target_field_key = str(step.get("target_field_key") or step.get("field_key") or "")
+                        if target_field_key and target_field_key != field_key and not pf_meta.get("source_step_id"):
+                            continue
+                        if inject_vcode or inject_vid:
+                            step["value_code"] = str(inject_vcode or inject_vid)
+                        if inject_vname:
+                            step["value_name"] = str(inject_vname)
+                        elif inject_vid and not _looks_like_internal_id(str(inject_vid)):
+                            step["value_name"] = str(inject_vid)
+                        log.debug(f"[pick inject->select_f7] {pf_id} → step[{step.get('id', '')}]")
                         applied = True
                 # MainOrgProp 等上下文字段可能以 update_fields 形式补偿写入；
                 # 允许沿用 pick_* 配置面板去覆盖这些字段，保持 UI/配置方式一致。
@@ -1378,6 +1613,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "run_event": emit,
         "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
         "main_form_id": main_form,  # ⭐ 供 menuItemClick L2 pageId 自动绑定
+        "case": case,
         # ⭐ step_id → 中文业务描述，供断言/日志生成人话
         "step_descriptions": {
             s.get("id"): (s.get("description") or "")
@@ -1933,7 +2169,7 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
 
     env_fields: list[dict] = []
     for result_step in result.steps:
-        if result_step.get("type") != "pick_basedata":
+        if result_step.get("type") not in {"pick_basedata", "select_f7_list_row"}:
             continue
         step_id = result_step.get("id")
         raw = raw_step_map.get(step_id, {})
@@ -1942,8 +2178,8 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
         resolved = env_resolution.get(env_step_id) or env_resolution.get(step_id) or {}
         env_fields.append({
             "step_id": env_step_id,
-            "field_key": raw.get("field_key", ""),
-            "value_id": str(raw.get("value_id", "")),
+            "field_key": meta.get("field_key", raw.get("field_key", "")),
+            "value_id": str(raw.get("value_id", "") or raw.get("value_code", "")),
             "value_name": raw.get("value_name", ""),
             "value_code": raw.get("value_code", "") or meta.get("value_code", ""),
             "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
@@ -1989,6 +2225,13 @@ def _build_resolved_request(step: dict) -> dict:
         req["value_id"] = step.get("value_id", "")
         if step.get("value_code"):
             req["value_code"] = step.get("value_code", "")
+    elif t == "select_f7_list_row":
+        req["grid_key"] = step.get("grid_key", "billlistap")
+        req["field_key"] = step.get("field_key", "name")
+        req["target_field_key"] = step.get("target_field_key", "")
+        req["value_code"] = step.get("value_code", "")
+        req["value_name"] = step.get("value_name", "")
+        req["confirm_key"] = step.get("confirm_key", "btnok")
     elif t == "open_form":
         pass  # form_id/app_id already included
     return req
@@ -2022,6 +2265,8 @@ def _step_detail(step: dict) -> str:
         return f"{step.get('form_id')}  fields={list(fs.keys())}"
     if t == "pick_basedata":
         return f"{step.get('form_id')}  {step.get('field_key')}={step.get('value_id')}"
+    if t == "select_f7_list_row":
+        return f"{step.get('form_id')}  {step.get('grid_key', 'billlistap')}={step.get('value_code') or step.get('value_name')}"
     return ""
 
 def _step_label(step: dict) -> str:
@@ -2054,6 +2299,7 @@ def _step_label(step: dict) -> str:
         "open_form": "打开表单",
         "update_fields": "更新字段",
         "pick_basedata": "选择基础资料",
+        "select_f7_list_row": "选择F7列表行",
         "click_toolbar": "点击工具栏",
         "click_menu": "点击菜单",
         "sleep": "等待",

@@ -62,6 +62,38 @@ def test_component_registry_classifies_ua_bridge_and_hint_scroll_as_known():
     assert hint.risk == "low"
 
 
+def test_component_registry_classifies_rule_group_filter_grid_as_known_gap():
+    match = classify_step({
+        "id": "fill_rule_group_filter",
+        "type": "update_fields",
+        "form_id": "hsas_payrollscene",
+        "fields": {
+            "salarycalcstyle": "按薪资核算组",
+            "attachcondition": "等于",
+        },
+        "row_index": 0,
+    })
+
+    assert match.handler_id == "rule_group_filter_grid"
+    assert match.support_level == "partial"
+    assert match.risk == "high"
+    assert "entryentity" in match.reason
+
+
+def test_component_registry_classifies_f7_list_selector_as_supported():
+    match = classify_step({
+        "id": "select_salarycalcstyle",
+        "type": "select_f7_list_row",
+        "form_id": "hsbp_allowreturnnullf7",
+        "app_id": "hsas",
+        "value_code": "1010_S",
+    })
+
+    assert match.handler_id == "f7_list_selector"
+    assert match.support_level == "supported"
+    assert match.risk == "low"
+
+
 def test_quality_uses_component_report_for_compatibility_risk():
     component_report = analyze_component_coverage([
         {"id": "mystery", "type": "invoke", "ac": "brandNewAction"},

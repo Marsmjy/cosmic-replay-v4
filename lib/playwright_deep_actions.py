@@ -5,7 +5,10 @@ must pass these guards before it clicks write/workflow buttons.
 """
 from __future__ import annotations
 
+import random
+import re
 from collections import Counter
+from datetime import datetime
 from typing import Any
 
 WRITE_CONFIRM_TOKEN = "YES_GENERATE_TEST_DATA"
@@ -51,18 +54,28 @@ def classify_action_risk(action: dict[str, Any] | str) -> str:
     if isinstance(action, str):
         text = action
         action_type = "click_text"
+        declared_risk = ""
     else:
         text = str(action.get("text") or action.get("label") or action.get("selector") or "")
         action_type = str(action.get("type") or "")
-    if action_type in {"wait", "screenshot", "noop", "open_home"}:
+        declared_risk = str(action.get("risk") or "")
+    if action_type in {"wait", "screenshot", "noop", "open_home", "snapshot_controls"}:
         return "read"
-    if action_type in {"fill", "fill_text", "select", "set_value"}:
+    if action_type in {"wait_for_selector"}:
+        return "read"
+    if action_type in {"fill", "fill_text", "fill_at", "select", "set_value"}:
+        return "write"
+    if action_type in {"select_option", "press"}:
         return "write"
     if any(keyword in text for keyword in _FORBIDDEN_KEYWORDS):
         return "forbidden"
     if any(keyword in text for keyword in _WORKFLOW_KEYWORDS):
         return "workflow"
     if any(keyword in text for keyword in _WRITE_KEYWORDS):
+        return "write"
+    if action_type in {"click_selector", "click_locator", "click_at"}:
+        if declared_risk in {"read", "write", "workflow"}:
+            return declared_risk
         return "write"
     return "read"
 
@@ -116,3 +129,18 @@ def validate_action_plan(
         },
     }
 
+
+def render_action_value(value: Any, *, now: datetime | None = None) -> Any:
+    """Render safe placeholders used by deep Playwright action plans."""
+    if not isinstance(value, str):
+        return value
+    current = now or datetime.now()
+    rendered = value.replace("${timestamp}", current.strftime("%Y%m%d%H%M%S"))
+    rendered = rendered.replace("${today}", current.strftime("%Y-%m-%d"))
+
+    def _rand(match: re.Match[str]) -> str:
+        length = int(match.group(1))
+        length = max(1, min(length, 18))
+        return "".join(str(random.randint(0, 9)) for _ in range(length))
+
+    return re.sub(r"\$\{rand:(\d+)\}", _rand, rendered)

@@ -1,0 +1,229 @@
+import json
+
+from lib.deep_chain_pipeline import (
+    build_auto_pipeline_report,
+    build_readback_plan,
+    build_report_from_paths,
+    classify_pipeline_outcome,
+    infer_write_verification_strategy,
+    load_catalog,
+    load_yaml_case,
+    match_experience_catalog,
+    summarize_progress,
+)
+
+
+def test_deep_chain_pipeline_progress_reports_current_stage():
+    catalog = load_catalog()
+    progress = summarize_progress(catalog)
+
+    assert progress["target_cloud"] == "薪酬福利云"
+    assert progress["closed_write_passed"] >= 7
+    assert progress["blocked"] == 0
+    assert progress["current_phase"] == "stage_2_auto_pipeline_and_readback"
+    assert progress["next_focus"][0]["stage"] == "readonly_or_not_writable"
+
+
+def test_write_verification_strategy_prefers_business_key_readback_for_success_only():
+    case = load_yaml_case("tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml")
+    smoke_summary = {
+        "passed": True,
+        "write_events": [{"step_id": "click_bar_save", "response_tokens": ["保存成功"]}],
+    }
+
+    strategy = infer_write_verification_strategy(case, smoke_summary)
+
+    assert strategy["status"] == "needs_readback"
+    assert strategy["method"] == "business_key_query"
+    assert {item["field_key"] for item in strategy["business_keys"]} >= {"number", "name"}
+    assert strategy["readback_plan"]["status"] == "ready"
+    assert strategy["readback_plan"]["plans"][0]["preferred_filter"]["field_key"] == "number"
+    assert strategy["readback_plan"]["plans"][0]["preferred_filter"]["value_ref"] == "${vars.test_number}"
+    assert strategy["readback_plan"]["plans"][0]["suggested_assertion"]["type"] == "readback_by_business_key"
+    assert strategy["readback_plan"]["plans"][0]["suggested_assertion"]["value"] == "${vars.test_number}"
+
+
+def test_write_verification_strategy_accepts_primary_key_response_tokens():
+    case = load_yaml_case("tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml")
+    smoke_summary = {
+        "passed": True,
+        "write_events": [{"step_id": "click_bar_save", "response_tokens": ["pkvalue"]}],
+    }
+
+    strategy = infer_write_verification_strategy(case, smoke_summary)
+
+    assert strategy["status"] == "verified_by_response"
+    assert strategy["method"] == "primary_key_or_operation_result"
+    assert strategy["readback_plan"]["status"] == "ready"
+
+
+def test_build_readback_plan_groups_business_keys_by_form():
+    case = {
+        "main_form_id": "hpdi_bizdatabillnewentry",
+        "vars": {
+            "test_description": "CRPLY_WRITE_${timestamp}",
+            "test_name": "CRPLY_NAME_${timestamp}",
+        },
+        "vars_meta": {
+            "test_description": {
+                "field_key": "description",
+                "form_id": "hpdi_bizdatabill",
+            },
+            "test_name": {
+                "field_key": "name",
+                "form_id": "hpdi_bizdatabillnewentry",
+            },
+        },
+    }
+
+    plan = build_readback_plan(case)
+
+    assert plan["status"] == "ready"
+    form_ids = {item["form_id"] for item in plan["plans"]}
+    assert "hpdi_bizdatabill" in form_ids
+    main_plan = next(item for item in plan["plans"] if item["form_id"] == "hpdi_bizdatabill")
+    assert main_plan["preferred_filter"]["field_key"] == "description"
+    assert main_plan["preferred_filter"]["value_ref"] == "${vars.test_description}"
+    assert main_plan["app_id"] == "hpdi"
+    assert main_plan["suggested_assertion"] == {
+        "type": "readback_by_business_key",
+        "form_id": "hpdi_bizdatabill",
+        "app_id": "hpdi",
+        "field_key": "description",
+        "value": "${vars.test_description}",
+    }
+    assert any("不允许新增、保存" in guard for guard in plan["guardrails"])
+
+
+def test_pipeline_failure_classification_uses_existing_failure_analysis_rules():
+    case = {"main_form_id": "demo_form"}
+    smoke_summary = {
+        "passed": False,
+        "failed_steps": [{"id": "save", "error": "页面未初始化或者已经过期 pageId"}],
+    }
+
+    outcome = classify_pipeline_outcome(case=case, smoke_summary=smoke_summary)
+
+    assert outcome["category"] == "pageid_context"
+    assert outcome["severity"] == "high"
+
+
+def test_pipeline_failure_classification_detects_rule_group_filter_gap():
+    case = {"main_form_id": "hsas_payrollscene"}
+    smoke_summary = {
+        "passed": False,
+        "failed_steps": [{
+            "id": "click_bar_save",
+            "error": "规则分组“默认规则”中，常用筛选不允许为空，请至少填写一行数据。",
+        }],
+    }
+
+    outcome = classify_pipeline_outcome(case=case, smoke_summary=smoke_summary)
+
+    assert outcome["category"] == "component_rule_group_filter_missing"
+    assert outcome["severity"] == "high"
+    assert any("常用筛选" in action for action in outcome["recommended_actions"])
+
+
+def test_pipeline_report_without_smoke_evidence_is_not_marked_closed():
+    case = load_yaml_case("tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml")
+
+    strategy = infer_write_verification_strategy(case)
+    outcome = classify_pipeline_outcome(case=case)
+
+    assert strategy["status"] == "not_checked"
+    assert strategy["method"] == "missing_smoke_evidence"
+    assert outcome["category"] == "pipeline_evidence_missing"
+
+
+def test_scenario_report_is_value_safe_and_highlights_verification_gap(tmp_path):
+    smoke_path = tmp_path / "smoke.json"
+    smoke_path.write_text(
+        json.dumps({
+            "summary": {
+                "passed": True,
+                "write_events": [{"step_id": "click_bar_save", "response_tokens": ["保存成功"]}],
+            }
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    report = build_report_from_paths(
+        scenario_id="salary_item_new_validation",
+        smoke_evidence_path=smoke_path,
+    )
+
+    assert report["scenario"]["stage"] == "closed_write_passed"
+    assert report["write_verification"]["status"] == "needs_readback"
+    assert report["failure_or_gap"]["category"] == "write_verification_gap"
+    assert report["experience_matches"]["status"] == "matched"
+    raw = json.dumps(report, ensure_ascii=False)
+    assert "password" not in raw.lower()
+    assert "cookie" not in raw.lower()
+
+
+def test_match_experience_catalog_prefers_closed_form_and_feature_match():
+    catalog = load_catalog()
+    case = {
+        "main_form_id": "hsas_payrollscene",
+        "steps": [
+            {"form_id": "hsas_payrollscene", "type": "menuItemClick"},
+            {"form_id": "hsas_salarycalcstyle", "type": "select_f7_list_row"},
+        ],
+    }
+    har_probe = {
+        "summary": {
+            "forms": ["hsas_payrollscene", "hsas_salarycalcstyle"],
+            "lookup_prefetch_count": 1,
+            "showform_alias_count": 1,
+            "write_anchor_count": 1,
+            "default_context_count": 0,
+        },
+        "lessons": [{"code": "lookup_prefetch_before_pick"}],
+        "risks": [],
+    }
+
+    result = match_experience_catalog(catalog, case=case, har_probe=har_probe)
+
+    assert result["status"] == "matched"
+    assert result["matches"][0]["scenario_id"] == "salary_calc_scene_rule_group_blocked"
+    assert any("form_id 命中" in reason for reason in result["matches"][0]["matched_reasons"])
+    assert any("硬补 save.post_data" in guard for guard in result["guardrails"])
+
+
+def test_auto_pipeline_report_reuses_yaml_and_waits_for_smoke(tmp_path):
+    report = build_auto_pipeline_report(
+        scenario_id="salary_calc_scene_rule_group_blocked",
+        case_path="tests/fixtures/deep_chain_factory/salary_calc_scene_protocol_save.yaml",
+        output_dir=tmp_path,
+    )
+
+    assert report["pipeline"]["status"] == "yaml_ready_needs_smoke"
+    assert report["pipeline"]["artifacts"]["case_generated"] is False
+    assert report["pipeline"]["baseline_candidate"]["status"] == "not_ready"
+    assert any("write smoke" in action for action in report["pipeline"]["next_actions"])
+    assert report["scenario_report"]["experience_matches"]["matches"][0]["scenario_id"] == "salary_calc_scene_rule_group_blocked"
+
+
+def test_auto_pipeline_report_marks_verified_smoke_as_baseline_candidate(tmp_path):
+    smoke_path = tmp_path / "smoke.json"
+    smoke_path.write_text(
+        json.dumps({
+            "summary": {
+                "passed": True,
+                "write_events": [{"step_id": "click_bar_save", "response_tokens": ["pkvalue"]}],
+            }
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    report = build_auto_pipeline_report(
+        scenario_id="salary_item_new_validation",
+        case_path="tests/fixtures/deep_chain_factory/salary_item_protocol_save.yaml",
+        smoke_evidence_path=smoke_path,
+        output_dir=tmp_path,
+    )
+
+    assert report["pipeline"]["status"] == "closed_verified"
+    assert report["pipeline"]["baseline_candidate"]["status"] == "ready"
+    assert report["scenario_report"]["write_verification"]["status"] == "verified_by_response"

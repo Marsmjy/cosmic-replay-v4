@@ -33,6 +33,7 @@ from lib.playwright_deep_actions import (
     WORKFLOW_CONFIRM_TOKEN,
     WRITE_CONFIRM_TOKEN,
     classify_action_risk,
+    render_action_value,
     validate_action_plan,
 )
 
@@ -183,6 +184,28 @@ def test_deep_action_plan_requires_explicit_write_and_workflow_tokens():
     assert allowed["summary"]["risk_counts"] == {"workflow": 1}
 
 
+def test_deep_action_plan_selector_actions_are_guarded_and_templates_render():
+    assert classify_action_risk({"type": "click_selector", "selector": ".kd-btn-primary"}) == "write"
+    assert classify_action_risk({"type": "click_selector", "selector": ".kd-tab", "risk": "read"}) == "read"
+    assert classify_action_risk({"type": "click_at", "x": 10, "y": 20}) == "write"
+    assert classify_action_risk({"type": "fill_at", "x": 10, "y": 20, "value": "CRPLY"}) == "write"
+    assert classify_action_risk({"type": "press", "selector": "input", "key": "Enter"}) == "write"
+    assert classify_action_risk({"type": "wait_for_selector", "selector": ".kd-dialog"}) == "read"
+    assert classify_action_risk({"type": "snapshot_controls", "selector": "body"}) == "read"
+
+    blocked = validate_action_plan({
+        "owned_test_data": True,
+        "test_prefix": "CRPLY_DEEP",
+        "actions": [{"type": "click_selector", "selector": ".kd-btn-primary"}],
+    })
+    assert blocked["ok"] is False
+    assert any("write_requires" in item for item in blocked["errors"])
+
+    rendered = render_action_value("CRPLY_${today}_${timestamp}_${rand:4}")
+    assert rendered.startswith("CRPLY_")
+    assert "${" not in rendered
+
+
 def test_write_smoke_helpers_are_safe_and_summary_focused():
     assert CONFIRM_TOKEN == "YES_GENERATE_TEST_DATA"
     assert parse_var_override("test_description=CRPLY") == ("test_description", "CRPLY")
@@ -231,6 +254,17 @@ def test_salary_cloud_catalog_fixture_is_value_safe():
     assert "cookie" not in raw.lower()
     assert "token" not in raw.lower()
     assert "http" not in raw.lower()
+
+
+def test_salary_calc_scene_snapshot_plan_is_readonly_after_opening_new_page():
+    path = Path("tests/fixtures/deep_chain_factory/salary_calc_scene_common_filter_snapshot_plan.json")
+    plan = json.loads(path.read_text(encoding="utf-8"))
+
+    result = validate_action_plan(plan, confirm_write=WRITE_CONFIRM_TOKEN)
+
+    assert result["ok"] is True
+    assert result["summary"]["risk_counts"] == {"read": 5, "write": 1}
+    assert "CRPLY_" in plan["test_prefix"]
 
 
 def test_summarize_menu_tree_uses_first_network_context():
