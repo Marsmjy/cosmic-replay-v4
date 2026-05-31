@@ -119,6 +119,8 @@ def _is_l2_pageid(pid: str) -> bool:
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
 - `薪资核算 / 薪资核算场景` 已验证写入闭环：保存提示“规则分组/常用筛选至少一行”时，pageId 链路通常已正常，缺的是 F7 子窗口回填链。正确链路是维护 `country` 后点击 `labelap4` 打开 `hsas_salarycalcstyle` F7，用 `select_f7_list_row` 按编码/名称选中算发薪方式并点击 `btnok`，确认响应回填 `groupcontent/entryentity` 后再保存；仅补选 `callistrule` 不会生成筛选行。
 - `基础资料-受控-变动原因` 已验证闭环：原始 HAR 通过 `homs_apphome/treeMenuClick` 建立树菜单 L2，但 API replay 可能无法重建 apphome shell。若保存提示“请按要求填写创建组织”，先检查是否从 HAR 的列表 `createorg_id` 和新增态 `loadData` 提取了 `createorg/ctrlstrategy` 默认上下文；`createorg` 要用内部 Long id 写 `update_fields`，`ctrlstrategy` 要解析 ComboField 编码/中文并暴露为环境字段，不要硬补 `save.post_data`。
+- `基础资料-受控-变动原因` 的环境字段覆盖经验：`createorg/ctrlstrategy` 这类 `context_only` 服务端默认上下文字段，用户在预览页或用例详情变量面板维护后，必须在 YAML `pick_fields` 中留下 `user_overridden: true`，并在运行前由 `_apply_pick_fields()` 注入到对应 `update_fields`。若页面看起来已修改但执行仍用 HAR 原值，优先检查 `user_overridden`、`source_step_id/form_id` 作用域、`value_code/value_number/value_id` 优先级，以及运行前是否保存了最新 YAML；不要误判为 pageId 错。
+- `基础资料-受控-变动原因` 的入库回查经验：保存响应含“保存成功”且 `no_save_failure/no_error_actions` 通过，但 `readback_by_business_key` 失败时，优先归类为 `readback_assertion_gap`。通用 `commonSearch` 对某些受控基础资料不一定能查到刚保存记录，只能作为建议回查策略，不能自动生成硬断言；需要表单专用回查策略或人工确认入库。
 - 深链路样本排障完成后，运行 `scripts/deep_chain_pipeline.py scenario-report` 生成脱敏闭环报告，把 HAR 链路画像、YAML smoke、失败分类、入库验证策略和 `experience_candidate` 沉淀为经验库候选。也可单独运行 `scripts/deep_chain_pipeline.py experience-candidate --scenario-id <id> --case <yaml> --smoke-evidence <json>` 输出可审查的 catalog patch；只有 `status=ready` 且脱敏通过时，才允许人工合入经验库。若执行 PASS 但只有“保存成功”提示，应先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>` 生成推荐查询表单和业务键，再把 `suggested_assertion` 补为 `readback_by_business_key` 只读断言；不能把 PASS 直接当作入库已验证。
 - 新 HAR 或失败证据包若包含 `experience_matches`，先看命中的已闭环样本和 `reusable_lessons`。也可运行 `scripts/deep_chain_pipeline.py match-experience --case <yaml> --har <har>`，按结构特征匹配成功经验。匹配结果只用于排障优先级，仍必须回到 HAR 原始 pageId 与回放 pageId 比对，不能因为命中样本就硬补 save 字段。
 - 若需要把新 HAR 从导入到执行串起来，优先用 `scripts/deep_chain_pipeline.py run-scenario`。默认模式只生成 HAR 画像、YAML、经验匹配、入库回查计划和报告；只有明确带 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才允许写入测试数据。AI 修复时应检查 `pipeline.status`、`baseline_candidate` 和 `next_actions`，不要绕过该流水线直接改已通过样本。
@@ -392,6 +394,32 @@ pick_fields:
     label: "生效日期"
 ```
 
+### 类型D-2：预览页/变量面板维护后执行仍使用旧值
+
+**症状**:
+- 用户在“导入 HAR 新建用例”预览页修改了环境相关字段，生成 YAML 后执行仍使用 HAR 原始值。
+- 用户在用例详情变量面板维护了智能变量或环境字段，点击执行后仍跑旧值。
+- `pick_createorg_id`、`pick_ctrlstrategy_id`、默认组织、控制策略等字段在界面显示已改，但 run events 的 `resolved_request.fields` 仍是原始 `100000/5` 或录制值。
+
+**高发范围**:
+- 不是所有 HAR 都会遇到。普通 `vars`、普通 `date_*`、明确 `pick_basedata` 步骤通常可以直接注入。
+- 高风险字段是 `context_only: true` 的服务端默认上下文字段：它们来自 `loadData/showForm/列表 rows`，执行时通过补偿 `update_fields` 写入 pageId 模型上下文，而不是保存请求体。
+
+**诊断步骤**:
+1. 查看 YAML `pick_fields.<field>` 是否存在 `context_only: true`、`source_step_id`、`form_id`。
+2. 若用户维护过该字段，必须看到 `user_overridden: true`。没有该标记时，runner 会把它当作 HAR 录制默认值，可能不会覆盖原始 `update_fields`。
+3. 检查 `value_code/value_number/value_id/value_name`：上下文字段应优先展示和维护业务编码；运行注入优先级应为 `value_code` / `value_number` / `value_id` / `value_name`。
+4. 检查 `source_step_id/form_id` 是否能命中真实 `update_fields` 步骤；多表单链路中不能用同名字段跨表单误覆盖。
+5. 检查 Web UI 执行前是否已保存最新 YAML。若用例详情变量面板存在未保存状态，执行前必须先保存或自动保存。
+6. 在 run events 中对比 `resolved_request.fields` 与 YAML `pick_fields`，确认实际执行值是否已替换。
+
+**修复原则**:
+- 预览页和用例详情页保存环境字段时，都要写入 `user_overridden: true`。
+- `context_only` 字段如果用户未覆盖，应尽量保留 HAR 服务端默认上下文；只有用户覆盖后才注入新值。
+- `pick_createorg_id` 这类字段界面优先展示编码，不要把组织名称当作执行值写入 `update_fields`。
+- 不要通过修改 `save.post_data` 修复此类问题；它属于执行前模型上下文字段注入问题。
+- 修复后增加单测覆盖：预览覆盖、详情面板覆盖、`context_only` 注入、多表单作用域。
+
 ### 类型E：业务逻辑错误（非框架问题）
 
 **特征**: 安全网不重试（错误不匹配可重试模式）
@@ -439,10 +467,11 @@ pick_fields:
    - 检查保存步骤是否使用 L2 pageId。
    - 检查 `_pending_by_app` 是否被 L2 屏蔽。
 4. 若保存响应非空但无写库 token：
-   - 补充保存后唯一字段回查断言，或增强 `no_save_failure`。
+   - 先判断是否已有明确成功信号，例如 `保存成功`、字段回写、主键、业务号、页面状态变化。
    - 先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>`，优先用 `number/billno/code/name/description` 等本次运行变量生成只读回查计划。
-   - 优先补 `readback_by_business_key` 断言；它只复用回查步骤或发 `commonSearch`，不能改写保存请求。
-   - 不要直接把此类用例标为成功。
+   - 只有表单已有专用可靠回查策略时，才自动追加硬 `readback_by_business_key` 断言。
+   - 通用 `commonSearch` 回查只能作为 advisory 建议。若通用回查失败但保存响应成功且用户确认已入库，应归类为 `readback_assertion_gap`，不要把用例当成自动化执行失败。
+   - 不要直接把此类用例标为成功，也不要因为通用回查失败就修改 `save.post_data`。
 
 **修复原则**：
 - PASS 不是交付标准，必须有入库证据。
@@ -484,7 +513,9 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
    - `environment_field_context_missing`：检查 `createorg`、`ctrlstrategy`、默认组织等是否从 HAR `loadData`、`showForm`、列表 rows 解析为环境字段。
    - `f7_lookup_chain_missing`：检查 `getLookUpList` 预热、候选选择、内部 id 解析和回填表单上下文。
    - `dialog_detail_chain_incomplete`：检查 `newentry/addrow → F7/entryRowClick → 子窗字段维护 → btnok/确定 → 主保存` 全链路，不能只看主单 PASS。
+   - `readback_assertion_gap`：保存/提交已成功，但通用入库回查没有命中。先确认 `no_save_failure/no_error_actions`、保存响应成功信号和业务系统实际入库；若确认已入库，移除或降级通用硬回查断言，补表单专用回查策略。
    - `business_validation_expected`：录制中出现且后续有补录动作的业务校验应保留为 `expected_notification`，不是失败。
+   - `environment_field_override_not_applied`：预览页或用例详情维护环境字段后仍跑旧值。检查 `pick_fields.user_overridden`、`context_only`、`source_step_id/form_id`、`value_code/value_number` 和运行前自动保存。
    - HAR 解析变量遗漏、保存断言盲区、环境字段缺失或跨环境 value_id 错误、真实业务校验错误、执行器问题。
 5. 输出最小补丁：
    - 优先改当前 YAML。
@@ -506,6 +537,8 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 5. 不得在无入库证据时宣称修复完成。
 6. 通用代码修复必须保持向后兼容，并通过 10 类 HAR 回归影响报告。
 7. 不得把硬补 `save` 字段作为 pageId 链路问题的替代修复；必须先证明 L2/L3 切换点与 HAR 原始链路一致。
+8. 不得把通用 `commonSearch` 回查失败直接等同于写库失败；保存成功但回查不适配时，应归类为断言盲区并补专用回查或人工确认。
+9. 不得忽略用户在预览页/变量面板维护的环境字段；若执行值与面板值不一致，优先修 `pick_fields` 覆盖链路和保存链路。
 
 ---
 
