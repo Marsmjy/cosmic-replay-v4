@@ -165,6 +165,31 @@ def test_readback_plan_uses_generic_strategy_for_unknown_forms():
     assert plan["plans"][0]["assertion_policy"]["mode"] == "advisory"
 
 
+def test_readback_plan_uses_fresh_menu_refresh_for_hcdm_salary_apply():
+    case = {
+        "main_form_id": "khr_hcdm_fapplybill",
+        "vars": {"test_name": "自动化${rand:4}"},
+        "vars_meta": {
+            "test_name": {
+                "field_key": "name",
+                "form_id": "khr_hcdm_fapplybill",
+                "app_id": "hcdm",
+            }
+        },
+    }
+
+    plan = build_readback_plan(case)
+
+    item = plan["plans"][0]
+    assert item["strategy"]["strategy_id"] == "hcdm_salary_adjust_apply_menu_refresh"
+    assert item["strategy"]["method"] == "fresh_menu_refresh"
+    assert item["app_id"] == "hcdm"
+    assert item["assertion_policy"]["auto_append"] is True
+    assert item["suggested_assertion"]["strategy"] == "fresh_menu_refresh"
+    assert item["suggested_assertion"]["menu_id"] == "2371045759278662656"
+    assert item["suggested_assertion"]["field_key"] == "khr_name"
+
+
 def test_pipeline_failure_classification_uses_existing_failure_analysis_rules():
     case = {"main_form_id": "demo_form"}
     smoke_summary = {

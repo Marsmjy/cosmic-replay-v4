@@ -27,6 +27,16 @@ BUSINESS_KEY_FIELDS = {"number", "billno", "code", "name", "description"}
 KEY_PRIORITY = {"number": 0, "billno": 1, "code": 2, "name": 3, "description": 4}
 
 READBACK_STRATEGY_LIBRARY: dict[str, dict[str, Any]] = {
+    "khr_hcdm_fapplybill": {
+        "strategy_id": "hcdm_salary_adjust_apply_menu_refresh",
+        "preferred_fields": ["name", "billno"],
+        "app_id": "hcdm",
+        "method": "fresh_menu_refresh",
+        "assertion_strategy": "fresh_menu_refresh",
+        "assertion_field_key": "khr_name",
+        "menu_id": "2371045759278662656",
+        "uniqueness_hint": "员工定调薪申请单保存后需新会话重新进入菜单并刷新列表，再按名称/单号回查；通用 commonSearch(khr_name) 在该表单不可靠。",
+    },
     "hpdi_bizdatabill": {
         "strategy_id": "ua_submit_business_key",
         "preferred_fields": ["description", "billno", "number", "name"],
@@ -592,6 +602,19 @@ def build_readback_plan(
             })
         strongest = filters[0] if filters else {}
         readback_strategy = _readback_strategy_for_form(form_id, filters)
+        if readback_strategy.get("app_id"):
+            app_id = str(readback_strategy.get("app_id") or app_id)
+        suggested_assertion = {
+            "type": "readback_by_business_key",
+            "form_id": form_id,
+            "app_id": app_id,
+            "field_key": readback_strategy.get("assertion_field_key") or strongest.get("field_key", ""),
+            "value": strongest.get("value_ref", ""),
+        }
+        if readback_strategy.get("assertion_strategy"):
+            suggested_assertion["strategy"] = str(readback_strategy.get("assertion_strategy") or "")
+        if readback_strategy.get("menu_id"):
+            suggested_assertion["menu_id"] = str(readback_strategy.get("menu_id") or "")
         plans.append({
             "form_id": form_id,
             "app_id": app_id,
@@ -601,13 +624,7 @@ def build_readback_plan(
             "strategy": readback_strategy,
             "assertion_policy": _readback_assertion_policy(readback_strategy),
             "success_criteria": "至少回查到 1 条记录，且首选业务键与本次运行变量一致。",
-            "suggested_assertion": {
-                "type": "readback_by_business_key",
-                "form_id": form_id,
-                "app_id": app_id,
-                "field_key": strongest.get("field_key", ""),
-                "value": strongest.get("value_ref", ""),
-            },
+            "suggested_assertion": suggested_assertion,
         })
 
     return {
@@ -628,6 +645,10 @@ def _readback_strategy_for_form(form_id: str, filters: list[dict[str, str]]) -> 
             "strategy_id": strategy["strategy_id"],
             "source": "strategy_library",
             "method": strategy["method"],
+            **({"app_id": strategy["app_id"]} if strategy.get("app_id") else {}),
+            **({"assertion_strategy": strategy["assertion_strategy"]} if strategy.get("assertion_strategy") else {}),
+            **({"assertion_field_key": strategy["assertion_field_key"]} if strategy.get("assertion_field_key") else {}),
+            **({"menu_id": strategy["menu_id"]} if strategy.get("menu_id") else {}),
             "preferred_fields": preferred or strategy["preferred_fields"],
             "available_fields": available_fields,
             "uniqueness_hint": strategy["uniqueness_hint"],

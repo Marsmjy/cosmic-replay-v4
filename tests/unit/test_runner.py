@@ -913,7 +913,7 @@ class TestAssertionHandlers:
                             "k": "billlistap",
                             "data": {
                                 "dataindex": {"rk": 0, "khr_name": 1},
-                                "rows": [[0, "测试员1234"]],
+                                "rows": [[0, "自动化1234"]],
                             },
                         }],
                     }]
@@ -942,7 +942,7 @@ class TestAssertionHandlers:
             "form_id": "khr_hcdm_fapplybill",
             "app_id": "hcdm",
             "field_key": "khr_name",
-            "value": "测试员1234",
+            "value": "自动化1234",
         }, ctx)
 
         assert passed is True

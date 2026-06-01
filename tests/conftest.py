@@ -166,7 +166,7 @@ def case_with_steps() -> dict:
         },
         "vars": {
             "test_number": "TEST${rand:4}",
-            "test_name": "测试员${test_number}"
+            "test_name": "自动化${test_number}"
         },
         "main_form_id": "test_form",
         "steps": [
@@ -288,7 +288,7 @@ def builtin_vars(request):
 
 @pytest.fixture(params=[
     ("number", "EMP001"),
-    ("name", "测试员"),
+    ("name", "自动化"),
     ("phone", "13800138000"),
     ("code", "TEST123"),
 ])

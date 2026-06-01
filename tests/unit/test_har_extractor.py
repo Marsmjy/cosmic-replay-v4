@@ -219,7 +219,7 @@ class TestVariableDetection:
             "type": "invoke",
             "method": "updateValue",
             "ac": "updateValue",
-            "post_data": [{}, [{"k": "name", "v": "测试员张三"}]]
+            "post_data": [{}, [{"k": "name", "v": "自动化张三"}]]
         }]
         modified, vars_map, vars_labels = detect_var_placeholders(actions)
         assert "test_name" in vars_map

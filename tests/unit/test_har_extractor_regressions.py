@@ -97,6 +97,34 @@ def test_append_readback_assertions_skips_generic_common_search_plan():
     assert case["assertions"] == [{"type": "no_save_failure", "step": "click_bar_save"}]
 
 
+def test_append_readback_assertions_includes_fresh_menu_strategy_for_hcdm_salary_apply():
+    case = {
+        "main_form_id": "khr_hcdm_fapplybill",
+        "vars": {"test_name": "自动化${rand:4}"},
+        "vars_meta": {
+            "test_name": {
+                "field_key": "name",
+                "form_id": "khr_hcdm_fapplybill",
+                "app_id": "hcdm",
+            }
+        },
+        "assertions": [{"type": "no_save_failure", "step": "click_bar_save"}],
+    }
+
+    plan = _append_readback_assertions(case)
+
+    assert plan["status"] == "ready"
+    assert case["assertions"][-1] == {
+        "type": "readback_by_business_key",
+        "strategy": "fresh_menu_refresh",
+        "menu_id": "2371045759278662656",
+        "form_id": "khr_hcdm_fapplybill",
+        "app_id": "hcdm",
+        "field_key": "khr_name",
+        "value": "${vars.test_name}",
+    }
+
+
 def test_preview_readback_plan_uses_detected_var_metadata():
     plan = _build_preview_readback_plan(
         "hsas_payrollscene",
@@ -417,6 +445,26 @@ def test_no_menu_l2_recording_with_refresh_reconstructs_menu_bridge():
     assert steps["click_tblrefresh"].get("preserve_l2_page") is True
     assert steps["click_tblnew"].get("preserve_l2_page") is True
     assert "load_hcdm_fapplybill" in steps
+
+
+def test_salary_adjust_import_drops_portal_side_effect_cards():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780302785_金蝶HR-新增员工定调薪申请单NEW.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment NEW HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_apply_new")
+    case = yaml.safe_load(yaml_text)
+    form_ids = {step.get("form_id") for step in case["steps"]}
+    steps = {step["id"]: step for step in case["steps"]}
+
+    assert "gbs_flowcard" not in form_ids
+    assert "gbs_bgtaskdetailsidebar" not in form_ids
+    assert "gbs_bgtasklistsidebar" not in form_ids
+    assert "khr_hrobs_announcement" not in form_ids
+    assert "nbj_user_selfhelp_sc" not in form_ids
+    assert steps["menuItemClick_4"]["target_form"] == "khr_hcdm_fapplybill"
+    assert steps["click_tblnew"].get("preserve_l2_page") is True
+    assert "click_bar_save" in steps
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():

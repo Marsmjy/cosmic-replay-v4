@@ -61,7 +61,7 @@ class TestDataFactory:
             },
             "vars": {
                 "test_number": "TEST${rand:6}",
-                "test_name": "测试员${vars.test_number}",
+                "test_name": "自动化${vars.test_number}",
                 "test_date": "${today}"
             },
             "steps": [

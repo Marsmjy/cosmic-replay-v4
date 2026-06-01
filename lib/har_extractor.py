@@ -151,6 +151,7 @@ _CONTEXT_FIELD_HINTS = {
 # 时不应阻断已经能直接打开的业务主表单（如 haos_adminorgdetail、hbpm_positionhr）。
 _NAVIGATION_FORM_IDS = {
     "bos_card_quicklaunch",
+    "gbs_flowcard",
     "gbs_bgtasklistsidebar",
     "gbs_bgtaskdetailsidebar",
     "hom_wbcalendar",
@@ -158,6 +159,16 @@ _NAVIGATION_FORM_IDS = {
     "hom_wbwarning",
     "hom_activityoverview",
     "hbp_reviselogpage",
+    "khr_hrobs_announcement",
+    "nbj_user_selfhelp_sc",
+}
+
+_PORTAL_SIDE_EFFECT_FORM_IDS = {
+    "gbs_flowcard",
+    "gbs_bgtasklistsidebar",
+    "gbs_bgtaskdetailsidebar",
+    "khr_hrobs_announcement",
+    "nbj_user_selfhelp_sc",
 }
 
 _AUTO_RESOLVE_FIELD_HINTS = {
@@ -1485,9 +1496,9 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                 if vname not in vars_map:
                     cur_num = round_number_assigned.get(save_round, round_number_assigned.get(1))
                     if cur_num:
-                        vars_map[vname] = f"测试员${{vars.{cur_num}}}"
+                        vars_map[vname] = f"自动化${{vars.{cur_num}}}"
                     else:
-                        vars_map[vname] = f"测试员${{rand:4}}"
+                        vars_map[vname] = f"自动化${{rand:4}}"
                 seen_values[dedup_key] = vname
                 return f"${{vars.{vname}}}"
 
@@ -2577,6 +2588,19 @@ def _mark_navigation_steps_optional(steps: list[dict], main_form: str) -> None:
     for step in steps:
         if _is_navigation_form(str(step.get("form_id") or ""), main_form):
             step["optional"] = True
+
+
+def _drop_portal_side_effect_steps(steps: list[dict], main_form: str) -> list[dict]:
+    """Remove browser portal cards that are not part of the business replay path."""
+    if not main_form:
+        return steps
+    kept: list[dict] = []
+    for step in steps:
+        form_id = str(step.get("form_id") or "")
+        if form_id and form_id != main_form and form_id in _PORTAL_SIDE_EFFECT_FORM_IDS:
+            continue
+        kept.append(step)
+    return kept
 
 
 def _pick_field_auto_resolve_meta(
@@ -3734,6 +3758,14 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
             continue
         assertions.append(OrderedDict([
             ("type", "readback_by_business_key"),
+            *(
+                [("strategy", suggested.get("strategy"))]
+                if suggested.get("strategy") else []
+            ),
+            *(
+                [("menu_id", suggested.get("menu_id"))]
+                if suggested.get("menu_id") else []
+            ),
             ("form_id", suggested.get("form_id", "")),
             ("app_id", suggested.get("app_id", "")),
             ("field_key", field_key),
@@ -4174,6 +4206,7 @@ def build_yaml_case(
         app_id=_context_app_id,
     )
     cleaned = _drop_locked_update_fields(cleaned, field_observations)
+    cleaned = _drop_portal_side_effect_steps(cleaned, main_form)
     _mark_navigation_steps_optional(cleaned, main_form)
 
     # ⭐ step ID 去重：同名 ID 加数字后缀
