@@ -93,6 +93,18 @@
           "app_id": "hpdi",
           "expected_pageid_role": "L3",
           "form_id": "hpdi_bizdatabillchoicetpl",
+          "har_pageid_type": "missing",
+          "method": "",
+          "preserve_l2_page": false,
+          "risk_codes": [],
+          "step_id": "pick_org_ctx",
+          "step_type": "pick_basedata"
+        },
+        {
+          "ac": "",
+          "app_id": "hpdi",
+          "expected_pageid_role": "L3",
+          "form_id": "hpdi_bizdatabillchoicetpl",
           "har_pageid_type": "L1_or_L3",
           "method": "",
           "preserve_l2_page": false,
@@ -370,12 +382,12 @@
           "L1": 1,
           "L2": 7,
           "L2_or_L3": 13,
-          "L3": 22
+          "L3": 23
         },
         "preserve_l2_steps": 2,
         "risk_counts": {},
         "risk_level": "none",
-        "total_steps": 43
+        "total_steps": 44
       }
     },
     "pick_fields": [
@@ -437,6 +449,25 @@
         }
       },
       {
+        "app_id": "hpdi",
+        "auto_resolve": true,
+        "env_sensitive": "medium",
+        "field_key": "org",
+        "form_id": "hpdi_bizdatabillchoicetpl",
+        "label": "组织",
+        "name": "pick_org_id",
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "value_id_shape": {
+          "kind": "literal",
+          "length": 6
+        },
+        "value_name_shape": {
+          "kind": "literal",
+          "length": 12
+        }
+      },
+      {
         "app_id": "hsbs",
         "auto_resolve": true,
         "env_sensitive": "medium",
@@ -456,7 +487,7 @@
         }
       }
     ],
-    "step_count": 43,
+    "step_count": 44,
     "steps": [
       {
         "app_id": "bos",
@@ -649,6 +680,20 @@
         "optional": false,
         "post_data_fields": [],
         "type": "invoke"
+      },
+      {
+        "app_id": "hpdi",
+        "field_key": "org",
+        "form_id": "hpdi_bizdatabillchoicetpl",
+        "id": "pick_org_ctx",
+        "optional": false,
+        "type": "pick_basedata",
+        "value_id_shape": {
+          "kind": "template",
+          "tokens": [
+            "${vars.*}"
+          ]
+        }
       },
       {
         "app_id": "hpdi",
@@ -1066,8 +1111,8 @@
         "generic_safe_invoke",
         "list_navigation",
         "dialog_confirm",
-        "portal_navigation",
         "basedata_selector",
+        "portal_navigation",
         "entry_table",
         "open_form",
         "hint_scroll",
@@ -1076,8 +1121,8 @@
       ],
       "partial_steps": 17,
       "risk_level": "medium",
-      "supported_steps": 33,
-      "total_steps": 50,
+      "supported_steps": 34,
+      "total_steps": 51,
       "unsupported_steps": 0
     },
     "detected_vars": [
@@ -1092,7 +1137,8 @@
       "adminorg",
       "bizitemgroup",
       "employee",
-      "khr_cost_org"
+      "khr_cost_org",
+      "org"
     ],
     "quality": {
       "blocking": false,
@@ -1107,6 +1153,6 @@
   "schema_version": 1,
   "source_har": "preview_1779437599_UA提报保存.har",
   "source_sha256": "99d2001e58553674582af0c532e3e89e9630f311caf6a55345b70c9560008401",
-  "summary_hash": "8393d215ebd288414852f547464d01970edbe2f6611540c35f68d980afcf2d7b",
+  "summary_hash": "69b5ed211a3026aeed6a72e5cb985c331a5cdff8b948345ad5c7c3ada9a42461",
   "title": "UA提报保存"
 }

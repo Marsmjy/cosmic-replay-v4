@@ -87,7 +87,7 @@ _SAVE_BUTTON_KEYS = {"btnsave", "btnsaveandnew", "btnsaveaddnew", "btnsavenew"}
 
 # click 但属于业务流程入口的按钮。若被 optional 吞掉，后续可能出现
 # “执行 PASS 但只保存主单/部分明细”的半成功。
-_CORE_CLICK_KEYS = {"newentry"}
+_CORE_CLICK_KEYS = {"newentry", "bizitemgroup", "adminorg", "khr_cost_org"}
 
 # ⭐ 无门户导航时，用于连接“列表/树 → 卡片/表单”的上下文步骤。
 # 这类步骤如果被裁掉，新增场景可能丢失默认上下文（如 createorg / tree focus）。
@@ -97,9 +97,39 @@ _CONTEXT_BRIDGE_ACS = {
     "hyperLinkClick",
     "loadData",
     "selectTab",
+    "getHintScroll",
     "postExpandNodes",
+    "queryTreeNodeChildren",
     "commonSearch",
+    "donothing_newbill",
+    "release",
 }
+
+_CONTEXT_BRIDGE_CLICK_KEYS = {
+    "ok",
+    "btnok",
+    "btn_ok",
+    "bizitemgroup",
+    "adminorg",
+    "khr_cost_org",
+    "newentry",
+}
+
+
+def _is_context_bridge_step(step: dict) -> bool:
+    """Return whether a step belongs to a no-menu list/template/F7 bridge."""
+    step_type = step.get("type", "")
+    ac = step.get("ac", "") or ""
+    key = str(step.get("key") or "").lower()
+    if step_type == "open_form":
+        return True
+    if step_type == "pick_basedata":
+        return True
+    if step_type != "invoke":
+        return False
+    if ac in _CONTEXT_BRIDGE_ACS:
+        return True
+    return ac == "click" and key in _CONTEXT_BRIDGE_CLICK_KEYS
 
 # ⭐ 多语言文本字段的语言 key。值即使看起来像数字，也必须按字符串输出。
 _MULTILANG_KEYS = {"zh_CN", "zh_TW", "en_US", "GLang"}
@@ -199,6 +229,9 @@ _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
         "companyarea",
         "org",
         "otclassify",
+    ),
+    "hpdi_bizdatabillchoicetpl": (
+        "org",
     ),
 }
 _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM = {
@@ -2325,17 +2358,12 @@ def _find_context_bridge_start(steps: list[dict], main_form: str) -> int | None:
     start = first_main_idx
     for j in range(first_main_idx - 1, -1, -1):
         prev = steps[j]
-        prev_type = prev.get("type", "")
         prev_form = prev.get("form_id", "") or ""
-        prev_ac = prev.get("ac", "") or ""
 
         if prev_form.startswith(("home_page", "bos_portal", "portal_", "gpt_")):
             break
 
-        if prev_type == "open_form":
-            start = j
-            continue
-        if prev_type == "invoke" and prev_ac in _CONTEXT_BRIDGE_ACS:
+        if _is_context_bridge_step(prev):
             start = j
             continue
         break
@@ -2365,6 +2393,13 @@ def _has_context_bridge_into_main_form(steps: list[dict], main_form: str) -> boo
 
         prev_ac = prev.get("ac", "")
         prev_method = prev.get("method", "")
+        prev_key = str(prev.get("key") or "").lower()
+        if (
+            main_form == "hpdi_bizdatabillnewentry"
+            and prev_ac == "click"
+            and prev_key in _CONTEXT_BRIDGE_CLICK_KEYS
+        ):
+            return True
         if prev_ac in {"postExpandNodes", "commonSearch"}:
             return True
         if prev_ac == "entryRowClick" and prev_method in (
@@ -2766,6 +2801,18 @@ def _append_recorded_default_pick_steps(
             and step.get("field_key")
         }
 
+    def _needs_recorded_default_pick(form_id: str, field_key: str) -> bool:
+        if form_id != "hpdi_bizdatabillchoicetpl":
+            return True
+        if str(field_key or "").lower() != "org":
+            return True
+        return any(
+            step.get("form_id") == form_id
+            and step.get("type") == "pick_basedata"
+            and str(step.get("field_key") or "").lower() == "bizitemgroup"
+            for step in out
+        )
+
     def _first_business_input_pos(form_id: str) -> int:
         for idx, step in enumerate(out):
             if step.get("form_id") != form_id:
@@ -2794,6 +2841,8 @@ def _append_recorded_default_pick_steps(
         for field_key in default_fields:
             field_key_l = str(field_key or "").lower()
             if field_key_l in existing_fields:
+                continue
+            if not _needs_recorded_default_pick(form_id, field_key_l):
                 continue
             parts = values.get(field_key_l)
             if not isinstance(parts, dict):
@@ -3508,16 +3557,14 @@ def _has_expected_notification(step: dict) -> bool:
 
 
 def _mark_recorded_business_validations(steps: list[dict]) -> None:
-    """Mark intermediate save validations that were present in the recording.
+    """Mark intermediate business validations that were present in the recording.
 
-    Real HARs may contain a save click that intentionally triggers a business
-    notification, followed by the user filling the missing field and saving
-    again. That first notification is a validation checkpoint, not a replay
-    failure, so we preserve it as an expected notification and keep running.
+    Real HARs may contain a load/save/click response that intentionally
+    triggers a business notification, followed by the user filling the missing
+    field and saving. That notification is a validation checkpoint, not a
+    replay failure, so we preserve it as expected and keep running.
     """
     for idx, step in enumerate(steps):
-        if not _is_write_anchor_step(step):
-            continue
         notifications = _extract_error_notifications(str(step.get("_resp_text") or ""))
         if not notifications:
             continue
@@ -3961,6 +4008,84 @@ def build_yaml_case(
                 if cleaned[i].get("type") == "open_form" and cleaned[i].get("form_id") == main_form:
                     cleaned.pop(i)
                     break
+
+    # Some HARs start after the portal/menu click but their first business
+    # request still carries the recorded menu L2 pageId. Reconstruct that L2
+    # bridge instead of injecting open_form(main_form), which would create an
+    # unrelated page model and lose the addnew -> showForm L3 chain.
+    if main_form and not _menu_target_set:
+        first_main_l2_idx = next(
+            (
+                i for i, s in enumerate(cleaned)
+                if (
+                    s.get("form_id") == main_form
+                    and _is_l2_page_id(s.get("_har_page_id"))
+                    and (
+                        str(s.get("ac") or "").lower() in {"new", "addnew"}
+                        or (
+                            str(s.get("method") or "") == "itemClick"
+                            and "toolbar" in str(s.get("key") or "").lower()
+                        )
+                    )
+                )
+            ),
+            None,
+        )
+        if first_main_l2_idx is not None:
+            l2_pid = str(cleaned[first_main_l2_idx].get("_har_page_id") or "")
+            menu_id = l2_pid.split("root", 1)[0]
+            has_prior_main_step = any(
+                s.get("form_id") == main_form
+                for s in cleaned[:first_main_l2_idx]
+            )
+            next_main_l3_pid = next(
+                (
+                    str(s.get("_har_page_id") or "")
+                    for s in cleaned[first_main_l2_idx + 1:]
+                    if (
+                        s.get("form_id") == main_form
+                        and s.get("_har_page_id")
+                        and not _is_l2_page_id(s.get("_har_page_id"))
+                    )
+                ),
+                "",
+            )
+            if (
+                not has_prior_main_step
+                and menu_id
+                and next_main_l3_pid
+            ):
+                app_id = cleaned[first_main_l2_idx].get("app_id") or "bos"
+                cleaned[first_main_l2_idx:first_main_l2_idx] = [
+                    {
+                        "type": "open_form",
+                        "id": "open_portal",
+                        "form_id": "bos_portal_myapp_new",
+                        "app_id": "bos",
+                        "_tier": "core",
+                    },
+                    {
+                        "type": "invoke",
+                        "id": f"menuItemClick_{_form_short(main_form)}",
+                        "form_id": "bos_portal_myapp_new",
+                        "app_id": "bos",
+                        "ac": "menuItemClick",
+                        "key": "appnavigationmenuap",
+                        "method": "menuItemClick",
+                        "args": [{
+                            "menuId": menu_id,
+                            "appId": app_id,
+                            "cloudId": "undefined",
+                        }],
+                        "post_data": [{}, []],
+                        "target_form": main_form,
+                        "target_forms": [main_form],
+                        "env_sensitive": "high",
+                        "resolve_by": "menu_path_or_form",
+                        "navigation_form_id": main_form,
+                        "_tier": "core",
+                    },
+                ]
 
     # ⭐ 规则13c：treeMenuClick 属于 apphome 树菜单外壳，API 回放通常无法
     # 重建浏览器 app-shell 的服务端模型。为兼容已通过样本，不用它绑定
@@ -5150,6 +5275,38 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "steps": [],
         }
 
+    try:
+        from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
+        ir_flow = build_normalized_flow(har, source_name=har_path.name)
+        ir_preview = compact_flow_for_preview(ir_flow)
+        ir_alignment = assess_ir_preview_alignment(
+            ir_flow,
+            preview_steps=preview_copy,
+            detected_vars=var_items,
+            pick_fields=pick_fields,
+        )
+    except Exception as e:
+        log.warning("HAR IR 对齐诊断失败（非致命）: %s", e)
+        ir_preview = {
+            "schema_version": "0.1",
+            "confidence_score": 0,
+            "source_har": {"entry_count": 0, "api_entry_count": 0, "redacted": True},
+            "step_count": 0,
+            "page_count": 0,
+            "sensitive_field_count": 0,
+            "warnings": [{"code": "ir_preview_failed", "message": f"{type(e).__name__}: {e}"}],
+            "steps": [],
+            "pages": [],
+        }
+        ir_alignment = {
+            "score": 0,
+            "grade": "E",
+            "risk_level": "high",
+            "summary": f"IR 对齐诊断失败: {type(e).__name__}: {e}",
+            "issues": [{"severity": "medium", "code": "ir_alignment_failed", "message": str(e), "suggestion": "查看 HAR 是否可正常脱敏和规范化。"}],
+            "checks": {},
+        }
+
     preview = {
         "main_form_id": main_form,
         "tier_counts": by_tier,
@@ -5159,6 +5316,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,
         "pageid_alignment": pageid_alignment,
+        "ir_preview": ir_preview,
+        "ir_alignment": ir_alignment,
         "steps": [
             {
                 "id": s.get("id"),
@@ -5207,6 +5366,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             component_report=component_report,
             quality=preview.get("quality"),
             pageid_alignment=pageid_alignment,
+            ir_alignment=ir_alignment,
         )
     except Exception as e:
         log.warning("HAR 导入预审失败（非致命）: %s", e)

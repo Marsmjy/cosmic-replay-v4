@@ -24,6 +24,7 @@ from lib.runner import (
     load_yaml, _parse_yaml_light, resolve_vars, _resolve_str, _resolve_ref,
     STEP_HANDLERS, ASSERTION_HANDLERS, _auto_resolve_pick_basedata_step,
     _step_allows_l2_pageid, _case_targets_form_via_menu,
+    _case_reaches_form_via_recorded_context,
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
 )
@@ -347,6 +348,31 @@ class TestReplayErrorDetection:
         assert _case_targets_form_via_menu(case, "hpdi_bizdatabillnewentry") is True
         assert _case_targets_form_via_menu(case, "hpdi_bizdatabill") is True
         assert _case_targets_form_via_menu(case, "other_form") is False
+
+    def test_context_reached_main_form_is_not_preopened(self):
+        case = {
+            "main_form_id": "hpdi_bizdatabillnewentry",
+            "steps": [
+                {
+                    "type": "invoke",
+                    "id": "click_btnok",
+                    "form_id": "hsbs_empposf7querylist",
+                    "app_id": "hsbs",
+                    "ac": "click",
+                    "key": "btnok",
+                },
+                {
+                    "type": "invoke",
+                    "id": "load_detail",
+                    "form_id": "hpdi_bizdatabillnewentry",
+                    "app_id": "hpdi",
+                    "ac": "loadData",
+                },
+            ],
+        }
+
+        assert _case_reaches_form_via_recorded_context(case, "hpdi_bizdatabillnewentry") is True
+        assert _case_reaches_form_via_recorded_context(case, "other_form") is False
 
     def test_pending_pageid_is_claimed_before_auto_opening_context_form(self):
         class FakeReplay:
@@ -853,6 +879,91 @@ class TestAssertionHandlers:
         assert calls[0][2] == "commonSearch"
         assert calls[0][3][0]["key"] == "filtercontainerap"
         assert "入库回查通过" in msg
+
+    def test_readback_by_business_key_fresh_menu_refresh_strategy(self, monkeypatch):
+        calls = []
+
+        class FakeSession:
+            root_base_id = "a" * 32
+            root_page_id = "root" + root_base_id
+
+        class FakeReplay:
+            def __init__(self, session, sign_required=True):
+                self.s = session
+                self.page_ids = {}
+
+            def init_root(self):
+                calls.append(("init_root",))
+                return self.s.root_page_id
+
+            def open_portal(self, form_id, app_id, lazy=True):
+                calls.append(("open_portal", form_id, app_id, lazy))
+                self.page_ids[form_id] = "portalpid"
+                return "portalpid"
+
+            def l2_page_id(self, menu_id):
+                return f"{menu_id}root{self.s.root_base_id}"
+
+            def invoke(self, form_id, app_id, ac, actions, page_id=None):
+                calls.append((form_id, app_id, ac, page_id, actions))
+                if ac == "refresh":
+                    return [{
+                        "a": "u",
+                        "p": [{
+                            "k": "billlistap",
+                            "data": {
+                                "dataindex": {"rk": 0, "khr_name": 1},
+                                "rows": [[0, "测试员1234"]],
+                            },
+                        }],
+                    }]
+                return []
+
+            def close(self):
+                calls.append(("close",))
+
+        monkeypatch.setattr(runner_mod, "login", lambda *args, **kwargs: FakeSession())
+        monkeypatch.setattr(runner_mod, "CosmicFormReplay", FakeReplay)
+        ctx = {
+            "step_responses": {},
+            "case": {"sign_required": True, "steps": []},
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "main_form_id": "khr_hcdm_fapplybill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "strategy": "fresh_menu_refresh",
+            "menu_id": "2371045759278662656",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "hcdm",
+            "field_key": "khr_name",
+            "value": "测试员1234",
+        }, ctx)
+
+        assert passed is True
+        assert "新会话菜单刷新" in msg
+        assert any(call[2] == "refresh" for call in calls if len(call) > 2)
+
+    def test_advisory_assertion_failure_does_not_fail_run_result(self):
+        result = runner_mod.RunResult()
+        result.steps.append({"id": "save", "ok": True, "type": "invoke"})
+        result.assertions.append({
+            "type": "readback_by_business_key",
+            "ok": False,
+            "advisory": True,
+            "msg": "通用 commonSearch 未命中",
+        })
+
+        assert result.passed is True
+
+    def test_assertion_is_advisory_from_mode(self):
+        assert runner_mod._assertion_is_advisory({"mode": "advisory"}) is True
+        assert runner_mod._assertion_is_advisory({"mode": "strict"}) is False
     
     def test_all_assertion_handlers_callable(self):
         """所有断言处理器可调用"""

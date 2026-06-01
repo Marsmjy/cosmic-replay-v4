@@ -238,7 +238,7 @@ def test_attach_pick_field_scopes_uses_form_before_field_key_match():
     assert pick_fields["pick_adminorg_id__pick_b"]["write_step_id"] == "save_b"
 
 
-def test_recorded_default_pick_steps_skip_intermediate_choice_form_server_defaults():
+def test_recorded_default_pick_steps_inject_choice_form_org_before_direct_template_pick():
     steps = [
         {
             "id": "load_choice",
@@ -261,6 +261,63 @@ def test_recorded_default_pick_steps_skip_intermediate_choice_form_server_defaul
             "form_id": "hpdi_bizdatabillchoicetpl",
             "app_id": "hpdi",
             "ac": "click",
+        },
+    ]
+    observations = {
+        "response_values_by_form": {
+            "hpdi_bizdatabillchoicetpl": {
+                "org": {
+                    "value_code": "JDGJJT",
+                    "value_name": "金蝶国际软件集团有限公司",
+                    "value_number": "JDGJJT",
+                }
+            }
+        }
+    }
+
+    out = _append_recorded_default_pick_steps(
+        steps,
+        observations,
+        main_form="hpdi_bizdatabillnewentry",
+        app_id="hpdi",
+    )
+
+    assert any(
+        step.get("form_id") == "hpdi_bizdatabillchoicetpl"
+        and step.get("field_key") == "org"
+        and step.get("_is_recorded_default")
+        for step in out
+    )
+    assert [step["id"] for step in out[:3]] == [
+        "load_choice",
+        "pick_org_ctx",
+        "pick_bizitemgroup",
+    ]
+
+
+def test_recorded_default_pick_steps_skip_choice_form_org_without_direct_template_pick():
+    steps = [
+        {
+            "id": "load_choice",
+            "type": "invoke",
+            "form_id": "hpdi_bizdatabillchoicetpl",
+            "app_id": "hpdi",
+            "ac": "loadData",
+        },
+        {
+            "id": "click_bizitemgroup",
+            "type": "invoke",
+            "form_id": "hpdi_bizdatabillchoicetpl",
+            "app_id": "hpdi",
+            "ac": "click",
+            "key": "bizitemgroup",
+        },
+        {
+            "id": "load_bizitemgroup",
+            "type": "invoke",
+            "form_id": "hsbs_bizitemgroup",
+            "app_id": "hsbs",
+            "ac": "loadData",
         },
     ]
     observations = {
@@ -305,12 +362,9 @@ def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
     assert "click_34" in steps
     assert "load_bizdatabillnewentry" in steps
     assert steps["pick_bizitemgroup"]["prefetch_lookup"] is True
-    assert not any(
-        step.get("form_id") == "hpdi_bizdatabillchoicetpl"
-        and step.get("field_key") == "org"
-        and step.get("_is_recorded_default")
-        for step in case["steps"]
-    )
+    step_ids = [step["id"] for step in case["steps"]]
+    assert "pick_org_ctx" in steps
+    assert step_ids.index("pick_org_ctx") < step_ids.index("pick_bizitemgroup")
     assert steps["fill_bizdate"]["fields"]["bizdate"] == "${vars.test_business_belong_date}"
     assert steps["fill_kd311"]["fields"]["kd311"] == "${vars.test_workday_overtime_hours}"
     assert steps["fill_kd305"]["fields"]["kd305"] == "${vars.test_weekend_overtime_hours}"
@@ -325,6 +379,44 @@ def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
     assert selector["source_step_id"] == "entryRowClick_33"
     assert selector["write_step_id"] == "click_34"
     assert selector["resolve_by"] == "value_code"
+
+
+def test_ua_detail_only_recording_keeps_template_and_selector_bridge():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780283704_提报单据保存002.har"
+    if not har_path.exists():
+        pytest.skip("local ignored UA HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="ua_submit_save_detail")
+    case = yaml.safe_load(yaml_text)
+    steps = {step["id"]: step for step in case["steps"]}
+
+    assert "load_bizdatabillchoicetpl" in steps
+    assert steps["click_3"]["key"] == "bizitemgroup"
+    assert steps["click_3"].get("optional") is not True
+    assert steps["click_24"]["key"] == "newentry"
+    assert steps["click_24"].get("optional") is not True
+    assert "load_empposf7querylist" in steps
+    assert "click_27" in steps
+    assert "load_bizdatabillnewentry" in steps
+    assert "open_bizdatabillnewentry" not in steps
+
+
+def test_no_menu_l2_recording_with_refresh_reconstructs_menu_bridge():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780292717_金蝶HR-新增员工定调薪申请单.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_apply")
+    case = yaml.safe_load(yaml_text)
+    steps = {step["id"]: step for step in case["steps"]}
+    first_ids = [step["id"] for step in case["steps"][:4]]
+
+    assert first_ids[:2] == ["open_portal", "menuItemClick_hcdm_fapplybill"]
+    assert "open_hcdm_fapplybill" not in steps
+    assert steps["menuItemClick_hcdm_fapplybill"]["target_form"] == "khr_hcdm_fapplybill"
+    assert steps["click_tblrefresh"].get("preserve_l2_page") is True
+    assert steps["click_tblnew"].get("preserve_l2_page") is True
+    assert "load_hcdm_fapplybill" in steps
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():

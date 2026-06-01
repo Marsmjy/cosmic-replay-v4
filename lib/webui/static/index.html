@@ -775,22 +775,36 @@
           </div>
 
           <div x-show="singleRunNeedsAgent()"
-               class="bg-rose-950/20 border border-rose-800/70 rounded-lg p-4 mb-3">
+               class="bg-rose-950/20 border border-rose-800/70 rounded-lg p-4 mb-3 shadow-lg shadow-rose-950/20">
             <div class="space-y-3">
               <div class="min-w-0">
                 <div class="text-rose-100 font-medium flex flex-wrap items-center gap-2">
-                  <span>需 AI Agent 诊断</span>
+                  <span>下一步：交给 AI 排查</span>
                   <span class="status-badge bg-rose-900/70 text-rose-100" x-text="singleRunDiagnosisBadge()"></span>
                 </div>
                 <div class="text-sm text-slate-400 mt-1" x-text="singleRunDiagnosisText()"></div>
                 <div class="text-xs text-slate-500 mt-2 break-words" x-show="singleRunDiagnosisReason()" x-text="singleRunDiagnosisReason()"></div>
+                <div class="mt-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
+                  <div class="text-xs text-slate-400">复制后发给 AI，系统会带上：</div>
+                  <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">IR 摘要</span>
+                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">pageId 链路</span>
+                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">变量/环境字段</span>
+                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">失败与入库证据</span>
+                  </div>
+                </div>
               </div>
-              <div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button type="button"
                         @click="copySingleRunAgentRepairPrompt()"
                         class="w-full rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300">
                   复制 AI 修复指令
                 </button>
+                <a :href="singleRunAgentEvidenceUrl(currentCase?.name || '', currentRunId())"
+                   target="_blank"
+                   class="w-full rounded-lg border border-rose-800 px-4 py-2.5 text-center text-sm font-semibold text-rose-100 transition hover:bg-rose-950">
+                  打开证据包
+                </a>
               </div>
             </div>
           </div>
@@ -1467,7 +1481,7 @@
 
       <!-- HAR 导入预审 + pageId 链路评分 -->
       <div x-show="harAdvancedOpen && harPreview?.preflight"
-           class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+           class="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div class="bg-slate-950 border rounded-lg p-4"
              :class="{
                'border-emerald-800/60': harPreview?.preflight?.decision === 'ready',
@@ -1544,6 +1558,57 @@
           </div>
           <div x-show="(harPreview?.pageid_alignment?.issues || []).length" class="mt-3 space-y-1">
             <template x-for="issue in (harPreview?.pageid_alignment?.issues || []).slice(0, 3)" :key="issue.code + issue.message">
+              <div class="text-xs bg-slate-900 rounded px-2 py-1.5">
+                <div class="text-slate-300" x-text="issue.message"></div>
+                <div class="text-slate-500" x-text="issue.suggestion"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div x-show="harPreview?.ir_alignment"
+             class="bg-slate-950 border rounded-lg p-4"
+             :class="{
+               'border-emerald-800/60': harPreview?.ir_alignment?.risk_level === 'low',
+               'border-amber-700/60': harPreview?.ir_alignment?.risk_level === 'medium',
+               'border-rose-700/60': harPreview?.ir_alignment?.risk_level === 'high',
+             }">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-medium text-slate-200">IR 覆盖雷达</span>
+                <span class="text-xs px-2 py-0.5 rounded"
+                      :class="{
+                        'bg-emerald-900/50 text-emerald-300': harPreview?.ir_alignment?.risk_level === 'low',
+                        'bg-amber-900/50 text-amber-300': harPreview?.ir_alignment?.risk_level === 'medium',
+                        'bg-rose-900/50 text-rose-300': harPreview?.ir_alignment?.risk_level === 'high',
+                      }"
+                      x-text="'风险 ' + (harPreview?.ir_alignment?.risk_level || '-')"></span>
+              </div>
+              <div class="text-xs text-slate-400" x-text="harPreview?.ir_alignment?.summary"></div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-2xl font-semibold text-cyan-200" x-text="harPreview?.ir_alignment?.score || 0"></div>
+              <div class="text-xs text-slate-500">IR/YAML</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">IR API</div>
+              <div class="text-slate-200" x-text="harPreview?.ir_alignment?.checks?.ir_api_entry_count || 0"></div>
+            </div>
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">写入覆盖</div>
+              <div class="text-slate-200"
+                   x-text="(harPreview?.ir_alignment?.checks?.preview_role_counts?.write || 0) + '/' + (harPreview?.ir_alignment?.checks?.ir_role_counts?.write || 0)"></div>
+            </div>
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">L2 保留</div>
+              <div class="text-slate-200" x-text="harPreview?.ir_alignment?.checks?.preview_l2_preserve_count || 0"></div>
+            </div>
+          </div>
+          <div x-show="(harPreview?.ir_alignment?.issues || []).length" class="mt-3 space-y-1">
+            <template x-for="issue in (harPreview?.ir_alignment?.issues || []).slice(0, 3)" :key="issue.code + issue.message">
               <div class="text-xs bg-slate-900 rounded px-2 py-1.5">
                 <div class="text-slate-300" x-text="issue.message"></div>
                 <div class="text-slate-500" x-text="issue.suggestion"></div>
@@ -2810,7 +2875,7 @@
                 <div x-show="reportQueue('ai_agent').length"
                      class="mt-3 rounded-lg border border-rose-800/60 bg-rose-950/25 px-3 py-2 text-sm text-rose-100">
                   <span class="font-medium">下一步：</span>
-                  <span>点击下方「复制 AI 修复指令」，把内容发给 Codex/AI Agent；需要完整上下文时再打开「证据包」。</span>
+                  <span>点击「复制 AI 修复指令」发给 Codex/AI Agent；指令会要求 AI 先看 IR 摘要、pageId 链路、变量/环境字段和入库证据。</span>
                 </div>
                 <div class="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
                   <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
@@ -2860,7 +2925,13 @@
               <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
                 <div>
                   <div class="text-sm font-medium text-rose-200">需 AI Agent 诊断</div>
-                  <div class="text-xs text-slate-400 mt-1">系统已准备好修复上下文。先复制指令给 AI，再按 AI 输出的补丁和测试结果确认修复。</div>
+                  <div class="text-xs text-slate-400 mt-1">系统已准备好修复上下文。复制指令后，AI 会优先检查 IR 摘要、pageId 链路、变量/环境字段和入库证据。</div>
+                  <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                    <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">IR 摘要</span>
+                    <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">pageId 链路</span>
+                    <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">变量/环境字段</span>
+                    <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">入库证据</span>
+                  </div>
                 </div>
                 <button x-show="reportQueue('ai_agent').length === 1"
                         @click="copyAgentRepairPrompt(reportQueue('ai_agent')[0])"
@@ -3070,9 +3141,9 @@
                   <td class="py-2 text-xs">
                     <div x-show="r.next_action === 'ai_agent'" class="space-y-1">
                       <button @click="copyAgentRepairPrompt(r)"
-                              class="text-rose-100 bg-rose-600 hover:bg-rose-500 rounded px-2 py-1">让AI修复</button>
+                              class="text-rose-100 bg-rose-600 hover:bg-rose-500 rounded px-2 py-1">复制AI指令</button>
                       <div class="text-[10px] text-slate-500">
-                        会复制修复指令；证据包会随指令提供给 AI。
+                        指令包含 IR 摘要、pageId 链路和证据包地址。
                         <a :href="agentEvidenceUrl(r.name)"
                            target="_blank"
                            class="text-slate-400 hover:text-slate-200 underline">查看技术证据</a>
@@ -4886,16 +4957,18 @@ function app() {
                 `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
-        '1. 先读取证据包、YAML、运行事件、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
-        '2. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
-        '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
-        '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
-        '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
-        '6. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
-        '7. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '8. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '9. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '10. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
+        '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '4. 如本地有原始 HAR，可先运行 scripts/har_ir_tool.py build --har <har> 和 scripts/har_ir_tool.py dry-run --flow <normalized_flow.json> 生成脱敏 IR；原始 HAR 不得提交 Git。',
+        '5. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
+        '6. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
+        '7. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
+        '8. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
+        '9. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '10. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '11. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '12. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 
@@ -4925,16 +4998,18 @@ function app() {
         `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
-        '1. 先读取证据包、YAML、运行事件、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
-        '2. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
-        '3. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
-        '4. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
-        '5. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
-        '6. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
-        '7. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
-        '8. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
-        '9. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
-        '10. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
+        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
+        '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
+        '4. 如本地有原始 HAR，可先运行 scripts/har_ir_tool.py build --har <har> 和 scripts/har_ir_tool.py dry-run --flow <normalized_flow.json> 生成脱敏 IR；原始 HAR 不得提交 Git。',
+        '5. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
+        '6. 若存在子弹窗/明细补录链路，必须检查 newentry → F7/entryRowClick 选择 → 明细弹窗字段维护 → 确定 → 主保存是否完整；不能只看最终 PASS，需确认保存响应或前置确认响应包含明细字段回填。',
+        '7. 先查看证据包 experience_matches；若命中已闭环样本，优先复用相似样本的 pageId、lookup、F7、子弹窗和入库回查经验。',
+        '8. 若执行 PASS 但入库未验证，先读取证据包里的 write_verification.readback_plan，或运行 scripts/deep_chain_pipeline.py readback-plan --case <yaml>，按业务键做只读回查；不要直接把 PASS 当作成功。',
+        '9. 在 pageId 链路确认后，再判断是 HAR 解析变量遗漏、环境字段覆盖、异步流程未等待、断言盲区，还是执行器问题；不要一上来硬补 save 字段。',
+        '10. 只做最小补丁，不要删除 menuItemClick、target_forms、pick_fields、no_save_failure 断言来绕过问题。',
+        '11. 修复后运行相关单测和 HAR 回归：pytest + scripts/har_regression_report.py compare --fail-on-diff。',
+        '12. 输出根因、修改文件、测试结果、回滚方案；如果需要人工确认环境字段，请明确列出来。',
       ].join('\n');
     },
 

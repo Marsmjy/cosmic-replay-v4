@@ -470,7 +470,7 @@ pick_fields:
    - 先判断是否已有明确成功信号，例如 `保存成功`、字段回写、主键、业务号、页面状态变化。
    - 先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>`，优先用 `number/billno/code/name/description` 等本次运行变量生成只读回查计划。
    - 只有表单已有专用可靠回查策略时，才自动追加硬 `readback_by_business_key` 断言。
-   - 通用 `commonSearch` 回查只能作为 advisory 建议。若通用回查失败但保存响应成功且用户确认已入库，应归类为 `readback_assertion_gap`，不要把用例当成自动化执行失败。
+   - 通用 `commonSearch` 回查只能作为 advisory 建议。YAML 中 `mode: advisory` 或 `advisory: true` 的回查失败不应让用例 FAIL，也不能作为“入库已验证”信号；若保存响应成功且用户确认已入库，应归类为 `readback_assertion_gap`，不要把用例当成自动化执行失败。
    - 不要直接把此类用例标为成功，也不要因为通用回查失败就修改 `save.post_data`。
 
 **修复原则**：
@@ -496,6 +496,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 | `case_artifacts.yaml` | 当前 YAML 用例全文 |
 | `run_artifacts.events` | 最近一次 run 的事件流，最多 300 条 |
 | `run_artifacts.failed_events` | step_fail/assertion_fail/case_error |
+| `run_artifacts.ir_summary` | 由 YAML/runtime 派生的脱敏 IR 摘要：case_shape、写入步骤、变量/环境字段 shape、断言和 warnings |
 | `run_artifacts.pageid_trace` | YAML/HAR/运行事件合并后的 pageId 链路画像 |
 | `report_context.acceptance` | 批量验收结论 |
 | `skills_to_use` | overview、troubleshooter、pageId、assertion、HR expert 知识入口 |
@@ -506,8 +507,9 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 
 1. 先读 `skills_to_use` 中的 overview 与 troubleshooter。
 2. 只基于 evidence package 中的 HAR/YAML/run events 诊断，不凭空猜业务字段。
-3. 先读取 `problem_summary.failure_analysis`，如果存在 `diagnosis_priority`，按该列表排查；但仍必须先比对 HAR 原始 pageId 与回放 pageId。
-4. 判断问题类型：
+3. 先读取 `run_artifacts.ir_summary`：用 `case_shape` 判断是否存在写入步骤，用 `steps.role/expected_pageid_role/runtime_pageid_type` 找 L2/L3 风险，用 `variables.value_shape` 和 `environment_fields.value_shape` 判断是否是变量或环境字段遗漏，用 `assertions/warnings` 判断是否是断言盲区。
+4. 再读取 `problem_summary.failure_analysis`，如果存在 `diagnosis_priority`，按该列表排查；但仍必须先比对 HAR 原始 pageId 与回放 pageId。
+5. 判断问题类型：
    - `pageid_context` / `open_form_context_blocked`：优先检查 L2/L3 切换、`preserve_l2_page`、`target_forms`、`showForm` 是否产生 L3。
    - `business_template_context_missing`：检查模板选择、选人 F7、entryRowClick、btnok、子弹窗字段维护和确定动作是否完整。
    - `environment_field_context_missing`：检查 `createorg`、`ctrlstrategy`、默认组织等是否从 HAR `loadData`、`showForm`、列表 rows 解析为环境字段。
@@ -517,7 +519,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
    - `business_validation_expected`：录制中出现且后续有补录动作的业务校验应保留为 `expected_notification`，不是失败。
    - `environment_field_override_not_applied`：预览页或用例详情维护环境字段后仍跑旧值。检查 `pick_fields.user_overridden`、`context_only`、`source_step_id/form_id`、`value_code/value_number` 和运行前自动保存。
    - HAR 解析变量遗漏、保存断言盲区、环境字段缺失或跨环境 value_id 错误、真实业务校验错误、执行器问题。
-5. 输出最小补丁：
+6. 输出最小补丁：
    - 优先改当前 YAML。
    - 只有确认是通用规则缺陷时才改 `har_extractor.py` / `runner.py` / `repair_planner.py`。
 6. 必跑验证：

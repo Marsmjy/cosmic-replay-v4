@@ -112,10 +112,12 @@ def assess_har_preflight(
     component_report: dict[str, Any] | None,
     quality: dict[str, Any] | None,
     pageid_alignment: dict[str, Any] | None,
+    ir_alignment: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a user-facing import preflight decision."""
     quality = quality or {}
     pageid_alignment = pageid_alignment or {}
+    ir_alignment = ir_alignment or {}
     component_summary = (component_report or {}).get("summary") or {}
     checks = {
         "main_form_id": main_form_id,
@@ -130,8 +132,10 @@ def assess_har_preflight(
         "component_unsupported_count": int(component_summary.get("unsupported_steps", 0) or 0),
         "quality_score": int(quality.get("score", 0) or 0),
         "pageid_score": int(pageid_alignment.get("score", 0) or 0),
+        "ir_alignment_score": int(ir_alignment.get("score", 100) or 0),
+        "ir_alignment_risk_level": ir_alignment.get("risk_level", ""),
     }
-    issues = _preflight_issues(checks, quality, pageid_alignment)
+    issues = _preflight_issues(checks, quality, pageid_alignment, ir_alignment)
     score = _preflight_score(checks, issues)
     decision = _preflight_decision(score, issues)
     return {
@@ -143,7 +147,7 @@ def assess_har_preflight(
         "summary": _preflight_summary(score, decision, issues),
         "issues": issues,
         "checks": checks,
-        "next_actions": _preflight_next_actions(decision, issues, pageid_alignment),
+        "next_actions": _preflight_next_actions(decision, issues, pageid_alignment, ir_alignment),
     }
 
 
@@ -221,8 +225,10 @@ def _preflight_issues(
     checks: dict[str, Any],
     quality: dict[str, Any],
     pageid_alignment: dict[str, Any],
+    ir_alignment: dict[str, Any] | None = None,
 ) -> list[Issue]:
     issues: list[Issue] = []
+    ir_alignment = ir_alignment or {}
     if not checks["main_form_id"]:
         issues.append({
             "severity": "critical",
@@ -281,6 +287,29 @@ def _preflight_issues(
                 "message": issue.get("message", ""),
                 "suggestion": issue.get("suggestion", ""),
             })
+    for issue in (ir_alignment.get("issues") or [])[:5]:
+        severity = issue.get("severity", "medium")
+        if severity in {"critical", "high", "medium"}:
+            issues.append({
+                "severity": severity,
+                "code": f"ir_{issue.get('code', 'issue')}",
+                "message": issue.get("message", ""),
+                "suggestion": issue.get("suggestion", ""),
+            })
+    if checks.get("ir_alignment_score", 100) < 70:
+        issues.append({
+            "severity": "high",
+            "code": "ir_alignment_low",
+            "message": f"IR 覆盖雷达评分较低：{checks['ir_alignment_score']}。",
+            "suggestion": "优先确认 IR 识别到的写入/编辑/L2 上下文是否已被主解析链路覆盖。",
+        })
+    elif checks.get("ir_alignment_score", 100) < 85:
+        issues.append({
+            "severity": "medium",
+            "code": "ir_alignment_review",
+            "message": f"IR 覆盖雷达需要复核：{checks['ir_alignment_score']}。",
+            "suggestion": "生成前建议查看 IR 覆盖雷达，避免录制链路里有动作但 YAML 未覆盖。",
+        })
     return _dedupe_issues(issues)
 
 
@@ -313,16 +342,22 @@ def _preflight_next_actions(
     decision: str,
     issues: list[Issue],
     pageid_alignment: dict[str, Any],
+    ir_alignment: dict[str, Any] | None = None,
 ) -> list[str]:
     actions = []
+    ir_alignment = ir_alignment or {}
     if decision == "blocked":
         actions.append("先补齐主表单/核心业务步骤，再生成 YAML。")
     if any("pageid" in str(issue.get("code")) for issue in issues):
         actions.append("先看 pageId 链路评分：L2 列表/树/工具栏保留，字段/保存/提交切 L3。")
+    if any(str(issue.get("code", "")).startswith("ir_") for issue in issues):
+        actions.append("先看 IR 覆盖雷达：确认录制里的写入、编辑、L2 上下文都进入 YAML 主链路。")
     if any(issue.get("code") == "unsupported_components" for issue in issues):
         actions.append("打开组件雷达，确认未知组件是噪声、必保留还是需要新增 handler。")
     if pageid_alignment.get("risk_level") in {"high", "medium"}:
         actions.append("若生成后执行失败，先对比 HAR 原始 pageId 与 runner pageid_trace。")
+    if ir_alignment.get("risk_level") in {"high", "medium"}:
+        actions.append("若执行漏写或只入库部分数据，优先对照 IR 覆盖雷达定位缺失 step。")
     if not actions:
         actions.append("可生成 YAML；执行后按入库回查断言确认真实写入。")
     return _dedupe_strings(actions)

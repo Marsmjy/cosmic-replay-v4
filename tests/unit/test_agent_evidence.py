@@ -49,17 +49,95 @@ def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
     assert package["problem_summary"]["write_status"] == "unverified"
     assert "name: demo" in package["case_artifacts"]["yaml"]
     assert package["run_artifacts"]["pageid_trace"]["summary"]["total_steps"] == 0
+    assert package["run_artifacts"]["ir_summary"]["status"] == "ready"
+    assert package["run_artifacts"]["ir_summary"]["raw_har_included"] is False
     assert package["skills_to_use"]
     assert package["write_verification"]["readback_plan"]["status"] == "ready"
     assert package["write_verification"]["readback_plan"]["plans"][0]["preferred_filter"]["value_ref"] == "${vars.test_number}"
     assert any("不得删除 menuItemClick" in rule for rule in package["guardrails"])
     assert any("先比对 HAR 原始 pageId 链路" in rule for rule in package["guardrails"])
+    assert any("run_artifacts.ir_summary" in rule for rule in package["guardrails"])
     assert any("readback_plan" in rule for rule in package["guardrails"])
     assert package["experience_matches"]["status"] == "catalog_unavailable"
 
     saved = save_repair_evidence_package(package, tmp_path / "evidence")
     loaded = json.loads(saved.read_text(encoding="utf-8"))
     assert loaded["case_name"] == "demo"
+
+
+def test_agent_evidence_ir_summary_is_value_safe_and_pageid_aware(tmp_path):
+    case_path = tmp_path / "case.yaml"
+    case_path.write_text(
+        "\n".join([
+            "name: demo_write",
+            "main_form_id: demo_form",
+            "target_forms:",
+            "  - demo_form",
+            "vars:",
+            "  test_name: CRPLY_${rand:6}",
+            "  secret_note: SHOULD_NOT_APPEAR_IN_IR_SUMMARY",
+            "vars_meta:",
+            "  test_name:",
+            "    field_key: name",
+            "    form_id: demo_form",
+            "pick_fields:",
+            "  pick_org_id:",
+            "    field_key: org_id",
+            "    label: 组织",
+            "    form_id: demo_form",
+            "    value: ORG001",
+            "steps:",
+            "  - id: click_tblnew",
+            "    type: invoke",
+            "    form_id: demo_form",
+            "    app_id: demo",
+            "    ac: click",
+            "    method: itemClick",
+            "    key: tblnew",
+            "    preserve_l2_page: true",
+            "    _har_page_id: 123root0123456789abcdef0123456789abcdef",
+            "  - id: click_save",
+            "    type: invoke",
+            "    form_id: demo_form",
+            "    app_id: demo",
+            "    ac: save",
+            "    method: save",
+            "    key: tbmain",
+            "assertions:",
+            "  - type: no_save_failure",
+            "    step: click_save",
+        ]),
+        encoding="utf-8",
+    )
+
+    package = build_repair_evidence_package(
+        task_id="task_1",
+        case_name="demo_write",
+        report_data={"case_results": [{"name": "demo_write", "passed": False}]},
+        case_path=case_path,
+        run_events=[
+            {
+                "type": "pageid_trace",
+                "data": {
+                    "step_id": "click_save",
+                    "runtime_pageid_type": "L2",
+                    "runtime_pageid_fragment": "root012345...",
+                },
+            }
+        ],
+        skill_root=tmp_path,
+    )
+
+    ir_summary = package["run_artifacts"]["ir_summary"]
+    payload = json.dumps(ir_summary, ensure_ascii=False)
+
+    assert ir_summary["status"] == "ready"
+    assert ir_summary["case_shape"]["write_step_count"] == 1
+    assert ir_summary["steps"][0]["expected_pageid_role"] == "L2"
+    assert ir_summary["steps"][1]["role"] == "write"
+    assert ir_summary["environment_fields"][0]["value_shape"] == "code_like_len_6"
+    assert "SHOULD_NOT_APPEAR_IN_IR_SUMMARY" not in payload
+    assert "0123456789abcdef0123456789abcdef" not in payload
 
 
 def test_agent_evidence_package_matches_deep_chain_experience(tmp_path):

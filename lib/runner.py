@@ -371,6 +371,19 @@ def _case_targets_form_via_menu(case: dict, form_id: str) -> bool:
     return False
 
 
+def _case_reaches_form_via_recorded_context(case: dict, form_id: str) -> bool:
+    """Whether a form is first reached after recorded parent/list/dialog steps."""
+    if not form_id:
+        return False
+    for idx, step in enumerate(case.get("steps") or []):
+        if step.get("form_id") != form_id:
+            continue
+        if step.get("type") == "open_form":
+            return False
+        return idx > 0
+    return False
+
+
 def _claim_pending_pageid_for_form(replay, form_id: str, app_id: str) -> bool:
     """Bind an addVirtualTab/showForm pageId to the next form that needs it."""
     pending = getattr(replay, "_pending_by_app", {}).get(app_id)
@@ -496,9 +509,14 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     for fid in step.get("invalidate_pages", []):
         replay.page_ids.pop(fid, None)
 
-    if step.get("ac") == "treeMenuClick" and step.get("bind_l2_only"):
+    if step.get("bind_l2_only"):
         args = step.get("args", [])
-        menu_id = str(args[1] if len(args) >= 2 else (args[0] if args else "") or "")
+        menu_id = str(
+            step.get("menu_id")
+            or (args[1] if step.get("ac") == "treeMenuClick" and len(args) >= 2 else "")
+            or (args[0] if args else "")
+            or ""
+        )
         # App-specific treeMenuClick often depends on a browser app-shell model
         # that API replay cannot reconstruct. Treat it as a navigation hint:
         # bind L2 only when the target form has no usable pageId yet; otherwise
@@ -890,6 +908,13 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
         if resp is None:
             return False, f"找不到回查步骤 '{source_step}' 的响应"
         source_desc = f"步骤 {source_step}"
+    elif str(assert_spec.get("strategy") or "").strip() in {
+        "fresh_menu_refresh",
+        "fresh_session_menu_refresh",
+        "menu_refresh",
+    }:
+        resp = _run_fresh_menu_refresh_readback_query(assert_spec, ctx, form_id, app_id)
+        source_desc = "新会话菜单刷新"
     else:
         replay = ctx["replay"]
         if form_id not in replay.page_ids and assert_spec.get("open_if_missing", True):
@@ -916,6 +941,85 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
     if matched:
         return True, f"✅ 入库回查通过：{form_id}.{field_key} = {value}（{source_desc}，{detail}）"
     return False, f"入库回查未找到：{form_id}.{field_key} = {value}（{source_desc}，{detail}）"
+
+
+def _find_menu_navigation_for_form(case: dict, form_id: str) -> dict:
+    for step in case.get("steps") or []:
+        if step.get("ac") != "menuItemClick":
+            continue
+        targets = set(step.get("target_forms") or [])
+        if step.get("target_form"):
+            targets.add(step.get("target_form"))
+        if form_id in targets:
+            args = step.get("args") or []
+            arg0 = args[0] if args and isinstance(args[0], dict) else {}
+            return {
+                "menu_id": str(arg0.get("menuId") or ""),
+                "menu_app_id": str(arg0.get("appId") or step.get("app_id") or ""),
+                "cloud_id": str(arg0.get("cloudId") or "undefined"),
+                "portal_form": str(step.get("form_id") or "bos_portal_myapp_new"),
+                "portal_app": str(step.get("app_id") or "bos"),
+            }
+    return {}
+
+
+def _run_fresh_menu_refresh_readback_query(
+    assert_spec: dict,
+    ctx: dict,
+    form_id: str,
+    app_id: str,
+) -> Any:
+    case = ctx.get("case") or {}
+    env = ctx.get("env") or case.get("env") or {}
+    base_url = env.get("base_url")
+    username = env.get("username")
+    password = env.get("password")
+    datacenter_id = env.get("datacenter_id")
+    if not (base_url and username and password):
+        raise ValueError("fresh_menu_refresh 回查缺少 base_url/username/password")
+
+    nav = _find_menu_navigation_for_form(case, form_id)
+    menu_id = str(assert_spec.get("menu_id") or nav.get("menu_id") or "").strip()
+    if not menu_id:
+        raise ValueError(f"fresh_menu_refresh 回查找不到 {form_id} 的 menu_id")
+    menu_app_id = str(assert_spec.get("menu_app_id") or nav.get("menu_app_id") or app_id)
+    cloud_id = str(assert_spec.get("cloud_id") or nav.get("cloud_id") or "undefined")
+    portal_form = str(assert_spec.get("portal_form") or nav.get("portal_form") or "bos_portal_myapp_new")
+    portal_app = str(assert_spec.get("portal_app") or nav.get("portal_app") or "bos")
+    refresh_key = str(assert_spec.get("refresh_key") or "toolbarap")
+    refresh_args = assert_spec.get("refresh_args")
+    if not isinstance(refresh_args, list):
+        refresh_args = ["tblrefresh", "refresh"]
+
+    fresh_sess = login(
+        str(base_url),
+        str(username),
+        str(password),
+        datacenter_id=str(datacenter_id) if datacenter_id else None,
+    )
+    fresh = CosmicFormReplay(fresh_sess, sign_required=bool(case.get("sign_required", True)))
+    try:
+        fresh.init_root()
+        portal_pid = fresh.open_portal(portal_form, portal_app, lazy=True)
+        fresh.invoke(portal_form, portal_app, "menuItemClick", [{
+            "key": "appnavigationmenuap",
+            "methodName": "menuItemClick",
+            "args": [{
+                "menuId": menu_id,
+                "appId": menu_app_id,
+                "cloudId": cloud_id,
+            }],
+            "postData": [{}, []],
+        }], page_id=portal_pid)
+        fresh.page_ids[form_id] = fresh.l2_page_id(menu_id)
+        return fresh.invoke(form_id, app_id, "refresh", [{
+            "key": refresh_key,
+            "methodName": "itemClick",
+            "args": refresh_args,
+            "postData": [{}, []],
+        }], page_id=fresh.l2_page_id(menu_id))
+    finally:
+        fresh.close()
 
 
 def _run_business_key_readback_query(
@@ -1364,7 +1468,7 @@ class RunResult:
     @property
     def passed(self) -> bool:
         step_ok = all(s["ok"] or s.get("optional") for s in self.steps)
-        assert_ok = all(a["ok"] for a in self.assertions)
+        assert_ok = all(a["ok"] or a.get("advisory") for a in self.assertions)
         return step_ok and assert_ok
 
     def print_report(self, out=sys.stdout):
@@ -1384,13 +1488,19 @@ class RunResult:
         if self.assertions:
             print("\nASSERTIONS:", file=out)
             for a in self.assertions:
-                mark = "[ok] " if a["ok"] else "[ERR]"
+                mark = "[ok] " if a["ok"] else ("[adv]" if a.get("advisory") else "[ERR]")
                 print(f"  {mark} {a['type']}", file=out)
                 if not a["ok"]:
                     print(f"        {a['msg']}", file=out)
         # 失败时打修复建议
         if self.fixes:
             print(format_fixes(self.fixes), file=out)
+
+
+def _assertion_is_advisory(assert_spec: dict) -> bool:
+    """Return True when a failed assertion should warn but not fail the case."""
+    mode = str(assert_spec.get("mode") or assert_spec.get("severity") or "").strip().lower()
+    return bool(assert_spec.get("advisory")) or mode in {"advisory", "warn", "warning", "soft"}
 
 
 _WRITE_ACS = {
@@ -1617,6 +1727,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
     if main_form:
         if _case_targets_form_via_menu(case, main_form):
             log.info(f"[main-preopen] skip {main_form}: recorded menu flow will provide pageId context")
+        elif _case_reaches_form_via_recorded_context(case, main_form):
+            log.info(f"[main-preopen] skip {main_form}: recorded parent flow will provide pageId context")
         else:
             for s in case.get("steps") or []:
                 if s.get("type") == "open_form" and s.get("form_id") == main_form:
@@ -1635,6 +1747,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "response_history": [],   # advisor 用，累积所有响应
         "env_resolution": {},
         "run_event": emit,
+        "env": env,
         "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
         "main_form_id": main_form,  # ⭐ 供 menuItemClick L2 pageId 自动绑定
         "case": case,
@@ -1734,7 +1847,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         # ⭐ 通用安全网：如果目标 form_id 没有有效 pageId，自动 open_form 补偿
         _target_form = step.get("form_id")
         _target_app = step.get("app_id")
-        if _target_form and _target_app and stype not in ("open_form", "sleep"):
+        if _target_form and _target_app and stype not in ("open_form", "sleep") and not step.get("bind_l2_only"):
             _need_open = False
 
             # pageId 完全缺失时才触发 auto-open
@@ -1970,32 +2083,36 @@ def run_case(case: dict, on_event=None) -> RunResult:
     for a_raw in ([] if preflight_blocked else (case.get("assertions") or [])):
         a = resolve_vars(a_raw, vars_ns)
         atype = a.get("type")
+        advisory = _assertion_is_advisory(a)
         # ⭐ 预查断言挂靠的 step 描述，供日志展示
         _asrt_step = a.get("step") or ""
         _asrt_step_label = (ctx.get("step_descriptions") or {}).get(_asrt_step, "")
         handler = ASSERTION_HANDLERS.get(atype)
         if not handler:
             result.assertions.append({
-                "type": atype, "ok": False, "msg": f"未知断言: {atype}",
+                "type": atype, "ok": False, "advisory": advisory, "msg": f"未知断言: {atype}",
             })
-            emit("assertion_fail", {
+            emit("assertion_advisory" if advisory else "assertion_fail", {
                 "type": atype, "msg": f"未知断言: {atype}",
                 "step": _asrt_step, "step_label": _asrt_step_label,
+                "advisory": advisory,
             })
             continue
         try:
             ok, msg = handler(a, ctx)
-            result.assertions.append({"type": atype, "ok": ok, "msg": msg})
-            emit("assertion_ok" if ok else "assertion_fail",
+            result.assertions.append({"type": atype, "ok": ok, "advisory": advisory, "msg": msg})
+            emit("assertion_ok" if ok else ("assertion_advisory" if advisory else "assertion_fail"),
                  {"type": atype, "msg": msg,
-                  "step": _asrt_step, "step_label": _asrt_step_label})
+                  "step": _asrt_step, "step_label": _asrt_step_label,
+                  "advisory": advisory})
         except Exception as e:
             result.assertions.append({
-                "type": atype, "ok": False, "msg": f"断言执行异常: {e}",
+                "type": atype, "ok": False, "advisory": advisory, "msg": f"断言执行异常: {e}",
             })
-            emit("assertion_fail", {
+            emit("assertion_advisory" if advisory else "assertion_fail", {
                 "type": atype, "msg": f"异常: {e}",
                 "step": _asrt_step, "step_label": _asrt_step_label,
+                "advisory": advisory,
             })
 
     # 7. 失败时生成修复建议
@@ -2056,7 +2173,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "step_ok": sum(1 for s in result.steps if s.get("ok")),
         "step_fail": sum(1 for s in result.steps if not s.get("ok") and not s.get("optional")),
         "assertion_ok": sum(1 for a in result.assertions if a.get("ok")),
-        "assertion_fail": sum(1 for a in result.assertions if not a.get("ok")),
+        "assertion_fail": sum(1 for a in result.assertions if not a.get("ok") and not a.get("advisory")),
+        "assertion_advisory": sum(1 for a in result.assertions if not a.get("ok") and a.get("advisory")),
     })
     return result
 

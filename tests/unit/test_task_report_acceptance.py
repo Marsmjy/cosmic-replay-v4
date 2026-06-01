@@ -101,6 +101,37 @@ def test_readback_assertion_marks_passed_write_as_verified():
     assert summary["write_verified"] == 1
 
 
+def test_advisory_readback_failure_does_not_mark_write_verified():
+    result = CaseResult(
+        name="case_advisory_readback",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+        assertions=[
+            {
+                "type": "readback_by_business_key",
+                "ok": False,
+                "advisory": True,
+                "msg": "通用 commonSearch 未命中，仅作为建议",
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+    summary = build_acceptance_summary([result])
+
+    assert result.write_status == "unverified"
+    assert result.next_action == "ai_agent"
+    assert summary["status"] == "needs_ai"
+    assert "assertion:readback_by_business_key" not in result.write_evidence["signals"]
+
+
 def test_manual_write_confirmation_suppresses_ai_action():
     result = CaseResult(
         name="case_manual_confirmed",
