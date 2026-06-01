@@ -24,7 +24,7 @@ import sys
 import urllib.parse
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 log = logging.getLogger(__name__)
 
@@ -252,6 +252,14 @@ _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM = {
     ),
 }
 
+_FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
+    "khr_hcdm_fapplybill": {
+        "khr_scope": "适用范围",
+        "khr_zcurrency": "是否使用薪资核算币种",
+        "khr_salaryproposal": "是否薪酬提案",
+    },
+}
+
 
 def _recorded_default_value_id(field_key: str, value_code: str, value_name: str = "") -> str:
     """Return the value id to replay for recorded server defaults.
@@ -298,6 +306,31 @@ def _clean_display_label(label: Any) -> str:
         if cleaned != text and cleaned:
             return cleaned
     return text
+
+
+def _scalar_enum_field_label(
+    form_id: str,
+    field_key: str,
+    known_enum_fields: Mapping[str, str] | None = None,
+    meta_resolver: Any | None = None,
+) -> str:
+    key = str(field_key or "").strip().lower()
+    if not key:
+        return ""
+    if known_enum_fields and key in known_enum_fields:
+        return str(known_enum_fields[key] or key)
+    form_key = str(form_id or "").strip()
+    form_hints = _FORM_SCALAR_ENUM_FIELDS_BY_FORM.get(form_key) or {}
+    if key in form_hints:
+        return form_hints[key]
+    if meta_resolver and form_key:
+        try:
+            field_type = meta_resolver.get_field_type(form_key, key)
+        except Exception:
+            field_type = ""
+        if field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
+            return _resolve_field_label(key, entity_id=form_key, meta_resolver=meta_resolver)
+    return ""
 
 
 def _extract_value_prefix(val: str) -> str:
@@ -4465,7 +4498,13 @@ def build_yaml_case(
                     ("source", "server_default" if s.get("_is_recorded_default") else ""),
                 ])
                 continue
-            if fk_lower in _PF_ENUM_FIELDS:
+            enum_label = _scalar_enum_field_label(
+                step_form_id,
+                fk_lower,
+                _PF_ENUM_FIELDS,
+                meta_resolver,
+            )
+            if enum_label:
                 step_id = _scoped_pick_field_id(
                     f"pick_{fk_lower}_id",
                     pick_fields_map,
@@ -4486,7 +4525,7 @@ def build_yaml_case(
                     ("value_id", display_val),
                     ("value_name", display_name),
                     ("value_code", display_val),
-                    ("label", _PF_ENUM_FIELDS[fk_lower]),
+                    ("label", enum_label),
                     ("env_sensitive", "low"),
                     ("field_key", fk_lower),
                     ("form_id", step_form_id),
@@ -5134,7 +5173,13 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     pick_fields.append(item)
                     _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
                     continue
-                if fk_lower in _ENUM_FIELDS:
+                enum_label = _scalar_enum_field_label(
+                    step_form_id,
+                    fk_lower,
+                    _ENUM_FIELDS,
+                    meta_resolver,
+                )
+                if enum_label:
                     step_id = _scoped_pick_field_id(
                         f"pick_{fk_lower}_id",
                         _seen_pick_map,
@@ -5153,7 +5198,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     item = {
                         "id": step_id,
                         "field_key": fk_lower,
-                        "label": _ENUM_FIELDS[fk_lower],
+                        "label": enum_label,
                         "env_sensitive": "low",
                         "value_id": display_val,
                         "value_name": combo_options.get(display_val, display_val),

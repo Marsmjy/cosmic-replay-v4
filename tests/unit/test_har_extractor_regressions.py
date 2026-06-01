@@ -467,6 +467,23 @@ def test_salary_adjust_import_drops_portal_side_effect_cards():
     assert "click_bar_save" in steps
 
 
+def test_salary_adjust_import_exposes_scalar_combo_fields():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780304604_金蝶HR-新增员工定调薪申请单-薪酬提案为是.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment proposal HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_proposal_yes")
+    case = yaml.safe_load(yaml_text)
+    pick_fields = case["pick_fields"]
+
+    assert pick_fields["pick_khr_salaryproposal_id"]["label"] == "是否薪酬提案"
+    assert pick_fields["pick_khr_salaryproposal_id"]["field_key"] == "khr_salaryproposal"
+    assert pick_fields["pick_khr_salaryproposal_id"]["value_code"] == "1"
+    assert pick_fields["pick_khr_salaryproposal_id"]["source_step_id"] == "fill_khr_zcurrency_etc"
+    assert pick_fields["pick_khr_zcurrency_id"]["label"] == "是否使用薪资核算币种"
+    assert pick_fields["pick_khr_scope_id"]["label"] == "适用范围"
+
+
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
 
