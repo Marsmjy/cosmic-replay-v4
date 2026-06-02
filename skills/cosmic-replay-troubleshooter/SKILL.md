@@ -179,12 +179,12 @@ grep "target_forms" cases/xxx.yaml
 ```
 vars_ns 初始化 (runner.py 行 800-804)
   → 每步: step = resolve_vars(raw_step, vars_ns) (行 865)
-    → date pick_fields 后置注入 (行 867-888)  ← 防 ${today} 覆盖用户自定义日期
+    → date pick_fields 后置注入 (行 867-888)  ← 防日期维护值被变量展开覆盖
 ```
 
 ### date pick_fields 后置注入（runner.py 行 867-888）
 
-**目的**: 防止 `resolve_vars` 展开 `${today}` 后覆盖用户在 pick_fields 中指定的日期值。
+**目的**: 日期字段默认保留 HAR 录入值；用户在 pick_fields 中维护日期后，防止运行期变量展开覆盖该维护值。
 
 **机制**:
 1. 仅对 `type == "update_fields"` 步骤生效
@@ -384,7 +384,7 @@ grep "target_forms" cases/xxx.yaml
 
 ### 类型D：变量解析失败
 
-**症状**: 字段值为 `${today}` 字面量 / 日期被覆盖 / pick_fields 值不生效
+**症状**: 字段值变成 `${today}` 字面量 / 未保留 HAR 录入日期 / pick_fields 日期值不生效
 
 **诊断**:
 1. 确认 pick_fields 中 key 格式为 `date_<field_key>`（必须有 `date_` 前缀）
@@ -662,7 +662,7 @@ _RETRYABLE_ERRORS = (
   target_forms: [sub_form_a, sub_form_b]
 ```
 
-### 修复3：日期字段被 ${today} 覆盖
+### 修复3：日期字段被 `${today}` 覆盖或未保留 HAR 录入值
 
 ```yaml
 pick_fields:

@@ -398,7 +398,7 @@ def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
     assert steps["fill_kd311"]["fields"]["kd311"] == "${vars.test_workday_overtime_hours}"
     assert steps["fill_kd305"]["fields"]["kd305"] == "${vars.test_weekend_overtime_hours}"
     assert steps["fill_kd306"]["fields"]["kd306"] == "${vars.test_holiday_overtime_hours}"
-    assert case["vars"]["test_business_belong_date"] == "${today}"
+    assert case["vars"]["test_business_belong_date"] == "2026-05-01"
     assert case["vars_labels"]["test_workday_overtime_hours"] == "工作加班小时"
 
     selector = case["pick_fields"]["selector_employee_position_id"]
@@ -727,6 +727,22 @@ def test_salary_adjust_preview_exposes_level_model_and_effective_date_fields_whe
     assert by_id["pick_khr_hsalarylevel_id"]["label"] == "调薪后-薪酬水平"
     assert by_id["date_khr_heffectivedate"]["label"] == "调薪后-生效日期"
     assert by_id["date_khr_heffectivedate"]["value_id"] == "2026-06-30"
+
+
+def test_salary_adjust_build_keeps_recorded_effective_date_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_recorded_date")
+    case = yaml.safe_load(yaml_text)
+    date_field = case["pick_fields"]["date_khr_heffectivedate"]
+    fill_step = next(step for step in case["steps"] if step["id"] == "fill_khr_heffectivedate")
+
+    assert date_field["value_id"] == "2026-06-30"
+    assert date_field["value_name"] == "2026-06-30"
+    assert fill_step["fields"]["khr_heffectivedate"] == "2026-06-30"
+    assert "${today}" not in yaml_text
 
 
 def test_build_yaml_case_extracts_enterprise_description_var():

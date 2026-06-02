@@ -1547,23 +1547,16 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             suffix, label = business_input
             vname = f"test_{suffix}"
             if vname not in vars_map:
-                if key_lower == "bizdate" and isinstance(val, str) and (_RX_DATE.match(val) or _RX_DATETIME.match(val)):
-                    vars_map[vname] = "${today}"
-                else:
-                    vars_map[vname] = val
+                vars_map[vname] = val
                 vars_labels[vname] = label
             return f"${{vars.{vname}}}"
 
         if not isinstance(val, str) or not val:
             return val
-        # 日期 → ${today}
-        if _RX_DATE.match(val):
-            vars_map["_date_replaced"] = True
-            return "${today}"
-        # 日期时间 → 粗暴也换 today（时分秒不重要）
-        if _RX_DATETIME.match(val):
-            vars_map["_date_replaced"] = True
-            return "${today}"
+        # 日期类字段保留 HAR 录入值。录制时明确输入的日期不自动改成 ${today}，
+        # 避免换环境或复跑时回放值与用户在预览/变量面板维护的值不一致。
+        if _RX_DATE.match(val) or _RX_DATETIME.match(val):
+            return val
 
         key_class = _classify_key(key_hint)
 
@@ -4644,8 +4637,7 @@ def build_yaml_case(
                     ("resolve_by", ""),
                     ("resolve_status", "manual"),
                 ])
-    # 注：detect_var_placeholders 对 update_fields 中的日期字段使用 ${today}
-    # 内联替换，不生成 vars 变量，因此日期字段无需从 vars_map 去重
+    # 注：日期字段保留 HAR 录入值，并通过 date_* pick_fields 暴露给预览/变量面板维护。
 
     # --- 去重：从 vars_map 中移除被 pick_fields 覆盖的变量 ---
     # 核心逻辑：pick_fields_map 的 key（id）去掉 "pick_" 前缀后与 vars_map 的 key 匹配
