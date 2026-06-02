@@ -539,6 +539,19 @@ _FIELD_LABELS = {
     'entrydate':          '入职日期',
     'regulardate':        '转正日期',
     'dimissiondate':      '离职日期',
+    # 定调薪明细业务录入值
+    'khr_monthlycommission':  '调薪前-月度提成',
+    'khr_hpostallowance':     '调薪后-岗位津贴',
+    'khr_hmonthlyincome':     '调薪后-固定月收入',
+    'khr_hperformancem':      '调薪后-月度绩效',
+    'khr_hmonthlybonus':      '调薪后-月度奖金',
+    'khr_hquarterlybonus':    '调薪后-季度奖金',
+    'khr_hhalfyearbonus':     '调薪后-半年奖金',
+    'khr_hannualbonus':       '调薪后-年度奖金',
+    'khr_salarylevel':        '薪酬水平',
+    'khr_hsalarylevel':       '调薪后-薪酬水平',
+    'khr_hsalarymodel':       '调薪后-薪酬模式',
+    'khr_heffectivedate':     '调薪后-生效日期',
 }
 
 
@@ -1348,7 +1361,57 @@ _BUSINESS_INPUT_VARIABLE_KEYS = {
     "kd311": ("workday_overtime_hours", "工作加班小时"),
     "kd305": ("weekend_overtime_hours", "周末加班小时"),
     "kd306": ("holiday_overtime_hours", "法定加班小时"),
+    "khr_monthlycommission": ("salary_before_monthly_commission", "调薪前-月度提成"),
+    "khr_hpostallowance": ("salary_after_post_allowance", "调薪后-岗位津贴"),
+    "khr_hmonthlyincome": ("salary_after_fixed_monthly_income", "调薪后-固定月收入"),
+    "khr_hperformancem": ("salary_after_monthly_performance", "调薪后-月度绩效"),
+    "khr_hmonthlybonus": ("salary_after_monthly_bonus", "调薪后-月度奖金"),
+    "khr_hquarterlybonus": ("salary_after_quarterly_bonus", "调薪后-季度奖金"),
+    "khr_hhalfyearbonus": ("salary_after_half_year_bonus", "调薪后-半年奖金"),
+    "khr_hannualbonus": ("salary_after_annual_bonus", "调薪后-年度奖金"),
 }
+
+_SALARY_DETAIL_VALUE_HINTS = (
+    "allowance",
+    "income",
+    "bonus",
+    "commission",
+    "performancem",
+    "subsidy",
+    "amount",
+    "wage",
+)
+
+
+def _business_input_variable_info(key_lower: str) -> tuple[str, str] | None:
+    info = _BUSINESS_INPUT_VARIABLE_KEYS.get(key_lower)
+    if info:
+        return info
+    if key_lower.startswith("khr_") and any(hint in key_lower for hint in _SALARY_DETAIL_VALUE_HINTS):
+        suffix = re.sub(r"[^a-zA-Z0-9_]", "_", key_lower[4:]).strip("_") or key_lower
+        label = _resolve_field_label(key_lower)
+        return f"salary_detail_{suffix}", label
+    return None
+
+
+_DATE_FIELD_KEYWORDS = (
+    "effectdate",
+    "effectivedate",
+    "loseeffectdate",
+    "bsed",
+    "bsled",
+    "startdate",
+    "enddate",
+)
+
+
+def _is_date_like_field_key(field_key: str) -> bool:
+    key_lower = str(field_key or "").lower()
+    return bool(
+        key_lower.startswith("date_")
+        or key_lower in _DATE_FIELD_KEYWORDS
+        or any(keyword in key_lower for keyword in _DATE_FIELD_KEYWORDS)
+    )
 
 _F7_SELECTOR_FORM_LABELS = {
     "hsbs_empposf7querylist": ("employee_position", "计薪人员任职经历", "employee"),
@@ -1479,8 +1542,9 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
 
     def maybe_var(val: Any, key_hint: str = "") -> Any:
         key_lower = (key_hint or "").lower()
-        if key_lower in _BUSINESS_INPUT_VARIABLE_KEYS and val not in ("", None):
-            suffix, label = _BUSINESS_INPUT_VARIABLE_KEYS[key_lower]
+        business_input = _business_input_variable_info(key_lower)
+        if business_input and val not in ("", None):
+            suffix, label = business_input
             vname = f"test_{suffix}"
             if vname not in vars_map:
                 if key_lower == "bizdate" and isinstance(val, str) and (_RX_DATE.match(val) or _RX_DATETIME.match(val)):
@@ -1627,6 +1691,10 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                 new_v = maybe_var(v, k)
                 if new_v != v:
                     e["v"] = new_v
+            elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                new_v = maybe_var(v, k)
+                if new_v != v:
+                    e["v"] = new_v
 
     def rewrite_dirty_entry(entry: dict) -> None:
         """变量化 save/click/newentry post_data 中携带的脏字段值。"""
@@ -1643,6 +1711,10 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                     fv["zh_TW"] = new_zh
                 entry["v"] = fv
         elif isinstance(fv, str):
+            new_v = maybe_var(fv, fk)
+            if new_v != fv:
+                entry["v"] = new_v
+        elif isinstance(fv, (int, float)) and not isinstance(fv, bool):
             new_v = maybe_var(fv, fk)
             if new_v != fv:
                 entry["v"] = new_v
@@ -1709,6 +1781,10 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                                 v["zh_TW"] = new_zh
                             fields[k] = v
                     elif isinstance(v, str):
+                        new_v = maybe_var(v, k)
+                        if new_v != v:
+                            fields[k] = new_v
+                    elif isinstance(v, (int, float)) and not isinstance(v, bool):
                         new_v = maybe_var(v, k)
                         if new_v != v:
                             fields[k] = new_v
@@ -4538,7 +4614,7 @@ def build_yaml_case(
                     ("source", "server_default" if s.get("_is_recorded_default") else ""),
                 ])
                 continue
-            if fk_lower in _PF_ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
+            if _is_date_like_field_key(fk_lower):
                 step_id = _scoped_pick_field_id(
                     f"date_{fk}",
                     pick_fields_map,
@@ -4802,6 +4878,8 @@ def build_yaml_case(
 
 def _var_category(vname: str) -> str:
     """变量分类标签（用于 UI 展示）。"""
+    if any(token in vname for token in ("salary", "income", "bonus", "allowance", "commission", "amount", "wage")):
+        return "金额"
     if "number" in vname or "code" in vname:
         return "编码"
     if "name" in vname:
@@ -5022,7 +5100,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 env_sensitive = "medium"
             elif field_key in _ENUM_FIELDS:
                 env_sensitive = "low"
-            elif field_key.lower() in _ENV_SENSITIVE_KEYWORDS:
+            elif _is_date_like_field_key(field_key):
                 env_sensitive = "medium"
             else:
                 env_sensitive = "low"
@@ -5239,7 +5317,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     pick_fields.append(item)
                     _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
                     continue
-                if fk_lower in _ENV_SENSITIVE_KEYWORDS or fk_lower.startswith("date_"):
+                if _is_date_like_field_key(fk_lower):
                     step_id = _scoped_pick_field_id(
                         f"date_{fk}",
                         _seen_pick_map,

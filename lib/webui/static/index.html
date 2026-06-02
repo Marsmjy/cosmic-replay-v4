@@ -1728,51 +1728,85 @@
         </div>
       </div>
 
-      <!-- ⭐ 变量配置面板 -->
-      <div x-show="(harPreview?.detected_vars || []).length > 0"
-           class="bg-slate-950 border border-purple-900/40 rounded-lg p-4">
+      <!-- ⭐ HAR 维护字段面板：按录制维护顺序合并展示变量和环境字段 -->
+      <div x-show="harMaintenanceItems().length > 0"
+           class="bg-slate-950 border border-sky-900/40 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <span class="text-purple-400 text-sm">⚙</span>
-            <span class="text-sm font-medium text-purple-200">智能用例变量</span>
-            <span class="text-xs text-slate-500">系统检测到以下字段可参数化，你可以编辑模板或禁用不需要的变量</span>
+            <span class="text-sky-400 text-sm">&#9776;</span>
+            <span class="text-sm font-medium text-sky-200">HAR 维护字段</span>
+            <span class="text-xs text-slate-500">智能用例变量 + 环境字段，按录制维护顺序展示，可直接修改本次用例要回放的业务值和环境值</span>
+            <span class="text-[11px] rounded bg-cyan-900/50 px-2 py-0.5 text-cyan-200"
+                  x-text="'智能用例变量 ' + (harVarConfig || []).length + ' 项'"></span>
+            <span class="text-[11px] rounded bg-orange-900/50 px-2 py-0.5 text-orange-200"
+                  x-text="'环境字段 ' + (harPickFields || []).length + ' 项'"></span>
           </div>
+          <span class="text-xs text-slate-500" x-text="harMaintenanceItems().length + ' 项'"></span>
         </div>
         <div class="space-y-3">
-          <!-- 按表单/写入动作块渲染变量 -->
-          <template x-for="group in harVarGroups()" :key="group.key">
+          <template x-for="group in harMaintenanceGroups()" :key="group.key">
             <div class="border border-slate-800 rounded-lg overflow-hidden">
               <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
                 <div class="min-w-0">
-                  <div class="text-xs font-medium text-purple-200 truncate" x-text="group.label"></div>
+                  <div class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></div>
                   <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
                 </div>
                 <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
               </div>
               <div class="divide-y divide-slate-800">
-              <template x-for="(v, i) in group.items" :key="v.name">
-                <div class="flex items-center gap-3 px-3 py-2 rounded"
-                     :class="v.enabled ? 'bg-slate-900' : 'bg-slate-900/50 opacity-50'">
-                  <input type="checkbox" x-model="v.enabled" class="accent-sky-500 shrink-0">
-                  <div class="w-28 shrink-0">
-                    <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap"
-                          :class="{
-                            'bg-sky-900/60 text-sky-300': v.category==='编码',
-                            'bg-emerald-900/60 text-emerald-300': v.category==='名称',
-                            'bg-amber-900/60 text-amber-300': v.category==='电话',
-                            'bg-purple-900/60 text-purple-300': v.category==='证件号',
-                            'bg-slate-800 text-slate-300': !['编码','名称','电话','证件号'].includes(v.category),
-                          }" x-text="v.label || v.category"></span>
-                  </div>
-                  <div class="w-32 shrink-0">
-                    <code class="mono text-xs text-sky-400" x-text="'${vars.' + v.name + '}'"></code>
-                  </div>
-                  <input type="text" x-model="v.template" :disabled="!v.enabled"
-                         class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono
-                                disabled:opacity-30 disabled:cursor-not-allowed"
-                         placeholder="模板值">
-                  <div class="text-xs text-slate-500 w-24 shrink-0 text-right">
-                    <span x-text="v.name"></span>
+              <template x-for="item in group.items" :key="item.key">
+                <div class="flex items-center gap-3 px-3 py-2 bg-slate-900">
+                  <div class="w-7 shrink-0 text-right mono text-[11px] text-slate-500" x-text="item.orderLabel"></div>
+                  <template x-if="item.kind === 'var'">
+                    <div class="contents">
+                      <input type="checkbox" x-model="item.ref.enabled" class="accent-sky-500 shrink-0">
+                      <div class="w-32 shrink-0">
+                        <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap"
+                              :class="{
+                                'bg-sky-900/60 text-sky-300': item.ref.category==='编码',
+                                'bg-emerald-900/60 text-emerald-300': item.ref.category==='名称',
+                                'bg-amber-900/60 text-amber-300': item.ref.category==='电话',
+                                'bg-purple-900/60 text-purple-300': item.ref.category==='证件号',
+                                'bg-cyan-900/60 text-cyan-300': item.ref.category==='金额',
+                                'bg-slate-800 text-slate-300': !['编码','名称','电话','证件号','金额'].includes(item.ref.category),
+                              }" x-text="item.label"></span>
+                      </div>
+                      <input type="text" x-model="item.ref.template" :disabled="!item.ref.enabled"
+                             class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono disabled:opacity-30 disabled:cursor-not-allowed"
+                             placeholder="模板值">
+                      <div class="w-40 shrink-0 text-right">
+                        <span class="block text-[10px] text-sky-300">智能变量</span>
+                        <code class="mono text-[10px] text-slate-500" x-text="'${vars.' + item.ref.name + '}'"></code>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="item.kind === 'pick'">
+                    <div class="contents">
+                      <span class="w-2.5 h-2.5 rounded-full shrink-0"
+                            :class="{
+                              'bg-red-500': item.ref.env_sensitive === 'high',
+                              'bg-amber-500': item.ref.env_sensitive === 'medium',
+                              'bg-emerald-500': item.ref.env_sensitive === 'low',
+                            }"></span>
+                      <div class="w-32 shrink-0">
+                        <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="item.label"></span>
+                      </div>
+                      <input type="text"
+                             :value="harPickFieldDraftValue(item.ref)"
+                             @input="setHarPickFieldDraft(item.ref, $event.target.value)"
+                             @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
+                             class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
+                             :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                      <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
+                              @click="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')">确认</button>
+                      <div class="w-40 shrink-0 text-right">
+                        <span class="block text-[10px] text-orange-300" x-text="item.ref.id"></span>
+                        <span class="block text-[10px] text-amber-300" x-show="item.ref.user_overridden">已修改，生成 YAML 后生效</span>
+                        <span class="block text-xs text-cyan-300" x-show="item.ref.value_id && pickFieldDisplayValue(item.ref) !== item.ref.value_id" x-text="'ID ' + item.ref.value_id"></span>
+                        <span class="text-xs text-slate-500" x-show="item.ref.value_name && item.ref.value_name !== pickFieldDisplayValue(item.ref)" x-text="item.ref.value_name"></span>
+                      </div>
+                    </div>
+                  </template>
                   </div>
                 </div>
               </template>
@@ -1786,9 +1820,7 @@
           禁用变量后，该字段将保留 HAR 中的原始值。
         </div>
       </div>
-
-      <!-- ⭐ 环境相关字段面板 -->
-      <div x-show="harPickFields.length > 0"
+      <div x-show="false && harPickFields.length > 0"
            class="bg-slate-950 border border-orange-900/40 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
@@ -4617,6 +4649,22 @@ function app() {
       return 'id';
     },
 
+    looksLikeInternalId(value) {
+      return /^\d{12,}$/.test(String(value || '').trim());
+    },
+
+    pickFieldIsDate(pf) {
+      const id = String(pf?.id || pf?.step_id || '');
+      const field = String(pf?.field_key || '').toLowerCase();
+      return id.startsWith('date_') || /date/.test(field);
+    },
+
+    pickFieldCanResolveTypedCode(pf, value) {
+      const id = String(pf?.id || pf?.step_id || '');
+      const text = String(value || '').trim();
+      return id.startsWith('pick_') && !this.pickFieldIsDate(pf) && text && !this.looksLikeInternalId(text);
+    },
+
     _groupFieldItems(items, fallbackLabel = '默认业务块') {
       const groups = [];
       const byKey = new Map();
@@ -4651,6 +4699,69 @@ function app() {
 
     harPickFieldGroups() {
       return this._groupFieldItems(this.harPickFields || [], '环境字段');
+    },
+
+    _harStepOrderMap() {
+      const order = new Map();
+      for (const [idx, step] of (this.harPreview?.steps || []).entries()) {
+        if (step?.id && !order.has(step.id)) order.set(step.id, idx);
+      }
+      return order;
+    },
+
+    _harMaintenanceOrder(item, stepOrder) {
+      const ref = item?.ref || {};
+      const source = ref.source_step_id || ref.step_id || ref.id || ref.name || '';
+      if (source && stepOrder.has(source)) return stepOrder.get(source);
+      const write = ref.write_step_id || '';
+      if (write && stepOrder.has(write)) return stepOrder.get(write);
+      return 99999;
+    },
+
+    harMaintenanceItems() {
+      const stepOrder = this._harStepOrderMap();
+      const items = [];
+      for (const v of (this.harVarConfig || [])) {
+        if (!v || typeof v !== 'object') continue;
+        const order = this._harMaintenanceOrder({ref: v}, stepOrder);
+        items.push({
+          key: 'var:' + (v.name || order),
+          kind: 'var',
+          ref: v,
+          label: v.label || v.category || v.name || '智能变量',
+          order,
+          orderLabel: order < 99999 ? String(order + 1) : '',
+          form_id: v.form_id || '',
+          form_label: v.form_label || '',
+          group_key: v.group_key || (v.form_id ? `${v.form_id}:context` : 'default:unscoped'),
+          group_label: v.group_label || v.form_label || '智能变量',
+        });
+      }
+      for (const pf of (this.harPickFields || [])) {
+        if (!pf || typeof pf !== 'object') continue;
+        const order = this._harMaintenanceOrder({ref: pf}, stepOrder);
+        items.push({
+          key: 'pick:' + (pf.id || pf.step_id || order),
+          kind: 'pick',
+          ref: pf,
+          label: pf.label || pf.field_key || pf.id || '环境字段',
+          order,
+          orderLabel: order < 99999 ? String(order + 1) : '',
+          form_id: pf.form_id || '',
+          form_label: pf.form_label || '',
+          group_key: pf.group_key || (pf.form_id ? `${pf.form_id}:context` : 'default:unscoped'),
+          group_label: pf.group_label || pf.form_label || '环境字段',
+        });
+      }
+      return items.sort((a, b) => {
+        if (a.order !== b.order) return a.order - b.order;
+        if (a.kind !== b.kind) return a.kind === 'var' ? -1 : 1;
+        return String(a.label).localeCompare(String(b.label));
+      });
+    },
+
+    harMaintenanceGroups() {
+      return this._groupFieldItems(this.harMaintenanceItems(), 'HAR 维护字段');
     },
 
     casePickFieldItems() {
@@ -4701,7 +4812,8 @@ function app() {
         this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
       }
       const kind = this.pickFieldDisplayKind(pf);
-      if (kind === 'code') {
+      const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, text);
+      if (asCode) {
         pf.value_id = text;
         pf.value_code = text;
         pf.value_number = text;
@@ -6608,7 +6720,8 @@ function app() {
           this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [draftKey]: newValue};
         }
         const kind = this.pickFieldDisplayKind(pf);
-        if (kind === 'code') {
+        const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue);
+        if (asCode) {
           pf.value_id = newValue;
           pf.value_code = newValue;
           pf.value_number = newValue;
@@ -6654,7 +6767,8 @@ function app() {
       } else {
         const pf = this.parsedPickFields().find(item => item.step_id === stepId || item.id === stepId);
         const kind = this.pickFieldDisplayKind(pf);
-        if (pf && kind === 'code') {
+        const asCode = pf && (kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue));
+        if (pf && asCode) {
           payload = {
             ...payload,
             value_id: newValue,

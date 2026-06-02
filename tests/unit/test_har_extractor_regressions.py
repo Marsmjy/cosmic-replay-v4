@@ -17,6 +17,7 @@ from lib.har_extractor import (
     _clean_display_label,
     _scoped_pick_field_id,
     build_yaml_case,
+    detect_var_placeholders,
     preview_har,
     to_yaml,
 )
@@ -673,6 +674,59 @@ def test_build_yaml_case_syncs_preview_code_override_to_pick_field_value_id():
     assert city["auto_resolve"] is True
     assert city["resolve_status"] == "pending"
     assert city["user_overridden"] is True
+
+
+def test_salary_detail_numeric_update_fields_become_smart_variables():
+    steps = [{
+        "type": "update_fields",
+        "id": "fill_salary_detail",
+        "form_id": "khr_hcdm_targetsalary",
+        "app_id": "hcdm",
+        "fields": {
+            "khr_hpostallowance": 11,
+            "khr_hmonthlyincome": 22,
+        },
+    }]
+
+    updated, vars_map, labels = detect_var_placeholders(steps)
+
+    assert vars_map["test_salary_after_post_allowance"] == 11
+    assert vars_map["test_salary_after_fixed_monthly_income"] == 22
+    assert labels["test_salary_after_post_allowance"] == "调薪后-岗位津贴"
+    assert labels["test_salary_after_fixed_monthly_income"] == "调薪后-固定月收入"
+    assert updated[0]["fields"]["khr_hpostallowance"] == "${vars.test_salary_after_post_allowance}"
+    assert updated[0]["fields"]["khr_hmonthlyincome"] == "${vars.test_salary_after_fixed_monthly_income}"
+
+
+def test_salary_adjust_preview_exposes_detail_amounts_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    by_name = {item["name"]: item for item in preview["detected_vars"]}
+
+    assert by_name["test_salary_after_post_allowance"]["template"] == "11"
+    assert by_name["test_salary_after_post_allowance"]["label"] == "调薪后-岗位津贴"
+    assert by_name["test_salary_after_post_allowance"]["category"] == "金额"
+    assert by_name["test_salary_after_fixed_monthly_income"]["template"] == "22"
+    assert by_name["test_salary_after_fixed_monthly_income"]["label"] == "调薪后-固定月收入"
+    assert by_name["test_salary_after_fixed_monthly_income"]["category"] == "金额"
+
+
+def test_salary_adjust_preview_exposes_level_model_and_effective_date_fields_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    by_id = {item["id"]: item for item in preview["pick_fields"]}
+
+    assert by_id["pick_khr_salarylevel_id"]["label"] == "薪酬水平"
+    assert by_id["pick_khr_hsalarymodel_id"]["label"] == "调薪后-薪酬模式"
+    assert by_id["pick_khr_hsalarylevel_id"]["label"] == "调薪后-薪酬水平"
+    assert by_id["date_khr_heffectivedate"]["label"] == "调薪后-生效日期"
+    assert by_id["date_khr_heffectivedate"]["value_id"] == "2026-06-30"
 
 
 def test_build_yaml_case_extracts_enterprise_description_var():

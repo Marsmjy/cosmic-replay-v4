@@ -37,6 +37,17 @@ def test_har_preview_code_override_updates_stored_value_id_before_extract():
     assert "pf.value_code = newValue;" in html
 
 
+def test_har_preview_maintenance_panel_has_data_functions_and_code_detection():
+    html = _index_html()
+
+    assert "harMaintenanceItems()" in html
+    assert "harMaintenanceGroups()" in html
+    assert "_harStepOrderMap()" in html
+    assert "pickFieldCanResolveTypedCode(pf, value)" in html
+    assert "const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, text);" in html
+    assert "const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue);" in html
+
+
 def test_har_preview_hides_manual_env_resolve_buttons_from_primary_flow():
     html = _index_html()
 
