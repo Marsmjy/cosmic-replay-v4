@@ -348,8 +348,11 @@ post_data:
 - 遇到多个必填基础资料缺失（如薪资核算组的 `country/currency/exratetable`），先确认 pageId `loadData` 默认上下文是否已带值；若未带出，应通过 `pick_basedata + prefetch_lookup` 按业务编码/名称解析，禁止直接硬补长整数内码。
 - 遇到“规则分组/常用筛选不能为空”这类业务组件校验（已见于薪资核算场景），先确认 pageId 链路没错，再检查 `country -> labelap4 -> hsas_salarycalcstyle F7 -> select_f7_list_row -> btnok -> groupcontent/entryentity` 是否完整；仅补 `callistrule` 不等于补了 `entryentity` 常用筛选行。不要删除 `no_save_failure` 或硬补保存包体。
 - `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
+- F7/列表弹窗 selector 的覆盖不能只改 `selDatas[0][0]`。很多列表第 0 列或 `hcdm_adjfileinfo_id` 是 Long 内部主键，用户维护的 `value_code`（如 `06019-0001`）只能用于查找候选行，不能直接写进主键列，否则会触发 `BillListSelection.convertPkValue` 的 `For input string`。正确做法是先从最近一次同表单 `loadData` 的 `billlistap.dataindex/rows` 按 `field_key/number/name/employee_name/employee_empnumber` 定位整行，再同步 `row/selRows/args[0]/selDatas`；找不到候选时不要静默回退录制旧行。
+- selector 字段在预览页或用例详情页修改业务编码后，旧 `value_id/value_name/value_number` 可能残留。若 `selector_source=entryRowClick` 且 `resolve_by=value_code`，诊断时以用户覆盖后的 `value_code` 为权威；`resolved_request.post_data.selDatas` 必须出现新编码对应的整行和真实内部主键，而不是旧行或把编码塞入主键列。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。
+- 写库链路或 F7/selector/子弹窗修复完成后，不能只跑单测和 HAR compare。必须用原始 HAR 重新导入生成一个新 case，再在目标环境执行一次；只有执行通过并且保存/提交响应或只读入库回查满足证据标准，才可判定修复完成。若执行失败，继续基于新 run 的 evidence 排查，不能用旧用例执行结果代替确认。
 
 ### 类型C：多表单 L2 共享（target_forms 缺失）
 

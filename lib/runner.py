@@ -38,6 +38,7 @@ YAML 用例 schema（最小可用）：
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import logging
 import os
@@ -1293,6 +1294,146 @@ def _selector_rows(step: dict, pf_meta: dict) -> list | None:
     return None
 
 
+def _selector_query_value(pf_meta: dict) -> str:
+    resolve_by = str(pf_meta.get("resolve_by") or "").strip()
+    value_code = str(pf_meta.get("value_code") or "").strip()
+    user_overridden = bool(pf_meta.get("user_overridden") or pf_meta.get("manual_override"))
+    if resolve_by == "value_code" and value_code and user_overridden:
+        return value_code
+    value_id = str(pf_meta.get("value_id") or "").strip()
+    if value_id:
+        return value_id
+    value_number = str(pf_meta.get("value_number") or "").strip()
+    if value_number:
+        return value_number
+    return str(pf_meta.get("value_name") or "").strip()
+
+
+def _resolve_selector_row_from_recent_grid(step: dict, ctx: dict) -> None:
+    pf_meta = step.get("_selector_env_field_meta") or {}
+    if not isinstance(pf_meta, dict) or not pf_meta.get("auto_resolve"):
+        return
+    query_value = _selector_query_value(pf_meta)
+    if not query_value:
+        return
+    control_key = str(pf_meta.get("selector_control_key") or step.get("key") or "billlistap")
+    field_key = str(pf_meta.get("field_key") or "")
+    match_fields = [field_key, "number", "name", "employee_name", "employee_empnumber", "empnumber"]
+    seen_fields: set[str] = set()
+    match_fields = [f for f in match_fields if f and not (f in seen_fields or seen_fields.add(f))]
+
+    for resp in reversed(ctx.get("response_history") or []):
+        dataindex, rows = _extract_grid_payload(resp, control_key)
+        if not dataindex or not rows:
+            continue
+        try:
+            row_index, row = _find_grid_row(
+                rows,
+                dataindex,
+                value_code=query_value,
+                value_name=str(pf_meta.get("value_name") or ""),
+                match_fields=match_fields,
+            )
+        except ProtocolError:
+            continue
+
+        post_data = step.get("post_data")
+        if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+            return
+        payload = post_data[0].get(control_key)
+        if not isinstance(payload, dict):
+            return
+        existing_rows = payload.get("selDatas")
+        template_row = (
+            existing_rows[0]
+            if isinstance(existing_rows, list) and existing_rows and isinstance(existing_rows[0], list)
+            else []
+        )
+        selected_row = _build_selector_selected_row(
+            template_row,
+            row,
+            dataindex,
+            pf_meta,
+            query_value,
+            form_id=str(step.get("form_id") or ""),
+        )
+        payload["fieldKey"] = field_key or payload.get("fieldKey") or ""
+        payload["row"] = row_index
+        payload["selRows"] = [row_index]
+        payload["selDatas"] = [selected_row]
+        args = step.get("args")
+        if isinstance(args, list) and args:
+            args[0] = row_index
+        step["_selector_grid_resolved"] = {
+            "query": query_value,
+            "row": row_index,
+            "value_id": str((_grid_cell(row, dataindex, "hcdm_adjfileinfo_id") or row[0]) if row else ""),
+        }
+        return
+
+
+def _build_selector_selected_row(
+    template_row: list[Any],
+    grid_row: list[Any],
+    dataindex: dict[str, int],
+    pf_meta: dict,
+    query_value: str,
+    *,
+    form_id: str = "",
+) -> list[Any]:
+    """Build the row shape expected by entryRowClick selDatas.
+
+    Kingdee list responses often contain full grid rows, while entryRowClick
+    records a compact selection row. Keep the recorded compact shape and only
+    replace the pk/code/status cells from the matched grid row.
+    """
+    if not template_row or len(template_row) >= len(grid_row):
+        return copy.deepcopy(grid_row)
+
+    compact = copy.deepcopy(template_row)
+    value_idx = int(pf_meta.get("selector_value_index", 0) or 0)
+    code_idx = int(pf_meta.get("selector_code_index", -1) or -1)
+    pk_value = _selector_pk_from_grid_row(grid_row, dataindex, form_id)
+    if pk_value not in (None, "") and 0 <= value_idx < len(compact):
+        compact[value_idx] = pk_value
+
+    old_code = str(template_row[code_idx] or "").strip() if 0 <= code_idx < len(template_row) else ""
+    if query_value:
+        for idx, cell in enumerate(list(compact)):
+            if idx == code_idx or (old_code and str(cell or "").strip() == old_code):
+                compact[idx] = query_value
+
+    org_id = _grid_cell(grid_row, dataindex, "org_id")
+    if org_id not in (None, ""):
+        for idx, cell in enumerate(list(compact)):
+            if str(cell or "").strip() == "100000" or idx == 2 and len(compact) >= 5:
+                compact[idx] = org_id
+                break
+
+    status = _grid_cell(grid_row, dataindex, "status")
+    if status not in (None, ""):
+        for idx in range(len(compact) - 1, -1, -1):
+            if str(compact[idx] or "").strip() in {"A", "B", "C", "D"}:
+                compact[idx] = status
+                break
+
+    return compact
+
+
+def _selector_pk_from_grid_row(grid_row: list[Any], dataindex: dict[str, int], form_id: str = "") -> Any:
+    form_hint = form_id[:-2] if form_id.endswith("f7") else form_id
+    preferred = []
+    if form_hint:
+        preferred.append(f"{form_hint}_id")
+    preferred.extend(k for k in dataindex if k.endswith("_id") and k != "org_id")
+    preferred.extend(k for k in dataindex if k.endswith("id") and k != "org_id")
+    for key in preferred:
+        value = _grid_cell(grid_row, dataindex, key)
+        if value not in (None, ""):
+            return value
+    return grid_row[0] if grid_row else ""
+
+
 def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str = "") -> None:
     rows = _selector_rows(step, pf_meta)
     if not rows:
@@ -1301,7 +1442,7 @@ def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str 
     value_idx = int(pf_meta.get("selector_value_index", 0) or 0)
     code_idx = int(pf_meta.get("selector_code_index", -1) or -1)
     recorded = str(pf_meta.get("recorded_value_id") or "").strip()
-    user_value = str(pf_meta.get("value_id") or "").strip()
+    user_value = _selector_query_value(pf_meta)
     resolve_by = str(pf_meta.get("resolve_by") or "").strip()
     user_overrode_code = (
         resolve_by == "value_code"
@@ -1328,7 +1469,7 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
     field_key = str(pf_meta.get("field_key") or "").strip()
     form_id = str(pf_meta.get("form_id") or step.get("form_id") or "").strip()
     app_id = str(pf_meta.get("app_id") or step.get("app_id") or "").strip()
-    user_value = str(pf_meta.get("value_id") or "").strip()
+    user_value = _selector_query_value(pf_meta)
     value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
     value_name = str(pf_meta.get("value_name") or "").strip()
     resolve_by = str(pf_meta.get("resolve_by") or "value_code").strip()
@@ -1838,6 +1979,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         stype = step.get("type")
         sid = step.get("id") or f"<{stype}>"
         optional = bool(step.get("optional"))
+        if stype == "invoke" and step.get("_selector_env_field_meta"):
+            _resolve_selector_row_from_recent_grid(step, ctx)
         print(f"\n[{sid}] {stype}", end="")
         detail = _step_detail(step)
         if detail:

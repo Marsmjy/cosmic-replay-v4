@@ -27,6 +27,7 @@ from lib.runner import (
     _case_reaches_form_via_recorded_context,
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
+    _resolve_selector_row_from_recent_grid,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
@@ -337,6 +338,109 @@ class TestReplayErrorDetection:
 
         assert row[0] == "012890006"
         assert row[3] == "012890006"
+
+    def test_selector_code_override_rebuilds_row_from_recent_grid_response(self):
+        recorded_row = ["2465334257644485632", "00186-0001", "100000", "00186-0001", "C"]
+        selected_row = [
+            4,
+            5,
+            "06019",
+            "06019-0001",
+            "7933263",
+            "智慧科技事业部总经理",
+            "060190005",
+            "管理岗",
+            "060190005",
+            "金蝶国际软件集团有限公司",
+            "主要任职",
+            "中国",
+            "金蝶信用科技（深圳）有限公司",
+            "默认薪酬体系",
+            "金蝶信科智慧科技事业部",
+            False,
+            "定调薪档案分组",
+            "年薪制薪酬组成",
+            ["2024-11-01", "2024-11-01 00:00:00"],
+            ["2999-12-31", "2999-12-31 00:00:00"],
+            "金蝶信科智慧科技事业部",
+            "1",
+            "杨春煦",
+            ["2026-05-21 10:15:04", "2026-05-21 10:15:04"],
+            False,
+            "1",
+            "杨春煦",
+            ["2026-05-21 10:22:56", "2026-05-21 10:22:56"],
+            "100000",
+            "C",
+            "2484119967973259264",
+            {},
+            {},
+        ]
+        step = {
+            "id": "entryRowClick_18",
+            "type": "invoke",
+            "form_id": "hcdm_adjfileinfof7",
+            "app_id": "hcdm",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "args": [1, "employee_name"],
+            "post_data": [{
+                "billlistap": {
+                    "fieldKey": "employee_name",
+                    "row": 1,
+                    "selRows": [1],
+                    "selDatas": [recorded_row],
+                }
+            }, []],
+            "_selector_env_field_meta": {
+                "field_key": "employee_name",
+                "form_id": "hcdm_adjfileinfof7",
+                "app_id": "hcdm",
+                "value_id": "00186-0001",
+                "value_code": "06019-0001",
+                "value_name": "00186-0001",
+                "recorded_value_id": "2465334257644485632",
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "user_overridden": True,
+                "selector_control_key": "billlistap",
+                "selector_value_index": 0,
+                "selector_code_index": 1,
+            },
+        }
+        ctx = {
+            "response_history": [{
+                "a": "u",
+                "p": [{
+                    "k": "billlistap",
+                    "data": {
+                        "dataindex": {
+                            "rk": 0,
+                            "fseq": 1,
+                            "employee_empnumber": 2,
+                            "number": 3,
+                            "employee_name": 4,
+                            "hcdm_adjfileinfo_id": 30,
+                        },
+                        "rows": [selected_row],
+                    },
+                }],
+            }],
+        }
+
+        _resolve_selector_row_from_recent_grid(step, ctx)
+
+        payload = step["post_data"][0]["billlistap"]
+        assert step["args"][0] == 4
+        assert payload["row"] == 4
+        assert payload["selRows"] == [4]
+        assert payload["selDatas"] == [[
+            "2484119967973259264",
+            "06019-0001",
+            "100000",
+            "06019-0001",
+            "C",
+        ]]
 
     def test_select_f7_list_row_loads_selects_and_confirms(self):
         calls = []

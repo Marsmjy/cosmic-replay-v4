@@ -364,6 +364,37 @@ def test_pick_field_update_by_code_marks_user_override_without_manual_mode():
     assert item.get("manual_override") is not True
 
 
+def test_selector_pick_field_update_by_code_syncs_stale_display_values():
+    item = {
+        "value_id": "00186-0001",
+        "value_name": "00186-0001",
+        "value_code": "00186-0001",
+        "value_number": "00186-0001",
+        "auto_resolve": True,
+        "resolve_by": "value_code",
+        "resolve_status": "pending",
+        "selector_source": "entryRowClick",
+    }
+
+    _apply_pick_field_manual_update(
+        item,
+        "00186-0001",
+        value_code="06019-0001",
+        resolve_by="value_code",
+        auto_resolve=True,
+        resolve_status="pending",
+        manual_override=False,
+    )
+
+    assert item["value_id"] == "06019-0001"
+    assert item["value_name"] == "06019-0001"
+    assert item["value_code"] == "06019-0001"
+    assert item["value_number"] == "06019-0001"
+    assert item["user_overridden"] is True
+    assert item["auto_resolve"] is True
+    assert item.get("manual_override") is not True
+
+
 def test_generated_pick_fields_carry_auto_resolve_metadata():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har"
 

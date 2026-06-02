@@ -1623,6 +1623,11 @@ def _apply_pick_field_manual_update(
     """Apply a user-maintained env field value without stale auto-resolve metadata."""
     old_value_id = str(item.get("value_id") or "")
     old_value_name = str(item.get("value_name") or "")
+    is_code_selector = bool(
+        item.get("selector_source")
+        and (resolve_by == "value_code" or item.get("resolve_by") == "value_code" or value_code is not None)
+    )
+    effective_code = str(value_code if value_code is not None else value_id or "").strip()
     if value_id:
         item["value_id"] = value_id
     if value_name is not None:
@@ -1633,6 +1638,12 @@ def _apply_pick_field_manual_update(
         item["value_code"] = value_code
     elif value_id and old_value_id != value_id:
         item["value_code"] = ""
+    if is_code_selector and effective_code:
+        item["value_id"] = effective_code
+        item["value_code"] = effective_code
+        item["value_number"] = effective_code
+        if value_name is None:
+            item["value_name"] = effective_code
     if resolve_by is not None:
         item["resolve_by"] = resolve_by
     if auto_resolve is not None:
