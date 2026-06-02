@@ -4614,7 +4614,18 @@ def build_yaml_case(
             if isinstance(pf_cfg, dict) and pf_id in pick_fields_map:
                 current_value_id = str(pick_fields_map[pf_id].get("value_id", ""))
                 current_value_name = str(pick_fields_map[pf_id].get("value_name", "") or "")
+                current_value_code = str(pick_fields_map[pf_id].get("value_code", "") or "")
+                incoming_value_code = str(pf_cfg.get("value_code", "") or "")
+                incoming_value_number = str(pf_cfg.get("value_number", "") or "")
+                incoming_resolve_by = str(pf_cfg.get("resolve_by", "") or "")
+                code_override = bool(
+                    (pf_cfg.get("user_overridden") or pf_cfg.get("manual_override"))
+                    and incoming_resolve_by == "value_code"
+                    and (incoming_value_code or incoming_value_number)
+                )
                 incoming_value_id = str(pf_cfg.get("value_id", current_value_id))
+                if code_override:
+                    incoming_value_id = incoming_value_code or incoming_value_number
                 manual_override = bool(
                     pf_cfg.get("manual_override")
                     or pf_cfg.get("resolve_status") == "manual"
@@ -4625,15 +4636,28 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["value_id"] = incoming_value_id
                 if "value_name" in pf_cfg:
                     incoming_value_name = str(pf_cfg["value_name"] or "")
-                    if manual_override and incoming_value_name == current_value_name and incoming_value_id != current_value_id:
+                    if (
+                        (manual_override or code_override)
+                        and incoming_value_name == current_value_name
+                        and (
+                            incoming_value_id != current_value_id
+                            or incoming_value_code != current_value_code
+                        )
+                    ):
                         incoming_value_name = ""
                     pick_fields_map[pf_id]["value_name"] = incoming_value_name
-                if "value_code" in pf_cfg:
-                    pick_fields_map[pf_id]["value_code"] = str(pf_cfg["value_code"] or "")
+                if code_override:
+                    pick_fields_map[pf_id]["value_code"] = incoming_value_id
+                    pick_fields_map[pf_id]["value_number"] = incoming_value_id
+                    pick_fields_map[pf_id]["auto_resolve"] = True
+                    pick_fields_map[pf_id]["resolve_by"] = "value_code"
+                    pick_fields_map[pf_id]["resolve_status"] = "pending"
+                elif "value_code" in pf_cfg:
+                    pick_fields_map[pf_id]["value_code"] = incoming_value_code
                 elif manual_override and incoming_value_id != current_value_id:
                     pick_fields_map[pf_id]["value_code"] = ""
-                if "value_number" in pf_cfg:
-                    pick_fields_map[pf_id]["value_number"] = str(pf_cfg["value_number"] or "")
+                if "value_number" in pf_cfg and not code_override:
+                    pick_fields_map[pf_id]["value_number"] = incoming_value_number
                 if "resolve_by" in pf_cfg:
                     pick_fields_map[pf_id]["resolve_by"] = str(pf_cfg["resolve_by"] or "")
                 if "auto_resolve" in pf_cfg:

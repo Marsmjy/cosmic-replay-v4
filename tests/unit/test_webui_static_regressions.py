@@ -27,6 +27,16 @@ def test_har_preview_env_fields_have_explicit_confirm_action():
     assert "已修改，生成 YAML 后生效" in html
 
 
+def test_har_preview_code_override_updates_stored_value_id_before_extract():
+    html = _index_html()
+
+    assert "pf.value_id = text;" in html
+    assert "pf.value_id = newValue;" in html
+    assert "value_id: newValue," in html
+    assert "pf.value_code = text;" in html
+    assert "pf.value_code = newValue;" in html
+
+
 def test_har_preview_hides_manual_env_resolve_buttons_from_primary_flow():
     html = _index_html()
 

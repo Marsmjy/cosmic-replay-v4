@@ -71,6 +71,81 @@ from .pageid_trace import (
 log = logging.getLogger("cosmic_replay.runner")
 
 
+def _pick_field_query_value(pf_meta: dict) -> str:
+    resolve_by = str(pf_meta.get("resolve_by") or "").strip()
+    value_code = str(pf_meta.get("value_code") or "").strip()
+    if resolve_by == "value_code" and value_code:
+        return value_code
+    for key in ("value_code", "value_number", "value_id", "value_name"):
+        value = str(pf_meta.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _pick_field_resolver_plan(pf_id: str, pf_meta: dict) -> dict[str, Any]:
+    """Describe how a frontend-maintained env field will be resolved at replay time."""
+    field_key = str(pf_meta.get("field_key") or "").strip()
+    form_id = str(pf_meta.get("form_id") or "").strip()
+    app_id = str(pf_meta.get("app_id") or "").strip()
+    query = _pick_field_query_value(pf_meta)
+    base = {
+        "step_id": pf_id,
+        "field_key": field_key,
+        "label": pf_meta.get("label", pf_id),
+        "form_id": form_id,
+        "app_id": app_id,
+        "query": query,
+        "resolve_by": pf_meta.get("resolve_by", ""),
+        "auto_resolve": bool(pf_meta.get("auto_resolve")),
+        "source_step_id": pf_meta.get("source_step_id", ""),
+        "write_step_id": pf_meta.get("write_step_id", ""),
+    }
+    if pf_meta.get("selector_source") == "entryRowClick":
+        base.update({
+            "resolver_kind": "grid_selector",
+            "interface": "loadData",
+            "control_key": pf_meta.get("selector_control_key", "billlistap"),
+            "result_shape": "row/selRows/selDatas",
+            "candidate_source": "response_history.dataindex/rows",
+        })
+    elif pf_id.startswith("pick_") or pf_meta.get("auto_resolve"):
+        base.update({
+            "resolver_kind": "lookup",
+            "interface": "getLookUpList",
+            "control_key": field_key,
+            "result_shape": "internal_id",
+            "candidate_source": "lookup.list/rows",
+        })
+    elif pf_id.startswith(("enum_", "bool_", "num_", "date_")):
+        base.update({
+            "resolver_kind": "literal",
+            "interface": "update_fields",
+            "control_key": field_key,
+            "result_shape": "literal_value",
+            "candidate_source": "front_end_value",
+        })
+    else:
+        base.update({
+            "resolver_kind": "manual",
+            "interface": "",
+            "control_key": field_key,
+            "result_shape": "recorded_or_manual_value",
+            "candidate_source": "",
+        })
+    return base
+
+
+def _build_env_resolution_plan(pick_fields: dict) -> list[dict[str, Any]]:
+    if not isinstance(pick_fields, dict):
+        return []
+    return [
+        _pick_field_resolver_plan(str(pf_id), pf_meta)
+        for pf_id, pf_meta in pick_fields.items()
+        if isinstance(pf_meta, dict)
+    ]
+
+
 # =============================================================
 # YAML 解析（最小实现，不依赖 pyyaml）
 # =============================================================
@@ -706,6 +781,26 @@ def _h_select_f7_list_row(step: dict, replay: CosmicFormReplay, ctx: dict) -> An
         value_name=str(step.get("value_name") or step.get("value_id") or ""),
         match_fields=[str(x) for x in (step.get("match_fields") or ["number", "name"])],
     )
+    env_field_id = str(step.get("_env_field_id") or step.get("id") or "")
+    ctx.setdefault("env_resolution", {})[env_field_id] = {
+        "status": "resolved",
+        "step_id": env_field_id,
+        "field_key": field_key,
+        "query": str(step.get("value_code") or step.get("value_name") or step.get("value_id") or ""),
+        "value_code": str(step.get("value_code") or ""),
+        "value_name": str(step.get("value_name") or ""),
+        "value_id": str(_selector_pk_from_grid_row(row, dataindex, form_id)),
+        "resolved_value_id": str(_selector_pk_from_grid_row(row, dataindex, form_id)),
+        "resolved_value_name": str(_grid_cell(row, dataindex, "name") or _grid_cell(row, dataindex, field_key) or ""),
+        "effective_value_id": str(_selector_pk_from_grid_row(row, dataindex, form_id)),
+        "resolve_by": "value_code" if step.get("value_code") else "value_name",
+        "resolver_kind": "grid_selector",
+        "interface": load_ac,
+        "control_key": grid_key,
+        "row": row_index,
+        "confidence": "high",
+        "message": "select_f7_list_row 从 loadData 候选行解析",
+    }
 
     select_resp = replay.invoke(form_id, app_id, str(step.get("select_ac") or "entryRowClick"), [{
         "key": grid_key,
@@ -1368,7 +1463,38 @@ def _resolve_selector_row_from_recent_grid(step: dict, ctx: dict) -> None:
             "query": query_value,
             "row": row_index,
             "value_id": str((_grid_cell(row, dataindex, "hcdm_adjfileinfo_id") or row[0]) if row else ""),
+            "value_code": query_value,
+            "value_name": str(_grid_cell(row, dataindex, field_key) or ""),
+            "resolver_kind": "grid_selector",
+            "interface": "loadData",
+            "control_key": control_key,
         }
+        pf_id = str(step.get("_selector_env_field_id") or "")
+        if pf_id:
+            result_dict = {
+                "status": "resolved",
+                "step_id": pf_id,
+                "field_key": field_key,
+                "label": pf_meta.get("label", field_key),
+                "query": query_value,
+                "value_code": query_value,
+                "value_name": step["_selector_grid_resolved"]["value_name"],
+                "value_id": step["_selector_grid_resolved"]["value_id"],
+                "resolved_value_id": step["_selector_grid_resolved"]["value_id"],
+                "resolved_value_name": step["_selector_grid_resolved"]["value_name"],
+                "effective_value_id": step["_selector_grid_resolved"]["value_id"],
+                "resolve_by": pf_meta.get("resolve_by", "value_code"),
+                "resolver_kind": "grid_selector",
+                "interface": "loadData",
+                "control_key": control_key,
+                "row": row_index,
+                "confidence": "high",
+                "message": "从最近 loadData 列表候选行解析",
+            }
+            ctx.setdefault("env_resolution", {})[pf_id] = result_dict
+            run_ev = ctx.get("run_event")
+            if run_ev:
+                run_ev("env_field_resolved", result_dict)
         return
 
 
@@ -1400,7 +1526,8 @@ def _build_selector_selected_row(
     old_code = str(template_row[code_idx] or "").strip() if 0 <= code_idx < len(template_row) else ""
     if query_value:
         for idx, cell in enumerate(list(compact)):
-            if idx == code_idx or (old_code and str(cell or "").strip() == old_code):
+            cell_text = str(cell or "").strip()
+            if idx == code_idx or (old_code and cell_text == old_code) or _looks_like_business_code(cell_text):
                 compact[idx] = query_value
 
     org_id = _grid_cell(grid_row, dataindex, "org_id")
@@ -1418,6 +1545,11 @@ def _build_selector_selected_row(
                 break
 
     return compact
+
+
+def _looks_like_business_code(value: Any) -> bool:
+    text = str(value or "").strip()
+    return bool(re.match(r"^[A-Za-z0-9]+-[A-Za-z0-9]+$", text))
 
 
 def _selector_pk_from_grid_row(grid_row: list[Any], dataindex: dict[str, int], form_id: str = "") -> Any:
@@ -1466,6 +1598,30 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
     if not isinstance(pf_meta, dict) or not pf_meta.get("auto_resolve"):
         return
     pf_id = step.get("_selector_env_field_id") or ""
+    if step.get("_selector_grid_resolved"):
+        resolved = dict(step["_selector_grid_resolved"])
+        result_dict = {
+            "status": "resolved",
+            "step_id": pf_id,
+            "field_key": pf_meta.get("field_key", ""),
+            "label": pf_meta.get("label", pf_meta.get("field_key", "")),
+            "query": resolved.get("query", ""),
+            "value_code": resolved.get("value_code", ""),
+            "value_name": resolved.get("value_name", ""),
+            "value_id": resolved.get("value_id", ""),
+            "resolved_value_id": resolved.get("value_id", ""),
+            "resolved_value_name": resolved.get("value_name", ""),
+            "effective_value_id": resolved.get("value_id", ""),
+            "resolve_by": pf_meta.get("resolve_by", "value_code"),
+            "resolver_kind": resolved.get("resolver_kind", "grid_selector"),
+            "interface": resolved.get("interface", "loadData"),
+            "control_key": resolved.get("control_key", ""),
+            "row": resolved.get("row"),
+            "confidence": "high",
+            "message": "已由 F7/list loadData 候选行解析，跳过 getLookUpList 兜底",
+        }
+        ctx.setdefault("env_resolution", {})[pf_id] = result_dict
+        return
     field_key = str(pf_meta.get("field_key") or "").strip()
     form_id = str(pf_meta.get("form_id") or step.get("form_id") or "").strip()
     app_id = str(pf_meta.get("app_id") or step.get("app_id") or "").strip()
@@ -1515,6 +1671,9 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
     result_dict["value_code"] = value_code
     result_dict["resolve_by"] = resolve_by
     result_dict["query"] = query_value
+    result_dict["resolver_kind"] = "lookup"
+    result_dict["interface"] = "getLookUpList"
+    result_dict["control_key"] = field_key
     env_resolution[pf_id] = result_dict
 
 
@@ -1608,6 +1767,9 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
             "resolve_status": result_dict.get("status"),
             "resolve_by": resolve_by,
             "query": query_value,
+            "resolver_kind": "lookup",
+            "resolver_interface": "getLookUpList",
+            "resolver_control_key": field_key,
             "resolved_value_id": result_dict.get("resolved_value_id", ""),
             "confidence": result_dict.get("confidence", "low"),
             "message": result_dict.get("message", ""),
@@ -1795,8 +1957,11 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     # 构建 pick_fields 预览（状态为 pending）
     _pick_fields_raw = case.get("pick_fields") or {}
+    _env_resolution_plan = _build_env_resolution_plan(_pick_fields_raw)
+    _env_resolution_plan_map = {item["step_id"]: item for item in _env_resolution_plan}
     _pick_fields_preview = []
     for pf_id, pf_meta in _pick_fields_raw.items():
+        plan_item = _env_resolution_plan_map.get(str(pf_id), {})
         _pick_fields_preview.append({
             "step_id": pf_id,
             "field_key": pf_meta.get("field_key", ""),
@@ -1815,6 +1980,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "auto_resolve": bool(pf_meta.get("auto_resolve")),
             "resolve_status": pf_meta.get("resolve_status", ""),
             "resolve_by": pf_meta.get("resolve_by", ""),
+            "resolver_kind": plan_item.get("resolver_kind", ""),
+            "resolver_interface": plan_item.get("interface", ""),
+            "resolver_query": plan_item.get("query", ""),
         })
 
     emit("case_start", {
@@ -1825,6 +1993,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "vars_labels": case.get("vars_labels", {}),
         "vars_meta": case.get("vars_meta", {}),
         "pick_fields_preview": _pick_fields_preview,
+        "env_resolution_plan": _env_resolution_plan,
     })
 
     # 1. 解析 env
@@ -2503,6 +2672,10 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
             "auto_resolve": bool(meta.get("auto_resolve")),
             "resolve_status": resolved.get("status") or meta.get("resolve_status", ""),
             "resolve_by": resolved.get("resolve_by") or meta.get("resolve_by", ""),
+            "resolver_kind": resolved.get("resolver_kind", ""),
+            "resolver_interface": resolved.get("interface", ""),
+            "resolver_query": resolved.get("query", ""),
+            "resolver_control_key": resolved.get("control_key", ""),
             "resolved_value_id": resolved.get("resolved_value_id", ""),
             "confidence": resolved.get("confidence", ""),
             "message": resolved.get("message", ""),

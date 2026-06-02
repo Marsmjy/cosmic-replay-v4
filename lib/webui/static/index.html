@@ -4702,8 +4702,10 @@ function app() {
       }
       const kind = this.pickFieldDisplayKind(pf);
       if (kind === 'code') {
+        pf.value_id = text;
         pf.value_code = text;
         pf.value_number = text;
+        if (pf.value_name && String(pf.value_name) !== text) pf.value_name = '';
         pf.resolve_by = 'value_code';
         pf.auto_resolve = true;
         pf.resolve_status = 'pending';
@@ -6607,8 +6609,10 @@ function app() {
         }
         const kind = this.pickFieldDisplayKind(pf);
         if (kind === 'code') {
+          pf.value_id = newValue;
           pf.value_code = newValue;
           pf.value_number = newValue;
+          if (pf.value_name && String(pf.value_name) !== newValue) pf.value_name = '';
           pf.resolve_by = 'value_code';
           pf.auto_resolve = true;
           pf.resolve_status = 'pending';
@@ -6616,7 +6620,7 @@ function app() {
           pf.user_overridden = true;
           payload = {
             ...payload,
-            value_id: pf.value_id || '',
+            value_id: newValue,
             value_code: newValue,
             value_number: newValue,
             resolve_by: 'value_code',
@@ -6653,7 +6657,7 @@ function app() {
         if (pf && kind === 'code') {
           payload = {
             ...payload,
-            value_id: pf.value_id || '',
+            value_id: newValue,
             value_code: newValue,
             value_number: newValue,
             resolve_by: 'value_code',

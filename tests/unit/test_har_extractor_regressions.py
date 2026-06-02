@@ -642,6 +642,39 @@ def test_build_yaml_case_allows_preview_var_override_to_empty_string():
     assert case["vars"]["test_name"] == ""
 
 
+def test_build_yaml_case_syncs_preview_code_override_to_pick_field_value_id():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="regression_preview_pick_code_override",
+        pick_field_overrides={
+            "pick_city_id": {
+                "value_id": "100",
+                "value_name": "裕安",
+                "value_code": "0018611-0001",
+                "value_number": "0018611-0001",
+                "resolve_by": "value_code",
+                "auto_resolve": True,
+                "resolve_status": "pending",
+                "manual_override": False,
+                "user_overridden": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    city = case["pick_fields"]["pick_city_id"]
+
+    assert city["value_id"] == "0018611-0001"
+    assert city["value_code"] == "0018611-0001"
+    assert city["value_number"] == "0018611-0001"
+    assert city["value_name"] == ""
+    assert city["resolve_by"] == "value_code"
+    assert city["auto_resolve"] is True
+    assert city["resolve_status"] == "pending"
+    assert city["user_overridden"] is True
+
+
 def test_build_yaml_case_extracts_enterprise_description_var():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
 

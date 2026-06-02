@@ -27,7 +27,7 @@ from lib.runner import (
     _case_reaches_form_via_recorded_context,
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
-    _resolve_selector_row_from_recent_grid,
+    _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
@@ -89,6 +89,38 @@ env:
 
 class TestReplayErrorDetection:
     """苍穹响应错误识别"""
+
+    def test_env_resolution_plan_lists_lookup_and_selector_interfaces(self):
+        plan = _build_env_resolution_plan({
+            "pick_adminorg_id": {
+                "field_key": "adminorg",
+                "form_id": "demo_form",
+                "app_id": "demo",
+                "value_code": "ORG001",
+                "resolve_by": "value_code",
+                "auto_resolve": True,
+            },
+            "selector_salary_adjust_employee_id": {
+                "field_key": "employee_name",
+                "form_id": "hcdm_adjfileinfof7",
+                "app_id": "hcdm",
+                "value_code": "04041-0001",
+                "resolve_by": "value_code",
+                "auto_resolve": True,
+                "selector_source": "entryRowClick",
+                "selector_control_key": "billlistap",
+            },
+        })
+
+        by_id = {item["step_id"]: item for item in plan}
+        assert by_id["pick_adminorg_id"]["resolver_kind"] == "lookup"
+        assert by_id["pick_adminorg_id"]["interface"] == "getLookUpList"
+        assert by_id["pick_adminorg_id"]["query"] == "ORG001"
+        selector = by_id["selector_salary_adjust_employee_id"]
+        assert selector["resolver_kind"] == "grid_selector"
+        assert selector["interface"] == "loadData"
+        assert selector["control_key"] == "billlistap"
+        assert selector["query"] == "04041-0001"
 
     def test_has_error_action_detects_nested_notification(self):
         resp = [{
@@ -392,6 +424,7 @@ class TestReplayErrorDetection:
                     "selDatas": [recorded_row],
                 }
             }, []],
+            "_selector_env_field_id": "selector_salary_adjust_employee_id",
             "_selector_env_field_meta": {
                 "field_key": "employee_name",
                 "form_id": "hcdm_adjfileinfof7",
@@ -434,6 +467,30 @@ class TestReplayErrorDetection:
         assert step["args"][0] == 4
         assert payload["row"] == 4
         assert payload["selRows"] == [4]
+        assert payload["selDatas"] == [[
+            "2484119967973259264",
+            "06019-0001",
+            "100000",
+            "06019-0001",
+            "C",
+        ]]
+        assert ctx["env_resolution"]["selector_salary_adjust_employee_id"]["resolver_kind"] == "grid_selector"
+        assert ctx["env_resolution"]["selector_salary_adjust_employee_id"]["resolved_value_id"] == "2484119967973259264"
+
+        class ExplodingResolver:
+            def __init__(self, replay, env_id=""):
+                pass
+
+            def resolve_basedata_result(self, *args, **kwargs):
+                raise AssertionError("selector resolved from grid should not call getLookUpList fallback")
+
+        monkeypatch = pytest.MonkeyPatch()
+        try:
+            monkeypatch.setattr(runner_mod, "FieldResolver", ExplodingResolver)
+            _auto_resolve_selector_row_step(step, object(), ctx)
+        finally:
+            monkeypatch.undo()
+
         assert payload["selDatas"] == [[
             "2484119967973259264",
             "06019-0001",

@@ -350,6 +350,7 @@ post_data:
 - `entryRowClick.post_data[*].selDatas` 代表用户在 F7/列表弹窗里选中的环境对象，应进入 `pick_fields`：界面展示业务编码，保留 `recorded_value_id`，运行时按用户维护编码重新解析真实内码。
 - F7/列表弹窗 selector 的覆盖不能只改 `selDatas[0][0]`。很多列表第 0 列或 `hcdm_adjfileinfo_id` 是 Long 内部主键，用户维护的 `value_code`（如 `06019-0001`）只能用于查找候选行，不能直接写进主键列，否则会触发 `BillListSelection.convertPkValue` 的 `For input string`。正确做法是先从最近一次同表单 `loadData` 的 `billlistap.dataindex/rows` 按 `field_key/number/name/employee_name/employee_empnumber` 定位整行，再同步 `row/selRows/args[0]/selDatas`；找不到候选时不要静默回退录制旧行。
 - selector 字段在预览页或用例详情页修改业务编码后，旧 `value_id/value_name/value_number` 可能残留。若 `selector_source=entryRowClick` 且 `resolve_by=value_code`，诊断时以用户覆盖后的 `value_code` 为权威；`resolved_request.post_data.selDatas` 必须出现新编码对应的整行和真实内部主键，而不是旧行或把编码塞入主键列。
+- 所有需要前端维护值的下拉/F7/基础资料字段，都应先形成运行期 `env_resolution_plan`：基础资料走 `getLookUpList`，F7/list selector 走对应 `loadData` 的 `dataindex/rows`，普通枚举/日期走 `update_fields` 字面量。诊断时先看 `case_start.env_resolution_plan` 和后续 `env_fields_resolved/env_field_resolved`，确认维护编码是否被接口候选解析成真实 id/row/selDatas；不要直接改保存包体或依赖 HAR 录制旧值。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。
 - 写库链路或 F7/selector/子弹窗修复完成后，不能只跑单测和 HAR compare。必须用原始 HAR 重新导入生成一个新 case，再在目标环境执行一次；只有执行通过并且保存/提交响应或只读入库回查满足证据标准，才可判定修复完成。若执行失败，继续基于新 run 的 evidence 排查，不能用旧用例执行结果代替确认。
