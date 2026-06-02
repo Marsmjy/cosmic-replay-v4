@@ -1197,14 +1197,16 @@ def _apply_pick_fields(case: dict):
             inject_vid = pf_meta.get("value_id", "")
             inject_vname = pf_meta.get("value_name", "")
             inject_vcode = pf_meta.get("value_code", "")
-            if inject_vid or inject_vname:
+            resolve_by = str(pf_meta.get("resolve_by") or "")
+            inject_value_id = str(inject_vcode) if resolve_by == "value_code" and inject_vcode else str(inject_vid or "")
+            if inject_vid or inject_vname or inject_vcode:
                 applied = False
                 for step in steps:
                     if not _pick_field_targets_step(pf_meta, step):
                         continue
                     if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
-                        if inject_vid:
-                            step["value_id"] = str(inject_vid)
+                        if inject_value_id:
+                            step["value_id"] = inject_value_id
                         if inject_vname:
                             step["value_name"] = str(inject_vname)
                         elif pf_meta.get("manual_override") or pf_meta.get("resolve_status") == "manual":
@@ -1215,7 +1217,7 @@ def _apply_pick_fields(case: dict):
                         step["_env_field_meta"] = pf_meta
                         step["auto_resolve"] = bool(pf_meta.get("auto_resolve"))
                         step["resolve_by"] = str(pf_meta.get("resolve_by") or step.get("resolve_by") or "")
-                        log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_vid}")
+                        log.debug(f"[pick inject] {pf_id} → step[{step.get('id', '')}].value_id={inject_value_id or inject_vid}")
                         applied = True
                     elif step.get("type") == "select_f7_list_row":
                         target_field_key = str(step.get("target_field_key") or step.get("field_key") or "")
@@ -1416,7 +1418,16 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
         step["value_id"] = result.resolved_value_id
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
-        if recorded_value_id and recorded_value_id != original_value_id:
+        user_overrode_code = (
+            resolve_by == "value_code"
+            and value_code
+            and (
+                pf_meta.get("user_overridden")
+                or pf_meta.get("manual_override")
+                or value_code != str(pf_meta.get("recorded_value_code") or pf_meta.get("value_number") or "")
+            )
+        )
+        if recorded_value_id and recorded_value_id != original_value_id and not user_overrode_code:
             step["value_id"] = recorded_value_id
         result_dict["effective_value_id"] = step.get("value_id", original_value_id)
     result_dict["step_id"] = pf_id

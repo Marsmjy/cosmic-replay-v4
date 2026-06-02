@@ -163,6 +163,59 @@ class TestReplayErrorDetection:
 
         assert step["value_id"] == "2483502552415473664"
 
+    def test_pick_code_override_does_not_fall_back_to_recorded_id(self, monkeypatch):
+        step = {
+            "id": "pick_khr_proposer",
+            "type": "pick_basedata",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "khr",
+            "field_key": "khr_proposer",
+            "value_id": "00001",
+        }
+        case = {
+            "steps": [step],
+            "pick_fields": {
+                "pick_khr_proposer_id": {
+                    "field_key": "khr_proposer",
+                    "form_id": "khr_hcdm_fapplybill",
+                    "app_id": "khr",
+                    "source_step_id": "pick_khr_proposer",
+                    "value_id": "00001",
+                    "value_name": "7300166",
+                    "value_code": "00002",
+                    "value_number": "00001",
+                    "recorded_value_id": "2381390676873980001",
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                    "user_overridden": True,
+                }
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        assert step["value_id"] == "00002"
+        assert step["value_code"] == "00002"
+
+        class FakeResolver:
+            def __init__(self, replay, env_id=""):
+                pass
+
+            def resolve_basedata_result(self, form_id, app_id, field_key, query, original_value_id=""):
+                return ResolveResult(
+                    status="not_found",
+                    field_key=field_key,
+                    query=query,
+                    original_value_id=original_value_id,
+                    message="候选项与 value_name 不匹配",
+                )
+
+        monkeypatch.setattr(runner_mod, "FieldResolver", FakeResolver)
+
+        _auto_resolve_pick_basedata_step(step, object(), {"env_id": "uat"})
+
+        assert step["value_id"] == "00002"
+
     def test_selector_env_field_uses_user_code_and_resolves_internal_id(self, monkeypatch):
         row = ["2381390967690242048", "", "", "012890005"]
         step = {
