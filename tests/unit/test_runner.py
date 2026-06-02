@@ -284,6 +284,60 @@ class TestReplayErrorDetection:
         assert row[0] == "2381390967690242999"
         assert row[3] == "012890006"
 
+    def test_selector_code_override_does_not_fall_back_to_recorded_id_when_unresolved(self, monkeypatch):
+        row = ["2381390967690242048", "", "", "012890005"]
+        step = {
+            "id": "entryRowClick_33",
+            "type": "invoke",
+            "form_id": "hsbs_empposf7querylist",
+            "app_id": "hsbs",
+            "ac": "entryRowClick",
+            "post_data": [{"billlistap": {"selDatas": [row]}}],
+        }
+        case = {
+            "steps": [step],
+            "pick_fields": {
+                "selector_employee_position_id": {
+                    "field_key": "employee",
+                    "form_id": "hsbs_empposf7querylist",
+                    "app_id": "hsbs",
+                    "source_step_id": "entryRowClick_33",
+                    "value_id": "012890006",
+                    "value_code": "012890006",
+                    "value_name": "012890005",
+                    "recorded_value_id": "2381390967690242048",
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                    "user_overridden": True,
+                    "selector_control_key": "billlistap",
+                    "selector_value_index": 0,
+                    "selector_code_index": 3,
+                }
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        class FakeResolver:
+            def __init__(self, replay, env_id=""):
+                pass
+
+            def resolve_basedata_result(self, form_id, app_id, field_key, query, original_value_id=""):
+                return ResolveResult(
+                    status="not_found",
+                    field_key=field_key,
+                    query=query,
+                    original_value_id=original_value_id,
+                    message="候选项与 value_name 不匹配",
+                )
+
+        monkeypatch.setattr(runner_mod, "FieldResolver", FakeResolver)
+
+        _auto_resolve_selector_row_step(step, object(), {"env_id": "uat"})
+
+        assert row[0] == "012890006"
+        assert row[3] == "012890006"
+
     def test_select_f7_list_row_loads_selects_and_confirms(self):
         calls = []
         f7_row = [

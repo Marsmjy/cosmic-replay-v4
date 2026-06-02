@@ -423,8 +423,10 @@ def _prefer_business_id(row: list, value_id: Any, number: Any) -> Any:
     return value_id
 
 
-def _infer_lookup_number(row: list, value_id: Any, value_name: Any) -> Any:
+def _infer_lookup_number(row: Any, value_id: Any, value_name: Any) -> Any:
     """Infer number/code from common [id, number, name] rows when dataindex omits it."""
+    if not isinstance(row, list):
+        return None
     if len(row) < 3:
         return None
     first = str(row[0] or "").strip()

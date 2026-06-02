@@ -1302,7 +1302,14 @@ def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str 
     code_idx = int(pf_meta.get("selector_code_index", -1) or -1)
     recorded = str(pf_meta.get("recorded_value_id") or "").strip()
     user_value = str(pf_meta.get("value_id") or "").strip()
-    value_id = str(resolved_value_id or recorded or user_value or "").strip()
+    resolve_by = str(pf_meta.get("resolve_by") or "").strip()
+    user_overrode_code = (
+        resolve_by == "value_code"
+        and user_value
+        and not _looks_like_internal_id(user_value)
+        and (pf_meta.get("user_overridden") or pf_meta.get("manual_override"))
+    )
+    value_id = str(resolved_value_id or (user_value if user_overrode_code else recorded) or user_value or "").strip()
     value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
     value_name = str(pf_meta.get("value_name") or "").strip()
     if value_id and 0 <= value_idx < len(row):
@@ -1352,7 +1359,13 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
         _apply_selector_row_value(step, pf_meta)
-        result_dict["effective_value_id"] = pf_meta.get("recorded_value_id") or pf_meta.get("value_id") or ""
+        rows = _selector_rows(step, pf_meta) or []
+        value_idx = int(pf_meta.get("selector_value_index", 0) or 0)
+        result_dict["effective_value_id"] = (
+            rows[0][value_idx]
+            if rows and 0 <= value_idx < len(rows[0])
+            else pf_meta.get("recorded_value_id") or pf_meta.get("value_id") or ""
+        )
     result_dict["step_id"] = pf_id
     result_dict["label"] = pf_meta.get("label", field_key)
     result_dict["env_sensitive"] = pf_meta.get("env_sensitive", "medium")

@@ -125,6 +125,20 @@ def test_field_resolver_infers_number_from_id_number_name_rows_without_number_in
     assert "精确" in message
 
 
+def test_field_resolver_does_not_infer_number_from_dict_raw_candidate():
+    resp = [{
+        "list": [{
+            "id": "2381390676873979991",
+            "name": "9289684",
+        }],
+    }]
+
+    candidates = FieldResolver._parse_lookup_candidates(resp)
+
+    assert candidates[0].number == ""
+    assert candidates[0].value_id == "2381390676873979991"
+
+
 def test_auto_resolve_pick_basedata_step_overrides_value_id_and_emits_status():
     step = {
         "id": "pick_adminorg",
