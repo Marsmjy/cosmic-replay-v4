@@ -300,6 +300,8 @@ class FieldResolver:
             value_id = str(value_id).strip()
             value_name = str(value_name).strip()
             number = str(number or "").strip()
+            if not number:
+                number = str(_infer_lookup_number(raw, value_id, value_name) or "").strip()
             if not value_id or not value_name:
                 return
             key = (value_id, value_name)
@@ -325,6 +327,7 @@ class FieldResolver:
                         rid = _row_value(row, id_ix)
                         number = _row_value(row, number_ix)
                         rnm = _row_value(row, name_ix)
+                        number = number or _infer_lookup_number(row, rid, rnm)
                         rid = _prefer_business_id(row, rid, number)
                         add(rid or number, rnm, number=number, raw=row)
                 lst = obj.get("list")
@@ -418,6 +421,24 @@ def _prefer_business_id(row: list, value_id: Any, number: Any) -> Any:
     if not value_text or value_text == number_text or not _looks_like_internal_id(value_text):
         return first
     return value_id
+
+
+def _infer_lookup_number(row: list, value_id: Any, value_name: Any) -> Any:
+    """Infer number/code from common [id, number, name] rows when dataindex omits it."""
+    if len(row) < 3:
+        return None
+    first = str(row[0] or "").strip()
+    second = str(row[1] or "").strip()
+    third = str(row[2] or "").strip()
+    if not second:
+        return None
+    if first != str(value_id or "").strip():
+        return None
+    if third != str(value_name or "").strip():
+        return None
+    if _looks_like_internal_id(first) and second != third:
+        return second
+    return None
 
 
 def _first_column_index(columns: list, keys: tuple[str, ...]) -> int | None:

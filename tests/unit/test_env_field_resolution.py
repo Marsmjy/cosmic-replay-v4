@@ -105,6 +105,26 @@ def test_field_resolver_prefers_business_id_when_dataindex_points_to_code():
     assert status == "resolved"
 
 
+def test_field_resolver_infers_number_from_id_number_name_rows_without_number_index():
+    resp = [{
+        "rows": [
+            ["2381390676873979991", "00002", "9289684"],
+            ["2390600880509446144", "100002", "星瀚入职"],
+        ],
+        "dataindex": {"id": 0, "name": 2},
+    }]
+
+    candidates = FieldResolver._parse_lookup_candidates(resp)
+    best, confidence, status, message = FieldResolver._select_candidate(candidates, "00002")
+
+    assert candidates[0].number == "00002"
+    assert best.value_id == "2381390676873979991"
+    assert best.value_name == "9289684"
+    assert confidence == "high"
+    assert status == "resolved"
+    assert "精确" in message
+
+
 def test_auto_resolve_pick_basedata_step_overrides_value_id_and_emits_status():
     step = {
         "id": "pick_adminorg",
