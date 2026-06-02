@@ -191,6 +191,17 @@ cosmic-replay-v4/
 
 脚本会输出 `dist/cosmic-replay-consultant-handoff-YYYYMMDD.zip`，并自动排除 `.git`、`venv`、`data`、`logs`、`har_uploads`、真实环境配置、数据库、HAR、cookie/token 和旧压缩包等不应外发的内容。
 
+### 完整交付包打包规则
+
+当需要重新打包 `dist/cosmic-replay完整项目包-解压后只看必读html文件即可.zip` 时，必须按以下规则执行：
+
+1. 先用当前日期生成最新内层项目包，命名为 `dist/cosmic-replay-consultant-project-YYYYMMDD.zip`，不要沿用旧日期文件名。
+2. 外层完整包固定使用 `dist/cosmic-replay完整项目包-解压后只看必读html文件即可.zip` 这个文件名。
+3. 外层完整包必须覆盖重写，不追加旧内容，不保留 `__MACOSX` 等历史压缩残留。
+4. 外层完整包只放三类文件：`必读-工具介绍及安装使用.html`、`cosmic-replay-demo.gif`、最新日期的 `cosmic-replay-consultant-project-YYYYMMDD.zip`。
+5. 如 `dist` 中存在旧日期的 `cosmic-replay-consultant-project-*.zip`，打包后删除，避免交付时拿错。
+6. 打包后必须校验内外两个 zip 都能通过 `testzip`，并确认外层包内不再包含旧日期项目包。
+
 ---
 
 ## Playwright 菜单/表单探索（实验能力）
