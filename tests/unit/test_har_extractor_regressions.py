@@ -484,6 +484,29 @@ def test_salary_adjust_import_exposes_scalar_combo_fields():
     assert pick_fields["pick_khr_scope_id"]["label"] == "适用范围"
 
 
+def test_salary_adjust_submit_import_exposes_adjust_employee_selector():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780367056_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_proposal_no_submit")
+    case = yaml.safe_load(yaml_text)
+    selector = case["pick_fields"]["selector_salary_adjust_employee_id"]
+
+    assert selector["label"] == "定调薪人员"
+    assert selector["field_key"] == "employee_name"
+    assert selector["form_id"] == "hcdm_adjfileinfof7"
+    assert selector["app_id"] == "hcdm"
+    assert selector["value_id"] == "00186-0001"
+    assert selector["value_code"] == "00186-0001"
+    assert selector["recorded_value_id"] == "2465334257644485632"
+    assert selector["source_step_id"] == "entryRowClick_18"
+    assert selector["write_step_id"] == "click_19"
+    assert selector["resolve_by"] == "value_code"
+    assert selector["selector_value_index"] == 0
+    assert selector["selector_code_index"] == 1
+
+
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
 

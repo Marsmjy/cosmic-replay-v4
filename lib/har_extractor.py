@@ -1353,6 +1353,7 @@ _BUSINESS_INPUT_VARIABLE_KEYS = {
 _F7_SELECTOR_FORM_LABELS = {
     "hsbs_empposf7querylist": ("employee_position", "计薪人员任职经历", "employee"),
     "hsbs_employeequerylistf7": ("employee_position", "计薪人员任职经历", "employee"),
+    "hcdm_adjfileinfof7": ("salary_adjust_employee", "定调薪人员", "employee_name"),
 }
 
 
