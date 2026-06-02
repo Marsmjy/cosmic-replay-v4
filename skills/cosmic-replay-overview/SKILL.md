@@ -128,10 +128,11 @@ scripts/write_smoke_run.py --env uat --case cases/UA提报保存.yaml --confirm-
 ### 3. 环境字段优先级
 环境字段的权威来源按优先级排列：
 - 用户手工维护值：`manual_override=true`，`auto_resolve=false`，运行期不再被缓存覆盖。
-- 在线自动解析：`FieldResolver` 按当前环境和 `value_name` 解析基础资料/枚举内码。
+- 按编码维护的用户值：`resolve_by=value_code` 时 `value_code` 是权威输入，旧 `value_id/value_name` 只能作为录制信息或展示信息，不能覆盖用户新编码。
+- 在线自动解析：`FieldResolver` 按当前环境和 `value_name` 或 `value_code` 解析基础资料/枚举内码。
 - HAR 原始值：解析失败或未开启自动解析时保留。
 
-手工修改环境字段时必须清理陈旧 `value_name` 或关闭 `auto_resolve`，否则会出现“UI/YAML 是 1010，运行期按旧名称解析回 1020”的问题。
+手工修改环境字段时要避免陈旧 `value_name/value_id` 覆盖用户输入；尤其是 `resolve_by=value_code` 字段，运行期必须按新编码注入，解析失败也不能静默回退到录制旧值。
 
 ### 4. SSE 实时推送
 执行过程通过 Server-Sent Events 流式推送：
@@ -188,7 +189,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 | pageId 404/过期 | lib/replay.py 的 page_ids 缓存和 _pending_by_app |
 | 保存报错 | lib/diagnoser.py + lib/advisor.py |
 | HAR 转换变量遗漏 | lib/har_extractor.py 的 `_classify_key_heuristic` / `_TEXT_VARIABLE_KEYS` / MetadataResolver |
-| 环境字段改了但运行没生效 | YAML `pick_fields` 是否 `manual_override=true` 且 `auto_resolve=false`；runner `_apply_pick_fields` |
+| 环境字段改了但运行没生效 | YAML `pick_fields` 是否 `user_overridden=true`；`resolve_by=value_code` 是否被旧 `value_id/value_name` 覆盖；runner `_apply_pick_fields` / `_auto_resolve_pick_basedata_step` |
 | PASS 但报告入库未验证 | task_manager.py `infer_write_status()`；保存响应是否为空；是否需要后置查询断言 |
 | 人工确认后仍提示 AI | YAML `write_verification.manual_confirmed` 是否写入；批量执行是否加载了最新 YAML |
 | AI 修复入口不清楚 | Web UI `copyAgentRepairPrompt()` 与 `/agent-evidence/` endpoint |
