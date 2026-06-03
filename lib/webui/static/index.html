@@ -804,79 +804,108 @@
             </div>
           </div>
 
-          <!-- ⚠️ 环境 Bug 提示（最显眼，置于失败面板上方）-->
-          <div x-show="summary && !summary?.passed"
-               class="bg-amber-950/40 border-2 border-amber-500/70 rounded-lg px-4 py-3 mb-3 flex items-start gap-3 shadow-lg shadow-amber-900/20">
-            <div class="text-amber-300 text-2xl leading-none mt-0.5 select-none">⚠️</div>
-            <div class="text-sm text-amber-50 leading-relaxed">
-              <span class="text-amber-200 font-semibold">温馨提示：</span>
-              用例执行失败<span class="text-amber-100 font-medium">不一定是自动化脚本问题</span>，也可能是<span class="text-amber-100 font-medium">被测环境本身存在 Bug</span>。建议先核实被测系统状态，再决定下一步操作。
+          <div x-show="summary && summary?.passed && singleRunNeedsAgent()"
+               class="rounded-lg border border-amber-700/70 bg-amber-950/20 p-4 mb-3">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div class="text-sm font-semibold text-amber-100">建议补充入库校验</div>
+                <div class="mt-1 text-sm text-slate-300">执行过程已通过，但入库证据不足。建议确认业务数据是否入库，再补专用回查规则。</div>
+              </div>
+              <button type="button"
+                      @click="copySingleRunAgentRepairPrompt()"
+                      class="btn btn-secondary shrink-0 border-amber-800 text-amber-100 hover:bg-amber-950">
+                交给 AI 补回查
+              </button>
             </div>
           </div>
 
           <div x-show="summary && !summary?.passed"
-               class="status-card status-card-danger mb-3">
-            <div class="flex items-start gap-3">
-              <div class="status-icon bg-rose-500 text-white">!</div>
-              <div class="flex-1 min-w-0">
-                <div class="text-rose-100 font-medium">执行失败原因:</div>
-                <div class="text-sm text-slate-400 mt-1">
-                  <span x-show="failedPhase()">失败位置：</span>
-                  <span class="text-slate-200" x-text="failedPhase()?.label || '执行初始化/连接阶段'"></span>
-                  <span x-show="failedPhase()?.detail" class="text-slate-500 mono text-xs ml-1" x-text="failedPhase()?.detail"></span>
+               class="rounded-lg border p-4 mb-3 shadow-lg"
+               :class="failureDecisionCardClass()">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-xs rounded px-2 py-0.5 font-medium"
+                        :class="failureDecisionBadgeClass()"
+                        x-text="failureDecision().badge"></span>
+                  <span class="text-xs text-slate-500" x-text="'置信度：' + confidenceLabel(failureDecision().confidence)"></span>
                 </div>
-                <div class="text-sm text-slate-300 mt-2" x-show="failureAnalysis?.root_cause" x-text="failureAnalysis?.root_cause"></div>
-                <div class="flex flex-wrap gap-2 mt-3">
-                  <button x-show="safeRepairCount() > 0"
-                          @click="applySafeRepairsAndRerun()"
-                          :disabled="repairApplying"
-                          class="btn btn-success btn-sm disabled:bg-slate-700">
-                    <span x-text="repairApplying ? '处理中...' : `应用 ${safeRepairCount()} 条安全修复并重跑`"></span>
-                  </button>
-                  <button x-show="repairPlan.length > 0 && safeRepairCount() === 0"
-                          @click="document.getElementById('repair-plan-panel')?.scrollIntoView({behavior:'smooth', block:'start'})"
-                          class="btn btn-secondary btn-sm border-amber-800 text-amber-200 hover:bg-amber-950">
-                    查看需确认的修复项
-                  </button>
+                <div class="mt-2 text-xl font-semibold text-slate-50" x-text="failureDecision().title"></div>
+                <div class="mt-1 text-sm leading-relaxed text-slate-300" x-text="failureDecision().message"></div>
+                <div class="mt-3 space-y-1.5">
+                  <div class="text-xs font-medium text-slate-500">判断依据</div>
+                  <template x-for="item in failureDecisionEvidence()" :key="item">
+                    <div class="flex gap-2 text-sm text-slate-300">
+                      <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500"></span>
+                      <span x-text="item"></span>
+                    </div>
+                  </template>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div x-show="singleRunNeedsAgent()"
-               class="bg-rose-950/20 border border-rose-800/70 rounded-lg p-4 mb-3 shadow-lg shadow-rose-950/20">
-            <div class="space-y-3">
-              <div class="min-w-0">
-                <div class="text-rose-100 font-medium flex flex-wrap items-center gap-2">
-                  <span>下一步：交给 AI 排查</span>
-                  <span class="status-badge bg-rose-900/70 text-rose-100" x-text="singleRunDiagnosisBadge()"></span>
-                </div>
-                <div class="text-sm text-slate-400 mt-1" x-text="singleRunDiagnosisText()"></div>
-                <div class="text-xs text-slate-500 mt-2 break-words" x-show="singleRunDiagnosisReason()" x-text="singleRunDiagnosisReason()"></div>
-                <div class="mt-3 rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2">
-                  <div class="text-xs text-slate-400">复制后发给 AI，系统会带上：</div>
-                  <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">IR 摘要</span>
-                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">pageId 链路</span>
-                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">变量/环境字段</span>
-                    <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-300">失败与入库证据</span>
-                  </div>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button type="button"
-                        @click="copySingleRunAgentRepairPrompt()"
-                        class="w-full rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-300">
-                  复制 AI 修复指令
+              <div class="flex w-full shrink-0 flex-col gap-2 sm:w-56">
+                <button x-show="safeRepairCount() > 0"
+                        @click="applySafeRepairsAndRerun()"
+                        :disabled="repairApplying"
+                        class="btn btn-success w-full disabled:bg-slate-700">
+                  <span x-text="repairApplying ? '处理中...' : `应用修复并重跑`"></span>
                 </button>
-                <a :href="singleRunAgentEvidenceUrl(currentCase?.name || '', currentRunId())"
-                   target="_blank"
-                   class="w-full rounded-lg border border-rose-800 px-4 py-2.5 text-center text-sm font-semibold text-rose-100 transition hover:bg-rose-950">
-                  打开证据包
-                </a>
+                <button x-show="safeRepairCount() === 0 && failureDecision().action === 'environment'"
+                        @click="runCase(currentCase.name)"
+                        class="btn btn-primary w-full">
+                  环境恢复后重跑
+                </button>
+                <button x-show="safeRepairCount() === 0 && failureDecision().action === 'vars'"
+                        @click="detailTab='vars'"
+                        class="btn btn-primary w-full">
+                  打开变量面板
+                </button>
+                <button x-show="safeRepairCount() === 0 && (failureDecision().action === 'ai' || failureDecision().action === 'readback')"
+                        @click="copySingleRunAgentRepairPrompt()"
+                        class="btn btn-primary w-full">
+                  交给 AI 修用例
+                </button>
+                <button x-show="repairPlan.length > 0 && safeRepairCount() === 0"
+                        @click="document.getElementById('repair-plan-panel')?.scrollIntoView({behavior:'smooth', block:'start'})"
+                        class="btn btn-secondary w-full border-amber-800 text-amber-200 hover:bg-amber-950">
+                  查看修复项
+                </button>
+                <button x-show="failureDecision().action !== 'environment'"
+                        @click="runCase(currentCase.name)"
+                        class="btn btn-secondary w-full">
+                  重新执行
+                </button>
               </div>
             </div>
           </div>
+
+          <details x-show="summary && !summary?.passed"
+                   class="bg-slate-900 border border-slate-800 rounded-lg p-4 mb-3">
+            <summary class="cursor-pointer text-sm font-medium text-slate-300">技术详情</summary>
+            <div class="mt-3 space-y-2 text-sm text-slate-400">
+              <div>
+                <span class="text-slate-500">失败位置：</span>
+                <span class="text-slate-200" x-text="failedPhase()?.label || '执行初始化/连接阶段'"></span>
+                <span x-show="failedPhase()?.detail" class="text-slate-500 mono text-xs ml-1" x-text="failedPhase()?.detail"></span>
+              </div>
+              <div x-show="failureAnalysis?.root_cause">
+                <span class="text-slate-500">归因说明：</span>
+                <span x-text="failureAnalysis?.root_cause"></span>
+              </div>
+              <div x-show="summary?.error || singleRunDiagnosisReason()">
+                <span class="text-slate-500">技术错误：</span>
+                <code class="mono text-xs text-slate-300 break-words" x-text="summary?.error || singleRunDiagnosisReason()"></code>
+              </div>
+              <div x-show="failureAnalysis?.category">
+                <span class="text-slate-500">分类：</span>
+                <span x-text="failureCategoryLabel(failureAnalysis?.category)"></span>
+              </div>
+              <button type="button"
+                      @click="copySingleRunAgentRepairPrompt()"
+                      class="mt-2 rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+                复制 AI 修复指令
+              </button>
+            </div>
+          </details>
 
 <!--          <div x-show="failureAnalysis && !summary?.passed"-->
 <!--               class="bg-slate-900 border border-amber-800/60 rounded-lg overflow-hidden mb-3">-->
@@ -5432,6 +5461,150 @@ function app() {
         console.warn(e);
         return null;
       }
+    },
+
+    failureDecision() {
+      const category = this.singleRunDiagnosis?.failure_analysis?.category
+        || this.failureAnalysis?.category
+        || '';
+      const text = [
+        category,
+        this.singleRunDiagnosisReason(),
+        this.failureAnalysis?.evidence || '',
+        this.summary?.error || '',
+        this.failedPhase()?.label || '',
+        this.failedPhase()?.detail || '',
+      ].join(' ');
+      const lower = text.toLowerCase();
+      const stepOk = Number(this.summary?.step_ok || 0);
+      const hasBusinessFieldSignal = /必填|不能为空|请选择|字段值|格式|锁定字段|变量|维护字段/.test(text);
+      const envCategories = new Set([
+        'invalid_protocol_request',
+        'transient_protocol',
+        'environment_service_unavailable',
+        'environment_schema_mismatch',
+        'environment_server_exception',
+      ]);
+      const aiCategories = new Set([
+        'pageid_context',
+        'assertion_anchor_missing',
+        'business_template_context_missing',
+        'environment_field_context_missing',
+        'f7_lookup_chain_missing',
+        'dialog_detail_chain_incomplete',
+        'component_rule_group_filter_missing',
+        'navigation_service_unavailable',
+      ]);
+      const varCategories = new Set([
+        'business_missing_required',
+        'business_invalid_value',
+        'business_validation_expected',
+        'locked_field_update',
+      ]);
+
+      if (category === 'readback_assertion_gap') {
+        return {
+          action: 'readback',
+          tone: 'amber',
+          badge: '入库待确认',
+          confidence: this.failureAnalysis?.confidence || '中',
+          title: '建议补充入库校验',
+          message: '执行过程没有明确失败，但入库证据不足。先确认业务数据是否真的入库，再让 AI 补专用回查规则。',
+        };
+      }
+      if (
+        envCategories.has(category)
+        || /环境|服务不可达|服务抛出|运行时异常|协议|无效请求|traceid|http 50[234]|502|503|504|gateway|timeout|timed out/.test(lower)
+        || (stepOk === 0 && /list.*object.*get|got list|响应结构|初始化|连接/.test(lower))
+      ) {
+        return {
+          action: 'environment',
+          tone: 'amber',
+          badge: '先查环境',
+          confidence: this.failureAnalysis?.confidence || (stepOk === 0 ? '中' : '高'),
+          title: '建议先排查环境',
+          message: '当前失败更像目标环境或接口响应异常，不建议马上修改用例。等环境恢复后重新执行一次。',
+        };
+      }
+      if (varCategories.has(category) || hasBusinessFieldSignal) {
+        return {
+          action: 'vars',
+          tone: 'sky',
+          badge: '先改数据',
+          confidence: this.failureAnalysis?.confidence || '中',
+          title: '建议先检查维护字段',
+          message: '环境链路已走到业务校验，失败更可能和字段值、必填项或可维护变量有关。先看变量面板是否有需要调整的字段。',
+        };
+      }
+      if (aiCategories.has(category)) {
+        return {
+          action: 'ai',
+          tone: 'rose',
+          badge: '修用例',
+          confidence: this.failureAnalysis?.confidence || '中',
+          title: '建议让 AI 修用例',
+          message: '环境已进入回放链路，但失败点更像 pageId、F7、子弹窗、字段解析或断言设计问题。',
+        };
+      }
+      return {
+        action: 'ai',
+        tone: 'rose',
+        badge: '待排查',
+        confidence: this.failureAnalysis?.confidence || '低',
+        title: '建议让 AI 先诊断',
+        message: '当前证据还不能稳定判断是环境还是用例问题。让 AI 读取运行上下文后再决定是否改脚本。',
+      };
+    },
+
+    failureDecisionCardClass() {
+      const tone = this.failureDecision().tone;
+      return {
+        amber: 'bg-amber-950/20 border-amber-700/70 shadow-amber-950/20',
+        rose: 'bg-rose-950/20 border-rose-800/70 shadow-rose-950/20',
+        sky: 'bg-sky-950/20 border-sky-800/70 shadow-sky-950/20',
+      }[tone] || 'bg-slate-900 border-slate-800';
+    },
+
+    failureDecisionBadgeClass() {
+      const tone = this.failureDecision().tone;
+      return {
+        amber: 'bg-amber-900/70 text-amber-100',
+        rose: 'bg-rose-900/70 text-rose-100',
+        sky: 'bg-sky-900/70 text-sky-100',
+      }[tone] || 'bg-slate-800 text-slate-200';
+    },
+
+    confidenceLabel(value) {
+      return {
+        high: '高',
+        medium: '中',
+        low: '低',
+        '高': '高',
+        '中': '中',
+        '低': '低',
+      }[value || ''] || value || '-';
+    },
+
+    failureDecisionEvidence() {
+      const items = [];
+      const category = this.singleRunDiagnosis?.failure_analysis?.category
+        || this.failureAnalysis?.category
+        || '';
+      const decision = this.failureDecision();
+      const failed = this.failedPhase();
+      if (decision.action === 'environment') {
+        items.push('目标环境或接口响应异常优先级高，本次失败暂不建议直接判为用例问题。');
+      } else if (decision.action === 'vars') {
+        items.push('失败信息包含业务字段、必填项或字段值校验信号。');
+      } else if (decision.action === 'readback') {
+        items.push('执行结果缺少明确入库证据，不能只看 PASS/FAIL。');
+      } else {
+        items.push('失败类型更接近回放链路、字段解析、F7/下拉或断言设计问题。');
+      }
+      if (failed?.label) items.push(`失败位置：${failed.label}`);
+      if (category && category !== 'unknown') items.push(`系统分类：${this.failureCategoryLabel(category)}`);
+      if (items.length < 3 && this.failureAnalysis?.root_cause) items.push(this.failureAnalysis.root_cause);
+      return items.slice(0, 3);
     },
 
     singleRunNeedsAgent() {

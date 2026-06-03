@@ -482,7 +482,7 @@ def test_salary_adjust_import_exposes_scalar_combo_fields():
     assert pick_fields["pick_khr_salaryproposal_id"]["value_code"] == "1"
     assert pick_fields["pick_khr_salaryproposal_id"]["source_step_id"] == "fill_khr_zcurrency_etc"
     assert pick_fields["pick_khr_zcurrency_id"]["label"] == "是否使用薪资核算币种"
-    assert pick_fields["pick_khr_scope_id"]["label"] == "适用范围"
+    assert pick_fields["pick_khr_scope_id"]["label"] == "定调薪范围"
 
 
 def test_salary_adjust_submit_import_exposes_adjust_employee_selector():
@@ -511,6 +511,34 @@ def test_salary_adjust_submit_import_exposes_adjust_employee_selector():
     selector_order = step_order[selector["source_step_id"]]
     salary_level_order = step_order[case["pick_fields"]["pick_khr_salarylevel_id"]["source_step_id"]]
     assert selector_order < salary_level_order
+
+
+def test_salary_adjust_submit_import_exposes_upper_person_generic_employee_f7():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780461984_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    preview_fields = {item["id"]: item for item in preview["pick_fields"]}
+    assert preview_fields["pick_khr_scope_id"]["label"] == "定调薪范围"
+    assert preview_fields["selector_khr_upperson_id"]["label"] == "薪酬直接上级"
+    assert preview_fields["selector_khr_upperson_id"]["field_key"] == "khr_upperson"
+    assert preview_fields["selector_khr_upperson_id"]["value_id"] == "00002"
+    assert preview_fields["selector_khr_upperson_id"]["value_code"] == "00002"
+    assert preview_fields["selector_khr_upperson_id"]["recorded_value_id"] == "2381390676873979991"
+    assert preview_fields["selector_khr_upperson_id"]["parent_form_id"] == "khr_hcdm_fapplybill"
+    assert preview_fields["selector_khr_upperson_id"]["parent_field_key"] == "khr_upperson"
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_upper_person")
+    case = yaml.safe_load(yaml_text)
+    selector = case["pick_fields"]["selector_khr_upperson_id"]
+    assert case["pick_fields"]["pick_khr_scope_id"]["label"] == "定调薪范围"
+    assert selector["label"] == "薪酬直接上级"
+    assert selector["form_id"] == "hrpi_employee"
+    assert selector["app_id"] == "hrpi"
+    assert selector["source_step_id"] == "entryRowClick_61"
+    assert selector["write_step_id"] == "click_62"
+    assert selector["resolve_by"] == "value_code"
 
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():

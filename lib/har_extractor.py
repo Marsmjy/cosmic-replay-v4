@@ -313,7 +313,7 @@ _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM = {
 
 _FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
     "khr_hcdm_fapplybill": {
-        "khr_scope": "适用范围",
+        "khr_scope": "定调薪范围",
         "khr_zcurrency": "是否使用薪资核算币种",
         "khr_salaryproposal": "是否薪酬提案",
     },
@@ -612,6 +612,8 @@ _FIELD_LABELS = {
     'khr_hsalarymodel':       '调薪后-薪酬模式',
     'khr_zcurrencyfield':     '调薪后-币种',
     'khr_heffectivedate':     '调薪后-生效日期',
+    'khr_scope':              '定调薪范围',
+    'khr_upperson':           '薪酬直接上级',
 }
 
 
@@ -2731,7 +2733,90 @@ def _extract_treeview_focus(step: dict) -> tuple[str, str]:
     return "", ""
 
 
-def _extract_entry_row_selector(step: dict) -> dict[str, Any] | None:
+def _entry_row_payload(step: dict) -> tuple[str, dict] | tuple[str, None]:
+    post_data = step.get("post_data")
+    if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+        return "", None
+    for control_key, payload in post_data[0].items():
+        if isinstance(payload, dict):
+            return str(control_key), payload
+    return "", None
+
+
+def _entry_row_field_key(step: dict) -> str:
+    _control_key, payload = _entry_row_payload(step)
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("fieldKey") or "").strip()
+
+
+def _entry_row_selected_rows(step: dict) -> list:
+    _control_key, payload = _entry_row_payload(step)
+    if not isinstance(payload, dict):
+        return []
+    rows = payload.get("selDatas")
+    return rows if isinstance(rows, list) else []
+
+
+def _infer_entry_row_selector_contexts(steps: list[dict]) -> dict[str, dict[str, str]]:
+    """Map generic F7 entryRowClick steps back to the parent field that opened them.
+
+    Some HR fields, such as khr_upperson, open a generic F7 form (hrpi_employee)
+    instead of using setItemByIdFromClient. The chosen row is on the child form,
+    while the business field label lives on the parent grid click.
+    """
+    contexts: dict[str, dict[str, str]] = {}
+    pending_parent: dict[str, str] | None = None
+    active_selector: dict[str, str] | None = None
+
+    for step in steps:
+        if step.get("type") != "invoke":
+            continue
+
+        form_id = str(step.get("form_id") or "")
+        ac = str(step.get("ac") or "")
+        key = str(step.get("key") or "")
+
+        if (
+            active_selector
+            and form_id == active_selector.get("selector_form_id")
+            and ac == "entryRowClick"
+            and _entry_row_selected_rows(step)
+        ):
+            contexts[str(step.get("id") or "")] = dict(active_selector)
+            continue
+
+        if (
+            active_selector
+            and form_id == active_selector.get("selector_form_id")
+            and ac == "click"
+            and key.lower() in {"btnok", "btnconfirm", "bar_confirm"}
+        ):
+            active_selector = None
+            continue
+
+        if ac == "loadData" and pending_parent and form_id and form_id != pending_parent.get("parent_form_id"):
+            active_selector = {
+                **pending_parent,
+                "selector_form_id": form_id,
+                "selector_app_id": str(step.get("app_id") or ""),
+            }
+            pending_parent = None
+            continue
+
+        field_key = _entry_row_field_key(step)
+        if ac == "entryRowClick" and field_key and not _entry_row_selected_rows(step):
+            pending_parent = {
+                "parent_form_id": form_id,
+                "parent_app_id": str(step.get("app_id") or ""),
+                "parent_field_key": field_key,
+                "label": _resolve_field_label(field_key, entity_id=form_id),
+            }
+
+    return contexts
+
+
+def _extract_entry_row_selector(step: dict, context: dict[str, str] | None = None) -> dict[str, Any] | None:
     """从 F7 entryRowClick 中提取用户选择的对象。
 
     有些选择器不是 setItemByIdFromClient，而是在列表弹窗里 entryRowClick
@@ -2741,6 +2826,10 @@ def _extract_entry_row_selector(step: dict) -> dict[str, Any] | None:
         return None
     form_id = str(step.get("form_id") or "")
     selector_key, label, field_key = _F7_SELECTOR_FORM_LABELS.get(form_id, ("", "", ""))
+    if not selector_key and context:
+        field_key = str(context.get("parent_field_key") or "")
+        selector_key = field_key
+        label = str(context.get("label") or _resolve_field_label(field_key, entity_id=context.get("parent_form_id")))
     if not selector_key:
         return None
 
@@ -2777,6 +2866,8 @@ def _extract_entry_row_selector(step: dict) -> dict[str, Any] | None:
             "control_key": str(control_key),
             "value_index": 0,
             "code_index": code_index,
+            "parent_form_id": str((context or {}).get("parent_form_id") or ""),
+            "parent_field_key": str((context or {}).get("parent_field_key") or ""),
         }
     return None
 
@@ -5098,9 +5189,11 @@ def build_yaml_case(
             ("resolve_status", "manual"),
         ])
 
+    selector_contexts = _infer_entry_row_selector_contexts(cleaned)
+
     # --- 从 F7 选择器 entryRowClick 中提取用户选择对象（如计薪人员任职经历） ---
     for s in cleaned:
-        selector = _extract_entry_row_selector(s)
+        selector = _extract_entry_row_selector(s, selector_contexts.get(str(s.get("id") or "")))
         if not selector:
             continue
         step_id = _scoped_pick_field_id(
@@ -5129,6 +5222,8 @@ def build_yaml_case(
             ("selector_value_index", selector["value_index"]),
             ("selector_code_index", selector["code_index"]),
             ("selector_source", "entryRowClick"),
+            ("parent_form_id", selector.get("parent_form_id", "")),
+            ("parent_field_key", selector.get("parent_field_key", "")),
         ])
 
     # --- 从 update_fields 步骤中提取环境相关字段和日期字段 ---
@@ -5693,6 +5788,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     pick_fields: list[dict] = []
     _seen_pick_map: OrderedDict[str, dict] = OrderedDict()
+    selector_contexts = _infer_entry_row_selector_contexts(preview_steps)
 
     for s in preview_steps:
         if s.get("type") == "pick_basedata":
@@ -5823,7 +5919,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
 
         elif s.get("type") == "invoke" and s.get("ac") == "entryRowClick":
-            selector = _extract_entry_row_selector(s)
+            selector = _extract_entry_row_selector(s, selector_contexts.get(str(s.get("id") or "")))
             if not selector:
                 continue
             step_form_id = s.get("form_id") or ""
@@ -5854,6 +5950,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "selector_value_index": selector["value_index"],
                 "selector_code_index": selector["code_index"],
                 "selector_source": "entryRowClick",
+                "parent_form_id": selector.get("parent_form_id", ""),
+                "parent_field_key": selector.get("parent_field_key", ""),
             }
             pick_fields.append(item)
             _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
