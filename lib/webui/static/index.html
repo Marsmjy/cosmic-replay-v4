@@ -137,6 +137,73 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+
+    .case-actions {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: nowrap;
+      min-width: 250px;
+    }
+    .case-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 34px;
+      min-width: 48px;
+      padding: 0 11px;
+      border-radius: 9px;
+      border: 1px solid rgba(148,163,184,0.22);
+      background: rgba(15,23,42,0.44);
+      color: #CBD5E1;
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+    .case-action-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(148,163,184,0.42);
+      background: rgba(30,41,59,0.76);
+      color: #F8FAFC;
+    }
+    .case-action-edit {
+      color: #38BDF8;
+      border-color: rgba(56,189,248,0.28);
+      background: rgba(8,47,73,0.22);
+    }
+    .case-action-run {
+      min-width: 66px;
+      color: #FFFFFF;
+      border-color: rgba(14,165,233,0.52);
+      background: linear-gradient(135deg, #0284C7, #2563EB);
+      box-shadow: 0 8px 18px rgba(37,99,235,0.22);
+    }
+    .case-action-run:hover {
+      border-color: rgba(125,211,252,0.68);
+      box-shadow: 0 10px 24px rgba(37,99,235,0.32);
+    }
+    .case-action-copy {
+      color: #AAB4C4;
+    }
+    .case-action-danger {
+      color: #FDA4AF;
+      border-color: rgba(244,63,94,0.34);
+      background: rgba(76,5,25,0.28);
+    }
+    .case-action-danger:hover {
+      color: #FFE4E6;
+      border-color: rgba(251,113,133,0.62);
+      background: rgba(127,29,29,0.46);
+    }
+    .case-action-running {
+      min-width: 92px;
+      color: #FFFFFF;
+      border-color: rgba(14,165,233,0.5);
+      background: rgba(2,132,199,0.86);
+    }
     
     /* 全局 disabled 按钮增强 */
     button:disabled {
@@ -473,7 +540,7 @@
     </div>
 
     <div class="table-shell scrollbar-thin">
-      <table class="w-full min-w-[980px] text-sm">
+      <table class="w-full min-w-[1080px] text-sm">
         <thead class="bg-slate-800/60 text-xs text-slate-400 uppercase">
           <tr>
             <th class="text-left px-3 py-2 w-10">
@@ -485,7 +552,7 @@
             <th class="text-left px-4 py-2">主表单</th>
             <th class="text-left px-4 py-2 w-20">步骤</th>
             <th class="text-left px-4 py-2 w-36">创建时间</th>
-            <th class="text-right px-4 py-2 w-48">操作</th>
+            <th class="text-right px-4 py-2 w-72">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -540,23 +607,23 @@
               <td class="px-4 py-3.5 text-slate-400" x-text="c.step_count || 0"></td>
               <td class="px-4 py-3.5 text-xs text-slate-500" x-text="fmtTime(c.created_at)"></td>
 
-              <td class="px-4 py-3.5 text-right space-x-1">
+              <td class="px-4 py-3.5 text-right">
                 <template x-if="lastResults[c.name]==='running'">
                   <button @click="openCase(c.name)"
-                          class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded text-xs animate-pulse">
+                          class="case-action-btn case-action-running animate-pulse">
                     ● 查看执行
                   </button>
                 </template>
                 <template x-if="lastResults[c.name]!=='running'">
-                  <div class="inline-flex gap-1">
+                  <div class="case-actions">
                     <button @click="openCase(c.name)"
-                            class="btn btn-secondary btn-sm text-sky-400">编辑</button>
+                            class="case-action-btn case-action-edit">编辑</button>
                     <button @click="runCase(c.name)"
-                            class="btn btn-primary btn-sm">▶ 运行</button>
+                            class="case-action-btn case-action-run">▶ 运行</button>
                     <button @click="copyCase(c.name)"
-                            class="btn btn-secondary btn-sm px-2" title="复制用例">复制</button>
+                            class="case-action-btn case-action-copy" title="复制用例">复制</button>
                     <button @click="deleteCase(c.name)"
-                            class="btn btn-danger btn-sm px-2">✖</button>
+                            class="case-action-btn case-action-danger">删除</button>
                   </div>
                 </template>
               </td>
@@ -4560,8 +4627,8 @@ function app() {
         }
         const data = await resp.json();
         await this.loadCases();
-        const verb = data.overwritten ? '已覆盖' : '已生成';
-        this.showToast('✓ ' + verb + ' ' + data.name);
+        const renameNote = data.renamed_from ? `同名已自动改名为 ${data.name}` : `已生成 ${data.name}`;
+        this.showToast('✓ ' + renameNote);
         await this.openCase(data.name || this.harCaseName);
       } catch (e) {
         this.showToast('生成失败: ' + e.message);

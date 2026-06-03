@@ -336,6 +336,17 @@ def case_path_from_name(name: str) -> Path:
     return cases_dir() / f"{safe}.yaml"
 
 
+def unique_case_name(base_name: str | None) -> str:
+    """返回不会覆盖现有 YAML 的用例名称。"""
+    base = str(base_name or "").strip() or "untitled"
+    name = base
+    suffix = 2
+    while case_path_from_name(name).exists():
+        name = f"{base}-{suffix}"
+        suffix += 1
+    return name
+
+
 # ============================================================
 # Endpoint: 基础信息
 # ============================================================
@@ -645,12 +656,7 @@ def api_copy_case(name: str, body: dict = Body(...)):
         raise HTTPException(404, f"用例 {name} 不存在")
 
     requested_name = str(body.get("new_name") or "").strip()
-    base_name = requested_name or f"{name}-副本"
-    new_name = base_name
-    suffix = 2
-    while case_path_from_name(new_name).exists():
-        new_name = f"{base_name}-{suffix}"
-        suffix += 1
+    new_name = unique_case_name(requested_name or f"{name}-副本")
 
     new_path = case_path_from_name(new_name)
     new_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1438,7 +1444,8 @@ def api_resolve_env_fields(body: dict = Body(...)):
 def api_har_extract(body: dict = Body(...)):
     """由上一个 preview 的结果生成 YAML 写入 cases/"""
     har_file = body.get("har_file")
-    case_name = body.get("case_name") or "untitled"
+    requested_case_name = body.get("case_name") or "untitled"
+    case_name = unique_case_name(requested_case_name)
     var_overrides = body.get("var_overrides")  # ⭐ 用户变量配置
     pick_field_overrides = body.get("pick_field_overrides")  # ⭐ 环境字段配置
     if not har_file:
@@ -1448,7 +1455,8 @@ def api_har_extract(body: dict = Body(...)):
         raise HTTPException(404, f"HAR 文件不存在: {har_file}")
 
     out_path = case_path_from_name(case_name)
-    overwritten = out_path.exists()
+    renamed_from = str(requested_case_name).strip() if case_name != str(requested_case_name).strip() else ""
+    overwritten = False
 
     # ⭐ 构建 MetadataResolver（从缓存 session 获取）
     meta_resolver = None
@@ -1514,9 +1522,10 @@ def api_har_extract(body: dict = Body(...)):
             )
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(yaml_text, encoding="utf-8")
-        action = "覆盖" if overwritten else "生成"
+        action = "生成"
         return {"ok": True, "name": case_name, "file": str(out_path.relative_to(SKILL_ROOT)),
                 "overwritten": overwritten, "action": action,
+                "renamed_from": renamed_from,
                 "field_type_catalog_status": field_type_catalog_status}
     except Exception as e:
         raise HTTPException(500, f"抽取失败: {e}")

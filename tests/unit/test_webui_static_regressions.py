@@ -127,6 +127,17 @@ def test_case_list_supports_copy_case_action():
     assert "复制为新用例名称" in html
 
 
+def test_case_list_actions_use_compact_buttons_and_text_delete():
+    html = _index_html()
+
+    assert "case-actions" in html
+    assert "case-action-btn" in html
+    assert "case-action-run" in html
+    assert "case-action-danger" in html
+    assert 'class="case-action-btn case-action-danger">删除</button>' in html
+    assert 'class="btn btn-danger btn-sm px-2">✖</button>' not in html
+
+
 def test_har_import_supports_multi_file_batch_import():
     html = _index_html()
 
@@ -136,6 +147,14 @@ def test_har_import_supports_multi_file_batch_import():
     assert "harBatchSummary()" in html
     assert "批量导入结果" in html
     assert "this.uniqueCaseName(file.name.replace(/\\.har$/i, ''), usedNames)" in html
+
+
+def test_har_extract_reports_backend_auto_rename_instead_of_overwrite():
+    html = _index_html()
+
+    assert "data.renamed_from" in html
+    assert "同名已自动改名为" in html
+    assert "const verb = data.overwritten ? '已覆盖' : '已生成';" not in html
 
 
 def test_har_preview_hides_manual_env_resolve_buttons_from_primary_flow():

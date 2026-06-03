@@ -308,6 +308,41 @@ class TestBatchEndpoints:
                 if path.exists():
                     path.unlink()
 
+    def test_har_extract_creates_unique_case_name_instead_of_overwriting(self, client):
+        """重新导入同名 HAR 时自动添加后缀，不能覆盖已有用例"""
+        from lib.webui import server
+
+        case_name = "_pytest_har_duplicate"
+        existing_path = server.case_path_from_name(case_name)
+        generated_path = server.case_path_from_name(f"{case_name}-2")
+        har_path = server.har_upload_dir() / "_pytest_har_duplicate.har"
+        original_yaml = "name: _pytest_har_duplicate\ncreated_at: 2026-01-01T00:00:00\nsteps: []\n"
+        for path in (existing_path, generated_path, har_path):
+            if path.exists():
+                path.unlink()
+        existing_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_path.write_text(original_yaml, encoding="utf-8")
+        har_path.write_text('{"log":{"entries":[]}}', encoding="utf-8")
+        try:
+            resp = client.post("/api/har/extract", json={
+                "har_file": har_path.name,
+                "case_name": case_name,
+            })
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["ok"] is True
+            assert data["name"] == f"{case_name}-2"
+            assert data["renamed_from"] == case_name
+            assert data["overwritten"] is False
+            assert existing_path.read_text(encoding="utf-8") == original_yaml
+            assert generated_path.exists()
+            generated_text = generated_path.read_text(encoding="utf-8")
+            assert f"name: {case_name}-2" in generated_text
+        finally:
+            for path in (existing_path, generated_path, har_path):
+                if path.exists():
+                    path.unlink()
+
 
 class TestCORSHeaders:
     """CORS头测试"""
