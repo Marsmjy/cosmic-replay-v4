@@ -195,10 +195,11 @@ def test_project_core_goals_are_documented_in_skills():
 def test_ai_repair_ui_explains_handoff_without_hidden_steps():
     html = _index_html()
 
-    assert "下一步：交给 AI 排查" in html
-    assert "复制后发给 AI，系统会带上：" in html
-    assert "指令包含 IR 摘要、pageId 链路和证据包地址。" in html
-    assert "复制AI指令" in html
+    assert "建议先排查环境" in html
+    assert "建议让 AI 修用例" in html
+    assert "打开变量面板" in html
+    assert "技术详情" in html
+    assert "复制 AI 修复指令" in html
     assert "让AI修复" not in html
 
 

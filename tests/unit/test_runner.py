@@ -28,6 +28,7 @@ from lib.runner import (
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
     _build_env_fields, _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
+    _build_selector_selected_row,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
@@ -87,6 +88,85 @@ def test_env_fields_display_business_code_and_keep_har_order():
     ]
     assert fields[0]["display_value"] == "00186-0001"
     assert fields[1]["display_value"] == "PAY-XCSPDBKD-00001"
+
+
+class SelectorParentLookupReplay:
+    def invoke(self, form_id, app_id, ac, actions, page_id=None):
+        assert (form_id, app_id, ac) == ("khr_hcdm_fapplybill", "khr", "getLookUpList")
+        assert actions[0]["key"] == "khr_upperson"
+        assert actions[0]["args"][0][1] == "53478"
+        return [{
+            "rows": [
+                ["2381416858701015056", "53478", "赵月凛"],
+            ],
+            "dataindex": {"id": 0, "number": 1, "name": 2},
+        }]
+
+
+def test_selector_auto_resolve_uses_parent_field_lookup_for_entry_grid_f7():
+    step = {
+        "id": "entryRowClick_61",
+        "type": "invoke",
+        "form_id": "hrpi_employee",
+        "app_id": "hrpi",
+        "post_data": [{
+            "billlistap": {
+                "fieldKey": "name",
+                "row": 1,
+                "selRows": [1],
+                "selDatas": [["2381390676873979991", "00002", "9289684"]],
+            }
+        }, []],
+        "_selector_env_field_id": "selector_khr_upperson_id",
+        "_selector_env_field_meta": {
+            "field_key": "khr_upperson",
+            "label": "薪酬直接上级",
+            "value_id": "53478",
+            "value_code": "53478",
+            "value_name": "53478",
+            "recorded_value_id": "2381390676873979991",
+            "resolve_by": "value_code",
+            "auto_resolve": True,
+            "user_overridden": True,
+            "selector_control_key": "billlistap",
+            "selector_value_index": 0,
+            "selector_code_index": 1,
+            "selector_source": "entryRowClick",
+            "parent_form_id": "khr_hcdm_fapplybill",
+            "parent_field_key": "khr_upperson",
+        },
+    }
+    ctx = {
+        "env_resolution": {},
+        "case": {"steps": [{"form_id": "khr_hcdm_fapplybill", "app_id": "khr"}]},
+    }
+
+    _auto_resolve_selector_row_step(step, SelectorParentLookupReplay(), ctx)
+
+    payload = step["post_data"][0]["billlistap"]
+    assert payload["selDatas"] == [["2381416858701015056", "53478", "赵月凛"]]
+    resolved = ctx["env_resolution"]["selector_khr_upperson_id"]
+    assert resolved["status"] == "resolved"
+    assert resolved["field_key"] == "khr_upperson"
+    assert resolved["control_key"] == "khr_upperson"
+    assert resolved["value_id"] == "2381416858701015056"
+    assert resolved["value_code"] == "53478"
+
+
+def test_selector_selected_row_rebuilds_display_cell_from_matched_grid_row():
+    compact = _build_selector_selected_row(
+        ["2381390676873979991", "00002", "9289684"],
+        [12, "赵月凛", "53478", "2381416858701015056"],
+        {"rk": 0, "name": 1, "number": 2, "hrpi_employee_id": 3},
+        {
+            "selector_value_index": 0,
+            "selector_code_index": 1,
+        },
+        "53478",
+        form_id="hrpi_employee",
+    )
+
+    assert compact == ["2381416858701015056", "53478", "赵月凛"]
 
 
 class TestYAMLParsing:

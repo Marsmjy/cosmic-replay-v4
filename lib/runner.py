@@ -1563,6 +1563,10 @@ def _build_selector_selected_row(
             if idx == code_idx or (old_code and cell_text == old_code) or _looks_like_business_code(cell_text):
                 compact[idx] = query_value
 
+    display_value = _selector_display_from_grid_row(grid_row, dataindex)
+    if display_value and len(compact) <= 3:
+        _apply_selector_display_value(compact, display_value, value_idx=value_idx, code_idx=code_idx)
+
     org_id = _grid_cell(grid_row, dataindex, "org_id")
     if org_id not in (None, ""):
         for idx, cell in enumerate(list(compact)):
@@ -1578,6 +1582,28 @@ def _build_selector_selected_row(
                 break
 
     return compact
+
+
+def _selector_display_from_grid_row(grid_row: list[Any], dataindex: dict[str, int]) -> str:
+    for key in ("name", "employee_name", "displayname", "text"):
+        value = _grid_cell(grid_row, dataindex, key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _apply_selector_display_value(row: list[Any], value: str, *, value_idx: int, code_idx: int) -> None:
+    if not value:
+        return
+    protected = {idx for idx in (value_idx, code_idx) if idx >= 0}
+    preferred = 2 if len(row) > 2 and 2 not in protected else -1
+    candidates = [preferred] if preferred >= 0 else []
+    candidates.extend(idx for idx in range(len(row)) if idx not in protected and idx not in candidates)
+    for idx in candidates:
+        cell = row[idx]
+        if isinstance(cell, (str, int, float)) or cell in (None, ""):
+            row[idx] = value
+            return
 
 
 def _looks_like_business_code(value: Any) -> bool:
@@ -1599,7 +1625,14 @@ def _selector_pk_from_grid_row(grid_row: list[Any], dataindex: dict[str, int], f
     return grid_row[0] if grid_row else ""
 
 
-def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str = "") -> None:
+def _apply_selector_row_value(
+    step: dict,
+    pf_meta: dict,
+    resolved_value_id: str = "",
+    *,
+    resolved_value_name: str = "",
+    resolved_value_code: str = "",
+) -> None:
     rows = _selector_rows(step, pf_meta)
     if not rows:
         return
@@ -1616,14 +1649,34 @@ def _apply_selector_row_value(step: dict, pf_meta: dict, resolved_value_id: str 
         and (pf_meta.get("user_overridden") or pf_meta.get("manual_override"))
     )
     value_id = str(resolved_value_id or (user_value if user_overrode_code else recorded) or user_value or "").strip()
-    value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
-    value_name = str(pf_meta.get("value_name") or "").strip()
+    value_code = (
+        str(resolved_value_code or "").strip()
+        or (user_value if user_value and not _looks_like_internal_id(user_value) else "")
+        or str(pf_meta.get("value_code") or "").strip()
+    )
+    value_name = str(resolved_value_name or pf_meta.get("value_name") or "").strip()
     if value_id and 0 <= value_idx < len(row):
         row[value_idx] = value_id
     if value_code and 0 <= code_idx < len(row):
         row[code_idx] = value_code
+    if value_name and len(row) <= 3:
+        _apply_selector_display_value(row, value_name, value_idx=value_idx, code_idx=code_idx)
     if value_name:
         step["_selector_display_value"] = value_name
+
+
+def _selector_lookup_scope(step: dict, pf_meta: dict, ctx: dict) -> tuple[str, str, str]:
+    field_key = str(pf_meta.get("field_key") or "").strip()
+    form_id = str(pf_meta.get("form_id") or step.get("form_id") or "").strip()
+    app_id = str(pf_meta.get("app_id") or step.get("app_id") or "").strip()
+    parent_form_id = str(pf_meta.get("parent_form_id") or "").strip()
+    parent_field_key = str(pf_meta.get("parent_field_key") or "").strip()
+    if parent_form_id and parent_field_key:
+        parent_app_id = str(pf_meta.get("parent_app_id") or "").strip()
+        if not parent_app_id:
+            parent_app_id = _guess_app_id(parent_form_id, ctx.get("case") or {})
+        return parent_form_id, parent_app_id, parent_field_key
+    return form_id, app_id, field_key
 
 
 def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
@@ -1655,9 +1708,8 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
         }
         ctx.setdefault("env_resolution", {})[pf_id] = result_dict
         return
-    field_key = str(pf_meta.get("field_key") or "").strip()
-    form_id = str(pf_meta.get("form_id") or step.get("form_id") or "").strip()
-    app_id = str(pf_meta.get("app_id") or step.get("app_id") or "").strip()
+    selector_field_key = str(pf_meta.get("field_key") or "").strip()
+    form_id, app_id, field_key = _selector_lookup_scope(step, pf_meta, ctx)
     user_value = _selector_query_value(pf_meta)
     value_code = user_value if user_value and not _looks_like_internal_id(user_value) else str(pf_meta.get("value_code") or "").strip()
     value_name = str(pf_meta.get("value_name") or "").strip()
@@ -1669,7 +1721,13 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
     env_resolution = ctx.setdefault("env_resolution", {})
     cached = env_resolution.get(pf_id)
     if cached and cached.get("status") == "resolved" and cached.get("resolved_value_id"):
-        _apply_selector_row_value(step, pf_meta, str(cached["resolved_value_id"]))
+        _apply_selector_row_value(
+            step,
+            pf_meta,
+            str(cached["resolved_value_id"]),
+            resolved_value_name=str(cached.get("resolved_value_name") or cached.get("value_name") or ""),
+            resolved_value_code=value_code,
+        )
         return
 
     resolver: FieldResolver = ctx.setdefault(
@@ -1685,7 +1743,13 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
     )
     result_dict = result.to_dict() if isinstance(result, ResolveResult) else dict(result)
     if result.status == "resolved" and result.resolved_value_id:
-        _apply_selector_row_value(step, pf_meta, result.resolved_value_id)
+        _apply_selector_row_value(
+            step,
+            pf_meta,
+            result.resolved_value_id,
+            resolved_value_name=result.resolved_value_name,
+            resolved_value_code=value_code,
+        )
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
         _apply_selector_row_value(step, pf_meta)
@@ -1697,10 +1761,11 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
             else pf_meta.get("recorded_value_id") or pf_meta.get("value_id") or ""
         )
     result_dict["step_id"] = pf_id
-    result_dict["label"] = pf_meta.get("label", field_key)
+    result_dict["field_key"] = selector_field_key or field_key
+    result_dict["label"] = pf_meta.get("label", selector_field_key or field_key)
     result_dict["env_sensitive"] = pf_meta.get("env_sensitive", "medium")
     result_dict["value_id"] = result_dict["effective_value_id"]
-    result_dict["value_name"] = value_name
+    result_dict["value_name"] = result.resolved_value_name or value_name
     result_dict["value_code"] = value_code
     result_dict["resolve_by"] = resolve_by
     result_dict["query"] = query_value
