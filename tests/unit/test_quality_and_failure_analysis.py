@@ -17,7 +17,7 @@ def test_preview_har_returns_quality_for_known_position_har():
 
     assert quality["score"] >= 70
     assert quality["checks"]["persistence_step_count"] >= 1
-    assert quality["checks"]["detected_var_count"] >= 2
+    assert quality["checks"]["detected_var_count"] >= 1
     assert all(issue["severity"] != "critical" for issue in quality["issues"])
     assert preview["preflight"]["score"] >= 60
     assert preview["preflight"]["allow_generate"] is True

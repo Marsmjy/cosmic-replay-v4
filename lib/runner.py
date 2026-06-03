@@ -146,6 +146,39 @@ def _build_env_resolution_plan(pick_fields: dict) -> list[dict[str, Any]]:
     ]
 
 
+def _pick_field_display_value(meta: dict | None, raw: dict | None = None) -> str:
+    """User-facing value for panels: business code first, internal id last."""
+    meta = meta or {}
+    raw = raw or {}
+    for key in ("value_code", "value_number", "value_name", "value_id"):
+        value = meta.get(key)
+        if value not in (None, ""):
+            return str(value)
+    for key in ("value_code", "value_number", "value_name", "value_id"):
+        value = raw.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _pick_field_case_order(case: dict, pf_id: str, pf_meta: dict | None = None) -> int:
+    """Sort environment fields by the original HAR/case step order."""
+    steps = case.get("steps") or []
+    step_order = {
+        str(step.get("id") or ""): idx
+        for idx, step in enumerate(steps)
+        if isinstance(step, dict) and step.get("id")
+    }
+    pf_meta = pf_meta or {}
+    for key in ("source_step_id", "write_step_id"):
+        step_id = str(pf_meta.get(key) or "")
+        if step_id in step_order:
+            return step_order[step_id]
+    if pf_id in step_order:
+        return step_order[pf_id]
+    return len(step_order) + 1
+
+
 # =============================================================
 # YAML 解析（最小实现，不依赖 pyyaml）
 # =============================================================
@@ -1761,6 +1794,11 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
             "value_id": str(step.get("value_id", original_value_id)),
             "value_name": value_name,
             "value_code": value_code,
+            "display_value": _pick_field_display_value(pf_meta, {
+                "value_id": step.get("value_id", original_value_id),
+                "value_name": value_name,
+                "value_code": value_code,
+            }),
             "label": pf_meta.get("label", field_key),
             "env_sensitive": pf_meta.get("env_sensitive", "medium"),
             "status": "pending",
@@ -1968,6 +2006,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "value_id": str(pf_meta.get("value_id", "") or pf_meta.get("value_name", "")),
             "value_name": pf_meta.get("value_name", ""),
             "value_code": pf_meta.get("value_code", ""),
+            "value_number": pf_meta.get("value_number", ""),
+            "display_value": _pick_field_display_value(pf_meta),
             "label": pf_meta.get("label", pf_id),
             "form_id": pf_meta.get("form_id", ""),
             "form_label": pf_meta.get("form_label", ""),
@@ -1983,7 +2023,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "resolver_kind": plan_item.get("resolver_kind", ""),
             "resolver_interface": plan_item.get("interface", ""),
             "resolver_query": plan_item.get("query", ""),
+            "_order": _pick_field_case_order(case, str(pf_id), pf_meta),
         })
+    _pick_fields_preview.sort(key=lambda item: (item.get("_order", 999999), str(item.get("step_id") or "")))
 
     emit("case_start", {
         "name": case.get("name", "?"), 
@@ -2654,12 +2696,13 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
         env_step_id = raw.get("_env_field_id") or step_id
         meta = pick_fields.get(env_step_id) or pick_fields.get(step_id) or {}
         resolved = env_resolution.get(env_step_id) or env_resolution.get(step_id) or {}
-        env_fields.append({
+        item = {
             "step_id": env_step_id,
             "field_key": meta.get("field_key", raw.get("field_key", "")),
             "value_id": str(raw.get("value_id", "") or raw.get("value_code", "")),
             "value_name": raw.get("value_name", ""),
             "value_code": raw.get("value_code", "") or meta.get("value_code", ""),
+            "value_number": raw.get("value_number", "") or meta.get("value_number", ""),
             "label": meta.get("label", raw.get("description", raw.get("field_key", ""))),
             "form_id": meta.get("form_id", raw.get("form_id", "")),
             "form_label": meta.get("form_label", ""),
@@ -2680,7 +2723,11 @@ def _build_env_fields(case: dict, result, env_resolution: dict | None = None) ->
             "confidence": resolved.get("confidence", ""),
             "message": resolved.get("message", ""),
             "candidates": resolved.get("candidates", []),
-        })
+            "_order": _pick_field_case_order(case, str(env_step_id), meta),
+        }
+        item["display_value"] = _pick_field_display_value(meta, item)
+        env_fields.append(item)
+    env_fields.sort(key=lambda item: (item.get("_order", 999999), str(item.get("step_id") or "")))
     return env_fields
 
 

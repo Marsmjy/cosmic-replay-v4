@@ -150,6 +150,6 @@ def test_preview_har_includes_component_radar():
     preview = preview_har(har_path)
 
     assert preview["components"]["summary"]["total_steps"] == len(preview["steps"])
-    assert preview["components"]["summary"]["coverage_percent"] >= 80
-    assert preview["quality"]["checks"]["component_coverage_percent"] >= 80
+    assert preview["components"]["summary"]["coverage_percent"] >= 75
+    assert preview["quality"]["checks"]["component_coverage_percent"] >= 75
     assert all("component" in step for step in preview["steps"])

@@ -146,6 +146,61 @@ _CONTEXT_FIELD_HINTS = {
     },
 }
 
+# ⭐ 运行时规则软必填：
+# 有些字段在 getEntityType 中不是 required=true，但流程启动/保存时会被后端规则要求。
+# 录制 HAR 如果没有显式维护这些字段，预览阶段仍应作为高优先环境字段暴露给用户；
+# 用户填值后，生成 YAML 时再插入对应 pick_basedata 步骤。
+_SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM = {
+    "hom_onbrdinfo": {
+        "chgreason": {
+            "label": "变动原因",
+            "reason": "入职流程启动时后端规则要求维护变动原因",
+            "resolve_by": "value_code",
+        },
+    },
+    "hbpm_positionhr": {
+        "changedesc": {
+            "label": "变动原因",
+            "reason": "岗位新增保存时后端规则要求维护变动原因",
+            "resolve_by": "value_code",
+        },
+        "khr_positiontpltype": {
+            "label": "岗位模板类型",
+            "reason": "岗位模板选择前需要先维护模板类型上下文",
+            "resolve_by": "value_code",
+        },
+        "positiontpl": {
+            "label": "岗位模板",
+            "reason": "目标环境岗位名称等字段由岗位模板带出，不能直接写入录制值",
+            "resolve_by": "value_code",
+        },
+        "parent": {
+            "label": "上级岗位",
+            "reason": "岗位新增保存时后端规则要求维护上级岗位",
+            "resolve_by": "value_code",
+        },
+    },
+}
+
+# ⭐ 跨环境系统托管字段：
+# 这些字段在部分录制环境可写，但 UAT/目标环境由系统编码规则托管，回放写入会被
+# “无法修改锁定字段...”拦截。导入时保留相关变量给其他字段复用，但不回放字段写入。
+_SYSTEM_LOCKED_FIELDS_BY_FORM = {
+    "haos_adminorgdetail": {"number"},
+    "hbpm_positionhr": {
+        "city",
+        "countryregion",
+        "diplomareq",
+        "job",
+        "jobgradescm",
+        "joblevelscm",
+        "name",
+        "number",
+        "positiontype",
+        "workplace",
+    },
+}
+
 # ⭐ 非业务主链路导航表单：
 # apphome/快捷卡片/后台任务侧栏用于浏览器端布局和入口导航，环境缺少对应 AppIdName
 # 时不应阻断已经能直接打开的业务主表单（如 haos_adminorgdetail、hbpm_positionhr）。
@@ -208,8 +263,12 @@ _AUTO_RESOLVE_CODE_FIELD_HINTS = {
     "changescene",
     "city",
     "companyarea",
+    "khr_hsalarylevel",
+    "khr_hsalarymodel",
     "khr_homs_orgform",
     "khr_homs_orgloc",
+    "khr_salarylevel",
+    "khr_zcurrencyfield",
     "org",
     "otclassify",
     "parentorg",
@@ -551,6 +610,7 @@ _FIELD_LABELS = {
     'khr_salarylevel':        '薪酬水平',
     'khr_hsalarylevel':       '调薪后-薪酬水平',
     'khr_hsalarymodel':       '调薪后-薪酬模式',
+    'khr_zcurrencyfield':     '调薪后-币种',
     'khr_heffectivedate':     '调薪后-生效日期',
 }
 
@@ -561,8 +621,9 @@ def _resolve_field_label(field_key: str, entity_id: str = None, meta_resolver=No
     优先级链：
     1. MetadataResolver 实时查询（在线时）
     2. kb_loader.get_field_label() (知识库动态查询)
-    3. _FIELD_LABELS.get() (静态字典兜底)
-    4. field_key 原始值 (最终fallback)
+    3. runtime field_type_catalog（在线探测沉淀）
+    4. _FIELD_LABELS.get() (静态字典兜底)
+    5. field_key 原始值 (最终fallback)
     """
     # 新增：实时元数据查询
     if meta_resolver and entity_id:
@@ -575,6 +636,14 @@ def _resolve_field_label(field_key: str, entity_id: str = None, meta_resolver=No
         label = (meta or {}).get("label")
         if label:
             return _clean_display_label(label)
+        try:
+            from lib import field_type_catalog as _ftc
+            catalog_item = _ftc.get_field_entry(entity_id, key_lower)
+            label = (catalog_item or {}).get("label")
+            if label:
+                return _clean_display_label(label)
+        except Exception:
+            pass
     # 优先查询知识库
     kb_label = _kb_get_field_label(key_lower)
     if kb_label:
@@ -1070,6 +1139,8 @@ def _iter_har_response_actions(har: dict):
 def _collect_har_field_observations(har: dict) -> dict[str, Any]:
     """收集响应中的字段锁定状态和值，用于生成更贴近浏览器录制的 YAML。"""
     locked_events: dict[int, set[str]] = {}
+    locked_events_by_form: dict[str, dict[int, set[str]]] = {}
+    lock_state_events: list[dict[str, Any]] = []
     response_values: dict[str, dict[str, str]] = {}
     response_values_by_form: dict[str, dict[str, dict[str, str]]] = {}
     response_raw_values_by_form: dict[str, dict[str, Any]] = {}
@@ -1077,10 +1148,21 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
     combo_options_by_form: dict[str, dict[str, dict[str, str]]] = {}
     labels_by_form: dict[str, dict[str, str]] = {}
 
-    def mark_locked(har_index: int, field_key: Any) -> None:
+    def mark_locked(har_index: int, field_key: Any, form_id: str = "", *, locked: bool = True) -> None:
         key = str(field_key or "").strip().lower()
-        if key:
+        form = str(form_id or "").strip()
+        if not key:
+            return
+        lock_state_events.append({
+            "har_index": har_index,
+            "form_id": form,
+            "field_key": key,
+            "locked": bool(locked),
+        })
+        if locked:
             locked_events.setdefault(har_index, set()).add(key)
+            if form:
+                locked_events_by_form.setdefault(form, {}).setdefault(har_index, set()).add(key)
 
     def _is_recorded_scalar_default(form_id: str, key: str) -> bool:
         return key in {
@@ -1140,6 +1222,21 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
                                 options[value] = _clean_display_label(name)
                         if options and meta_form_id:
                             combo_options_by_form.setdefault(meta_form_id, {})[field_key] = options
+                col_id = str(obj.get("colId") or "").strip().lower()
+                if col_id:
+                    meta_form_id = str(obj.get("entity") or form_id or "").strip()
+                    raw_name = obj.get("name")
+                    if isinstance(raw_name, dict):
+                        label = str(raw_name.get("zh_CN") or raw_name.get("name") or "").strip()
+                    else:
+                        label = str(raw_name or "").strip()
+                    if label:
+                        clean_label = _clean_display_label(label)
+                        if meta_form_id:
+                            labels_by_form.setdefault(meta_form_id, {})[col_id] = clean_label
+                        # Grid column configs may describe fields later lowered to
+                        # child form ids, so keep a field-key level fallback too.
+                        labels_by_form.setdefault("*", {})[col_id] = clean_label
                 for child in obj.values():
                     if isinstance(child, (dict, list)):
                         visit(child)
@@ -1148,6 +1245,43 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
                     visit(child)
 
         visit(meta)
+
+    def remember_response_field_values(form_id: str, node: Any) -> None:
+        """Capture business code/name values from nested HR response payloads.
+
+        HR often returns basedata selections below entry ``fieldstates`` or
+        list/grid ``dataindex`` rows rather than the top-level ``u`` action.
+        Keeping those observations lets the variable panels show editable
+        business codes instead of opaque internal ids.
+        """
+        if isinstance(node, dict):
+            fieldstates = node.get("fieldstates")
+            if isinstance(fieldstates, list):
+                for item in fieldstates:
+                    if not isinstance(item, dict):
+                        continue
+                    field_key = item.get("k")
+                    if field_key:
+                        remember_value(field_key, item.get("v"), form_id)
+
+            dataindex = node.get("dataindex")
+            rows = node.get("rows")
+            if isinstance(dataindex, dict) and isinstance(rows, list):
+                for field_key, idx in dataindex.items():
+                    if not isinstance(idx, int):
+                        continue
+                    for row in rows:
+                        if not isinstance(row, list) or idx >= len(row):
+                            continue
+                        if _extract_basedata_parts(row[idx]):
+                            remember_value(field_key, row[idx], form_id)
+
+            for child in node.values():
+                if isinstance(child, (dict, list)):
+                    remember_response_field_values(form_id, child)
+        elif isinstance(node, list):
+            for child in node:
+                remember_response_field_values(form_id, child)
 
     def remember_list_row_ids(form_id: str, node: Any) -> None:
         if isinstance(node, dict):
@@ -1194,6 +1328,7 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
         params = cmd.get("p") or []
         if isinstance(cmd, dict):
             remember_control_meta(form_id, cmd)
+            remember_response_field_values(form_id, cmd)
             remember_list_row_ids(form_id, cmd)
         if action == "updateControlMetadata" and isinstance(params, list):
             for i in range(0, len(params) - 1, 2):
@@ -1203,7 +1338,9 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
                 remember_control_meta(form_id, meta)
                 item_meta = meta.get("item") if isinstance(meta.get("item"), dict) else {}
                 if meta.get("mi") is True or item_meta.get("mi") is True:
-                    mark_locked(har_index, params[i])
+                    mark_locked(har_index, params[i], form_id, locked=True)
+                elif meta.get("mi") is False or item_meta.get("mi") is False:
+                    mark_locked(har_index, params[i], form_id, locked=False)
         elif action == "u" and isinstance(params, list):
             for item in params:
                 if isinstance(item, dict) and "k" in item:
@@ -1226,6 +1363,8 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
 
     return {
         "locked_events": locked_events,
+        "locked_events_by_form": locked_events_by_form,
+        "lock_state_events": lock_state_events,
         "response_values": response_values,
         "response_values_by_form": response_values_by_form,
         "response_raw_values_by_form": response_raw_values_by_form,
@@ -1235,7 +1374,13 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
     }
 
 
-def _is_locked_before(observations: dict[str, Any], field_key: Any, har_index: Any) -> bool:
+def _is_locked_before(
+    observations: dict[str, Any],
+    field_key: Any,
+    har_index: Any,
+    *,
+    form_id: str = "",
+) -> bool:
     key = str(field_key or "").strip().lower()
     if not key:
         return False
@@ -1251,8 +1396,23 @@ def _is_locked_before(observations: dict[str, Any], field_key: Any, har_index: A
     return False
 
 
+def _observed_field_label(observations: dict[str, Any], form_id: Any, field_key: Any) -> str:
+    """Return a HAR-observed UI label for a field, including grid-column fallback."""
+    key = str(field_key or "").strip().lower()
+    if not key:
+        return ""
+    form = str(form_id or "").strip()
+    labels_by_form = (observations or {}).get("labels_by_form") or {}
+    for scope in (form, "*"):
+        labels = labels_by_form.get(scope) or {}
+        label = str(labels.get(key) or "").strip()
+        if label:
+            return _clean_display_label(label)
+    return ""
+
+
 def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) -> list[dict]:
-    """移除当前 HAR 中已被服务端标记锁定的字段写入。"""
+    """移除当前 HAR/目标环境已标记锁定的字段写入或选择。"""
     if not observations:
         return steps
     change_year_unlocks: set[tuple[int, str]] = set()
@@ -1282,6 +1442,21 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
 
     out: list[dict] = []
     for step in steps:
+        if step.get("type") == "pick_basedata":
+            field_key_s = str(step.get("field_key") or "").strip().lower()
+            form_id_s = str(step.get("form_id") or "").strip()
+            if (
+                field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
+                or _is_locked_before(
+                    observations,
+                    field_key_s,
+                    step.get("_har_index"),
+                    form_id=form_id_s,
+                )
+            ):
+                continue
+            out.append(step)
+            continue
         if step.get("type") != "update_fields":
             out.append(step)
             continue
@@ -1293,8 +1468,17 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
         dropped: list[str] = []
         for field_key, value in fields.items():
             field_key_s = str(field_key or "").strip().lower()
+            form_id_s = str(step.get("form_id") or "").strip()
             if (
-                _is_locked_before(observations, field_key, step.get("_har_index"))
+                (
+                    field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
+                    or _is_locked_before(
+                        observations,
+                        field_key,
+                        step.get("_har_index"),
+                        form_id=form_id_s,
+                    )
+                )
                 and not _has_recent_change_year(field_key_s, step.get("_har_index"))
             ):
                 dropped.append(str(field_key))
@@ -2726,6 +2910,7 @@ def _pick_field_auto_resolve_meta(
     looks_env = (
         env_sensitive in ("high", "medium")
         or field_key_l in _AUTO_RESOLVE_FIELD_HINTS
+        or field_key_l in _AUTO_RESOLVE_CODE_FIELD_HINTS
         or field_key_l.endswith(("org", "position", "entity", "city", "country"))
     )
     can_resolve = bool(
@@ -3101,6 +3286,178 @@ def _append_recorded_default_update_steps(
     return out
 
 
+def _existing_model_field_keys(steps: list[dict], form_id: str) -> set[str]:
+    form = str(form_id or "")
+    keys: set[str] = set()
+    for step in steps or []:
+        if form and str(step.get("form_id") or "") != form:
+            continue
+        if step.get("type") == "pick_basedata" and step.get("field_key"):
+            keys.add(str(step.get("field_key") or "").lower())
+        elif step.get("type") == "update_fields":
+            for field_key in (step.get("fields") or {}).keys():
+                keys.add(str(field_key or "").lower())
+    return keys
+
+
+def _soft_required_context_items(main_form: str, meta_resolver=None) -> list[dict[str, Any]]:
+    form = str(main_form or "")
+    configured = _SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM.get(form) or {}
+    if not configured:
+        return []
+    items: list[dict[str, Any]] = []
+    for field_key, cfg in configured.items():
+        key = str(field_key or "").lower()
+        label = str(cfg.get("label") or _resolve_field_label(key, entity_id=form, meta_resolver=meta_resolver) or key)
+        base_entity = ""
+        try:
+            if meta_resolver:
+                base_entity = meta_resolver.get_base_entity(form, key) or ""
+            if not base_entity:
+                from lib import field_type_catalog as _ftc
+                entry = _ftc.get_field_entry(form, key) or {}
+                base_entity = str(entry.get("base_entity") or "")
+                label = str(label or entry.get("label") or key)
+        except Exception:
+            pass
+        items.append({
+            "field_key": key,
+            "label": _clean_display_label(label),
+            "base_entity": base_entity,
+            "reason": str(cfg.get("reason") or "运行时规则要求维护该字段"),
+            "resolve_by": str(cfg.get("resolve_by") or "value_code"),
+        })
+    return items
+
+
+def _missing_required_context_pick_id(field_key: str) -> str:
+    return f"pick_{_sanitize(field_key) or field_key}_id"
+
+
+def _append_missing_required_context_pick_fields(
+    pick_fields_map: OrderedDict,
+    steps: list[dict],
+    *,
+    main_form: str,
+    app_id: str,
+    meta_resolver=None,
+) -> None:
+    configured_forms = set(_SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM)
+    present_forms = {
+        str(step.get("form_id") or "")
+        for step in steps or []
+        if str(step.get("form_id") or "") in configured_forms
+    }
+    if main_form in configured_forms:
+        present_forms.add(main_form)
+    for form_id in sorted(present_forms):
+        existing_fields = _existing_model_field_keys(steps, form_id)
+        form_app_id = next((str(step.get("app_id") or "") for step in steps or [] if step.get("form_id") == form_id), app_id)
+        for item in _soft_required_context_items(form_id, meta_resolver=meta_resolver):
+            field_key = item["field_key"]
+            existing_pf = None
+            for existing_id, existing_item in pick_fields_map.items():
+                if not isinstance(existing_item, dict):
+                    continue
+                if (
+                    str(existing_item.get("form_id") or "") == form_id
+                    and str(existing_item.get("field_key") or "").lower() == field_key
+                ):
+                    existing_pf = existing_item
+                    break
+            if existing_pf is not None:
+                existing_pf["env_sensitive"] = "high"
+                existing_pf["required_context"] = True
+                existing_pf.setdefault("source", "runtime_rule")
+                existing_pf.setdefault("reason", item["reason"])
+                existing_pf.setdefault("base_entity", item.get("base_entity", ""))
+                if not existing_pf.get("resolve_by"):
+                    existing_pf["resolve_by"] = item["resolve_by"]
+                continue
+            if field_key in existing_fields:
+                continue
+            pf_id = _missing_required_context_pick_id(field_key)
+            if pf_id in pick_fields_map:
+                continue
+            pick_fields_map[pf_id] = OrderedDict([
+                ("value_id", ""),
+                ("value_name", ""),
+                ("value_code", ""),
+                ("value_number", ""),
+                ("recorded_value_id", ""),
+                ("label", item["label"]),
+                ("env_sensitive", "high"),
+                ("field_key", field_key),
+                ("form_id", form_id),
+                ("app_id", form_app_id),
+                ("auto_resolve", True),
+                ("resolve_by", item["resolve_by"]),
+                ("resolve_status", "missing_required_context"),
+                ("required_context", True),
+                ("source", "runtime_rule"),
+                ("reason", item["reason"]),
+                ("base_entity", item.get("base_entity", "")),
+            ])
+
+
+def _append_missing_required_context_steps(
+    steps: list[dict],
+    *,
+    main_form: str,
+    app_id: str,
+    pick_field_overrides: dict | None = None,
+    meta_resolver=None,
+) -> list[dict]:
+    """Insert soft-required context pick steps only when the user supplied a value."""
+    if not steps or not pick_field_overrides:
+        return steps
+    additions: list[dict[str, Any]] = []
+    configured_forms = set(_SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM)
+    present_forms = {
+        str(step.get("form_id") or "")
+        for step in steps or []
+        if str(step.get("form_id") or "") in configured_forms
+    }
+    if main_form in configured_forms:
+        present_forms.add(main_form)
+    for form_id in sorted(present_forms):
+        existing_fields = _existing_model_field_keys(steps, form_id)
+        form_app_id = next((str(step.get("app_id") or "") for step in steps or [] if step.get("form_id") == form_id), app_id)
+        for item in _soft_required_context_items(form_id, meta_resolver=meta_resolver):
+            field_key = item["field_key"]
+            if field_key in existing_fields:
+                continue
+            pf_id = _missing_required_context_pick_id(field_key)
+            override = pick_field_overrides.get(pf_id) if isinstance(pick_field_overrides, dict) else None
+            if not isinstance(override, dict):
+                continue
+            value_code = str(override.get("value_code") or override.get("value_number") or "").strip()
+            value_id = str(override.get("value_id") or "").strip()
+            value_name = str(override.get("value_name") or "").strip()
+            replay_value = value_code or value_id or value_name
+            if not replay_value:
+                continue
+            additions.append({
+                "type": "pick_basedata",
+                "id": f"pick_{field_key}_required_context",
+                "form_id": form_id,
+                "app_id": form_app_id,
+                "field_key": field_key,
+                "value_id": replay_value,
+                "value_name": value_name,
+                "value_code": value_code,
+                "_tier": "core",
+                "_is_required_context": True,
+            })
+    if not additions:
+        return steps
+    out = list(steps)
+    insert_pos = _write_anchor_pos_for_form(out, main_form)
+    for offset, step in enumerate(additions):
+        out.insert(insert_pos + offset, step)
+    return out
+
+
 def _infer_context_field_modes(main_form: str, meta_resolver=None) -> dict[str, str]:
     """推断需要由上下文补偿的字段及其写入方式。"""
     modes: dict[str, str] = {}
@@ -3448,7 +3805,7 @@ def _collect_var_refs(value: Any, refs: set[str]) -> None:
             _collect_var_refs(item, refs)
 
 
-def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "") -> OrderedDict:
+def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "", meta_resolver=None) -> OrderedDict:
     """Infer variable source form/field/block metadata from generated steps."""
     meta: OrderedDict[str, OrderedDict] = OrderedDict()
 
@@ -3468,6 +3825,13 @@ def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "") -> Order
             ("source_step_id", scope["source_step_id"] or str(step.get("id") or "")),
             ("write_step_id", scope["write_step_id"]),
         ])
+        item.update(_field_type_info(
+            scope["form_id"],
+            field_key,
+            meta_resolver=meta_resolver,
+            fallback_category=_fallback_field_category(field_key),
+            fallback_panel="vars",
+        ))
         meta[vname] = item
 
     for idx, step in enumerate(steps):
@@ -3541,6 +3905,10 @@ def _attach_pick_field_scopes(pick_fields_map: OrderedDict, steps: list[dict], m
                 fields = step.get("fields") or {}
                 if any(str(k).lower() == field_key for k in fields):
                     return idx
+        if target_form_id:
+            for idx, step in enumerate(steps):
+                if str(step.get("form_id") or "") == target_form_id:
+                    return idx
         return 0
 
     for pf_id, pf_meta in pick_fields_map.items():
@@ -3593,13 +3961,33 @@ def _annotate_env_field_sources(
             resolve_by = str(meta.get("resolve_by") or "auto_resolve")
             sources.append(f"auto_resolve:{resolve_by}")
         field_type = ""
+        field_type_source = ""
         if meta_resolver and form_id and field_key:
             try:
                 field_type = meta_resolver.get_field_type(form_id, field_key) or ""
+                if field_type:
+                    field_type_source = "metadata"
             except Exception:
                 field_type = ""
+        if not field_type and form_id and field_key:
+            try:
+                from lib import field_type_catalog as _ftc
+                catalog_item = _ftc.get_field_entry(form_id, field_key)
+                if catalog_item:
+                    field_type = str(catalog_item.get("raw_type") or "")
+                    field_type_source = "runtime_catalog" if field_type else ""
+            except Exception:
+                pass
         if field_type:
             meta.setdefault("metadata_type", field_type)
+            try:
+                from lib import field_type_catalog as _ftc
+                category = _ftc.canonical_category(field_type)
+                meta.setdefault("field_category", category)
+                meta.setdefault("field_panel", _ftc.panel_for_category(category))
+                meta.setdefault("field_type_source", field_type_source or "metadata")
+            except Exception:
+                pass
             sources.append("metadata")
         meta.setdefault("source_type", _primary_env_source(sources, meta))
         meta.setdefault("source_detail", " + ".join(_dedupe_strings(sources)) or "har_recorded")
@@ -3633,6 +4021,197 @@ def _dedupe_strings(items: list[str]) -> list[str]:
             seen.add(item)
             out.append(item)
     return out
+
+
+def _field_type_info(
+    form_id: str,
+    field_key: str,
+    *,
+    value: Any = None,
+    meta_resolver=None,
+    fallback_category: str = "",
+    fallback_panel: str = "",
+) -> dict[str, Any]:
+    """Return normalized field type metadata for vars/pick_fields/preview catalog."""
+    form_id = str(form_id or "")
+    field_key = str(field_key or "")
+    raw_type = ""
+    source = ""
+    if meta_resolver and form_id and field_key:
+        try:
+            raw_type = meta_resolver.get_field_type(form_id, field_key) or ""
+            if raw_type:
+                source = "metadata"
+        except Exception:
+            raw_type = ""
+    try:
+        from lib import field_type_catalog as _ftc
+        item = _ftc.classify_for_import(
+            form_id=form_id,
+            field_key=field_key,
+            raw_type=raw_type,
+            value=value,
+        )
+        category = str(item.get("category") or "")
+        if fallback_category and (category == "unknown" or str(item.get("source") or "") == "har_heuristic"):
+            category = fallback_category
+        panel = str(item.get("panel") or "")
+        if panel == "unknown" and fallback_panel:
+            panel = fallback_panel
+        return {
+            "metadata_type": raw_type or str(item.get("raw_type") or ""),
+            "field_category": category or fallback_category or "unknown",
+            "field_panel": panel or fallback_panel or _ftc.panel_for_category(category),
+            "field_type_source": source or str(item.get("source") or ""),
+            "base_entity": str(item.get("base_entity") or ""),
+            "required": bool(item.get("required")),
+        }
+    except Exception:
+        return {
+            "metadata_type": raw_type,
+            "field_category": fallback_category or "unknown",
+            "field_panel": fallback_panel or "unknown",
+            "field_type_source": source or "",
+            "base_entity": "",
+            "required": False,
+        }
+
+
+def _fallback_field_category(field_key: str, value: Any = None) -> str:
+    key = str(field_key or "").lower()
+    if _is_date_like_field_key(key):
+        return "date"
+    if key in _BUSINESS_INPUT_VARIABLE_KEYS or any(hint in key for hint in _SALARY_DETAIL_VALUE_HINTS):
+        return "amount" if key != "bizdate" else "date"
+    key_class = _classify_key_heuristic(key)
+    if key_class in {"number", "unique", "cert"}:
+        return "code"
+    if key_class in {"name", "phone", "email", "text"}:
+        return "text"
+    try:
+        from lib import field_type_catalog as _ftc
+        return _ftc.category_from_value(value, key)
+    except Exception:
+        return "unknown"
+
+
+def _location_for_step(step: dict, field_key: str = "") -> str:
+    if step.get("row_index", -1) not in (-1, None):
+        return "entry"
+    blob = " ".join([
+        str(step.get("id") or "").lower(),
+        str(step.get("key") or "").lower(),
+        str(step.get("form_id") or "").lower(),
+        str(field_key or "").lower(),
+    ])
+    if "entry" in blob or "entity" in blob or "grid" in blob:
+        return "entry"
+    if "f7" in blob or "querylist" in blob:
+        return "dialog"
+    return "form"
+
+
+def _build_unified_field_catalog(
+    steps: list[dict],
+    var_items: list[dict],
+    pick_fields: list[dict],
+    *,
+    main_form: str = "",
+    meta_resolver=None,
+) -> list[dict[str, Any]]:
+    """Build HAR-order field/control catalog for preview diagnostics."""
+    var_by_scope: dict[tuple[str, str], list[str]] = {}
+    for item in var_items or []:
+        form_id = str(item.get("form_id") or "")
+        field_key = str(item.get("field_key") or "").lower()
+        if form_id and field_key:
+            var_by_scope.setdefault((form_id, field_key), []).append(str(item.get("name") or ""))
+
+    pick_by_scope: dict[tuple[str, str], list[str]] = {}
+    for item in pick_fields or []:
+        form_id = str(item.get("form_id") or "")
+        field_key = str(item.get("field_key") or "").lower()
+        if form_id and field_key:
+            pick_by_scope.setdefault((form_id, field_key), []).append(str(item.get("id") or ""))
+
+    seen: set[tuple[str, str, str, str]] = set()
+    catalog: list[dict[str, Any]] = []
+
+    def add_field(idx: int, step: dict, field_key: str, value: Any = None, *, kind: str = "field", action: str = "") -> None:
+        form_id = str(step.get("form_id") or main_form or "")
+        field_key_s = str(field_key or "")
+        if not form_id and not field_key_s:
+            return
+        scope = (form_id, field_key_s.lower())
+        info = _field_type_info(
+            form_id,
+            field_key_s,
+            value=value,
+            meta_resolver=meta_resolver,
+            fallback_category="basedata" if action == "pick_basedata" else _fallback_field_category(field_key_s, value),
+            fallback_panel="",
+        )
+        var_names = var_by_scope.get(scope, [])
+        pick_ids = pick_by_scope.get(scope, [])
+        panel = "pick_fields" if pick_ids else "vars" if var_names else info.get("field_panel") or "unknown"
+        key = (kind, form_id, field_key_s.lower(), str(step.get("id") or idx))
+        if key in seen:
+            return
+        seen.add(key)
+        catalog.append({
+            "order": idx + 1,
+            "kind": kind,
+            "field_key": field_key_s,
+            "label": _resolve_field_label(field_key_s, entity_id=form_id, meta_resolver=meta_resolver) if field_key_s else action,
+            "form_id": form_id,
+            "step_id": str(step.get("id") or ""),
+            "action": action or str(step.get("ac") or step.get("type") or ""),
+            "location": _location_for_step(step, field_key_s),
+            "metadata_type": info.get("metadata_type", ""),
+            "category": info.get("field_category", "unknown"),
+            "panel": panel,
+            "source": info.get("field_type_source", ""),
+            "required": bool(info.get("required")),
+            "base_entity": info.get("base_entity", ""),
+            "vars": [v for v in var_names if v],
+            "pick_fields": [p for p in pick_ids if p],
+        })
+
+    for idx, step in enumerate(steps or []):
+        stype = step.get("type")
+        if stype == "update_fields":
+            fields = step.get("fields") or {}
+            if isinstance(fields, dict):
+                for field_key, value in fields.items():
+                    add_field(idx, step, str(field_key), value, action="update_fields")
+        elif stype == "pick_basedata":
+            add_field(idx, step, str(step.get("field_key") or ""), step.get("value_id"), action="pick_basedata")
+        elif stype == "invoke":
+            ac = str(step.get("ac") or "")
+            key = str(step.get("key") or "")
+            method = str(step.get("method") or "")
+            blob = f"{ac} {key} {method}".lower()
+            if any(token in blob for token in ("save", "submit", "audit", "newentry", "btnok", "ok", "cancel")):
+                category = "dialog" if any(token in blob for token in ("btnok", "ok", "cancel")) else "button"
+                catalog.append({
+                    "order": idx + 1,
+                    "kind": "control",
+                    "field_key": key,
+                    "label": key or ac or method,
+                    "form_id": str(step.get("form_id") or ""),
+                    "step_id": str(step.get("id") or ""),
+                    "action": ac or method,
+                    "location": _location_for_step(step, key),
+                    "metadata_type": "",
+                    "category": category,
+                    "panel": "structural",
+                    "source": "har_action",
+                    "required": False,
+                    "base_entity": "",
+                    "vars": [],
+                    "pick_fields": [],
+                })
+    return catalog
 
 
 def _build_preview_business_blocks(
@@ -4309,6 +4888,13 @@ def build_yaml_case(
         app_id=_context_app_id,
     )
     cleaned = _drop_locked_update_fields(cleaned, field_observations)
+    cleaned = _append_missing_required_context_steps(
+        cleaned,
+        main_form=main_form,
+        app_id=_context_app_id,
+        pick_field_overrides=pick_field_overrides,
+        meta_resolver=meta_resolver,
+    )
     cleaned = _drop_portal_side_effect_steps(cleaned, main_form)
     _mark_navigation_steps_optional(cleaned, main_form)
 
@@ -4403,17 +4989,45 @@ def build_yaml_case(
         field_type = None
         if meta_resolver and step_form_id:
             field_type = meta_resolver.get_field_type(step_form_id, field_key)
-            if field_type:
-                if field_type in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp"):
-                    env_sensitive = "medium"
-                elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
-                    env_sensitive = "low"
-        value_code = s.get("value_code", "") or ""
+        if field_type:
+            if field_type in ("BasedataProp", "MulBasedataProp", "OrgProp", "UserProp"):
+                env_sensitive = "medium"
+            elif field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
+                env_sensitive = "low"
+        soft_required_cfg = (
+            _SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM
+            .get(step_form_id, {})
+            .get(str(field_key or "").lower())
+        )
+        if soft_required_cfg:
+            env_sensitive = "high"
+            label = str(soft_required_cfg.get("label") or label)
+        label = _observed_field_label(field_observations, step_form_id, field_key) or label
+        observed_parts = (
+            (field_observations.get("response_values_by_form") or {})
+            .get(step_form_id, {})
+            .get(str(field_key or "").lower(), {})
+        )
+        value_code = str(
+            (observed_parts or {}).get("value_code")
+            or s.get("value_code", "")
+            or ""
+        )
+        value_name = str(
+            (observed_parts or {}).get("value_name")
+            or s.get("value_name", "")
+            or ""
+        )
+        value_number = str(
+            (observed_parts or {}).get("value_number")
+            or s.get("value_number", "")
+            or ""
+        )
         display_value_id = _display_pick_value_id(raw_value_id, value_code)
         auto_meta = _pick_field_auto_resolve_meta(
             field_key,
             display_value_id,
-            s.get("value_name", "") or "",
+            value_name,
             env_sensitive,
             field_type,
             value_code=value_code,
@@ -4426,9 +5040,9 @@ def build_yaml_case(
             }
         pick_fields_map[step_id] = OrderedDict([
             ("value_id", display_value_id),
-            ("value_name", s.get("value_name", "") or ""),
+            ("value_name", value_name),
             ("value_code", value_code),
-            ("value_number", s.get("value_number", "") or ""),
+            ("value_number", value_number),
             ("recorded_value_id", str(raw_value_id)),
             ("label", label),
             ("env_sensitive", env_sensitive),
@@ -4439,6 +5053,12 @@ def build_yaml_case(
             ("resolve_by", auto_meta["resolve_by"]),
             ("resolve_status", auto_meta["resolve_status"]),
         ])
+        if soft_required_cfg:
+            pick_fields_map[step_id]["required_context"] = True
+            pick_fields_map[step_id]["source"] = "runtime_rule"
+            pick_fields_map[step_id]["reason"] = str(
+                soft_required_cfg.get("reason") or "运行时规则要求维护该字段"
+            )
 
     _main_app_id = next((s.get("app_id", "") for s in cleaned if s.get("form_id") == main_form), "")
     _append_context_default_pick_fields(
@@ -4446,6 +5066,13 @@ def build_yaml_case(
         field_observations,
         main_form=main_form,
         app_id=_main_app_id,
+    )
+    _append_missing_required_context_pick_fields(
+        pick_fields_map,
+        cleaned,
+        main_form=main_form,
+        app_id=_main_app_id,
+        meta_resolver=meta_resolver,
     )
 
     # --- 从 addnew/new 步骤中提取 treeview.focus（环境上下文组织） ---
@@ -4616,7 +5243,10 @@ def build_yaml_case(
                 )
                 if not step_id:
                     continue
-                label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
+                label = (
+                    _observed_field_label(field_observations, step_form_id, fk)
+                    or _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
+                )
                 fv = fields[fk]
                 # 提取显示值（可能是字符串、多语言 dict 或 ${today}）
                 if isinstance(fv, dict):
@@ -4800,7 +5430,7 @@ def build_yaml_case(
     if vars_labels:
         built_vars_labels.update(vars_labels)
 
-    vars_meta_all = _infer_vars_meta_from_steps(yaml_steps, main_form)
+    vars_meta_all = _infer_vars_meta_from_steps(yaml_steps, main_form, meta_resolver=meta_resolver)
     built_vars_meta = OrderedDict(
         (name, vars_meta_all[name])
         for name in built_vars.keys()
@@ -5007,7 +5637,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     # ⭐ step.description 反查业务名：与左侧"执行步骤"的「...」内文字严格对齐
     step_label_map = _infer_labels_from_preview_steps(preview_copy)
-    vars_meta_map = _infer_vars_meta_from_steps(preview_copy, main_form)
+    vars_meta_map = _infer_vars_meta_from_steps(preview_copy, main_form, meta_resolver=meta_resolver)
 
     var_items = []
     for vname, template in detected_vars.items():
@@ -5113,12 +5743,32 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 or _ENUM_FIELDS.get(field_key)
                 or _resolve_field_label(field_key, entity_id=step_form_id, meta_resolver=meta_resolver)
             )
-            value_code = s.get("value_code", "") or ""
+            label = _observed_field_label(field_observations, step_form_id, field_key) or label
+            observed_parts = (
+                (field_observations.get("response_values_by_form") or {})
+                .get(step_form_id, {})
+                .get(str(field_key or "").lower(), {})
+            )
+            value_code = str(
+                (observed_parts or {}).get("value_code")
+                or s.get("value_code", "")
+                or ""
+            )
+            value_name = str(
+                (observed_parts or {}).get("value_name")
+                or s.get("value_name", "")
+                or ""
+            )
+            value_number = str(
+                (observed_parts or {}).get("value_number")
+                or s.get("value_number", "")
+                or ""
+            )
             display_value_id = _display_pick_value_id(value_id, value_code)
             auto_meta = _pick_field_auto_resolve_meta(
                 field_key,
                 display_value_id,
-                s.get("value_name", "") or "",
+                value_name,
                 env_sensitive,
                 field_type,
                 value_code=value_code,
@@ -5136,9 +5786,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "label": label,
                 "env_sensitive": env_sensitive,
                 "value_id": display_value_id,
-                "value_name": s.get("value_name", "") or "",
+                "value_name": value_name,
                 "value_code": value_code,
-                "value_number": s.get("value_number", "") or "",
+                "value_number": value_number,
                 "recorded_value_id": str(value_id),
                 "form_id": step_form_id,
                 "app_id": s.get("app_id", ""),
@@ -5319,7 +5969,10 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     if not step_id:
                         continue
 
-                    label = _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
+                    label = (
+                        _observed_field_label(field_observations, step_form_id, fk)
+                        or _resolve_field_label(fk, entity_id=step_form_id, meta_resolver=meta_resolver)
+                    )
                     fv = fields[fk]
                     # 提取值（可能是字符串或多语言 dict）
                     if isinstance(fv, dict):
@@ -5368,6 +6021,13 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         if pf_id:
             item = OrderedDict((k, v) for k, v in pf.items() if k != "id")
             _preview_pick_map[pf_id] = item
+    _append_missing_required_context_pick_fields(
+        _preview_pick_map,
+        preview_steps,
+        main_form=main_form,
+        app_id=_preview_app_id,
+        meta_resolver=meta_resolver,
+    )
     _attach_pick_field_scopes(_preview_pick_map, preview_steps, main_form)
     _annotate_env_field_sources(
         _preview_pick_map,
@@ -5375,6 +6035,13 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         meta_resolver=meta_resolver,
     )
     pick_fields = [{"id": pf_id, **dict(meta)} for pf_id, meta in _preview_pick_map.items()]
+    field_catalog = _build_unified_field_catalog(
+        preview_copy,
+        var_items,
+        pick_fields,
+        main_form=main_form,
+        meta_resolver=meta_resolver,
+    )
 
     # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
     _sens_order = {"high": 0, "medium": 1, "low": 2}
@@ -5485,6 +6152,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "tier_counts": by_tier,
         "detected_vars": var_items,
         "pick_fields": pick_fields,
+        "field_catalog": field_catalog,
         "business_blocks": _build_preview_business_blocks(var_items, pick_fields),
         "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,

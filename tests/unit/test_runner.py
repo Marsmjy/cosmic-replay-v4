@@ -27,9 +27,66 @@ from lib.runner import (
     _case_reaches_form_via_recorded_context,
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
-    _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
+    _build_env_fields, _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
+
+
+def test_env_fields_display_business_code_and_keep_har_order():
+    case = {
+        "steps": [
+            {
+                "id": "entryRowClick_18",
+                "type": "select_f7_list_row",
+                "form_id": "hcdm_adjfileinfof7",
+                "value_id": "2465334257644485632",
+                "value_code": "00186-0001",
+                "_env_field_id": "selector_salary_adjust_employee_id",
+            },
+            {
+                "id": "pick_khr_salarylevel",
+                "type": "pick_basedata",
+                "form_id": "khr_hcdm_targetsalary",
+                "field_key": "khr_salarylevel",
+                "value_id": "2366111555608643584",
+                "value_name": "低于宽带下限二档",
+                "_env_field_id": "pick_khr_salarylevel_id",
+            },
+        ],
+        "pick_fields": {
+            "pick_khr_salarylevel_id": {
+                "field_key": "khr_salarylevel",
+                "label": "薪酬水平",
+                "value_id": "PAY-XCSPDBKD-00001",
+                "value_code": "PAY-XCSPDBKD-00001",
+                "value_name": "低于宽带下限二档",
+                "recorded_value_id": "2366111555608643584",
+                "source_step_id": "pick_khr_salarylevel",
+            },
+            "selector_salary_adjust_employee_id": {
+                "field_key": "employee_name",
+                "label": "定调薪人员",
+                "value_id": "00186-0001",
+                "value_code": "00186-0001",
+                "recorded_value_id": "2465334257644485632",
+                "source_step_id": "entryRowClick_18",
+            },
+        },
+    }
+    result = runner_mod.RunResult()
+    result.steps = [
+        {"id": "pick_khr_salarylevel", "type": "pick_basedata", "ok": True},
+        {"id": "entryRowClick_18", "type": "select_f7_list_row", "ok": True},
+    ]
+
+    fields = _build_env_fields(case, result)
+
+    assert [item["step_id"] for item in fields] == [
+        "selector_salary_adjust_employee_id",
+        "pick_khr_salarylevel_id",
+    ]
+    assert fields[0]["display_value"] == "00186-0001"
+    assert fields[1]["display_value"] == "PAY-XCSPDBKD-00001"
 
 
 class TestYAMLParsing:

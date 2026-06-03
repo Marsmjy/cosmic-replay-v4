@@ -271,6 +271,43 @@ class TestBatchEndpoints:
         # 应该返回成功但删除数为0
         assert resp.json()["count"] == 0
 
+    def test_copy_case_creates_unique_yaml_with_new_name(self, client):
+        """复制用例会新建 YAML 并同步 name 字段"""
+        from lib.webui import server
+
+        source_name = "_pytest_copy_source"
+        copy_name = "_pytest_copy_target"
+        source_path = server.case_path_from_name(source_name)
+        copy_path = server.case_path_from_name(copy_name)
+        second_copy_path = server.case_path_from_name(f"{copy_name}-2")
+        for path in (source_path, copy_path, second_copy_path):
+            if path.exists():
+                path.unlink()
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text(
+            "name: _pytest_copy_source\ncreated_at: 2026-01-01T00:00:00\nsteps: []\n",
+            encoding="utf-8",
+        )
+        try:
+            resp = client.post(f"/api/cases/{source_name}/copy", json={"new_name": copy_name})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["ok"] is True
+            assert data["name"] == copy_name
+            assert copy_path.exists()
+            text = copy_path.read_text(encoding="utf-8")
+            assert "name: _pytest_copy_target" in text
+            assert "created_at: 2026-01-01T00:00:00" not in text
+
+            resp2 = client.post(f"/api/cases/{source_name}/copy", json={"new_name": copy_name})
+            assert resp2.status_code == 200
+            assert resp2.json()["name"] == f"{copy_name}-2"
+            assert second_copy_path.exists()
+        finally:
+            for path in (source_path, copy_path, second_copy_path):
+                if path.exists():
+                    path.unlink()
+
 
 class TestCORSHeaders:
     """CORS头测试"""

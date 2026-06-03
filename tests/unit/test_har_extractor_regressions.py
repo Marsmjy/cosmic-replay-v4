@@ -507,6 +507,11 @@ def test_salary_adjust_submit_import_exposes_adjust_employee_selector():
     assert selector["selector_value_index"] == 0
     assert selector["selector_code_index"] == 1
 
+    step_order = {step["id"]: idx for idx, step in enumerate(case["steps"])}
+    selector_order = step_order[selector["source_step_id"]]
+    salary_level_order = step_order[case["pick_fields"]["pick_khr_salarylevel_id"]["source_step_id"]]
+    assert selector_order < salary_level_order
+
 
 def test_build_yaml_case_preserves_list_context_for_enterprise_har():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835335_基础资料-用人单位.har"
@@ -650,9 +655,9 @@ def test_build_yaml_case_syncs_preview_code_override_to_pick_field_value_id():
         har_path,
         case_name="regression_preview_pick_code_override",
         pick_field_overrides={
-            "pick_city_id": {
+            "pick_changedesc_id": {
                 "value_id": "100",
-                "value_name": "裕安",
+                "value_name": "业态兴起",
                 "value_code": "0018611-0001",
                 "value_number": "0018611-0001",
                 "resolve_by": "value_code",
@@ -664,7 +669,7 @@ def test_build_yaml_case_syncs_preview_code_override_to_pick_field_value_id():
         },
     )
     case = yaml.safe_load(yaml_text)
-    city = case["pick_fields"]["pick_city_id"]
+    city = case["pick_fields"]["pick_changedesc_id"]
 
     assert city["value_id"] == "0018611-0001"
     assert city["value_code"] == "0018611-0001"
@@ -723,10 +728,52 @@ def test_salary_adjust_preview_exposes_level_model_and_effective_date_fields_whe
     by_id = {item["id"]: item for item in preview["pick_fields"]}
 
     assert by_id["pick_khr_salarylevel_id"]["label"] == "薪酬水平"
+    assert by_id["pick_khr_salarylevel_id"]["value_id"] == "PAY-XCSPDBKD-00001"
+    assert by_id["pick_khr_salarylevel_id"]["value_code"] == "PAY-XCSPDBKD-00001"
+    assert by_id["pick_khr_salarylevel_id"]["value_name"] == "低于宽带下限二档"
+    assert by_id["pick_khr_salarylevel_id"]["resolve_by"] == "value_code"
     assert by_id["pick_khr_hsalarymodel_id"]["label"] == "调薪后-薪酬模式"
+    assert by_id["pick_khr_hsalarymodel_id"]["value_id"] == "PAY-XCMS-00001"
+    assert by_id["pick_khr_hsalarymodel_id"]["value_code"] == "PAY-XCMS-00001"
+    assert by_id["pick_khr_hsalarymodel_id"]["value_name"] == "年薪制"
+    assert by_id["pick_khr_hsalarymodel_id"]["resolve_by"] == "value_code"
     assert by_id["pick_khr_hsalarylevel_id"]["label"] == "调薪后-薪酬水平"
+    assert by_id["pick_khr_hsalarylevel_id"]["value_id"] == "PAY-XCSPDBKD-00001"
+    assert by_id["pick_khr_hsalarylevel_id"]["value_code"] == "PAY-XCSPDBKD-00001"
+    assert by_id["pick_khr_hsalarylevel_id"]["value_name"] == "低于宽带下限二档"
+    assert by_id["pick_khr_hsalarylevel_id"]["resolve_by"] == "value_code"
+    assert by_id["pick_khr_zcurrencyfield_id"]["label"] == "调薪后-币种"
+    assert by_id["pick_khr_zcurrencyfield_id"]["value_id"] == "1"
+    assert by_id["pick_khr_zcurrencyfield_id"]["value_code"] == "CNY"
+    assert by_id["pick_khr_zcurrencyfield_id"]["value_name"] == "人民币"
+    assert by_id["pick_khr_zcurrencyfield_id"]["resolve_by"] == "value_code"
     assert by_id["date_khr_heffectivedate"]["label"] == "调薪后-生效日期"
     assert by_id["date_khr_heffectivedate"]["value_id"] == "2026-06-30"
+
+
+def test_salary_adjust_grid_column_labels_are_used_when_metadata_headers_are_missing():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    by_id = {item["id"]: item for item in preview["pick_fields"]}
+
+    assert by_id["pick_khr_zcurrencyfield_id"]["label"] == "调薪后-币种"
+
+
+def test_salary_adjust_archive_hars_do_not_expose_technical_grid_column_labels():
+    archive_root = PROJECT_ROOT.parent / "项目归档" / "HAR场景录制库 2" / "金蝶HR项目"
+    har_path = archive_root / "定调薪申请审批通过.har"
+    if not har_path.exists():
+        pytest.skip("desktop HAR archive fixture is not present")
+
+    preview = preview_har(har_path)
+    by_id = {item["id"]: item for item in preview["pick_fields"]}
+
+    assert by_id["pick_khr_upperson_id"]["label"] == "薪酬直接上级"
+    assert by_id["date_khr_hjteffectivedate"]["label"] == "调薪后津贴-生效日期"
+    assert by_id["date_khr_hfleffectivedate"]["label"] == "调薪后福利-生效日期"
 
 
 def test_salary_adjust_build_keeps_recorded_effective_date_when_local_har_exists():
@@ -737,12 +784,51 @@ def test_salary_adjust_build_keeps_recorded_effective_date_when_local_har_exists
     yaml_text = build_yaml_case(har_path, case_name="salary_adjust_recorded_date")
     case = yaml.safe_load(yaml_text)
     date_field = case["pick_fields"]["date_khr_heffectivedate"]
+    pick_fields = case["pick_fields"]
     fill_step = next(step for step in case["steps"] if step["id"] == "fill_khr_heffectivedate")
 
+    assert pick_fields["pick_khr_salarylevel_id"]["value_id"] == "PAY-XCSPDBKD-00001"
+    assert pick_fields["pick_khr_salarylevel_id"]["value_code"] == "PAY-XCSPDBKD-00001"
+    assert pick_fields["pick_khr_salarylevel_id"]["value_name"] == "低于宽带下限二档"
+    assert pick_fields["pick_khr_hsalarymodel_id"]["value_id"] == "PAY-XCMS-00001"
+    assert pick_fields["pick_khr_hsalarymodel_id"]["value_code"] == "PAY-XCMS-00001"
+    assert pick_fields["pick_khr_hsalarymodel_id"]["value_name"] == "年薪制"
+    assert pick_fields["pick_khr_hsalarylevel_id"]["value_id"] == "PAY-XCSPDBKD-00001"
+    assert pick_fields["pick_khr_hsalarylevel_id"]["value_code"] == "PAY-XCSPDBKD-00001"
+    assert pick_fields["pick_khr_hsalarylevel_id"]["value_name"] == "低于宽带下限二档"
+    assert pick_fields["pick_khr_zcurrencyfield_id"]["label"] == "调薪后-币种"
+    assert pick_fields["pick_khr_zcurrencyfield_id"]["value_code"] == "CNY"
+    assert pick_fields["pick_khr_zcurrencyfield_id"]["value_name"] == "人民币"
+    assert pick_fields["pick_khr_zcurrencyfield_id"]["resolve_by"] == "value_code"
     assert date_field["value_id"] == "2026-06-30"
     assert date_field["value_name"] == "2026-06-30"
     assert fill_step["fields"]["khr_heffectivedate"] == "2026-06-30"
     assert "${today}" not in yaml_text
+
+
+def test_salary_adjust_preview_exposes_unified_field_catalog_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment submit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    by_key = {
+        (item["form_id"], item["field_key"]): item
+        for item in preview["field_catalog"]
+        if item.get("kind") == "field"
+    }
+
+    post_allowance = by_key[("khr_hcdm_targetsalary", "khr_hpostallowance")]
+    effective_date = by_key[("khr_hcdm_targetsalary", "khr_heffectivedate")]
+    salary_level = by_key[("khr_hcdm_targetsalary", "khr_hsalarylevel")]
+
+    assert post_allowance["category"] == "amount"
+    assert post_allowance["panel"] == "vars"
+    assert "test_salary_after_post_allowance" in post_allowance["vars"]
+    assert effective_date["category"] == "date"
+    assert effective_date["panel"] == "pick_fields"
+    assert "date_khr_heffectivedate" in effective_date["pick_fields"]
+    assert salary_level["panel"] == "pick_fields"
 
 
 def test_build_yaml_case_extracts_enterprise_description_var():
@@ -1039,3 +1125,128 @@ def test_pick_field_code_override_keeps_code_resolve_editable():
     assert orgloc["auto_resolve"] is True
     assert orgloc["resolve_status"] == "pending"
     assert "manual_override" not in orgloc
+
+
+def test_system_locked_fields_are_not_replayed_for_org_and_position_hars():
+    samples = [
+        (
+            PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har",
+            {"number"},
+        ),
+        (
+            PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har",
+            {
+                "city",
+                "countryregion",
+                "diplomareq",
+                "job",
+                "jobgradescm",
+                "joblevelscm",
+                "name",
+                "number",
+                "positiontype",
+                "workplace",
+            },
+        ),
+    ]
+    missing = [path for path, _ in samples if not path.exists()]
+    if missing:
+        pytest.skip("local ignored HAR fixtures are not present")
+
+    for har_path, locked_fields in samples:
+        yaml_text = build_yaml_case(har_path, case_name=f"locked_number_{har_path.stem}")
+        case = yaml.safe_load(yaml_text)
+        update_fields = [
+            str(field_key).lower()
+            for step in case["steps"]
+            if step.get("type") == "update_fields"
+            for field_key in (step.get("fields") or {})
+        ]
+
+        assert not locked_fields.intersection(update_fields)
+        pick_fields = {
+            str(step.get("field_key") or "").lower()
+            for step in case["steps"]
+            if step.get("type") == "pick_basedata"
+        }
+        assert not locked_fields.intersection(pick_fields)
+
+
+def test_position_har_exposes_soft_required_template_context_fields():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="position_required_context"))
+    pick_fields = case.get("pick_fields") or {}
+
+    changedesc = pick_fields["pick_changedesc_id"]
+    assert changedesc["label"] == "变动原因"
+    assert changedesc["env_sensitive"] == "high"
+    assert changedesc["required_context"] is True
+
+    for field_id, label in {
+        "pick_khr_positiontpltype_id": "岗位模板类型",
+        "pick_positiontpl_id": "岗位模板",
+        "pick_parent_id": "上级岗位",
+    }.items():
+        assert field_id in pick_fields
+        assert pick_fields[field_id]["label"] == label
+        assert pick_fields[field_id]["env_sensitive"] == "high"
+        assert pick_fields[field_id]["resolve_status"] == "missing_required_context"
+        assert pick_fields[field_id]["required_context"] is True
+
+
+def test_onboard_change_reason_is_exposed_as_soft_required_context_field():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835319_新增入职0512测试.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    preview_reason = next(
+        item for item in preview["pick_fields"]
+        if item.get("field_key") == "chgreason"
+    )
+    assert preview_reason["label"] == "变动原因"
+    assert preview_reason["env_sensitive"] == "high"
+    assert preview_reason["required_context"] is True
+    assert preview_reason["form_id"] == "hom_onbrdinfo"
+
+    yaml_text = build_yaml_case(har_path, case_name="onboard_reason")
+    case = yaml.safe_load(yaml_text)
+    reason = case["pick_fields"]["pick_chgreason_id"]
+    assert reason["resolve_status"] == "missing_required_context"
+    assert reason["required_context"] is True
+
+
+def test_onboard_change_reason_override_inserts_replay_step():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835319_新增入职0512测试.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="onboard_reason_override",
+        pick_field_overrides={
+            "pick_chgreason_id": {
+                "value_id": "1010_S",
+                "value_name": "测试变动原因",
+                "value_code": "1010_S",
+                "value_number": "1010_S",
+                "resolve_by": "value_code",
+                "user_overridden": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    reason_steps = [
+        step for step in case["steps"]
+        if step.get("type") == "pick_basedata" and step.get("field_key") == "chgreason"
+    ]
+    reason = case["pick_fields"]["pick_chgreason_id"]
+
+    assert reason_steps
+    assert reason_steps[0]["value_id"] == "${vars.pick_chgreason_id}"
+    assert reason["env_sensitive"] == "high"
+    assert reason["required_context"] is True
+    assert reason["value_id"] == "1010_S"

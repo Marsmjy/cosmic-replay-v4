@@ -313,6 +313,13 @@ def get_field_type(form_id: str, field_key: str) -> str | None:
     if meta:
         t = meta.get("t", "") or ""
         return t if t else None
+    try:
+        from lib import field_type_catalog as _ftc
+        entry = _ftc.get_field_entry(form_id, field_key)
+        if entry and entry.get("raw_type"):
+            return str(entry.get("raw_type") or "")
+    except Exception:
+        pass
     return None
 
 
@@ -431,6 +438,26 @@ def classify_field(form_id: str, field_key: str, meta_resolver=None) -> str | No
                     return "A"
                 # 必填文本但不在唯一键列表 → 不强制分类
     # ---- 实时元数据精确分类结束 ----
+
+    # ---- 已沉淀 runtime field type catalog ----
+    try:
+        from lib import field_type_catalog as _ftc
+        catalog_item = _ftc.classify_for_import(form_id=form_id, field_key=field_key)
+    except Exception:
+        catalog_item = {}
+    catalog_category = str((catalog_item or {}).get("category") or "")
+    if catalog_category in {"basedata", "multi_basedata", "combo", "multi_combo", "boolean"}:
+        return "B"
+    if catalog_category in {"date", "time", "datetime", "entry", "system"}:
+        return "ignore"
+    if catalog_category in {"text", "large_text", "multi_lang_text"}:
+        if kl in _CLASSIFY_EXCLUSIONS:
+            return None
+        if kl in _A_UNIQUE_KEY_HINTS or kl in _A_NAME_FIELDS:
+            return "A"
+        if any(kl.endswith(suf) for suf in _A_UNIQUE_SUFFIXES):
+            return "A"
+    # ---- runtime field type catalog 结束 ----
 
     # 尝试走知识库字段元数据
     scene = resolve_scene(form_id) if form_id else None

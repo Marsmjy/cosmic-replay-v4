@@ -19,7 +19,11 @@ def test_deep_chain_factory_catalog_tracks_closed_salary_samples():
     assert scenarios["salary_period_new_validation"]["status"] == "closed_write_passed"
     assert scenarios["salary_calc_group_protocol_save"]["status"] == "closed_write_passed"
     assert scenarios["salary_retro_reason_protocol_save"]["status"] == "closed_write_passed"
-    assert scenarios["salary_calc_scene_rule_group_blocked"]["status"] == "blocked_component_rule_group_filter"
+    assert scenarios["salary_calc_scene_rule_group_blocked"]["status"] == "closed_write_passed"
+    assert any(
+        "规则分组" in lesson
+        for lesson in scenarios["salary_calc_scene_rule_group_blocked"].get("lessons", [])
+    )
 
 
 def test_salary_item_category_protocol_fixture_preserves_l2_to_l3_chain():

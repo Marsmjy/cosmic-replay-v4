@@ -107,6 +107,56 @@ from lib.webui.log_store import LogStore, install_global_capture
 from lib.notifier import EmailNotifier
 
 
+def _preview_entity_ids(preview: dict) -> set[str]:
+    entity_ids: set[str] = set()
+    for step in (preview or {}).get("steps") or []:
+        form_id = str((step or {}).get("form_id") or "").strip()
+        if form_id:
+            entity_ids.add(form_id)
+    for item in (preview or {}).get("field_catalog") or []:
+        form_id = str((item or {}).get("form_id") or "").strip()
+        if form_id:
+            entity_ids.add(form_id)
+    for item in (preview or {}).get("pick_fields") or []:
+        form_id = str((item or {}).get("form_id") or "").strip()
+        if form_id:
+            entity_ids.add(form_id)
+    return entity_ids
+
+
+def _case_entity_ids(case: dict) -> set[str]:
+    entity_ids: set[str] = set()
+    for step in (case or {}).get("steps") or []:
+        form_id = str((step or {}).get("form_id") or "").strip()
+        if form_id:
+            entity_ids.add(form_id)
+    for item in ((case or {}).get("vars_meta") or {}).values():
+        if isinstance(item, dict):
+            form_id = str(item.get("form_id") or "").strip()
+            if form_id:
+                entity_ids.add(form_id)
+    for item in ((case or {}).get("pick_fields") or {}).values():
+        if isinstance(item, dict):
+            form_id = str(item.get("form_id") or "").strip()
+            if form_id:
+                entity_ids.add(form_id)
+    return entity_ids
+
+
+def _persist_field_type_catalog(meta_resolver, entity_ids: set[str]) -> dict:
+    if not meta_resolver or not entity_ids:
+        return {"enabled": False, "entity_count": 0, "field_count": 0}
+    try:
+        from lib.field_type_catalog import update_catalog_from_resolver
+        status = update_catalog_from_resolver(meta_resolver, entity_ids)
+        status["enabled"] = True
+        return status
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("字段类型 catalog 沉淀失败: %s", e)
+        return {"enabled": False, "error": f"{type(e).__name__}: {e}"}
+
+
 # ============================================================
 # 全局状态
 # ============================================================
@@ -585,6 +635,58 @@ def api_batch_delete_cases(body: dict = Body(...)):
             p.unlink()
             deleted.append(name)
     return {"ok": True, "deleted": deleted, "count": len(deleted)}
+
+
+@APP.post("/api/cases/{name:path}/copy")
+def api_copy_case(name: str, body: dict = Body(...)):
+    """复制用例 YAML，保留原始内容并同步新用例 name/created_at。"""
+    old_path = case_path_from_name(name)
+    if not old_path.exists():
+        raise HTTPException(404, f"用例 {name} 不存在")
+
+    requested_name = str(body.get("new_name") or "").strip()
+    base_name = requested_name or f"{name}-副本"
+    new_name = base_name
+    suffix = 2
+    while case_path_from_name(new_name).exists():
+        new_name = f"{base_name}-{suffix}"
+        suffix += 1
+
+    new_path = case_path_from_name(new_name)
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+
+    content = old_path.read_text(encoding="utf-8")
+    now_iso = datetime.now().isoformat(timespec='seconds')
+    new_content = re.sub(
+        r'^(name:\s*).*$',
+        rf'\g<1>{new_name}',
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if re.search(r'^created_at:', new_content, flags=re.MULTILINE):
+        new_content = re.sub(
+            r'^(created_at:\s*).*$',
+            rf'\g<1>{now_iso}',
+            new_content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+    else:
+        new_content = re.sub(
+            r'^(name:\s*.*)$',
+            rf'\1\ncreated_at: {now_iso}',
+            new_content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+    new_path.write_text(new_content, encoding="utf-8")
+    return {
+        "ok": True,
+        "name": new_name,
+        "file": str(new_path.relative_to(SKILL_ROOT)),
+        "copied_from": name,
+    }
 
 
 @APP.post("/api/cases/{name:path}/rename")
@@ -1212,11 +1314,16 @@ async def api_har_preview(request: Request):
         importlib.reload(har_extractor)
 
         preview = har_extractor.preview_har(save_path, meta_resolver=meta_resolver)
+        field_type_catalog_status = _persist_field_type_catalog(
+            meta_resolver,
+            _preview_entity_ids(preview),
+        )
         return {
             "ok": True,
             "preview": preview,
             "har_file": save_path.name,   # 后续 extract 用这个
             "metadata_status": metadata_status,  # ⭐ 告知前端元数据增强状态
+            "field_type_catalog_status": field_type_catalog_status,
         }
     except Exception as e:
         return JSONResponse(
@@ -1375,6 +1482,18 @@ def api_har_extract(body: dict = Body(...)):
             meta_resolver=meta_resolver,
             include_readback_assertions=bool(body.get("include_readback_assertions")),
         )
+        field_type_catalog_status = {"enabled": False, "entity_count": 0, "field_count": 0}
+        if meta_resolver:
+            try:
+                import yaml
+                parsed_case = yaml.safe_load(yaml_text) or {}
+                if isinstance(parsed_case, dict):
+                    field_type_catalog_status = _persist_field_type_catalog(
+                        meta_resolver,
+                        _case_entity_ids(parsed_case),
+                    )
+            except Exception:
+                pass
         # ⭐ 在 YAML 中注入 created_at 字段（在 name: 行之后插入）
         now_iso = datetime.now().isoformat(timespec='seconds')
         if re.search(r'^created_at:', yaml_text, flags=re.MULTILINE):
@@ -1397,7 +1516,8 @@ def api_har_extract(body: dict = Body(...)):
         out_path.write_text(yaml_text, encoding="utf-8")
         action = "覆盖" if overwritten else "生成"
         return {"ok": True, "name": case_name, "file": str(out_path.relative_to(SKILL_ROOT)),
-                "overwritten": overwritten, "action": action}
+                "overwritten": overwritten, "action": action,
+                "field_type_catalog_status": field_type_catalog_status}
     except Exception as e:
         raise HTTPException(500, f"抽取失败: {e}")
 

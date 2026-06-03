@@ -184,6 +184,26 @@ def test_agent_evidence_package_matches_deep_chain_experience(tmp_path):
     assert any("experience_matches" in rule for rule in package["guardrails"])
 
 
+def test_agent_evidence_guardrails_include_project_core_goals(tmp_path):
+    case_path = tmp_path / "case.yaml"
+    case_path.write_text("name: demo\nsteps: []\n", encoding="utf-8")
+
+    package = build_repair_evidence_package(
+        task_id="task_demo",
+        case_name="demo",
+        report_data={"case_results": [{"name": "demo", "passed": False}]},
+        case_path=case_path,
+        run_events=[],
+        skill_root=tmp_path,
+    )
+
+    guardrails = "\n".join(package["guardrails"])
+    assert "项目核心目标" in guardrails
+    assert "用户维护值必须生效" in guardrails
+    assert "按目标环境接口解析" in guardrails
+    assert "入库证据" in guardrails
+
+
 def test_agent_evidence_endpoint_uses_task_report_context(tmp_path, monkeypatch):
     from lib.webui import server
 

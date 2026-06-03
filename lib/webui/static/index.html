@@ -553,6 +553,8 @@
                             class="btn btn-secondary btn-sm text-sky-400">编辑</button>
                     <button @click="runCase(c.name)"
                             class="btn btn-primary btn-sm">▶ 运行</button>
+                    <button @click="copyCase(c.name)"
+                            class="btn btn-secondary btn-sm px-2" title="复制用例">复制</button>
                     <button @click="deleteCase(c.name)"
                             class="btn btn-danger btn-sm px-2">✖</button>
                   </div>
@@ -689,7 +691,7 @@
                   :class="detailTab==='vars' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
                   @click="detailTab='vars'">
             变量面板
-            <span class="text-xs text-slate-500" x-text="'(' + (parsedVars().length) + ')'"></span>
+            <span class="text-xs text-slate-500" x-text="'(' + caseMaintenanceItems().length + ')'"></span>
           </button>
           <button class="px-4 py-2 text-sm -mb-px border-b-2"
                   :class="detailTab==='yaml' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
@@ -884,7 +886,10 @@
                     <!-- 标签 -->
                     <span class="text-slate-400 shrink-0 text-xs" x-text="ef.label"></span>
                     <!-- ID -->
-                    <code class="mono text-amber-300 break-all text-xs" x-text="ef.value_id"></code>
+                    <code class="mono text-amber-300 break-all text-xs" x-text="envFieldDisplayValue(ef)"></code>
+                    <span class="text-[10px] text-cyan-400 mono"
+                          x-show="ef.value_id && envFieldDisplayValue(ef) !== String(ef.value_id)"
+                          x-text="'ID ' + ef.value_id"></span>
                     <!-- 值名 -->
                     <span class="text-xs text-slate-400 mono ml-auto shrink-0" x-show="ef.value_name" x-text="'(' + ef.value_name + ')'"></span>
                     <span x-show="ef.auto_resolve"
@@ -1078,23 +1083,26 @@
 
         <!-- Tab: 变量面板 -->
         <div x-show="detailTab==='vars'">
-          <!-- 智能用例变量面板 -->
-          <div class="mb-4 border border-slate-700 rounded-lg overflow-hidden">
-            <!-- 标题栏 -->
-            <div class="flex items-center justify-between px-4 py-2 bg-slate-800 cursor-pointer"
-                 @click="varsExpanded = !varsExpanded">
-              <div class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-sky-400 transition-transform" :class="{'rotate-90': varsExpanded}" 
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-                <span class="text-sm font-medium text-slate-200">智能用例变量</span>
-                <span class="text-xs text-slate-400" x-text="'(' + parsedVars().length + '项)'"></span>
+          <!-- 详情页与 HAR 预览共用同一套“可维护业务字段”视图，避免两处字段数量/顺序不一致 -->
+          <div x-show="caseMaintenanceItems().length > 0"
+               class="mb-4 border border-sky-900/40 rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-800">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-sky-400 text-sm">&#9776;</span>
+                <span class="text-sm font-medium text-sky-200">可维护业务字段</span>
+                <span class="text-xs text-slate-500">与导入预览保持一致；系统字段、锁定字段和技术上下文已自动隐藏</span>
+                <span class="text-[11px] rounded bg-cyan-900/50 px-2 py-0.5 text-cyan-200"
+                      x-text="'录入字段 ' + caseMaintenanceKindCount('var') + ' 项'"></span>
+                <span class="text-[11px] rounded bg-orange-900/50 px-2 py-0.5 text-orange-200"
+                      x-text="'选择字段 ' + caseMaintenanceKindCount('pick') + ' 项'"></span>
+                <span x-show="caseHiddenMaintenanceCount() > 0"
+                      class="text-[11px] rounded bg-slate-900 px-2 py-0.5 text-slate-400"
+                      x-text="'已隐藏技术字段 ' + caseHiddenMaintenanceCount() + ' 项'"></span>
               </div>
+              <span class="text-xs text-slate-500" x-text="caseMaintenanceItems().length + ' 项'"></span>
             </div>
-            <!-- 变量列表 -->
-            <div x-show="varsExpanded" x-transition class="divide-y divide-slate-700">
-              <template x-for="group in parsedVarGroups()" :key="group.key">
+            <div class="divide-y divide-slate-800">
+              <template x-for="group in caseMaintenanceGroups()" :key="group.key">
                 <div>
                   <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
                     <div class="min-w-0">
@@ -1103,121 +1111,74 @@
                     </div>
                     <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
                   </div>
-                  <template x-for="(pv, i) in group.items" :key="pv.key">
-                <div class="px-4 py-3 hover:bg-slate-800/50">
-                  <div class="flex items-center gap-2 mb-1">
-                    <code class="mono text-sm text-sky-400" x-text="pv.key"></code>
-                    <span x-show="pv.label || getVarLabel(pv.key)" class="text-xs text-slate-500" x-text="'(' + (pv.label || getVarLabel(pv.key)) + ')'"></span>
-                  </div>
-                  <div class="flex items-center gap-2 ml-1">
-                    <span class="text-xs text-slate-500">值:</span>
-                    <input type="text" :value="pv.value" @input="updateParsedVar(pv.key, $event.target.value)"
-                           @keydown.enter="saveVarValue(pv.key)"
-                           @blur="if(yamlDirty) saveVarValue(pv.key)"
-                           class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none">
-                    <span class="text-xs text-slate-500" x-show="pv.hint" x-text="pv.hint"></span>
-                    <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                            @click="saveVarValue(pv.key)">保存</button>
-                  </div>
-                  <div class="ml-1 mt-1">
-                    <span class="text-xs text-slate-500" x-show="pv.hint" x-text="pv.hint === '随机' ? '每次运行自动生成随机值' : pv.hint === '日期' ? '自动填充当天日期' : pv.hint === '引用' ? '引用其他变量的值' : ''"></span>
-                  </div>
+                  <template x-for="item in group.items" :key="item.key">
+                    <div class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50">
+                      <div class="w-7 shrink-0 text-right mono text-[11px] text-slate-500" x-text="item.orderLabel"></div>
+                      <template x-if="item.kind === 'var'">
+                        <div class="contents">
+                          <div class="w-36 shrink-0">
+                            <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-cyan-900/60 text-cyan-300" x-text="item.label"></span>
+                          </div>
+                          <input type="text" :value="item.ref.value"
+                                 @input="updateParsedVar(item.ref.key, $event.target.value)"
+                                 @keydown.enter="saveVarValue(item.ref.key)"
+                                 @blur="if(yamlDirty) saveVarValue(item.ref.key)"
+                                 class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none">
+                          <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors shrink-0"
+                                  @click="saveVarValue(item.ref.key)">保存</button>
+                          <div class="w-44 shrink-0 text-right">
+                            <div class="flex justify-end gap-1 mb-0.5">
+                              <span class="text-[10px] rounded px-1.5 py-0.5"
+                                    :class="harMaintenancePriorityClass(item)"
+                                    x-text="harMaintenancePriorityLabel(item)"></span>
+                              <span class="text-[10px] rounded px-1.5 py-0.5 bg-sky-900/50 text-sky-200">录入值</span>
+                            </div>
+                            <code class="mono text-[10px] text-slate-500" x-text="'${vars.' + item.ref.key + '}'"></code>
+                          </div>
+                        </div>
+                      </template>
+                      <template x-if="item.kind === 'pick'">
+                        <div class="contents">
+                          <span class="w-2.5 h-2.5 rounded-full shrink-0"
+                                :class="{
+                                  'bg-red-500': item.ref.env_sensitive === 'high',
+                                  'bg-amber-500': item.ref.env_sensitive === 'medium',
+                                  'bg-emerald-500': item.ref.env_sensitive === 'low',
+                                }"></span>
+                          <div class="w-36 shrink-0">
+                            <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="item.label"></span>
+                          </div>
+                          <input type="text"
+                                 :value="harPickFieldDraftValue(item.ref)"
+                                 @input="setHarPickFieldDraft(item.ref, $event.target.value)"
+                                 @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
+                                 class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
+                                 :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                          <button class="px-3 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
+                                  @click="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')">保存</button>
+                          <div class="w-44 shrink-0 text-right">
+                            <div class="flex justify-end gap-1 mb-0.5">
+                              <span class="text-[10px] rounded px-1.5 py-0.5"
+                                    :class="harMaintenancePriorityClass(item)"
+                                    x-text="harMaintenancePriorityLabel(item)"></span>
+                              <span class="text-[10px] rounded px-1.5 py-0.5"
+                                    :class="harPickResolveClass(item.ref)"
+                                    x-text="harPickResolveLabel(item.ref)"></span>
+                            </div>
+                            <span class="block text-xs text-cyan-300" x-show="item.ref.value_id && pickFieldDisplayValue(item.ref) !== item.ref.value_id" x-text="'ID ' + item.ref.value_id"></span>
+                            <span class="text-xs text-slate-500" x-show="item.ref.value_name && item.ref.value_name !== pickFieldDisplayValue(item.ref)" x-text="item.ref.value_name"></span>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
                 </div>
               </template>
-                </div>
-              </template>
-              <div x-show="parsedVars().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center">
-                该用例没有声明变量
-              </div>
-              <!-- 变量语法帮助 -->
-              <div class="px-4 py-3 text-xs text-slate-500 space-y-1">
-                <div><code class="text-amber-400">${rand:N}</code> → N 位随机数字</div>
-                <div><code class="text-amber-400">${today}</code> → 当天日期 YYYY-MM-DD</div>
-                <div><code class="text-amber-400">${vars.xxx}</code> → 引用其他变量</div>
-                <div><code class="text-amber-400">${env:XXX}</code> → 环境变量</div>
-              </div>
             </div>
           </div>
-
-          <!-- 环境相关字段面板 -->
-          <template x-if="parsedPickFields().length > 0 || harPickFields.length > 0">
-            <div class="mb-4 border border-slate-700 rounded-lg overflow-hidden">
-              <!-- 标题栏 -->
-              <div class="flex items-center justify-between px-4 py-2 bg-slate-800 cursor-pointer"
-                   @click="pickFieldsExpanded = !pickFieldsExpanded">
-                <div class="flex items-center gap-2">
-                  <svg class="w-4 h-4 text-yellow-400 transition-transform" :class="{'rotate-90': pickFieldsExpanded}" 
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                  </svg>
-                  <span class="text-sm font-medium text-slate-200">环境相关字段</span>
-                  <span class="text-xs text-slate-400" x-text="'(' + casePickFieldItems().length + '项)'"></span>
-                </div>
-                <div class="flex gap-2 text-xs">
-                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span>必改</span>
-                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>可能需改</span>
-                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span>一般不改</span>
-                </div>
-              </div>
-              <!-- 字段列表 -->
-              <div x-show="pickFieldsExpanded" x-transition class="divide-y divide-slate-700">
-                <template x-for="group in casePickFieldGroups()" :key="group.key">
-                  <div>
-                    <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
-                      <div class="min-w-0">
-                        <div class="text-xs font-medium text-yellow-200 truncate" x-text="group.label"></div>
-                        <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
-                      </div>
-                      <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
-                    </div>
-                <template x-for="pf in group.items" :key="pf.step_id">
-                  <div class="px-4 py-3 hover:bg-slate-800/50">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            :class="{
-                              'bg-red-500': pf.env_sensitive === 'high',
-                              'bg-yellow-500': pf.env_sensitive === 'medium',
-                              'bg-green-500': pf.env_sensitive === 'low'
-                            }"></span>
-                      <code class="mono text-sm text-sky-400" x-text="pf.step_id"></code>
-                      <span class="text-xs text-slate-500" x-text="'(' + pf.label + ')'"></span>
-                    </div>
-                    <div class="flex items-center gap-2 ml-5">
-                      <span class="text-xs text-slate-500">值:</span>
-                      <input type="text"
-                             class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
-                             :value="harPickFieldDraftValue(pf)"
-                             @input="setHarPickFieldDraft(pf, $event.target.value)"
-                             @keydown.enter="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">
-                      <button class="px-3 py-1 text-xs rounded bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                              @click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">保存</button>
-                    </div>
-                    <!-- 中文名称显示（当 value_name 存在且与 value_id 不同时） -->
-                    <div x-show="pf.value_name && pf.value_name !== pf.value_id" class="ml-5 mt-1">
-                      <span class="text-xs text-slate-400" x-text="'名称: ' + pf.value_name"></span>
-                    </div>
-                    <div x-show="pf.value_code || pf.value_number" class="ml-5 mt-1">
-                      <span class="text-xs text-cyan-300" x-text="'业务编码: ' + (pf.value_code || pf.value_number)"></span>
-                      <span class="ml-2 text-xs text-slate-500" x-show="pf.value_id && (pf.value_code || pf.value_number) !== pf.value_id" x-text="'内部ID: ' + pf.value_id"></span>
-                      <span class="ml-2 text-xs text-slate-500" x-show="pf.context_only">服务端默认带出，可按环境修改</span>
-                    </div>
-                    <div class="ml-5 mt-1">
-                      <span class="text-xs" 
-                            :class="{
-                              'text-red-400': pf.env_sensitive === 'high',
-                              'text-yellow-400': pf.env_sensitive === 'medium',
-                              'text-green-400': pf.env_sensitive === 'low'
-                            }"
-                            x-text="pf.env_sensitive === 'high' ? '跨环境必须修改' : pf.env_sensitive === 'medium' ? '可能需要修改' : '系统枚举，一般不需修改'">
-                      </span>
-                    </div>
-                  </div>
-                </template>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
+          <div x-show="caseMaintenanceItems().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center border border-slate-800 rounded-lg">
+            该用例没有可维护业务字段
+          </div>
         </div>
 
         <!-- Tab: YAML 编辑器 -->
@@ -1320,11 +1281,30 @@
         <div class="text-xs text-slate-500 mb-4">或</div>
         <label class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded cursor-pointer inline-block shadow-lg shadow-sky-900/30 hover:-translate-y-0.5 transition-all">
           选择文件
-          <input type="file" class="hidden" accept=".har" @change="onFileHar($event)">
+          <input type="file" class="hidden" accept=".har" multiple @change="onFileHar($event)">
         </label>
+        <div class="text-xs text-slate-500 mt-3">可一次选择多个 HAR 批量导入；需要逐字段确认时请选择单个 HAR。</div>
       </div>
       <div x-show="harUploading" class="mt-4 text-sm text-sky-400 text-center">
         <span class="pulse-dot">●</span> 正在解析 HAR...
+      </div>
+      <div x-show="harBatchResults.length > 0" class="mt-4 border border-slate-800 rounded-lg overflow-hidden">
+        <div class="px-3 py-2 bg-slate-950 text-xs text-slate-400 flex items-center justify-between">
+          <span>批量导入结果</span>
+          <span x-text="harBatchSummary()"></span>
+        </div>
+        <div class="divide-y divide-slate-800 max-h-64 overflow-y-auto">
+          <template x-for="item in harBatchResults" :key="item.file">
+            <div class="px-3 py-2 text-xs flex items-center gap-2">
+              <span class="w-4 text-center"
+                    :class="{'text-slate-500': item.status==='pending', 'text-sky-400': item.status==='running', 'text-emerald-400': item.status==='ok', 'text-rose-400': item.status==='fail'}"
+                    x-text="{pending:'○', running:'●', ok:'✓', fail:'✗'}[item.status] || '○'"></span>
+              <span class="text-slate-300 truncate flex-1" x-text="item.file"></span>
+              <span class="text-slate-500 truncate max-w-sm" x-show="item.case_name" x-text="'→ ' + item.case_name"></span>
+              <span class="text-rose-400 truncate max-w-sm" x-show="item.error" x-text="item.error"></span>
+            </div>
+          </template>
+        </div>
       </div>
 
       <!-- 内联帮助：如何获取 HAR -->
@@ -1728,18 +1708,21 @@
         </div>
       </div>
 
-      <!-- ⭐ HAR 维护字段面板：按录制维护顺序合并展示变量和环境字段 -->
+      <!-- ⭐ HAR 可维护业务字段面板：按录制顺序合并展示用户可安全修改的业务字段 -->
       <div x-show="harMaintenanceItems().length > 0"
            class="bg-slate-950 border border-sky-900/40 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="text-sky-400 text-sm">&#9776;</span>
-            <span class="text-sm font-medium text-sky-200">HAR 维护字段</span>
-            <span class="text-xs text-slate-500">智能用例变量 + 环境字段，按录制维护顺序展示，可直接修改本次用例要回放的业务值和环境值</span>
+            <span class="text-sm font-medium text-sky-200">可维护业务字段</span>
+            <span class="text-xs text-slate-500">按录制顺序展示用户可能需要修改的业务值；系统字段、锁定字段和技术上下文已自动隐藏</span>
             <span class="text-[11px] rounded bg-cyan-900/50 px-2 py-0.5 text-cyan-200"
-                  x-text="'智能用例变量 ' + (harVarConfig || []).length + ' 项'"></span>
+                  x-text="'录入字段 ' + harMaintenanceKindCount('var') + ' 项'"></span>
             <span class="text-[11px] rounded bg-orange-900/50 px-2 py-0.5 text-orange-200"
-                  x-text="'环境字段 ' + (harPickFields || []).length + ' 项'"></span>
+                  x-text="'选择字段 ' + harMaintenanceKindCount('pick') + ' 项'"></span>
+            <span x-show="harHiddenMaintenanceCount() > 0"
+                  class="text-[11px] rounded bg-slate-800 px-2 py-0.5 text-slate-400"
+                  x-text="'已隐藏技术字段 ' + harHiddenMaintenanceCount() + ' 项'"></span>
           </div>
           <span class="text-xs text-slate-500" x-text="harMaintenanceItems().length + ' 项'"></span>
         </div>
@@ -1774,8 +1757,13 @@
                       <input type="text" x-model="item.ref.template" :disabled="!item.ref.enabled"
                              class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono disabled:opacity-30 disabled:cursor-not-allowed"
                              placeholder="模板值">
-                      <div class="w-40 shrink-0 text-right">
-                        <span class="block text-[10px] text-sky-300">智能变量</span>
+                      <div class="w-44 shrink-0 text-right">
+                        <div class="flex justify-end gap-1 mb-0.5">
+                          <span class="text-[10px] rounded px-1.5 py-0.5"
+                                :class="harMaintenancePriorityClass(item)"
+                                x-text="harMaintenancePriorityLabel(item)"></span>
+                          <span class="text-[10px] rounded px-1.5 py-0.5 bg-sky-900/50 text-sky-200">录入值</span>
+                        </div>
                         <code class="mono text-[10px] text-slate-500" x-text="'${vars.' + item.ref.name + '}'"></code>
                       </div>
                     </div>
@@ -1799,8 +1787,15 @@
                              :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
                       <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                               @click="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')">确认</button>
-                      <div class="w-40 shrink-0 text-right">
-                        <span class="block text-[10px] text-orange-300" x-text="item.ref.id"></span>
+                      <div class="w-44 shrink-0 text-right">
+                        <div class="flex justify-end gap-1 mb-0.5">
+                          <span class="text-[10px] rounded px-1.5 py-0.5"
+                                :class="harMaintenancePriorityClass(item)"
+                                x-text="harMaintenancePriorityLabel(item)"></span>
+                          <span class="text-[10px] rounded px-1.5 py-0.5"
+                                :class="harPickResolveClass(item.ref)"
+                                x-text="harPickResolveLabel(item.ref)"></span>
+                        </div>
                         <span class="block text-[10px] text-amber-300" x-show="item.ref.user_overridden">已修改，生成 YAML 后生效</span>
                         <span class="block text-xs text-cyan-300" x-show="item.ref.value_id && pickFieldDisplayValue(item.ref) !== item.ref.value_id" x-text="'ID ' + item.ref.value_id"></span>
                         <span class="text-xs text-slate-500" x-show="item.ref.value_name && item.ref.value_name !== pickFieldDisplayValue(item.ref)" x-text="item.ref.value_name"></span>
@@ -1815,9 +1810,9 @@
           </template>
         </div>
         <div class="text-xs text-slate-500 mt-2">
-          提示：模板中 <code class="text-purple-400">${rand:N}</code> 表示 N 位随机数字，
+          提示：这里展示的是业务用户可安全维护的字段；模板中 <code class="text-purple-400">${rand:N}</code> 表示 N 位随机数字，
           <code class="text-purple-400">${today}</code> 表示当天日期。
-          禁用变量后，该字段将保留 HAR 中的原始值。
+          禁用录入字段后，该字段将保留 HAR 中的原始值。
         </div>
       </div>
       <div x-show="false && harPickFields.length > 0"
@@ -2771,7 +2766,8 @@
                         <span class="shrink-0 w-1.5 h-1.5 rounded-full"
                               :class="{'bg-red-500': ef.env_sensitive === 'high', 'bg-yellow-500': ef.env_sensitive === 'medium', 'bg-green-500': ef.env_sensitive === 'low'}"></span>
                         <span class="text-slate-400" x-text="ef.label"></span>
-                        <code class="mono text-amber-300" x-text="ef.value_id"></code>
+                        <code class="mono text-amber-300" x-text="envFieldDisplayValue(ef)"></code>
+                        <span class="text-cyan-400 mono" x-show="ef.value_id && envFieldDisplayValue(ef) !== String(ef.value_id)" x-text="'ID ' + ef.value_id"></span>
                         <span class="text-slate-400 mono" x-show="ef.value_name" x-text="'(' + ef.value_name + ')'"></span>
                       </div>
                     </template>
@@ -3284,6 +3280,8 @@ function app() {
 	    metadataStatus: 'offline',  // ⭐ 元数据增强状态: online/offline/degraded
 	    harAdvancedOpen: false,
 	    dropHover: false,
+	    harBatchImporting: false,
+	    harBatchResults: [],
 
     // Dashboard 增强
     caseSearch: '',
@@ -3531,11 +3529,15 @@ function app() {
     },
 
     // ======== 用例详情 ========
-    async openCase(name) {
-      const data = await (await fetch(`/api/cases/${name}/yaml`)).json();
-      this.currentCase = this.cases.find(c => c.name === name);
-      this.yamlSource = data.yaml;
-      this.yamlDirty = false;
+	    async openCase(name) {
+	      const data = await (await fetch(`/api/cases/${name}/yaml`)).json();
+	      this.currentCase = this.cases.find(c => c.name === name);
+	      this.yamlSource = data.yaml;
+	      this.harPreview = null;
+	      this.harVarConfig = [];
+	      this.harPickFields = [];
+	      this.hydrateCasePickFieldDrafts();
+	      this.yamlDirty = false;
       this.selectedStep = null;
       this.detailTab = 'result';
       this.view = 'case_detail';
@@ -3594,6 +3596,30 @@ function app() {
       await fetch(`/api/cases/${name}`, {method: 'DELETE'});
       await this.loadCases();
       this.showToast('已删除');
+    },
+
+    async copyCase(name) {
+      const source = this.cases.find(c => c.name === name);
+      const baseLabel = source?.display_name || name;
+      const suggested = `${baseLabel}-副本`;
+      const newName = prompt('复制为新用例名称', suggested);
+      if (!newName || !newName.trim()) return;
+      try {
+        const resp = await fetch(`/api/cases/${encodeURIComponent(name)}/copy`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({new_name: newName.trim()}),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '复制失败');
+        }
+        await this.loadCases();
+        this.showToast('已复制为 ' + data.name);
+        await this.openCase(data.name);
+      } catch (e) {
+        this.showToast('复制失败: ' + e.message);
+      }
     },
 
     // ⭐ 用例名称编辑方法
@@ -3715,9 +3741,12 @@ function app() {
         await this.openCase(name);
       }
 
-      if (this.currentCase?.name === name && this.yamlDirty) {
-        await this.saveYaml();
-      }
+	      if (this.currentCase?.name === name && this.yamlDirty) {
+	        await this.saveYaml();
+	      }
+	      if (this.currentCase?.name === name) {
+	        await this.savePendingCasePickFieldDrafts();
+	      }
 
       // 如果这个 case 有未结束的 run，直接恢复状态而不是新起一次
       if (this.activeRuns[name] && this.activeRuns[name].running) {
@@ -4254,16 +4283,132 @@ function app() {
       this.metadataStatus = 'offline';
       this.harAdvancedOpen = false;
       this.dropHover = false;
+      this.harBatchImporting = false;
+      this.harBatchResults = [];
     },
 
     async onDropHar(ev) {
       this.dropHover = false;
-      const file = ev.dataTransfer.files[0];
-      if (file) await this.uploadHar(file);
+      const files = Array.from(ev.dataTransfer.files || []);
+      if (files.length > 1) await this.importHarBatch(files);
+      else if (files[0]) await this.uploadHar(files[0]);
     },
     async onFileHar(ev) {
-      const file = ev.target.files[0];
-      if (file) await this.uploadHar(file);
+      const files = Array.from(ev.target.files || []);
+      ev.target.value = '';
+      if (files.length > 1) await this.importHarBatch(files);
+      else if (files[0]) await this.uploadHar(files[0]);
+    },
+
+    harBatchSummary() {
+      const total = this.harBatchResults.length;
+      const ok = this.harBatchResults.filter(item => item.status === 'ok').length;
+      const fail = this.harBatchResults.filter(item => item.status === 'fail').length;
+      const running = this.harBatchResults.filter(item => item.status === 'running').length;
+      if (!total) return '';
+      return running ? `${ok}/${total} 已完成` : `${ok} 成功 / ${fail} 失败`;
+    },
+
+    uniqueCaseName(baseName, used = null) {
+      const existing = used || new Set((this.cases || []).map(c => c.name));
+      const base = String(baseName || 'untitled').replace(/\.har$/i, '').trim() || 'untitled';
+      let name = base;
+      let suffix = 2;
+      while (existing.has(name)) {
+        name = `${base}-${suffix}`;
+        suffix += 1;
+      }
+      existing.add(name);
+      return name;
+    },
+
+    _defaultVarOverrides(preview = {}) {
+      const out = {};
+      for (const vc of (preview.detected_vars || [])) {
+        out[vc.name] = {
+          enabled: vc.enabled,
+          template: vc.template,
+        };
+      }
+      return out;
+    },
+
+    _defaultPickFieldOverrides(preview = {}) {
+      const out = {};
+      for (const pf of (preview.pick_fields || [])) {
+        const manualOverride = !!pf.manual_override && (pf.resolve_status === 'manual' || !pf.value_code);
+        out[pf.id] = {
+          value_id: pf.value_id,
+          value_name: pf.value_name,
+          value_code: pf.value_code || '',
+          value_number: pf.value_number || '',
+          auto_resolve: !!pf.auto_resolve && !manualOverride,
+          resolve_by: pf.resolve_by || '',
+          resolve_status: pf.resolve_status || '',
+          manual_override: manualOverride,
+          user_overridden: !!pf.user_overridden,
+        };
+      }
+      return out;
+    },
+
+    async importHarBatch(files) {
+      const harFiles = Array.from(files || []).filter(file => file.name.toLowerCase().endsWith('.har'));
+      if (!harFiles.length) {
+        this.showToast('请选择 .har 文件');
+        return;
+      }
+      this.harStep = 1;
+      this.harBatchImporting = true;
+      this.harUploading = true;
+      this.harBatchResults = harFiles.map(file => ({file: file.name, status: 'pending', case_name: '', error: ''}));
+      const usedNames = new Set((this.cases || []).map(c => c.name));
+      const envId = this.currentEnv || '';
+      for (let i = 0; i < harFiles.length; i++) {
+        const file = harFiles[i];
+        const row = this.harBatchResults[i];
+        row.status = 'running';
+        this.harBatchResults = [...this.harBatchResults];
+        try {
+          const previewResp = await fetch(`/api/har/preview?filename=${encodeURIComponent(file.name)}&env_id=${encodeURIComponent(envId)}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/octet-stream'},
+            body: file,
+          });
+          const previewData = await previewResp.json();
+          if (!previewResp.ok || !previewData.ok) {
+            throw new Error(previewData.detail || previewData.error || `预览失败 ${previewResp.status}`);
+          }
+          const caseName = this.uniqueCaseName(file.name.replace(/\.har$/i, ''), usedNames);
+          const extractResp = await fetch('/api/har/extract', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              har_file: previewData.har_file,
+              case_name: caseName,
+              env_id: envId,
+              var_overrides: this._defaultVarOverrides(previewData.preview),
+              pick_field_overrides: this._defaultPickFieldOverrides(previewData.preview),
+              include_readback_assertions: !!((previewData.preview?.readback_plan?.plans || []).length),
+            }),
+          });
+          const extractData = await extractResp.json();
+          if (!extractResp.ok || !extractData.ok) {
+            throw new Error(extractData.detail || extractData.error || `生成失败 ${extractResp.status}`);
+          }
+          row.status = 'ok';
+          row.case_name = extractData.name || caseName;
+        } catch (e) {
+          row.status = 'fail';
+          row.error = e.message || String(e);
+        }
+        this.harBatchResults = [...this.harBatchResults];
+      }
+      this.harBatchImporting = false;
+      this.harUploading = false;
+      await this.loadCases();
+      const ok = this.harBatchResults.filter(item => item.status === 'ok').length;
+      this.showToast(`批量导入完成：${ok}/${this.harBatchResults.length} 成功`);
     },
 
     async uploadHar(file) {
@@ -4285,16 +4430,25 @@ function app() {
         this.harFile = data.har_file;
         // ⭐ 存储元数据增强状态
         this.metadataStatus = data.metadata_status || 'offline';
-        // ⭐ 初始化变量配置面板
-        this.harVarConfig = (data.preview.detected_vars || []).map(v => ({...v}));
-        // ⭐ 初始化环境相关字段面板（按 env_sensitive 排序，与变量面板一致）
+        // ⭐ 初始化变量/环境字段配置面板：优先使用 field_catalog 保持 HAR 录入顺序
+        const catalogOrder = this._harFieldCatalogOrderMaps(data.preview);
+        this.harVarConfig = (data.preview.detected_vars || []).map(v => ({
+          ...v,
+          _catalog_order: this._harCatalogOrderForVar(v, catalogOrder),
+        }));
         const SENS_ORDER = { high: 0, medium: 1, low: 2 };
         this.harPickFields = (data.preview.pick_fields || []).map(pf => {
           const item = {...pf};
           item.edit_value = this.pickFieldDisplayValue(item);
+          item._catalog_order = this._harCatalogOrderForPick(item, catalogOrder);
           return item;
         })
-            .sort((a, b) => (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1));
+            .sort((a, b) => {
+              const ao = Number.isFinite(a._catalog_order) ? a._catalog_order : 99999;
+              const bo = Number.isFinite(b._catalog_order) ? b._catalog_order : 99999;
+              if (ao !== bo) return ao - bo;
+              return (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1);
+            });
         this.hydrateHarPickFieldDrafts();
         this.harIncludeReadbackAssertions = this.harReadbackPlanCount() > 0;
         this.harCaseName = file.name.replace(/\.har$/i, '');
@@ -4603,6 +4757,11 @@ function app() {
       return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
     },
 
+    envFieldDisplayValue(ef) {
+      if (!ef) return '';
+      return String(ef.display_value || ef.value_code || ef.value_number || ef.value_name || ef.value_id || '');
+    },
+
     pickFieldDisplayValue(pf) {
       if (!pf) return '';
       const key = this.pickFieldDraftKey(pf);
@@ -4612,15 +4771,25 @@ function app() {
       return this.pickFieldStoredDisplayValue(pf);
     },
 
-    hydrateHarPickFieldDrafts() {
-      const drafts = {};
-      for (const pf of (this.harPickFields || [])) {
-        const key = this.pickFieldDraftKey(pf);
+	    hydrateHarPickFieldDrafts() {
+	      const drafts = {};
+	      for (const pf of (this.harPickFields || [])) {
+	        const key = this.pickFieldDraftKey(pf);
         if (!key) continue;
         drafts[key] = this.pickFieldStoredDisplayValue(pf);
-      }
-      this.harPickFieldDrafts = drafts;
-    },
+	      }
+	      this.harPickFieldDrafts = drafts;
+	    },
+
+	    hydrateCasePickFieldDrafts() {
+	      const drafts = {};
+	      for (const pf of (this.parsedPickFields() || [])) {
+	        const key = this.pickFieldDraftKey(pf);
+	        if (!key) continue;
+	        drafts[key] = this.pickFieldStoredDisplayValue(pf);
+	      }
+	      this.harPickFieldDrafts = drafts;
+	    },
 
     harPickFieldDraftValue(pf) {
       if (!pf) return '';
@@ -4631,15 +4800,32 @@ function app() {
       return this.pickFieldStoredDisplayValue(pf);
     },
 
-    setHarPickFieldDraft(pf, value) {
-      if (!pf) return;
-      const key = this.pickFieldDraftKey(pf);
-      if (!key) return;
+	    setHarPickFieldDraft(pf, value) {
+	      if (!pf) return;
+	      const key = this.pickFieldDraftKey(pf);
+	      if (!key) return;
       const text = String(value || '');
       this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
-      pf.edit_value = text;
-      this.markHarPickFieldDraft(pf);
-    },
+	      pf.edit_value = text;
+	      this.markHarPickFieldDraft(pf);
+	    },
+
+	    async savePendingCasePickFieldDrafts() {
+	      if (!this.currentCase) return;
+	      const pending = [];
+	      for (const pf of (this.parsedPickFields() || [])) {
+	        const key = this.pickFieldDraftKey(pf);
+	        if (!key || !this.harPickFieldDrafts || !Object.prototype.hasOwnProperty.call(this.harPickFieldDrafts, key)) {
+	          continue;
+	        }
+	        const draft = String(this.harPickFieldDrafts[key] || '').trim();
+	        const stored = String(this.pickFieldStoredDisplayValue(pf) || '').trim();
+	        if (draft && draft !== stored) pending.push({key, value: draft});
+	      }
+	      for (const item of pending) {
+	        await this.savePickFieldValue(item.key, item.value, 'display');
+	      }
+	    },
 
     pickFieldDisplayKind(pf) {
       if (!pf) return 'id';
@@ -4701,21 +4887,153 @@ function app() {
       return this._groupFieldItems(this.harPickFields || [], '环境字段');
     },
 
-    _harStepOrderMap() {
-      const order = new Map();
-      for (const [idx, step] of (this.harPreview?.steps || []).entries()) {
-        if (step?.id && !order.has(step.id)) order.set(step.id, idx);
-      }
-      return order;
+	    _harStepOrderMap() {
+	      const order = new Map();
+	      for (const [idx, step] of (this.harPreview?.steps || []).entries()) {
+	        if (step?.id && !order.has(step.id)) order.set(step.id, idx);
+	      }
+	      return order;
+	    },
+
+	    _harStepOrderMapFromSteps(steps = []) {
+	      const order = new Map();
+	      for (const [idx, step] of (steps || []).entries()) {
+	        if (step?.id && !order.has(step.id)) order.set(step.id, idx);
+	      }
+	      return order;
+	    },
+
+    _harFieldScopeKey(formId, fieldKey) {
+      return `${formId || ''}::${String(fieldKey || '').toLowerCase()}`;
+    },
+
+    _harFieldCatalogOrderMaps(preview = null) {
+      const byVar = new Map();
+      const byPick = new Map();
+      const byField = new Map();
+      const catalog = (preview || this.harPreview || {}).field_catalog || [];
+      const remember = (map, key, order) => {
+        if (!key) return;
+        if (!map.has(key) || order < map.get(key)) map.set(key, order);
+      };
+      catalog.forEach((item, idx) => {
+        const rawOrder = Number(item?.order);
+        const order = Number.isFinite(rawOrder) ? Math.max(rawOrder - 1, 0) : idx;
+        const scopeKey = this._harFieldScopeKey(item?.form_id, item?.field_key);
+        remember(byField, scopeKey, order);
+        (item?.vars || []).forEach(name => remember(byVar, name, order));
+        (item?.pick_fields || []).forEach(id => remember(byPick, id, order));
+      });
+      return {byVar, byPick, byField};
+    },
+
+    _harCatalogOrderForVar(v, maps = null) {
+      const orderMaps = maps || this._harFieldCatalogOrderMaps();
+      if (v?.name && orderMaps.byVar.has(v.name)) return orderMaps.byVar.get(v.name);
+      const scopeKey = this._harFieldScopeKey(v?.form_id, v?.field_key);
+      if (orderMaps.byField.has(scopeKey)) return orderMaps.byField.get(scopeKey);
+      return 99999;
+    },
+
+    _harCatalogOrderForPick(pf, maps = null) {
+      const orderMaps = maps || this._harFieldCatalogOrderMaps();
+      const pickId = pf?.id || pf?.step_id || '';
+      if (pickId && orderMaps.byPick.has(pickId)) return orderMaps.byPick.get(pickId);
+      const scopeKey = this._harFieldScopeKey(pf?.form_id, pf?.field_key);
+      if (orderMaps.byField.has(scopeKey)) return orderMaps.byField.get(scopeKey);
+      return 99999;
     },
 
     _harMaintenanceOrder(item, stepOrder) {
       const ref = item?.ref || {};
-      const source = ref.source_step_id || ref.step_id || ref.id || ref.name || '';
+	      if (Number.isFinite(ref._catalog_order)) return ref._catalog_order;
+	      const source = ref.source_step_id || ref.step_id || ref.id || ref.name || ref.key || '';
       if (source && stepOrder.has(source)) return stepOrder.get(source);
       const write = ref.write_step_id || '';
       if (write && stepOrder.has(write)) return stepOrder.get(write);
       return 99999;
+    },
+
+	    harMaintenanceTechnicalField(ref = {}) {
+	      const parts = [
+	        ref.id,
+	        ref.step_id,
+	        ref.key,
+	        ref.name,
+	        ref.field_key,
+	        ref.label,
+	        ref.source_step_id,
+      ].map(v => String(v || '').toLowerCase());
+      const text = parts.join(' ');
+      if (!text.trim()) return false;
+      if (ref.readonly === true) return true;
+      return [
+        'pageid',
+        'page_id',
+        'parentpageid',
+        'csrf',
+        'cookie',
+        'session',
+        'token',
+        'traceid',
+        'root_page',
+        'treeview.focus',
+        'env_click_',
+        'menuid',
+      ].some(token => text.includes(token));
+    },
+
+	    harMaintenanceBusinessItem(ref = {}, kind = '') {
+	      if (!ref || typeof ref !== 'object') return false;
+	      if (this.harMaintenanceTechnicalField(ref)) return false;
+	      if (kind === 'var') return !!(ref.name || ref.key || ref.field_key || ref.label);
+	      if (kind === 'pick') {
+	        if (ref.readonly === true) return false;
+	        return !!(ref.id || ref.step_id || ref.field_key || ref.label);
+      }
+      return true;
+    },
+
+    harMaintenancePriorityLabel(item) {
+      const ref = item?.ref || {};
+      if (ref.required_context || ref.required || ref.env_sensitive === 'high') return '必填';
+      if (ref.env_sensitive === 'medium') return '建议';
+      return '可选';
+    },
+
+    harMaintenancePriorityClass(item) {
+      const label = this.harMaintenancePriorityLabel(item);
+      if (label === '必填') return 'bg-red-900/60 text-red-200';
+      if (label === '建议') return 'bg-amber-900/60 text-amber-200';
+      return 'bg-slate-800 text-slate-300';
+    },
+
+    harPickResolveLabel(pf = {}) {
+      const status = String(pf.resolve_status || pf.status || '').toLowerCase();
+      if (pf.user_overridden) return '已修改';
+      if (status === 'resolved' || status === 'ok' || status === 'matched') return '已解析';
+      if (status === 'not_found' || status === 'error') return '未解析';
+      if (status === 'ambiguous') return '需确认';
+      if (pf.auto_resolve) return '待解析';
+      return '手动值';
+    },
+
+    harPickResolveClass(pf = {}) {
+      const label = this.harPickResolveLabel(pf);
+      if (label === '已解析' || label === '已修改') return 'bg-emerald-900/60 text-emerald-200';
+      if (label === '未解析') return 'bg-red-900/60 text-red-200';
+      if (label === '需确认' || label === '待解析') return 'bg-amber-900/60 text-amber-200';
+      return 'bg-slate-800 text-slate-300';
+    },
+
+    harHiddenMaintenanceCount() {
+      const hiddenVars = (this.harVarConfig || []).filter(v => !this.harMaintenanceBusinessItem(v, 'var')).length;
+      const hiddenPicks = (this.harPickFields || []).filter(pf => !this.harMaintenanceBusinessItem(pf, 'pick')).length;
+      return hiddenVars + hiddenPicks;
+    },
+
+    harMaintenanceKindCount(kind) {
+      return this.harMaintenanceItems().filter(item => item.kind === kind).length;
     },
 
     harMaintenanceItems() {
@@ -4723,6 +5041,7 @@ function app() {
       const items = [];
       for (const v of (this.harVarConfig || [])) {
         if (!v || typeof v !== 'object') continue;
+        if (!this.harMaintenanceBusinessItem(v, 'var')) continue;
         const order = this._harMaintenanceOrder({ref: v}, stepOrder);
         items.push({
           key: 'var:' + (v.name || order),
@@ -4739,6 +5058,7 @@ function app() {
       }
       for (const pf of (this.harPickFields || [])) {
         if (!pf || typeof pf !== 'object') continue;
+        if (!this.harMaintenanceBusinessItem(pf, 'pick')) continue;
         const order = this._harMaintenanceOrder({ref: pf}, stepOrder);
         items.push({
           key: 'pick:' + (pf.id || pf.step_id || order),
@@ -4764,39 +5084,78 @@ function app() {
       return this._groupFieldItems(this.harMaintenanceItems(), 'HAR 维护字段');
     },
 
-    casePickFieldItems() {
-      const parsed = this.parsedPickFields();
-      if (parsed.length > 0) return parsed;
-      return (this.harPickFields || []).map(h => ({
-        step_id: h.step_id || h.id,
-        id: h.id,
-        label: h.label,
-        env_sensitive: h.env_sensitive,
-        value_id: h.value_id,
-        value_name: h.value_name || '',
-        value_code: h.value_code || '',
-        value_number: h.value_number || '',
-        resolve_by: h.resolve_by || '',
-        auto_resolve: !!h.auto_resolve,
-        resolve_status: h.resolve_status || '',
-        context_only: !!h.context_only,
-        readonly: !!h.readonly,
-        form_id: h.form_id || '',
-        form_label: h.form_label || '',
-        group_key: h.group_key || '',
-        group_label: h.group_label || '',
-        source_step_id: h.source_step_id || '',
-        write_step_id: h.write_step_id || '',
-      }));
-    },
+	    casePickFieldItems() {
+	      const parsed = this.parsedPickFields();
+	      return parsed;
+	    },
 
-    casePickFieldGroups() {
-      return this._groupFieldItems(this.casePickFieldItems(), '环境字段');
-    },
+	    casePickFieldGroups() {
+	      return this._groupFieldItems(this.casePickFieldItems(), '环境字段');
+	    },
 
-    parsedVarGroups() {
-      return this._groupFieldItems(this.parsedVars(), '智能变量');
-    },
+	    parsedVarGroups() {
+	      return this._groupFieldItems(this.parsedVars(), '智能变量');
+	    },
+
+	    caseHiddenMaintenanceCount() {
+	      const hiddenVars = (this.parsedVars() || []).filter(v => !this.harMaintenanceBusinessItem(v, 'var')).length;
+	      const hiddenPicks = (this.casePickFieldItems() || []).filter(pf => !this.harMaintenanceBusinessItem(pf, 'pick')).length;
+	      return hiddenVars + hiddenPicks;
+	    },
+
+	    caseMaintenanceKindCount(kind) {
+	      return this.caseMaintenanceItems().filter(item => item.kind === kind).length;
+	    },
+
+	    caseMaintenanceItems() {
+	      const stepOrder = this._harStepOrderMapFromSteps(this.parsedSteps());
+	      const items = [];
+	      for (const raw of (this.parsedVars() || [])) {
+	        if (!raw || typeof raw !== 'object') continue;
+	        const v = {...raw, name: raw.name || raw.key};
+	        if (!this.harMaintenanceBusinessItem(v, 'var')) continue;
+	        const order = this._harMaintenanceOrder({ref: v}, stepOrder);
+	        items.push({
+	          key: 'var:' + (v.key || v.name || order),
+	          kind: 'var',
+	          ref: v,
+	          label: v.label || v.category || v.key || v.name || '录入字段',
+	          order,
+	          orderLabel: order < 99999 ? String(order + 1) : '',
+	          form_id: v.form_id || '',
+	          form_label: v.form_label || '',
+	          group_key: v.group_key || (v.form_id ? `${v.form_id}:context` : 'default:unscoped'),
+	          group_label: v.group_label || v.form_label || '录入字段',
+	        });
+	      }
+	      for (const raw of (this.casePickFieldItems() || [])) {
+	        if (!raw || typeof raw !== 'object') continue;
+	        const pf = {...raw, id: raw.id || raw.step_id};
+	        if (!this.harMaintenanceBusinessItem(pf, 'pick')) continue;
+	        const order = this._harMaintenanceOrder({ref: pf}, stepOrder);
+	        items.push({
+	          key: 'pick:' + (pf.id || pf.step_id || order),
+	          kind: 'pick',
+	          ref: pf,
+	          label: pf.label || pf.field_key || pf.id || pf.step_id || '选择字段',
+	          order,
+	          orderLabel: order < 99999 ? String(order + 1) : '',
+	          form_id: pf.form_id || '',
+	          form_label: pf.form_label || '',
+	          group_key: pf.group_key || (pf.form_id ? `${pf.form_id}:context` : 'default:unscoped'),
+	          group_label: pf.group_label || pf.form_label || '选择字段',
+	        });
+	      }
+	      return items.sort((a, b) => {
+	        if (a.order !== b.order) return a.order - b.order;
+	        if (a.kind !== b.kind) return a.kind === 'var' ? -1 : 1;
+	        return String(a.label).localeCompare(String(b.label));
+	      });
+	    },
+
+	    caseMaintenanceGroups() {
+	      return this._groupFieldItems(this.caseMaintenanceItems(), '可维护业务字段');
+	    },
 
 	    updateHarPickFieldDisplayValue(stepId, value) {
       const text = String(value || '').trim();
@@ -5071,6 +5430,7 @@ function app() {
                 `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
+        '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
         '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
         '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
         '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
@@ -5112,6 +5472,7 @@ function app() {
         `技术证据包：${evidenceUrl}`,
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
+        '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
         '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
         '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
         '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
@@ -6807,9 +7168,10 @@ function app() {
         if (!resp.ok) throw new Error(data.detail || '保存失败');
         // 刷新 YAML
         var yamlResp = await fetch('/api/cases/' + encodeURIComponent(caseName) + '/yaml');
-        var yamlData = await yamlResp.json();
-        this.yamlSource = yamlData.yaml;
-        this.yamlDirty = false;
+	        var yamlData = await yamlResp.json();
+	        this.yamlSource = yamlData.yaml;
+	        this.hydrateCasePickFieldDrafts();
+	        this.yamlDirty = false;
         this.showToast('✓ 字段值已保存');
       } catch(e) {
         // ⭐ API失败时不回滚本地值，显示错误信息

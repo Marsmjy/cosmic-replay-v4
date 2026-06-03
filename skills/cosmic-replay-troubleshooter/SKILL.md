@@ -7,6 +7,18 @@ description: Cosmic Replay 执行故障排查与诊断专家。Use when an AI Ag
 
 快速定位 Cosmic Replay 用例执行失败的根因，面向 AI Agent 精确到代码位置与修复步骤。
 
+## 项目核心目标（最高优先级）
+
+AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不能只把当前报错压下去，也不能把最终 PASS 当成入库成功：
+
+1. HAR 解析要识别真正可维护字段：文本、大文本、多语言、日期/时间、复选框/开关、下拉、F7/基础资料、多选基础资料、分录、子弹窗、按钮和模板/上下文字段。
+2. 用户在预览页或变量面板维护的值，必须进入最终 YAML 和运行时回放；执行不能继续使用 HAR 旧值。
+3. 下拉、F7、基础资料和 selector 字段要用用户维护的编码/名称调用目标环境接口解析真实 id、候选行和 selDatas，再回填模型上下文。
+4. 换环境后会话、CSRF、签名、账号权限、菜单入口、组织、人员、模板、业务上下文和系统托管字段都要动态适配。
+5. 执行结果不能只看无异常或最终 PASS，必须校验保存/提交响应、错误提示、无效请求和必要的只读入库回查。
+6. 修复经验要沉淀为通用解析/执行规则、字段类型知识库、经验库和测试，而不是只硬补当前 YAML。
+7. 原始 HAR 批量导入后要比较优化前后解析质量、维护易用性、执行结果和入库证据，并输出可行动报告。
+
 ## 先读原则
 
 外部顾问、Qoder Work、Codex、Kiro、WorkBuddy 或任何新 AI Agent 接手本项目时，先阅读：
@@ -352,6 +364,7 @@ post_data:
 - selector 字段在预览页或用例详情页修改业务编码后，旧 `value_id/value_name/value_number` 可能残留。若 `selector_source=entryRowClick` 且 `resolve_by=value_code`，诊断时以用户覆盖后的 `value_code` 为权威；`resolved_request.post_data.selDatas` 必须出现新编码对应的整行和真实内部主键，而不是旧行或把编码塞入主键列。
 - 所有需要前端维护值的下拉/F7/基础资料字段，都应先形成运行期 `env_resolution_plan`：基础资料走 `getLookUpList`，F7/list selector 走对应 `loadData` 的 `dataindex/rows`，普通枚举/日期走 `update_fields` 字面量。诊断时先看 `case_start.env_resolution_plan` 和后续 `env_fields_resolved/env_field_resolved`，确认维护编码是否被接口候选解析成真实 id/row/selDatas；不要直接改保存包体或依赖 HAR 录制旧值。
 - 明细表格中的用户录入数值（如定调薪 `khr_hpostallowance/khr_hmonthlyincome/khr_hmonthlybonus`，以及加班明细 `bizdate/kd311/kd305/kd306`）属于智能用例变量，不属于环境字段。若预览面板未展示，应检查 `detect_var_placeholders` 是否支持该字段 key 和非字符串数值；不要把这类金额/小时字段硬放进 `pick_fields`。
+- 在线导入 HAR 时会将 `getEntityType.do` 返回的字段原始类型（如 `TextProp/BasedataProp/MulBasedataProp/ComboProp/MulComboProp/BooleanProp/DateProp/DateTimeProp/EntryProp`）沉淀到 runtime field type catalog；离线或后续 HAR 导入应优先复用该 catalog 做统一字段分类，再回退知识库和 HAR 启发式。若字段类型识别异常，先看 `preview.field_catalog`、`vars_meta.field_category`、`pick_fields.*.field_category/metadata_type/field_type_source`。
 - 子弹窗里的业务输入值（如 `bizdate/kd311/kd305/kd306`）应进入智能用例变量，不能因为最终保存 PASS 就忽略中间明细字段。
 - 验证时不能只看最终 PASS，要检查最终保存响应或前一步确认响应中是否包含明细字段回填，例如 `entryentity.rows` 的 `bizdate/kd311/kd305/kd306`。
 - 写库链路或 F7/selector/子弹窗修复完成后，不能只跑单测和 HAR compare。必须用原始 HAR 重新导入生成一个新 case，再在目标环境执行一次；只有执行通过并且保存/提交响应或只读入库回查满足证据标准，才可判定修复完成。若执行失败，继续基于新 run 的 evidence 排查，不能用旧用例执行结果代替确认。

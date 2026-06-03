@@ -244,10 +244,11 @@ class TestVariableDetection:
             "post_data": [{}, [{"k": "effectdate", "v": "2026-04-28"}]]
         }]
         modified, vars_map, vars_labels = detect_var_placeholders(actions)
-        # 检查日期是否被替换
+        # 日期字段保留 HAR 录入值，避免跨环境回放时被 today 改写。
         for e in actions[0]["post_data"][1]:
             if isinstance(e, dict) and "v" in e:
-                assert e["v"] == "${today}" or "today" in vars_map.values()
+                assert e["v"] == "2026-04-28"
+        assert vars_map == {}
 
     def test_detect_description_field_from_save_click_post_data(self):
         """保存按钮携带的描述字段应被抽取为智能变量"""

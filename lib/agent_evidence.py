@@ -96,6 +96,7 @@ def build_repair_evidence_package(
             str(skill_root / "skills" / "cosmic-hr-expert" / "SKILL.md"),
         ],
         "guardrails": [
+            "项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。",
             "只允许对当前 case 或通用解析/执行规则做最小补丁。",
             "不得删除 menuItemClick、target_forms、pick_fields 或 no_save_failure 断言来绕过问题。",
             "不得修改已成功回归样本的 YAML baseline，除非影响报告明确为 none/review 且有理由。",
