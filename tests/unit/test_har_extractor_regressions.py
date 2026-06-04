@@ -994,6 +994,18 @@ def test_salary_adjust_preview_and_generated_maintenance_order_match_when_local_
 
     assert _preview_sequence() == _case_sequence()
     assert case["pick_fields"]["selector_salary_adjust_employee_id"]["order"] < case["vars_meta"]["test_salary_after_post_allowance"]["order"]
+    preview_upperson = next(
+        item for item in preview.get("pick_fields") or []
+        if item.get("id") == "pick_khr_upperson_id"
+    )
+    case_upperson = case["pick_fields"]["pick_khr_upperson_id"]
+    assert preview_upperson["label"] == "薪酬直接上级"
+    assert preview_upperson["group_key"].endswith("click_bar_submit_2")
+    assert case_upperson["group_key"].endswith("click_bar_submit_2")
+    assert preview_upperson["order"] > next(
+        item["order"] for item in preview.get("pick_fields") or []
+        if item.get("id") == "pick_khr_zcurrencyfield_id"
+    )
 
 
 def test_salary_adjust_preview_exposes_unified_field_catalog_when_local_har_exists():

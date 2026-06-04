@@ -5032,43 +5032,50 @@ function app() {
 
     _groupFieldItems(items, fallbackLabel = '默认业务块') {
       const groups = [];
-      const byKey = new Map();
-      for (const raw of (items || [])) {
-        if (!raw || typeof raw !== 'object') continue;
-        const item = raw;
+      const seenSegments = new Map();
+      const normalized = (items || [])
+        .map((raw, index) => ({raw, index}))
+        .filter(entry => entry.raw && typeof entry.raw === 'object')
+        .sort((a, b) => {
+          const ao = Number.isFinite(Number(a.raw?.order)) ? Number(a.raw.order) : 99999;
+          const bo = Number.isFinite(Number(b.raw?.order)) ? Number(b.raw.order) : 99999;
+          if (ao !== bo) return ao - bo;
+          if (a.raw?.kind !== b.raw?.kind) return a.raw?.kind === 'var' ? -1 : 1;
+          return a.index - b.index;
+        });
+      let current = null;
+      for (const entry of normalized) {
+        const item = entry.raw;
         const formId = item.form_id || '';
         const groupKey = item.group_key || (formId ? `${formId}:context` : 'default:unscoped');
         const groupLabel = item.group_label || item.form_label || fallbackLabel;
         item._group_key = groupKey;
         item._group_label = groupLabel;
-        if (!byKey.has(groupKey)) {
-          const group = {
-            key: groupKey,
+        if (!current || current.base_key !== groupKey) {
+          const segment = (seenSegments.get(groupKey) || 0) + 1;
+          seenSegments.set(groupKey, segment);
+          current = {
+            key: segment === 1 ? groupKey : `${groupKey}::${segment}`,
+            base_key: groupKey,
             label: groupLabel,
             form_id: formId,
             form_label: item.form_label || '',
             write_step_id: item.write_step_id || '',
             items: [],
           };
-          byKey.set(groupKey, group);
-          groups.push(group);
+          groups.push(current);
         }
-        byKey.get(groupKey).items.push(item);
+        current.items.push(item);
       }
       for (const group of groups) {
         group.items.sort((a, b) => {
           const ao = Number.isFinite(a?.order) ? a.order : 99999;
           const bo = Number.isFinite(b?.order) ? b.order : 99999;
           if (ao !== bo) return ao - bo;
+          if (a?.kind !== b?.kind) return a?.kind === 'var' ? -1 : 1;
           return String(a?.label || '').localeCompare(String(b?.label || ''));
         });
       }
-      groups.sort((a, b) => {
-        const ao = Math.min(...a.items.map(item => Number.isFinite(item?.order) ? item.order : 99999));
-        const bo = Math.min(...b.items.map(item => Number.isFinite(item?.order) ? item.order : 99999));
-        if (ao !== bo) return ao - bo;
-        return String(a.label || '').localeCompare(String(b.label || ''));
-      });
       return groups;
     },
 
@@ -5828,6 +5835,9 @@ function app() {
 
         '',
         '用户补充信息（发送给 AI 前可填写；没有可留空）：',
+        '- 我在业务环境看到的现象：',
+        '- 我刚维护过的变量/环境字段：',
+        '- 我希望 AI 优先确认的问题：',
       ].join('\n');
     },
 
@@ -5874,6 +5884,9 @@ function app() {
 
         '',
         '用户补充信息（发送给 AI 前可填写；没有可留空）：',
+        '- 我在业务环境看到的现象：',
+        '- 我刚维护过的变量/环境字段：',
+        '- 我希望 AI 优先确认的问题：',
       ].join('\n');
     },
 

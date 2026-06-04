@@ -4129,6 +4129,22 @@ def _maintenance_order_for_step_field(steps: list[dict], index: int, field_key: 
     return base
 
 
+def _dedupe_step_ids(steps: list[dict]) -> None:
+    """Add numeric suffixes to duplicate step ids in-place."""
+    id_counts: dict[str, int] = {}
+    for step in steps or []:
+        sid = str(step.get("id") or "")
+        if not sid:
+            continue
+        id_counts[sid] = id_counts.get(sid, 0) + 1
+    id_seen: dict[str, int] = {}
+    for step in steps or []:
+        sid = str(step.get("id") or "")
+        if sid and id_counts.get(sid, 0) > 1:
+            id_seen[sid] = id_seen.get(sid, 0) + 1
+            step["id"] = f"{sid}_{id_seen[sid]}" if id_seen[sid] > 1 else sid
+
+
 def _collect_var_refs(value: Any, refs: set[str]) -> None:
     if isinstance(value, str):
         refs.update(_VAR_REF_RE.findall(value))
@@ -5237,18 +5253,7 @@ def build_yaml_case(
     _mark_navigation_steps_optional(cleaned, main_form)
 
     # ⭐ step ID 去重：同名 ID 加数字后缀
-    _id_counts: dict[str, int] = {}
-    for s in cleaned:
-        sid = s.get("id", "")
-        if not sid:
-            continue
-        _id_counts[sid] = _id_counts.get(sid, 0) + 1
-    _id_seen: dict[str, int] = {}
-    for s in cleaned:
-        sid = s.get("id", "")
-        if sid and _id_counts.get(sid, 0) > 1:
-            _id_seen[sid] = _id_seen.get(sid, 0) + 1
-            s["id"] = f"{sid}_{_id_seen[sid]}" if _id_seen[sid] > 1 else sid
+    _dedupe_step_ids(cleaned)
 
     _mark_recorded_business_validations(cleaned)
     cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
@@ -5978,6 +5983,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         app_id=_preview_app_id,
     )
     _mark_recorded_business_validations(preview_steps)
+    _dedupe_step_ids(preview_steps)
     preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置

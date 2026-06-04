@@ -11,7 +11,7 @@ def _index_html() -> str:
 def test_har_preview_grouping_keeps_original_field_object_references():
     html = _index_html()
 
-    assert "const item = raw;" in html
+    assert "const item = entry.raw;" in html
     assert "const item = {...raw};" not in html
 
 
@@ -112,7 +112,11 @@ def test_har_preview_maintenance_order_uses_catalog_order_for_vars_and_groups():
     assert "const rawOrder = Number(item.order);" in html
     assert "const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;" in html
     assert "group.items.sort((a, b) => {" in html
-    assert "groups.sort((a, b) => {" in html
+    assert "const seenSegments = new Map();" in html
+    assert "let current = null;" in html
+    assert "current.base_key !== groupKey" in html
+    assert "segment === 1 ? groupKey : `${groupKey}::${segment}`" in html
+    assert "return groups;" in html
 
 
 def test_case_variable_panel_drafts_are_scoped_to_current_yaml():
