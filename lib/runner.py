@@ -1310,6 +1310,28 @@ def _pick_field_targets_step(pf_meta: dict, step: dict) -> bool:
     return True
 
 
+def _pick_field_targets_update_step(pf_meta: dict, step: dict) -> bool:
+    """Return whether a user-maintained field should override an update_fields step.
+
+    A single visible business field may be recorded more than once in the same
+    form as the UI toggles related controls. Once the user maintains that field
+    in the panel, that value is authoritative for every same-form write of the
+    same field; otherwise a later recorded update can silently restore the HAR
+    value while the UI still shows the edited value.
+    """
+    if not isinstance(pf_meta, dict):
+        return True
+    form_id = str(pf_meta.get("form_id") or "")
+    step_form_id = str(step.get("form_id") or "")
+    if form_id and step_form_id and form_id != step_form_id:
+        return False
+    if not form_id:
+        source_step_id = str(pf_meta.get("source_step_id") or "")
+        if source_step_id and str(step.get("id") or "") != source_step_id:
+            return False
+    return True
+
+
 def _apply_pick_fields(case: dict):
     """运行前将 pick_fields 的用户修改值注入到对应步骤参数"""
     pick_fields = case.get("pick_fields") or {}
@@ -1351,7 +1373,7 @@ def _apply_pick_fields(case: dict):
                 continue
             for step in steps:
                 if step.get("type") == "update_fields":
-                    if not _pick_field_targets_step(pf_meta, step):
+                    if not _pick_field_targets_update_step(pf_meta, step):
                         continue
                     fields = step.get("fields") or {}
                     if field_key in fields:
@@ -1444,7 +1466,7 @@ def _apply_pick_fields(case: dict):
                 # MainOrgProp 等上下文字段可能以 update_fields 形式补偿写入；
                 # 允许沿用 pick_* 配置面板去覆盖这些字段，保持 UI/配置方式一致。
                 for step in steps:
-                    if not _pick_field_targets_step(pf_meta, step):
+                    if not _pick_field_targets_update_step(pf_meta, step):
                         continue
                     if step.get("type") != "update_fields":
                         continue
@@ -2537,7 +2559,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     continue
                 if not isinstance(_pf_meta, dict):
                     continue
-                if not _pick_field_targets_step(_pf_meta, step):
+                if not _pick_field_targets_update_step(_pf_meta, step):
                     continue
                 _field_key = str(_pf_meta.get("field_key") or _pf_id[5:])  # 去掉 "date_" 前缀
                 _value = _pf_meta.get("value_id") or _pf_meta.get("value_name", "")

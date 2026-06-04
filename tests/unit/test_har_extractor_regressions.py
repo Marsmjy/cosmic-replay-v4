@@ -16,6 +16,7 @@ from lib.har_extractor import (
     _build_preview_business_blocks,
     _clean_display_label,
     _drop_locked_update_fields,
+    _apply_user_pick_field_values_to_update_steps,
     _scoped_pick_field_id,
     build_yaml_case,
     detect_var_placeholders,
@@ -79,6 +80,47 @@ def test_merge_update_values_preserves_repeated_field_toggles():
         {"khr_salaryproposal": "1"},
         {"khr_salaryproposal": "0"},
     ]
+
+
+def test_user_pick_override_rewrites_repeated_same_form_update_fields():
+    steps = [
+        {
+            "id": "fill_khr_scope",
+            "type": "update_fields",
+            "form_id": "khr_hcdm_fapplybill",
+            "fields": {"khr_scope": 1},
+        },
+        {
+            "id": "fill_khr_zcurrency_etc",
+            "type": "update_fields",
+            "form_id": "khr_hcdm_fapplybill",
+            "fields": {"khr_zcurrency": 1, "khr_scope": 3},
+        },
+        {
+            "id": "fill_other_scope",
+            "type": "update_fields",
+            "form_id": "other_form",
+            "fields": {"khr_scope": 3},
+        },
+    ]
+    pick_fields = {
+        "pick_khr_scope_id": {
+            "field_key": "khr_scope",
+            "form_id": "khr_hcdm_fapplybill",
+            "source_step_id": "fill_khr_scope",
+            "value_id": "1",
+            "value_code": "1",
+            "value_number": "1",
+            "user_overridden": True,
+            "resolve_by": "value_code",
+        },
+    }
+
+    _apply_user_pick_field_values_to_update_steps(steps, pick_fields)
+
+    assert steps[0]["fields"]["khr_scope"] == "1"
+    assert steps[1]["fields"]["khr_scope"] == "1"
+    assert steps[2]["fields"]["khr_scope"] == 3
 
 
 def test_drop_locked_fields_keeps_recorded_basedata_pick():

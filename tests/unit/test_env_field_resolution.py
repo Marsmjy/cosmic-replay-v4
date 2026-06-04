@@ -286,6 +286,52 @@ def test_pick_field_injection_respects_source_step_scope_in_multi_form_chain():
     assert case["steps"][2]["fields"]["adminorg"] == "B-old"
 
 
+def test_pick_field_override_updates_repeated_same_form_update_fields():
+    case = {
+        "pick_fields": {
+            "pick_khr_scope_id": {
+                "field_key": "khr_scope",
+                "value_id": "1",
+                "value_name": "目标薪酬",
+                "value_code": "1",
+                "value_number": "1",
+                "form_id": "khr_hcdm_fapplybill",
+                "source_step_id": "fill_khr_scope",
+                "user_overridden": True,
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "pending",
+            }
+        },
+        "steps": [
+            {
+                "id": "fill_khr_scope",
+                "type": "update_fields",
+                "form_id": "khr_hcdm_fapplybill",
+                "fields": {"khr_scope": "1"},
+            },
+            {
+                "id": "fill_khr_zcurrency_etc",
+                "type": "update_fields",
+                "form_id": "khr_hcdm_fapplybill",
+                "fields": {"khr_zcurrency": "1", "khr_scope": "3"},
+            },
+            {
+                "id": "fill_other_form_scope",
+                "type": "update_fields",
+                "form_id": "other_form",
+                "fields": {"khr_scope": "3"},
+            },
+        ],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["fields"]["khr_scope"] == "1"
+    assert case["steps"][1]["fields"]["khr_scope"] == "1"
+    assert case["steps"][2]["fields"]["khr_scope"] == "3"
+
+
 def test_date_pick_field_injection_respects_form_scope():
     case = {
         "pick_fields": {

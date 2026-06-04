@@ -1695,7 +1695,7 @@ def _apply_user_pick_field_values_to_update_steps(
                 continue
             if form_id and str(step.get("form_id") or "") != form_id:
                 continue
-            if source_step_id and str(step.get("id") or "") != source_step_id:
+            if not form_id and source_step_id and str(step.get("id") or "") != source_step_id:
                 continue
             fields = step.get("fields") or {}
             if not isinstance(fields, dict):
@@ -1709,7 +1709,6 @@ def _apply_user_pick_field_values_to_update_steps(
                     current[lang] = new_value
             else:
                 fields[matched_key] = new_value
-            break
 
 
 def _extract_row_index(post_data: list) -> int:
