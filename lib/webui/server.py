@@ -2230,7 +2230,25 @@ STATIC_DIR = Path(__file__).parent / "static"
 def serve_index():
     index = STATIC_DIR / "index.html"
     if index.exists():
-        return FileResponse(index)
+        return FileResponse(
+            index,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+    return JSONResponse(
+        content={"error": "前端文件未就绪。index.html 尚未创建。",
+                 "expected": str(index)},
+        status_code=503,
+    )
+
+
+@APP.get("/static/index.html")
+def serve_static_index():
+    index = STATIC_DIR / "index.html"
+    if index.exists():
+        return FileResponse(
+            index,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return JSONResponse(
         content={"error": "前端文件未就绪。index.html 尚未创建。",
                  "expected": str(index)},
