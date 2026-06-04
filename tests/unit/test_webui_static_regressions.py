@@ -53,7 +53,8 @@ def test_har_preview_maintenance_panel_has_data_functions_and_code_detection():
     assert "_harFieldCatalogOrderMaps(data.preview)" in html
     assert "_harCatalogOrderForVar(v, catalogOrder)" in html
     assert "_harCatalogOrderForPick(item, catalogOrder)" in html
-    assert "if (Number.isFinite(ref._catalog_order)) return ref._catalog_order;" in html
+    assert "if (Number.isFinite(ref._catalog_order) && ref._catalog_order < 99999) return ref._catalog_order;" in html
+    assert "if (Number.isFinite(Number(ref.order))) return Number(ref.order);" in html
     assert "pickFieldCanResolveTypedCode(pf, value)" in html
     assert "const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, text);" in html
     assert "const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue);" in html
@@ -105,9 +106,11 @@ def test_maintenance_field_blocks_can_collapse_independently_and_use_option_sele
 def test_har_preview_maintenance_order_uses_catalog_order_for_vars_and_groups():
     html = _index_html()
 
-    assert "this.harVarConfig = (data.preview.detected_vars || []).map(v => ({" in html
-    assert "_catalog_order: this._harCatalogOrderForVar(v, catalogOrder)" in html
-    assert "return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''));" in html
+    assert "this.harVarConfig = (data.preview.detected_vars || []).map(v => {" in html
+    assert "const catalogOrderValue = this._harCatalogOrderForVar(v, catalogOrder);" in html
+    assert "const rawOrder = Number(v.order);" in html
+    assert "const rawOrder = Number(item.order);" in html
+    assert "const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;" in html
     assert "group.items.sort((a, b) => {" in html
     assert "groups.sort((a, b) => {" in html
 

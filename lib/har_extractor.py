@@ -4116,6 +4116,19 @@ def _step_scope_for_index(steps: list[dict], index: int, main_form: str = "") ->
     }
 
 
+def _maintenance_order_for_step_field(steps: list[dict], index: int, field_key: str = "") -> int:
+    """Return a stable UI order that preserves HAR step order and field order."""
+    base = max(index, 0) * 1000
+    step = steps[index] if 0 <= index < len(steps) else {}
+    field = str(field_key or "").lower()
+    fields = step.get("fields") or {}
+    if field and isinstance(fields, dict):
+        for pos, key in enumerate(fields.keys()):
+            if str(key).lower() == field:
+                return base + pos
+    return base
+
+
 def _collect_var_refs(value: Any, refs: set[str]) -> None:
     if isinstance(value, str):
         refs.update(_VAR_REF_RE.findall(value))
@@ -4144,6 +4157,7 @@ def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "", meta_res
             ("form_label", scope["form_label"]),
             ("group_key", scope["group_key"]),
             ("group_label", scope["group_label"]),
+            ("order", _maintenance_order_for_step_field(steps, step_idx, field_key)),
             ("source_step_id", scope["source_step_id"] or str(step.get("id") or "")),
             ("write_step_id", scope["write_step_id"]),
         ])
@@ -4238,9 +4252,11 @@ def _attach_pick_field_scopes(pick_fields_map: OrderedDict, steps: list[dict], m
             continue
         idx = find_step_index(str(pf_id), pf_meta)
         scope = _step_scope_for_index(steps, idx, main_form)
+        field_key = str((pf_meta or {}).get("field_key") or "")
         pf_meta.setdefault("form_label", scope["form_label"])
         pf_meta.setdefault("group_key", scope["group_key"])
         pf_meta.setdefault("group_label", scope["group_label"])
+        pf_meta.setdefault("order", _maintenance_order_for_step_field(steps, idx, field_key))
         pf_meta.setdefault("source_step_id", scope["source_step_id"])
         pf_meta.setdefault("write_step_id", scope["write_step_id"])
 
@@ -4481,7 +4497,7 @@ def _build_unified_field_catalog(
             return
         seen.add(key)
         catalog.append({
-            "order": idx + 1,
+            "order": len(catalog) + 1,
             "kind": kind,
             "field_key": field_key_s,
             "label": _resolve_field_label(field_key_s, entity_id=form_id, meta_resolver=meta_resolver) if field_key_s else action,
@@ -4516,7 +4532,7 @@ def _build_unified_field_catalog(
             if any(token in blob for token in ("save", "submit", "audit", "newentry", "btnok", "ok", "cancel")):
                 category = "dialog" if any(token in blob for token in ("btnok", "ok", "cancel")) else "button"
                 catalog.append({
-                    "order": idx + 1,
+                    "order": len(catalog) + 1,
                     "kind": "control",
                     "field_key": key,
                     "label": key or ac or method,

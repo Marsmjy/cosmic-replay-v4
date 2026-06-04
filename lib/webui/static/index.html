@@ -4565,12 +4565,20 @@ function app() {
         this.metadataStatus = data.metadata_status || 'offline';
         // ⭐ 初始化变量/环境字段配置面板：优先使用 field_catalog 保持 HAR 录入顺序
         const catalogOrder = this._harFieldCatalogOrderMaps(data.preview);
-        this.harVarConfig = (data.preview.detected_vars || []).map(v => ({
-          ...v,
-          _catalog_order: this._harCatalogOrderForVar(v, catalogOrder),
-        })).sort((a, b) => {
-          const ao = Number.isFinite(a._catalog_order) ? a._catalog_order : 99999;
-          const bo = Number.isFinite(b._catalog_order) ? b._catalog_order : 99999;
+        this.harVarConfig = (data.preview.detected_vars || []).map(v => {
+          const catalogOrderValue = this._harCatalogOrderForVar(v, catalogOrder);
+          const rawOrder = Number(v.order);
+          const order = Number.isFinite(catalogOrderValue) && catalogOrderValue < 99999
+            ? catalogOrderValue
+            : Number.isFinite(rawOrder) ? rawOrder : 99999;
+          return {
+            ...v,
+            order,
+            _catalog_order: catalogOrderValue,
+          };
+        }).sort((a, b) => {
+          const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;
+          const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : 99999;
           if (ao !== bo) return ao - bo;
           return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''));
         });
@@ -4578,12 +4586,17 @@ function app() {
         this.harPickFields = (data.preview.pick_fields || []).map(pf => {
           const item = {...pf};
           item.edit_value = this.pickFieldDisplayValue(item);
-          item._catalog_order = this._harCatalogOrderForPick(item, catalogOrder);
+          const catalogOrderValue = this._harCatalogOrderForPick(item, catalogOrder);
+          const rawOrder = Number(item.order);
+          item.order = Number.isFinite(catalogOrderValue) && catalogOrderValue < 99999
+            ? catalogOrderValue
+            : Number.isFinite(rawOrder) ? rawOrder : 99999;
+          item._catalog_order = catalogOrderValue;
           return item;
         })
             .sort((a, b) => {
-              const ao = Number.isFinite(a._catalog_order) ? a._catalog_order : 99999;
-              const bo = Number.isFinite(b._catalog_order) ? b._catalog_order : 99999;
+              const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;
+              const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : 99999;
               if (ao !== bo) return ao - bo;
               return (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1);
             });
@@ -5144,7 +5157,8 @@ function app() {
 
     _harMaintenanceOrder(item, stepOrder) {
       const ref = item?.ref || {};
-	      if (Number.isFinite(ref._catalog_order)) return ref._catalog_order;
+	      if (Number.isFinite(ref._catalog_order) && ref._catalog_order < 99999) return ref._catalog_order;
+	      if (Number.isFinite(Number(ref.order))) return Number(ref.order);
 	      const source = ref.source_step_id || ref.step_id || ref.id || ref.name || ref.key || '';
       if (source && stepOrder.has(source)) return stepOrder.get(source);
       const write = ref.write_step_id || '';
@@ -7375,7 +7389,6 @@ function app() {
         }
       } catch(e) {}
 
-      const SENS_ORDER = { high: 0, medium: 1, low: 2 };
       return keys.map(key => {
         const entry = pickFields[key];
         const sensitive = entry.env_sensitive || 'medium';
@@ -7412,15 +7425,20 @@ function app() {
           group_label: entry.group_label || '',
           source_step_id: entry.source_step_id || '',
           write_step_id: entry.write_step_id || '',
+          order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : undefined,
           options_text: entry.options_text || '',
           resolve_by: entry.resolve_by || '',
           auto_resolve: entry.auto_resolve === 'true' || entry.auto_resolve === true,
           resolve_status: entry.resolve_status || '',
           context_only: entry.context_only === 'true' || entry.context_only === true,
           readonly: entry.readonly === 'true' || entry.readonly === true,
-          _sort: SENS_ORDER[sensitive] !== undefined ? SENS_ORDER[sensitive] : 1
         };
-      }).sort((a, b) => a._sort - b._sort);
+      }).sort((a, b) => {
+        const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;
+        const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : 99999;
+        if (ao !== bo) return ao - bo;
+        return String(a.label || a.step_id || '').localeCompare(String(b.label || b.step_id || ''));
+      });
     },
 
     async saveVarValue(key) {

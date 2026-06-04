@@ -946,6 +946,56 @@ def test_salary_adjust_approval_preview_override_updates_generated_step_when_loc
     assert approval_step["fields"]["decision_radio_group"] == "Reject"
 
 
+def test_salary_adjust_preview_and_generated_maintenance_order_match_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780544303_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment approval HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="salary_adjust_order"))
+
+    def _order(value):
+        try:
+            return float(value)
+        except Exception:
+            return 99999
+
+    def _preview_sequence():
+        items = []
+        for item in preview.get("detected_vars") or []:
+            items.append((_order(item.get("order")), "var", item.get("name"), item.get("label", "")))
+        for item in preview.get("pick_fields") or []:
+            items.append((_order(item.get("order")), "pick", item.get("id"), item.get("label", "")))
+        return [
+            (kind, key)
+            for _order_value, kind, key, _label in sorted(
+                items,
+                key=lambda row: (row[0], 0 if row[1] == "var" else 1, row[3]),
+            )
+        ]
+
+    def _case_sequence():
+        items = []
+        for key in (case.get("vars") or {}):
+            if key.startswith("_"):
+                continue
+            meta = (case.get("vars_meta") or {}).get(key) or {}
+            items.append((_order(meta.get("order")), "var", key, meta.get("label", "")))
+        for key, meta in (case.get("pick_fields") or {}).items():
+            meta = meta or {}
+            items.append((_order(meta.get("order")), "pick", key, meta.get("label", "")))
+        return [
+            (kind, key)
+            for _order_value, kind, key, _label in sorted(
+                items,
+                key=lambda row: (row[0], 0 if row[1] == "var" else 1, row[3]),
+            )
+        ]
+
+    assert _preview_sequence() == _case_sequence()
+    assert case["pick_fields"]["selector_salary_adjust_employee_id"]["order"] < case["vars_meta"]["test_salary_after_post_allowance"]["order"]
+
+
 def test_salary_adjust_preview_exposes_unified_field_catalog_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
     if not har_path.exists():
