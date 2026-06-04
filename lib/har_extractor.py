@@ -317,7 +317,25 @@ _FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
         "khr_zcurrency": "是否使用薪资核算币种",
         "khr_salaryproposal": "是否薪酬提案",
     },
+    "wf_batchtask_handle": {
+        "decision_radio_group": "审批动作",
+    },
 }
+
+_WORKFLOW_APPROVAL_FORM_IDS = {"wf_batchtask_handle"}
+_WORKFLOW_DECISION_FIELD_KEY = "decision_radio_group"
+_WORKFLOW_OPINION_FIELD_KEY = "msg_approval"
+_WORKFLOW_DECISION_OPTIONS = OrderedDict([
+    ("Consent", "同意"),
+    ("Reject", "驳回"),
+])
+_WORKFLOW_APPROVAL_FIELD_KEYS = {
+    _WORKFLOW_DECISION_FIELD_KEY,
+    _WORKFLOW_OPINION_FIELD_KEY,
+}
+_WORKFLOW_APPROVAL_OPTIONS_TEXT = "|".join(
+    f"{value}={label}" for value, label in _WORKFLOW_DECISION_OPTIONS.items()
+)
 
 
 def _recorded_default_value_id(field_key: str, value_code: str, value_name: str = "") -> str:
@@ -437,6 +455,9 @@ _FORM_ID_LABELS = {
     'bos_card_quicklaunch': '快捷卡片',
     'gbs_bgtasklistsidebar': '后台任务栏',
     'gbs_bgtaskdetailsidebar': '后台任务详情',
+    'wf_task': '待办任务',
+    'wf_batchtask_handle': '批量审批',
+    'wf_msg_center': '消息中心',
     'home_page': '主页',
     # HR 基础服务常用
     'hbss_appgridhome': 'HR基础服务首页',
@@ -614,6 +635,8 @@ _FIELD_LABELS = {
     'khr_heffectivedate':     '调薪后-生效日期',
     'khr_scope':              '定调薪范围',
     'khr_upperson':           '薪酬直接上级',
+    'decision_radio_group':    '审批动作',
+    'msg_approval':            '审批意见',
 }
 
 
@@ -1172,6 +1195,11 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
             for item in _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM.get(form_id, ())
         }
 
+    def _workflow_scalar_value(field_key: str, value: Any) -> str:
+        if field_key == _WORKFLOW_OPINION_FIELD_KEY and isinstance(value, dict):
+            return str(value.get("zh_CN") or value.get("GLang") or "").strip()
+        return str(value or "").strip()
+
     def remember_value(field_key: Any, value: Any, form_id: str = "") -> None:
         key = str(field_key or "").strip().lower()
         if not key:
@@ -1186,11 +1214,15 @@ def _collect_har_field_observations(har: dict) -> dict[str, Any]:
         if value not in (None, "") and (
             key in _DEFAULT_CONTEXT_FIELD_KEYS
             or _is_recorded_scalar_default(form_id, key)
+            or (form_id in _WORKFLOW_APPROVAL_FORM_IDS and key in _WORKFLOW_APPROVAL_FIELD_KEYS)
         ):
+            display_value = _workflow_scalar_value(key, value)
+            if not display_value:
+                return
             fallback = {
-                "value_code": str(value),
-                "value_name": str(value),
-                "value_number": str(value),
+                "value_code": display_value,
+                "value_name": display_value,
+                "value_number": display_value,
             }
             response_values.setdefault(key, fallback)
             if form_id:
@@ -1502,6 +1534,96 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
     return out
 
 
+def _workflow_approval_display_value(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("zh_CN") or value.get("GLang") or "").strip()
+    return str(value or "").strip()
+
+
+def _workflow_approval_defaults(observations: dict[str, Any], form_id: str, ac: str = "") -> tuple[str, str]:
+    values_by_form = observations.get("response_values_by_form") or {}
+    raw_by_form = observations.get("response_raw_values_by_form") or {}
+    values = values_by_form.get(form_id) or {}
+    raw_values = raw_by_form.get(form_id) or {}
+    decision = (
+        _workflow_approval_display_value(raw_values.get(_WORKFLOW_DECISION_FIELD_KEY))
+        or str((values.get(_WORKFLOW_DECISION_FIELD_KEY) or {}).get("value_code") or "").strip()
+    )
+    if decision not in _WORKFLOW_DECISION_OPTIONS:
+        decision = "Reject" if "reject" in str(ac or "").lower() else "Consent"
+    default_label = _WORKFLOW_DECISION_OPTIONS.get(decision, "同意")
+    opinion = (
+        _workflow_approval_display_value(raw_values.get(_WORKFLOW_OPINION_FIELD_KEY))
+        or str((values.get(_WORKFLOW_OPINION_FIELD_KEY) or {}).get("value_name") or "").strip()
+        or default_label
+    )
+    return decision, opinion
+
+
+def _has_workflow_approval_fields(step: dict) -> bool:
+    if step.get("type") != "update_fields":
+        return False
+    fields = step.get("fields") or {}
+    if not isinstance(fields, dict):
+        return False
+    keys = {str(k or "").lower() for k in fields}
+    return bool({_WORKFLOW_DECISION_FIELD_KEY, _WORKFLOW_OPINION_FIELD_KEY} & keys)
+
+
+def _ensure_workflow_approval_update_steps(
+    steps: list[dict],
+    observations: dict[str, Any],
+) -> list[dict]:
+    """Expose workflow approval action/opinion as maintainable replay fields.
+
+    Kingdee workflow batch approval often opens ``wf_batchtask_handle`` with
+    default ``decision_radio_group`` and ``msg_approval`` values in loadData,
+    then the user clicks the final OK button without an explicit updateValue.
+    Replay still needs a writable anchor so later user-maintained approval
+    action/opinion values can affect execution.
+    """
+    out: list[dict] = []
+    counters: dict[str, int] = {}
+    for step in steps:
+        form_id = str(step.get("form_id") or "")
+        ac = str(step.get("ac") or step.get("method") or "")
+        is_workflow_submit = (
+            step.get("type") == "invoke"
+            and form_id in _WORKFLOW_APPROVAL_FORM_IDS
+            and ac in {"btnsubmit", "btnreject"}
+        )
+        if not is_workflow_submit:
+            out.append(step)
+            continue
+
+        has_existing = any(
+            str(prev.get("form_id") or "") == form_id and _has_workflow_approval_fields(prev)
+            for prev in out
+        )
+        if not has_existing:
+            counters[form_id] = counters.get(form_id, 0) + 1
+            suffix = "" if counters[form_id] == 1 else f"_{counters[form_id]}"
+            decision, opinion = _workflow_approval_defaults(observations, form_id, ac)
+            out.append({
+                "id": f"fill_workflow_approval{suffix}",
+                "type": "update_fields",
+                "form_id": form_id,
+                "app_id": step.get("app_id", "bos"),
+                "fields": {
+                    _WORKFLOW_DECISION_FIELD_KEY: decision,
+                    _WORKFLOW_OPINION_FIELD_KEY: {
+                        "GLang": opinion,
+                        "zh_CN": opinion,
+                    },
+                },
+                "_tier": "core",
+                "_synthetic_workflow_approval": True,
+                "description": "维护「审批意见」",
+            })
+        out.append(step)
+    return out
+
+
 def _extract_row_index(post_data: list) -> int:
     """从 updateValue 的 postData 中提取 entry row_index。
 
@@ -1543,6 +1665,9 @@ _TEXT_VARIABLE_KEYS = {
     "note",
     "comment",
     "comments",
+    "msg_approval",
+    "approvalopinion",
+    "approval_opinion",
     "changedescription",
     "changedesc",
     "khr_homs_condes",
@@ -1723,6 +1848,9 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             "note": "test_note",
             "comment": "test_comment",
             "comments": "test_comment",
+            "msg_approval": "test_workflow_approval_opinion",
+            "approvalopinion": "test_workflow_approval_opinion",
+            "approval_opinion": "test_workflow_approval_opinion",
             "changedescription": "test_change_description",
             "changedesc": "test_change_description",
             "khr_homs_condes": "test_confidential_description",
@@ -5019,6 +5147,7 @@ def build_yaml_case(
             s["id"] = f"{sid}_{_id_seen[sid]}" if _id_seen[sid] > 1 else sid
 
     _mark_recorded_business_validations(cleaned)
+    cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
 
     # 抽 vars
     _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
@@ -5327,6 +5456,8 @@ def build_yaml_case(
                     .get(step_form_id, {})
                     .get(fk_lower, {})
                 )
+                if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
+                    combo_options = dict(_WORKFLOW_DECISION_OPTIONS)
                 display_name = combo_options.get(display_val, display_val)
                 pick_fields_map[step_id] = OrderedDict([
                     ("value_id", display_val),
@@ -5343,6 +5474,8 @@ def build_yaml_case(
                     ("context_only", bool(s.get("_is_recorded_default"))),
                     ("source", "server_default" if s.get("_is_recorded_default") else ""),
                 ])
+                if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
+                    pick_fields_map[step_id]["options_text"] = _WORKFLOW_APPROVAL_OPTIONS_TEXT
                 continue
             if _is_date_like_field_key(fk_lower):
                 step_id = _scoped_pick_field_id(
@@ -5739,6 +5872,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         app_id=_preview_app_id,
     )
     _mark_recorded_business_validations(preview_steps)
+    preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)
@@ -6053,6 +6187,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         .get(step_form_id, {})
                         .get(fk_lower, {})
                     )
+                    if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
+                        combo_options = dict(_WORKFLOW_DECISION_OPTIONS)
                     item = {
                         "id": step_id,
                         "field_key": fk_lower,
@@ -6069,6 +6205,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                         "context_only": bool(s.get("_is_recorded_default")),
                         "source": "server_default" if s.get("_is_recorded_default") else "",
                     }
+                    if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
+                        item["options_text"] = _WORKFLOW_APPROVAL_OPTIONS_TEXT
+                        item["options"] = [
+                            {"value_id": value, "value_code": value, "value_name": label}
+                            for value, label in _WORKFLOW_DECISION_OPTIONS.items()
+                        ]
                     pick_fields.append(item)
                     _seen_pick_map[step_id] = {k: v for k, v in item.items() if k != "id"}
                     continue

@@ -453,6 +453,35 @@ def test_user_overridden_context_pick_field_updates_recorded_update_fields():
     assert case["steps"][0]["fields"]["ctrlstrategy"] == "7"
 
 
+def test_workflow_approval_decision_override_normalizes_display_value():
+    case = {
+        "pick_fields": {
+            "pick_decision_radio_group_id": {
+                "field_key": "decision_radio_group",
+                "value_id": "驳回",
+                "value_name": "驳回",
+                "form_id": "wf_batchtask_handle",
+                "source_step_id": "fill_workflow_approval",
+                "user_overridden": True,
+                "resolve_status": "manual",
+            },
+        },
+        "steps": [{
+            "id": "fill_workflow_approval",
+            "type": "update_fields",
+            "form_id": "wf_batchtask_handle",
+            "fields": {
+                "decision_radio_group": "Consent",
+                "msg_approval": {"GLang": "同意", "zh_CN": "同意"},
+            },
+        }],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["fields"]["decision_radio_group"] == "Reject"
+
+
 def test_manual_har_pick_field_override_disables_auto_resolve():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
 

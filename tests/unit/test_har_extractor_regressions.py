@@ -879,6 +879,41 @@ def test_salary_adjust_build_keeps_recorded_effective_date_when_local_har_exists
     assert "${today}" not in yaml_text
 
 
+def test_salary_adjust_approval_import_exposes_action_and_opinion_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780544303_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment approval HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    by_id = {item["id"]: item for item in preview["pick_fields"]}
+    detected_vars = {item["name"]: item for item in preview["detected_vars"]}
+
+    decision = by_id["pick_decision_radio_group_id"]
+    assert decision["label"] == "审批动作"
+    assert decision["value_id"] == "Consent"
+    assert decision["value_code"] == "Consent"
+    assert decision["value_name"] == "同意"
+    assert decision["options_text"] == "Consent=同意|Reject=驳回"
+    assert decision["options"] == [
+        {"value_id": "Consent", "value_code": "Consent", "value_name": "同意"},
+        {"value_id": "Reject", "value_code": "Reject", "value_name": "驳回"},
+    ]
+
+    opinion = detected_vars["test_workflow_approval_opinion"]
+    assert opinion["label"] == "审批意见"
+    assert opinion["template"] == "同意"
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_approval_fields")
+    case = yaml.safe_load(yaml_text)
+    approval_step = next(step for step in case["steps"] if step["id"] == "fill_workflow_approval")
+
+    assert case["vars"]["test_workflow_approval_opinion"] == "同意"
+    assert case["vars_meta"]["test_workflow_approval_opinion"]["label"] == "审批意见"
+    assert case["pick_fields"]["pick_decision_radio_group_id"]["options_text"] == "Consent=同意|Reject=驳回"
+    assert approval_step["fields"]["decision_radio_group"] == "Consent"
+    assert approval_step["fields"]["msg_approval"]["zh_CN"] == "${vars.test_workflow_approval_opinion}"
+
+
 def test_salary_adjust_preview_exposes_unified_field_catalog_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
     if not har_path.exists():

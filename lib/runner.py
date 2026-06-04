@@ -70,6 +70,45 @@ from .pageid_trace import (
 
 log = logging.getLogger("cosmic_replay.runner")
 
+_WORKFLOW_DECISION_FIELD_KEY = "decision_radio_group"
+_WORKFLOW_DECISION_ALIASES = {
+    "consent": "Consent",
+    "agree": "Consent",
+    "approve": "Consent",
+    "approval": "Consent",
+    "同意": "Consent",
+    "通过": "Consent",
+    "审批通过": "Consent",
+    "reject": "Reject",
+    "rejected": "Reject",
+    "dismiss": "Reject",
+    "dismissed": "Reject",
+    "驳回": "Reject",
+    "拒绝": "Reject",
+    "审批不通过": "Reject",
+}
+
+
+def _normalize_workflow_decision_value(value: Any, pf_meta: dict | None = None) -> str:
+    """Normalize approval radio display text to Kingdee workflow codes."""
+    candidates = [value]
+    if isinstance(pf_meta, dict):
+        candidates.extend([
+            pf_meta.get("value_code"),
+            pf_meta.get("value_id"),
+            pf_meta.get("value_name"),
+        ])
+    for candidate in candidates:
+        text = str(candidate or "").strip()
+        if not text:
+            continue
+        if text in ("Consent", "Reject"):
+            return text
+        mapped = _WORKFLOW_DECISION_ALIASES.get(text.lower()) or _WORKFLOW_DECISION_ALIASES.get(text)
+        if mapped:
+            return mapped
+    return str(value or "").strip()
+
 
 def _pick_field_query_value(pf_meta: dict) -> str:
     resolve_by = str(pf_meta.get("resolve_by") or "").strip()
@@ -1421,6 +1460,8 @@ def _apply_pick_fields(case: dict):
                         fallback_id=inject_vid,
                         fallback_name=inject_vname,
                     )
+                    if field_key == _WORKFLOW_DECISION_FIELD_KEY:
+                        new_value = _normalize_workflow_decision_value(new_value, pf_meta)
                     if new_value:
                         fields[field_key] = str(new_value)
                         log.debug(f"[pick inject->update_fields] {pf_id} → step[{step.get('id', '')}].fields[{field_key}]={new_value}")

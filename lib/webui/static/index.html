@@ -1200,13 +1200,19 @@
             <div class="divide-y divide-slate-800">
               <template x-for="group in caseMaintenanceGroups()" :key="group.key">
                 <div>
-                  <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
+                  <button type="button"
+                          class="w-full px-4 py-2 bg-slate-900/70 flex items-center justify-between text-left hover:bg-slate-800/80 transition-colors"
+                          @click="toggleMaintenanceBlock('case', group)">
                     <div class="min-w-0">
-                      <div class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-slate-500" x-text="isMaintenanceBlockCollapsed('case', group) ? '▸' : '▾'"></span>
+                        <span class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></span>
+                      </div>
                       <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
                     </div>
                     <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
-                  </div>
+                  </button>
+                  <div x-show="!isMaintenanceBlockCollapsed('case', group)">
                   <template x-for="item in group.items" :key="item.key">
                     <div class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50">
                       <div class="w-7 shrink-0 text-right mono text-[11px] text-slate-500" x-text="item.orderLabel"></div>
@@ -1244,13 +1250,25 @@
                           <div class="w-36 shrink-0">
                             <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="item.label"></span>
                           </div>
-                          <input type="text"
-                                 :value="harPickFieldDraftValue(item.ref)"
-                                 @input="setHarPickFieldDraft(item.ref, $event.target.value)"
-                                 @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
-                                 class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
-                                 :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                          <template x-if="pickFieldHasOptions(item.ref)">
+                            <select :value="harPickFieldDraftValue(item.ref)"
+                                    @change="setHarPickFieldDraft(item.ref, $event.target.value); savePickFieldValue(pickFieldDraftKey(item.ref), $event.target.value, 'display')"
+                                    class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none">
+                              <template x-for="opt in pickFieldOptions(item.ref)" :key="opt.value">
+                                <option :value="opt.value" x-text="opt.label"></option>
+                              </template>
+                            </select>
+                          </template>
+                          <template x-if="!pickFieldHasOptions(item.ref)">
+                            <input type="text"
+                                   :value="harPickFieldDraftValue(item.ref)"
+                                   @input="setHarPickFieldDraft(item.ref, $event.target.value)"
+                                   @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
+                                   class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
+                                   :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                          </template>
                           <button class="px-3 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
+                                  x-show="!pickFieldHasOptions(item.ref)"
                                   @click="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')">保存</button>
                           <div class="w-44 shrink-0 text-right">
                             <div class="flex justify-end gap-1 mb-0.5">
@@ -1268,6 +1286,7 @@
                       </template>
                     </div>
                   </template>
+                  </div>
                 </div>
               </template>
             </div>
@@ -1825,14 +1844,19 @@
         <div class="space-y-3">
           <template x-for="group in harMaintenanceGroups()" :key="group.key">
             <div class="border border-slate-800 rounded-lg overflow-hidden">
-              <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
+              <button type="button"
+                      class="w-full px-3 py-2 bg-slate-900/80 flex items-center justify-between text-left hover:bg-slate-800/80 transition-colors"
+                      @click="toggleMaintenanceBlock('har', group)">
                 <div class="min-w-0">
-                  <div class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-slate-500" x-text="isMaintenanceBlockCollapsed('har', group) ? '▸' : '▾'"></span>
+                    <span class="text-xs font-medium text-sky-200 truncate" x-text="group.label"></span>
+                  </div>
                   <div class="text-[11px] text-slate-500" x-show="group.form_id" x-text="group.form_id"></div>
                 </div>
                 <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
-              </div>
-              <div class="divide-y divide-slate-800">
+              </button>
+              <div class="divide-y divide-slate-800" x-show="!isMaintenanceBlockCollapsed('har', group)">
               <template x-for="item in group.items" :key="item.key">
                 <div class="flex items-center gap-3 px-3 py-2 bg-slate-900">
                   <div class="w-7 shrink-0 text-right mono text-[11px] text-slate-500" x-text="item.orderLabel"></div>
@@ -1875,13 +1899,25 @@
                       <div class="w-32 shrink-0">
                         <span class="text-xs px-2 py-0.5 rounded whitespace-nowrap bg-orange-900/60 text-orange-300" x-text="item.label"></span>
                       </div>
-                      <input type="text"
-                             :value="harPickFieldDraftValue(item.ref)"
-                             @input="setHarPickFieldDraft(item.ref, $event.target.value)"
-                             @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
-                             class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
-                             :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                      <template x-if="pickFieldHasOptions(item.ref)">
+                        <select :value="harPickFieldDraftValue(item.ref)"
+                                @change="setHarPickFieldDraft(item.ref, $event.target.value); savePickFieldValue(pickFieldDraftKey(item.ref), $event.target.value, 'display')"
+                                class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200">
+                          <template x-for="opt in pickFieldOptions(item.ref)" :key="opt.value">
+                            <option :value="opt.value" x-text="opt.label"></option>
+                          </template>
+                        </select>
+                      </template>
+                      <template x-if="!pickFieldHasOptions(item.ref)">
+                        <input type="text"
+                               :value="harPickFieldDraftValue(item.ref)"
+                               @input="setHarPickFieldDraft(item.ref, $event.target.value)"
+                               @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
+                               class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
+                               :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                      </template>
                       <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
+                              x-show="!pickFieldHasOptions(item.ref)"
                               @click="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')">确认</button>
                       <div class="w-44 shrink-0 text-right">
                         <div class="flex justify-end gap-1 mb-0.5">
@@ -3357,6 +3393,7 @@ function app() {
     sse: null,
     
     // ⭐ 变量面板状态
+    maintenanceCollapsedBlocks: {},
 
     // 活跃 run 登记表：caseName → {phases, summary, fixes, running, sse, runId}
     // 离开详情页不销毁，回来恢复
@@ -4931,6 +4968,28 @@ function app() {
       return 'id';
     },
 
+    pickFieldOptions(pf) {
+      if (!pf) return [];
+      if (Array.isArray(pf.options)) {
+        return pf.options.map(opt => ({
+          value: String(opt.value_code || opt.value_id || opt.value || ''),
+          label: String(opt.value_name || opt.label || opt.value_code || opt.value_id || opt.value || ''),
+        })).filter(opt => opt.value);
+      }
+      const text = String(pf.options_text || '').trim();
+      if (!text) return [];
+      return text.split('|').map(part => {
+        const pieces = part.split('=');
+        const value = String(pieces.shift() || '').trim();
+        const label = String(pieces.join('=') || value).trim();
+        return {value, label};
+      }).filter(opt => opt.value);
+    },
+
+    pickFieldHasOptions(pf) {
+      return this.pickFieldOptions(pf).length > 0;
+    },
+
     looksLikeInternalId(value) {
       return /^\d{12,}$/.test(String(value || '').trim());
     },
@@ -4973,6 +5032,24 @@ function app() {
         byKey.get(groupKey).items.push(item);
       }
       return groups;
+    },
+
+    maintenanceBlockKey(scope, group) {
+      const key = group?.key || group?._group_key || 'default';
+      return `${scope || 'default'}::${key}`;
+    },
+
+    isMaintenanceBlockCollapsed(scope, group) {
+      const key = this.maintenanceBlockKey(scope, group);
+      return !!(this.maintenanceCollapsedBlocks || {})[key];
+    },
+
+    toggleMaintenanceBlock(scope, group) {
+      const key = this.maintenanceBlockKey(scope, group);
+      this.maintenanceCollapsedBlocks = {
+        ...(this.maintenanceCollapsedBlocks || {}),
+        [key]: !this.isMaintenanceBlockCollapsed(scope, group),
+      };
     },
 
     harVarGroups() {
@@ -7275,6 +7352,7 @@ function app() {
           group_label: entry.group_label || '',
           source_step_id: entry.source_step_id || '',
           write_step_id: entry.write_step_id || '',
+          options_text: entry.options_text || '',
           resolve_by: entry.resolve_by || '',
           auto_resolve: entry.auto_resolve === 'true' || entry.auto_resolve === true,
           resolve_status: entry.resolve_status || '',

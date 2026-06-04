@@ -74,7 +74,7 @@ def test_case_variable_panel_reuses_unified_maintainable_business_fields():
     html = _index_html()
 
     assert "详情页与 HAR 预览共用同一套“可维护业务字段”视图" in html
-    assert 'x-text="\'(\' + caseMaintenanceItems().length + \')\'"' in html
+    assert 'x-text="caseMaintenanceItems().length + \' 项\'"' in html
     assert "caseMaintenanceItems()" in html
     assert "caseMaintenanceGroups()" in html
     assert "caseMaintenanceKindCount('var')" in html
@@ -83,6 +83,21 @@ def test_case_variable_panel_reuses_unified_maintainable_business_fields():
     assert "this.harMaintenanceBusinessItem(v, 'var')" in html
     assert "this.harMaintenanceBusinessItem(pf, 'pick')" in html
     assert "_harStepOrderMapFromSteps(this.parsedSteps())" in html
+
+
+def test_maintenance_field_blocks_can_collapse_independently_and_use_option_selects():
+    html = _index_html()
+
+    assert "maintenanceCollapsedBlocks: {}" in html
+    assert "maintenanceBlockKey(scope, group)" in html
+    assert "toggleMaintenanceBlock('case', group)" in html
+    assert "toggleMaintenanceBlock('har', group)" in html
+    assert "isMaintenanceBlockCollapsed('case', group) ? '▸' : '▾'" in html
+    assert "isMaintenanceBlockCollapsed('har', group) ? '▸' : '▾'" in html
+    assert "pickFieldOptions(pf)" in html
+    assert "pickFieldHasOptions(item.ref)" in html
+    assert "options_text: entry.options_text || ''" in html
+    assert "x-for=\"opt in pickFieldOptions(item.ref)\"" in html
 
 
 def test_case_variable_panel_drafts_are_scoped_to_current_yaml():
