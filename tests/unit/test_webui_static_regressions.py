@@ -96,8 +96,20 @@ def test_maintenance_field_blocks_can_collapse_independently_and_use_option_sele
     assert "isMaintenanceBlockCollapsed('har', group) ? '▸' : '▾'" in html
     assert "pickFieldOptions(pf)" in html
     assert "pickFieldHasOptions(item.ref)" in html
+    assert "pickFieldOptionLabel(pf, value)" in html
+    assert "savePickFieldOption(item.ref, $event.target.value)" in html
     assert "options_text: entry.options_text || ''" in html
     assert "x-for=\"opt in pickFieldOptions(item.ref)\"" in html
+
+
+def test_har_preview_maintenance_order_uses_catalog_order_for_vars_and_groups():
+    html = _index_html()
+
+    assert "this.harVarConfig = (data.preview.detected_vars || []).map(v => ({" in html
+    assert "_catalog_order: this._harCatalogOrderForVar(v, catalogOrder)" in html
+    assert "return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''));" in html
+    assert "group.items.sort((a, b) => {" in html
+    assert "groups.sort((a, b) => {" in html
 
 
 def test_case_variable_panel_drafts_are_scoped_to_current_yaml():
@@ -207,6 +219,15 @@ def test_project_core_goals_are_documented_in_skills():
         assert "修复经验要沉淀为通用解析/执行规则" in text
 
 
+def test_troubleshooter_documents_workflow_approval_field_override_lesson():
+    troubleshooter = (PROJECT_ROOT / "skills" / "cosmic-replay-troubleshooter" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "workflow_approval_field_not_applied" in troubleshooter
+    assert "decision_radio_group" in troubleshooter
+    assert "msg_approval" in troubleshooter
+    assert "归一化为服务端码" in troubleshooter
+
+
 def test_ai_repair_ui_explains_handoff_without_hidden_steps():
     html = _index_html()
 
@@ -215,6 +236,8 @@ def test_ai_repair_ui_explains_handoff_without_hidden_steps():
     assert "打开变量面板" in html
     assert "技术详情" in html
     assert "复制 AI 修复指令" in html
+    assert "用户补充信息（发送给 AI 前可填写；没有可留空）" in html
+    assert "我刚维护过的变量/环境字段" in html
     assert "让AI修复" not in html
 
 

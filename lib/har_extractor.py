@@ -1624,6 +1624,94 @@ def _ensure_workflow_approval_update_steps(
     return out
 
 
+def _workflow_decision_code(value: Any, meta: Mapping[str, Any] | None = None) -> str:
+    candidates = [value]
+    if isinstance(meta, Mapping):
+        candidates.extend([meta.get("value_code"), meta.get("value_id"), meta.get("value_name")])
+    aliases = {
+        "consent": "Consent",
+        "agree": "Consent",
+        "approve": "Consent",
+        "approval": "Consent",
+        "同意": "Consent",
+        "通过": "Consent",
+        "审批通过": "Consent",
+        "reject": "Reject",
+        "rejected": "Reject",
+        "dismiss": "Reject",
+        "dismissed": "Reject",
+        "驳回": "Reject",
+        "拒绝": "Reject",
+        "审批不通过": "Reject",
+    }
+    for candidate in candidates:
+        text = str(candidate or "").strip()
+        if not text:
+            continue
+        if text in _WORKFLOW_DECISION_OPTIONS:
+            return text
+        mapped = aliases.get(text.lower()) or aliases.get(text)
+        if mapped:
+            return mapped
+    return str(value or "").strip()
+
+
+def _pick_field_update_value(field_key: str, meta: Mapping[str, Any]) -> str:
+    key = str(field_key or "").lower()
+    if key == _WORKFLOW_DECISION_FIELD_KEY:
+        return _workflow_decision_code(
+            meta.get("value_code") or meta.get("value_id") or meta.get("value_name"),
+            meta,
+        )
+    if str(meta.get("resolve_by") or "") == "value_code" and meta.get("value_code"):
+        return str(meta.get("value_code") or "")
+    for value_key in ("value_code", "value_number", "value_id", "value_name"):
+        value = meta.get(value_key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _apply_user_pick_field_values_to_update_steps(
+    steps: list[dict],
+    pick_fields_map: Mapping[str, Mapping[str, Any]],
+) -> None:
+    """Reflect preview/user-maintained pick field overrides in generated YAML steps."""
+    for _pf_id, meta in (pick_fields_map or {}).items():
+        if not isinstance(meta, Mapping):
+            continue
+        if not (meta.get("user_overridden") or meta.get("manual_override")):
+            continue
+        field_key = str(meta.get("field_key") or "").strip()
+        form_id = str(meta.get("form_id") or "").strip()
+        source_step_id = str(meta.get("source_step_id") or "").strip()
+        if not field_key:
+            continue
+        new_value = _pick_field_update_value(field_key, meta)
+        if not new_value:
+            continue
+        for step in steps:
+            if step.get("type") != "update_fields":
+                continue
+            if form_id and str(step.get("form_id") or "") != form_id:
+                continue
+            if source_step_id and str(step.get("id") or "") != source_step_id:
+                continue
+            fields = step.get("fields") or {}
+            if not isinstance(fields, dict):
+                continue
+            matched_key = next((k for k in fields if str(k).lower() == field_key.lower()), "")
+            if not matched_key:
+                continue
+            current = fields[matched_key]
+            if isinstance(current, dict):
+                for lang in list(current.keys()):
+                    current[lang] = new_value
+            else:
+                fields[matched_key] = new_value
+            break
+
+
 def _extract_row_index(post_data: list) -> int:
     """从 updateValue 的 postData 中提取 entry row_index。
 
@@ -5624,6 +5712,8 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["auto_resolve"] = True
                     pick_fields_map[pf_id]["resolve_by"] = "value_code"
                     pick_fields_map[pf_id]["resolve_status"] = "pending"
+
+    _apply_user_pick_field_values_to_update_steps(cleaned, pick_fields_map)
 
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:

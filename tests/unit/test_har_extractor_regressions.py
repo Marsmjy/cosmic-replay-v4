@@ -914,6 +914,38 @@ def test_salary_adjust_approval_import_exposes_action_and_opinion_when_local_har
     assert approval_step["fields"]["msg_approval"]["zh_CN"] == "${vars.test_workflow_approval_opinion}"
 
 
+def test_salary_adjust_approval_preview_override_updates_generated_step_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780544303_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment approval HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="salary_adjust_approval_reject",
+        pick_field_overrides={
+            "pick_decision_radio_group_id": {
+                "value_id": "Reject",
+                "value_name": "驳回",
+                "value_code": "Reject",
+                "value_number": "Reject",
+                "resolve_by": "value_code",
+                "resolve_status": "manual",
+                "manual_override": False,
+                "user_overridden": True,
+            },
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    decision = case["pick_fields"]["pick_decision_radio_group_id"]
+    approval_step = next(step for step in case["steps"] if step["id"] == "fill_workflow_approval")
+
+    assert decision["value_id"] == "Reject"
+    assert decision["value_code"] == "Reject"
+    assert decision["value_name"] == "驳回"
+    assert decision["user_overridden"] is True
+    assert approval_step["fields"]["decision_radio_group"] == "Reject"
+
+
 def test_salary_adjust_preview_exposes_unified_field_catalog_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780379727_金蝶HR-新增员工定调薪申请单-薪酬提案为否-保存&提交.har"
     if not har_path.exists():

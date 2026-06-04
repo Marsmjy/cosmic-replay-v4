@@ -1252,7 +1252,7 @@
                           </div>
                           <template x-if="pickFieldHasOptions(item.ref)">
                             <select :value="harPickFieldDraftValue(item.ref)"
-                                    @change="setHarPickFieldDraft(item.ref, $event.target.value); savePickFieldValue(pickFieldDraftKey(item.ref), $event.target.value, 'display')"
+                                    @change="savePickFieldOption(item.ref, $event.target.value)"
                                     class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none">
                               <template x-for="opt in pickFieldOptions(item.ref)" :key="opt.value">
                                 <option :value="opt.value" x-text="opt.label"></option>
@@ -1901,7 +1901,7 @@
                       </div>
                       <template x-if="pickFieldHasOptions(item.ref)">
                         <select :value="harPickFieldDraftValue(item.ref)"
-                                @change="setHarPickFieldDraft(item.ref, $event.target.value); savePickFieldValue(pickFieldDraftKey(item.ref), $event.target.value, 'display')"
+                                @change="savePickFieldOption(item.ref, $event.target.value)"
                                 class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-slate-200">
                           <template x-for="opt in pickFieldOptions(item.ref)" :key="opt.value">
                             <option :value="opt.value" x-text="opt.label"></option>
@@ -4568,7 +4568,12 @@ function app() {
         this.harVarConfig = (data.preview.detected_vars || []).map(v => ({
           ...v,
           _catalog_order: this._harCatalogOrderForVar(v, catalogOrder),
-        }));
+        })).sort((a, b) => {
+          const ao = Number.isFinite(a._catalog_order) ? a._catalog_order : 99999;
+          const bo = Number.isFinite(b._catalog_order) ? b._catalog_order : 99999;
+          if (ao !== bo) return ao - bo;
+          return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''));
+        });
         const SENS_ORDER = { high: 0, medium: 1, low: 2 };
         this.harPickFields = (data.preview.pick_fields || []).map(pf => {
           const item = {...pf};
@@ -4990,6 +4995,12 @@ function app() {
       return this.pickFieldOptions(pf).length > 0;
     },
 
+    pickFieldOptionLabel(pf, value) {
+      const text = String(value || '').trim();
+      const opt = this.pickFieldOptions(pf).find(item => item.value === text);
+      return opt ? opt.label : text;
+    },
+
     looksLikeInternalId(value) {
       return /^\d{12,}$/.test(String(value || '').trim());
     },
@@ -5031,6 +5042,20 @@ function app() {
         }
         byKey.get(groupKey).items.push(item);
       }
+      for (const group of groups) {
+        group.items.sort((a, b) => {
+          const ao = Number.isFinite(a?.order) ? a.order : 99999;
+          const bo = Number.isFinite(b?.order) ? b.order : 99999;
+          if (ao !== bo) return ao - bo;
+          return String(a?.label || '').localeCompare(String(b?.label || ''));
+        });
+      }
+      groups.sort((a, b) => {
+        const ao = Math.min(...a.items.map(item => Number.isFinite(item?.order) ? item.order : 99999));
+        const bo = Math.min(...b.items.map(item => Number.isFinite(item?.order) ? item.order : 99999));
+        if (ao !== bo) return ao - bo;
+        return String(a.label || '').localeCompare(String(b.label || ''));
+      });
       return groups;
     },
 
@@ -5349,10 +5374,14 @@ function app() {
         pf.value_id = text;
         pf.value_code = text;
         pf.value_number = text;
-        if (pf.value_name && String(pf.value_name) !== text) pf.value_name = '';
+        if (this.pickFieldHasOptions(pf)) {
+          pf.value_name = this.pickFieldOptionLabel(pf, text);
+        } else if (pf.value_name && String(pf.value_name) !== text) {
+          pf.value_name = '';
+        }
         pf.resolve_by = 'value_code';
-        pf.auto_resolve = true;
-        pf.resolve_status = 'pending';
+        pf.auto_resolve = !this.pickFieldHasOptions(pf);
+        pf.resolve_status = this.pickFieldHasOptions(pf) ? 'manual' : 'pending';
         pf.manual_override = false;
         pf.user_overridden = true;
       } else if (kind === 'name') {
@@ -5386,6 +5415,27 @@ function app() {
       if (pf.value_code && String(pf.value_code) !== String(pf.value_id || '')) {
         pf.value_code = '';
       }
+    },
+
+    async savePickFieldOption(pf, value) {
+      if (!pf) return;
+      const text = String(value || '').trim();
+      if (!text) return;
+      const label = this.pickFieldOptionLabel(pf, text);
+      const key = this.pickFieldDraftKey(pf);
+      if (!key) return;
+      this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+      pf.edit_value = text;
+      pf.value_id = text;
+      pf.value_code = text;
+      pf.value_number = text;
+      pf.value_name = label;
+      pf.resolve_by = 'value_code';
+      pf.auto_resolve = false;
+      pf.resolve_status = 'manual';
+      pf.manual_override = false;
+      pf.user_overridden = true;
+      await this.savePickFieldValue(key, text, 'display');
     },
 
     reportAcceptanceIcon() {
@@ -5746,6 +5796,11 @@ function app() {
         `问题：${reason}`,
                 `技术证据包：${evidenceUrl}`,
         '',
+        '用户补充信息（发送给 AI 前可填写；没有可留空）：',
+        '- 我在业务环境看到的现象：',
+        '- 我刚维护过的变量/环境字段：',
+        '- 我希望 AI 优先确认的问题：',
+        '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
         '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
@@ -5787,6 +5842,11 @@ function app() {
         `入库状态：${this.singleRunDiagnosis?.write_status || 'not_checked'}`,
         `问题：${reason}`,
         `技术证据包：${evidenceUrl}`,
+        '',
+        '用户补充信息（发送给 AI 前可填写；没有可留空）：',
+        '- 我在业务环境看到的现象：',
+        '- 我刚维护过的变量/环境字段：',
+        '- 我希望 AI 优先确认的问题：',
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
@@ -7401,13 +7461,19 @@ function app() {
         const kind = this.pickFieldDisplayKind(pf);
         const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue);
         if (asCode) {
+          const hasOptions = this.pickFieldHasOptions(pf);
+          const optionLabel = hasOptions ? this.pickFieldOptionLabel(pf, newValue) : '';
           pf.value_id = newValue;
           pf.value_code = newValue;
           pf.value_number = newValue;
-          if (pf.value_name && String(pf.value_name) !== newValue) pf.value_name = '';
+          if (hasOptions) {
+            pf.value_name = optionLabel;
+          } else if (pf.value_name && String(pf.value_name) !== newValue) {
+            pf.value_name = '';
+          }
           pf.resolve_by = 'value_code';
-          pf.auto_resolve = true;
-          pf.resolve_status = 'pending';
+          pf.auto_resolve = !hasOptions;
+          pf.resolve_status = hasOptions ? 'manual' : 'pending';
           pf.manual_override = false;
           pf.user_overridden = true;
           payload = {
@@ -7415,9 +7481,10 @@ function app() {
             value_id: newValue,
             value_code: newValue,
             value_number: newValue,
+            value_name: hasOptions ? optionLabel : '',
             resolve_by: 'value_code',
-            auto_resolve: true,
-            resolve_status: 'pending',
+            auto_resolve: !hasOptions,
+            resolve_status: hasOptions ? 'manual' : 'pending',
             manual_override: false,
             user_overridden: true,
           };
@@ -7448,14 +7515,17 @@ function app() {
         const kind = this.pickFieldDisplayKind(pf);
         const asCode = pf && (kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue));
         if (pf && asCode) {
+          const hasOptions = this.pickFieldHasOptions(pf);
+          const optionLabel = hasOptions ? this.pickFieldOptionLabel(pf, newValue) : '';
           payload = {
             ...payload,
             value_id: newValue,
             value_code: newValue,
             value_number: newValue,
+            value_name: hasOptions ? optionLabel : '',
             resolve_by: 'value_code',
-            auto_resolve: true,
-            resolve_status: 'pending',
+            auto_resolve: !hasOptions,
+            resolve_status: hasOptions ? 'manual' : 'pending',
             manual_override: false,
             user_overridden: true,
           };

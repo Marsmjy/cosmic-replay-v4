@@ -544,6 +544,7 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
    - `readback_assertion_gap`：保存/提交已成功，但通用入库回查没有命中。先确认 `no_save_failure/no_error_actions`、保存响应成功信号和业务系统实际入库；若确认已入库，移除或降级通用硬回查断言，补表单专用回查策略。
    - `business_validation_expected`：录制中出现且后续有补录动作的业务校验应保留为 `expected_notification`，不是失败。
    - `environment_field_override_not_applied`：预览页或用例详情维护环境字段后仍跑旧值。检查 `pick_fields.user_overridden`、`context_only`、`source_step_id/form_id`、`value_code/value_number`、`resolve_by=value_code` 是否被旧 `value_id/value_name` 覆盖，以及运行前自动保存。
+   - `workflow_approval_field_not_applied`：审批弹窗（如 `wf_batchtask_handle`）的审批动作/意见未随用户维护值生效。检查 HAR `loadData` 是否下发 `decision_radio_group`（`Consent/Reject`）和 `msg_approval`，预览页维护“同意/驳回”后是否写入 YAML `pick_fields`，是否同步到 `fill_workflow_approval.update_fields`，以及运行期 `_apply_pick_fields()` 是否把中文展示值归一化为服务端码。
    - HAR 解析变量遗漏、保存断言盲区、环境字段缺失或跨环境 value_id 错误、真实业务校验错误、执行器问题。
 6. 输出最小补丁：
    - 优先改当前 YAML。
