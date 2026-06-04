@@ -752,6 +752,48 @@ def _extract_grid_payload(resp: Any, grid_key: str = "billlistap") -> tuple[dict
     return {str(k): int(v) for k, v in dataindex.items() if isinstance(v, int)}, clean_rows
 
 
+def _extract_grid_payload_with_field(
+    resp: Any,
+    preferred_grid_key: str,
+    required_field: str,
+) -> tuple[dict[str, int], list[list[Any]]]:
+    """Return a grid payload by key, falling back to any grid containing a field."""
+    dataindex, rows = _extract_grid_payload(resp, preferred_grid_key)
+    if dataindex and rows and required_field in dataindex:
+        return dataindex, rows
+
+    for fallback_key in ("gridview", "billlistap", "entryentity", "khr_entryentity"):
+        if fallback_key == preferred_grid_key:
+            continue
+        dataindex, rows = _extract_grid_payload(resp, fallback_key)
+        if dataindex and rows and required_field in dataindex:
+            return dataindex, rows
+
+    def walk(obj: Any) -> tuple[dict[str, int], list[list[Any]]] | None:
+        if isinstance(obj, dict):
+            data = obj.get("data")
+            if isinstance(data, dict):
+                dataindex = data.get("dataindex")
+                rows = data.get("rows")
+                if isinstance(dataindex, dict) and isinstance(rows, list) and required_field in dataindex:
+                    return (
+                        {str(k): int(v) for k, v in dataindex.items() if isinstance(v, int)},
+                        [row for row in rows if isinstance(row, list)],
+                    )
+            for value in obj.values():
+                found = walk(value)
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = walk(item)
+                if found:
+                    return found
+        return None
+
+    return walk(resp) or ({}, [])
+
+
 def _grid_cell(row: list[Any], dataindex: dict[str, int], field: str) -> Any:
     idx = dataindex.get(field)
     if idx is None or idx < 0 or idx >= len(row):
@@ -1531,6 +1573,225 @@ def _resolve_selector_row_from_recent_grid(step: dict, ctx: dict) -> None:
         return
 
 
+def _extract_latest_update_value(resp: Any, field_key: str) -> str:
+    """Extract the latest value emitted by a Kingdee `u` action for one field."""
+    latest = ""
+    key = str(field_key or "").strip()
+    if not key:
+        return latest
+
+    def walk(obj: Any) -> None:
+        nonlocal latest
+        if isinstance(obj, dict):
+            if obj.get("k") == key and "v" in obj:
+                value = obj.get("v")
+                if value not in (None, ""):
+                    latest = str(value)
+            for value in obj.values():
+                walk(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(resp)
+    return latest
+
+
+def _remember_runtime_response_values(resp: Any, ctx: dict) -> None:
+    billno = _extract_latest_update_value(resp, "billno")
+    if billno:
+        ctx.setdefault("runtime_fields", {})["billno"] = billno
+
+
+def _apply_runtime_billno_to_step(step: dict, ctx: dict, replay: CosmicFormReplay | None = None) -> None:
+    billno = str((ctx.get("runtime_fields") or {}).get("billno") or "").strip()
+    if not billno or step.get("type") != "invoke":
+        return
+
+    if step.get("ac") == "commonSearch":
+        applied = False
+        for criteria_group in step.get("args") or []:
+            if not isinstance(criteria_group, list):
+                continue
+            for criteria in criteria_group:
+                if not isinstance(criteria, dict):
+                    continue
+                field_names = criteria.get("FieldName")
+                if not isinstance(field_names, list) or "billno" not in field_names:
+                    continue
+                criteria["Value"] = [billno]
+                applied = True
+        if applied:
+            step["_runtime_billno_applied"] = billno
+            ctx["runtime_billno_search"] = {
+                "form_id": step.get("form_id"),
+                "app_id": step.get("app_id"),
+                "ac": step.get("ac"),
+                "key": step.get("key"),
+                "method": step.get("method"),
+                "args": copy.deepcopy(step.get("args") or []),
+                "post_data": copy.deepcopy(step.get("post_data") or []),
+            }
+        return
+
+    if step.get("ac") != "entryRowClick":
+        return
+    post_data = step.get("post_data")
+    if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+        return
+    control_key = str(step.get("key") or "")
+    payload = post_data[0].get(control_key) if control_key else None
+    if not isinstance(payload, dict):
+        for maybe_payload in post_data[0].values():
+            if isinstance(maybe_payload, dict) and "selDatas" in maybe_payload:
+                payload = maybe_payload
+                break
+    if not isinstance(payload, dict):
+        return
+    existing_rows = payload.get("selDatas")
+    template_row = (
+        existing_rows[0]
+        if isinstance(existing_rows, list) and existing_rows and isinstance(existing_rows[0], list)
+        else []
+    )
+    if not template_row:
+        return
+
+    def resolve_from_history() -> tuple[int, list[Any], dict[str, int]] | None:
+        for resp in reversed(ctx.get("response_history") or []):
+            dataindex, rows = _extract_grid_payload_with_field(
+                resp,
+                control_key or "billlistap",
+                "billno",
+            )
+            if not dataindex or not rows or "billno" not in dataindex:
+                continue
+            try:
+                row_index, row = _find_grid_row(
+                    rows,
+                    dataindex,
+                    value_code=billno,
+                    value_name=billno,
+                    match_fields=["billno"],
+                )
+            except ProtocolError:
+                continue
+            return row_index, row, dataindex
+        return None
+
+    resolved = resolve_from_history()
+    if resolved is None and replay is not None:
+        search = ctx.get("runtime_billno_search")
+        if isinstance(search, dict) and search.get("form_id") and search.get("app_id"):
+            run_ev = ctx.get("run_event")
+            for attempt in range(1, 6):
+                if attempt > 1:
+                    time.sleep(1)
+                try:
+                    resp = replay.invoke(str(search["form_id"]), str(search["app_id"]), str(search.get("ac") or "commonSearch"), [{
+                        "key": str(search.get("key") or "filtercontainerap"),
+                        "methodName": str(search.get("method") or "commonSearch"),
+                        "args": copy.deepcopy(search.get("args") or []),
+                        "postData": copy.deepcopy(search.get("post_data") or []),
+                    }])
+                except Exception as exc:
+                    if run_ev:
+                        run_ev("runtime_billno_search_retry", {
+                            "billno": billno,
+                            "attempt": attempt,
+                            "status": "error",
+                            "error": str(exc)[:150],
+                        })
+                    continue
+                ctx.setdefault("response_history", []).append(resp)
+                _remember_runtime_response_values(resp, ctx)
+                resolved = resolve_from_history()
+                if run_ev:
+                    run_ev("runtime_billno_search_retry", {
+                        "billno": billno,
+                        "attempt": attempt,
+                        "status": "resolved" if resolved else "not_found",
+                    })
+                if resolved:
+                    break
+
+    if resolved is None:
+        step["_runtime_billno_grid_missing"] = billno
+        return
+
+    row_index, row, dataindex = resolved
+    payload["row"] = row_index
+    payload["selRows"] = [row_index]
+    payload["selDatas"] = [
+        _build_billno_selected_row(
+            template_row,
+            row,
+            dataindex,
+            billno,
+            form_id=str(step.get("form_id") or ""),
+        )
+    ]
+    args = step.get("args")
+    if isinstance(args, list) and args:
+        args[0] = row_index
+    step["_runtime_billno_grid_resolved"] = {
+        "billno": billno,
+        "row": row_index,
+        "control_key": control_key or "billlistap",
+    }
+
+
+def _build_billno_selected_row(
+    template_row: list[Any],
+    grid_row: list[Any],
+    dataindex: dict[str, int],
+    billno: str,
+    *,
+    form_id: str = "",
+) -> list[Any]:
+    """Rebuild compact list selection rows after a runtime bill number changes."""
+    if not template_row or len(template_row) >= len(grid_row):
+        return copy.deepcopy(grid_row)
+    compact = copy.deepcopy(template_row)
+    old_billno = ""
+    for cell in template_row:
+        text = str(cell or "")
+        if re.search(r"[A-Za-z]+\d{8,}", text):
+            old_billno = text
+            break
+
+    pk_value = _selector_pk_from_grid_row(grid_row, dataindex, form_id)
+    if pk_value not in (None, "") and compact:
+        compact[0] = pk_value
+
+    subject = _grid_cell(grid_row, dataindex, "subject")
+    org_id = _grid_cell(grid_row, dataindex, "org_id")
+    status = _grid_cell(grid_row, dataindex, "status")
+
+    for idx, cell in enumerate(list(compact)):
+        text = str(cell or "")
+        if text == old_billno or text == billno or (
+            old_billno and old_billno in text and idx < len(compact)
+        ):
+            compact[idx] = billno
+        elif org_id not in (None, "") and text == "100000":
+            compact[idx] = org_id
+        elif status not in (None, "") and text in {"A", "B", "C", "D"}:
+            compact[idx] = status
+
+    if subject not in (None, ""):
+        for idx, cell in enumerate(list(compact)):
+            text = str(cell or "")
+            if old_billno and old_billno in text:
+                compact[idx] = subject
+                break
+        else:
+            if len(compact) == 3:
+                compact[2] = subject
+
+    return compact
+
+
 def _build_selector_selected_row(
     template_row: list[Any],
     grid_row: list[Any],
@@ -2257,6 +2518,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         optional = bool(step.get("optional"))
         if stype == "invoke" and step.get("_selector_env_field_meta"):
             _resolve_selector_row_from_recent_grid(step, ctx)
+        if stype == "invoke":
+            _apply_runtime_billno_to_step(step, ctx, replay)
         print(f"\n[{sid}] {stype}", end="")
         detail = _step_detail(step)
         if detail:
@@ -2447,6 +2710,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             ctx["step_responses"][sid] = resp
             if resp is not None:
                 ctx["response_history"].append(resp)
+                _remember_runtime_response_values(resp, ctx)
 
             if errs and not optional:
                 # 进一步尝试从 bos_operationresult 拉详情

@@ -28,7 +28,7 @@ from lib.runner import (
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
     _build_env_fields, _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
-    _build_selector_selected_row,
+    _build_selector_selected_row, _apply_runtime_billno_to_step,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
 
@@ -636,6 +636,92 @@ class TestReplayErrorDetection:
             "C",
         ]]
 
+    def test_runtime_billno_rewrites_task_search_and_selected_row(self):
+        common_search = {
+            "id": "commonSearch_96",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "key": "filtercontainerap",
+            "method": "commonSearch",
+            "args": [
+                [{"FieldName": ["billno"], "Value": ["DTX20260604256"]}],
+                [{"FieldName": ["createdate"], "Value": ["24"], "Compare": ["24"]}],
+                "wf_task",
+            ],
+        }
+        entry_click = {
+            "id": "entryRowClick_97",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "method": "entryRowClick",
+            "args": [0, "priorityshow"],
+            "post_data": [{
+                "billlistap": {
+                    "fieldKey": "priorityshow",
+                    "row": 0,
+                    "selRows": [0],
+                    "selDatas": [[
+                        "2494284326619915265",
+                        "DTX20260604256",
+                        "请审批赵月凛发起的定调薪申请单（单据编号：DTX20260604256）",
+                    ]],
+                }
+            }, []],
+        }
+        ctx = {
+            "runtime_fields": {"billno": "DTX20260604269"},
+            "response_history": [{
+                "a": "u",
+                "p": [{
+                    "k": "gridview",
+                    "data": {
+                        "dataindex": {
+                            "rk": 0,
+                            "id": 1,
+                            "billno": 2,
+                            "subject": 6,
+                            "wf_task_id": 14,
+                        },
+                        "rows": [[
+                            0,
+                            "2499999999999999999",
+                            "DTX20260604269",
+                            "员工定调薪申请单",
+                            "赵月凛(53478)",
+                            None,
+                            "请审批赵月凛发起的定调薪申请单（单据编号：DTX20260604269）",
+                            None,
+                            "willApproval",
+                            "一级审批人",
+                            "赵月凛(53478)",
+                            "",
+                            ["2026-06-04 11:52:00", "2026-06-04 11:52:00"],
+                            "",
+                            "2499999999999999999",
+                        ]],
+                    },
+                }],
+            }],
+        }
+
+        _apply_runtime_billno_to_step(common_search, ctx)
+        _apply_runtime_billno_to_step(entry_click, ctx)
+
+        assert common_search["args"][0][0]["Value"] == ["DTX20260604269"]
+        payload = entry_click["post_data"][0]["billlistap"]
+        assert entry_click["args"][0] == 0
+        assert payload["selRows"] == [0]
+        assert payload["selDatas"] == [[
+            "2499999999999999999",
+            "DTX20260604269",
+            "请审批赵月凛发起的定调薪申请单（单据编号：DTX20260604269）",
+        ]]
+
     def test_select_f7_list_row_loads_selects_and_confirms(self):
         calls = []
         f7_row = [
@@ -867,6 +953,44 @@ class TestReplayErrorDetection:
 
         assert replay.page_ids["hsbs_employeequerylistf7"] == "01179cbf5035422581622d93b880ebb8"
         assert replay.page_ids["hsbs_empposf7querylist"] == "01179cbf5035422581622d93b880ebb8"
+
+    def test_show_form_harvest_accepts_reopened_loaded_dialog_pageid(self):
+        sess = CosmicSession(
+            base_url="http://example.test",
+            cookie="",
+            user_id="",
+            account_id="",
+            csrf_token="",
+            diff_time=0,
+            root_base_id="",
+            root_page_id="rootabcdef0123456789abcdef0123456789",
+        )
+        replay = CosmicFormReplay(sess)
+        replay.page_ids["hcdm_adjfileinfof7"] = "01179cbf5035422581622d93b880ebb8"
+        replay._loaded_forms.add("hcdm_adjfileinfof7")
+        replay._current_invoke_form = "khr_hcdm_fapplybill"
+
+        replay._harvest_page_ids([{
+            "a": "showForm",
+            "p": [{
+                "formId": "hcdm_adjfilelistf7",
+                "billFormId": "hcdm_adjfileinfof7",
+                "pageId": "11119cbf5035422581622d93b880ebb8",
+            }],
+        }])
+
+        assert replay.page_ids["hcdm_adjfileinfof7"] == "11119cbf5035422581622d93b880ebb8"
+        assert replay.page_ids["hcdm_adjfilelistf7"] == "11119cbf5035422581622d93b880ebb8"
+
+        replay._harvest_page_ids([{
+            "a": "showForm",
+            "p": [{
+                "formId": "hcdm_adjfileinfof7",
+                "pageId": "11119cbf5035422581622d93b880ebb8",
+            }],
+        }])
+
+        assert replay.page_ids["hcdm_adjfileinfof7"] == "11119cbf5035422581622d93b880ebb8"
 
 
 class TestYAMLLightParsing:

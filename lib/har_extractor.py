@@ -1447,13 +1447,19 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
         if step.get("type") == "pick_basedata":
             field_key_s = str(step.get("field_key") or "").strip().lower()
             form_id_s = str(step.get("form_id") or "").strip()
+            has_recorded_pick_value = bool(
+                str(step.get("value_id") or step.get("value_code") or step.get("value_number") or "").strip()
+            )
             if (
                 field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
-                or _is_locked_before(
-                    observations,
-                    field_key_s,
-                    step.get("_har_index"),
-                    form_id=form_id_s,
+                or (
+                    not has_recorded_pick_value
+                    and _is_locked_before(
+                        observations,
+                        field_key_s,
+                        step.get("_har_index"),
+                        form_id=form_id_s,
+                    )
                 )
             ):
                 continue
@@ -2314,6 +2320,10 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
     ⭐ 规则11（entry 行号传递）：
     HAR 中 entry 字段的 updateValue postData 带 "r" 行号。
     合并时提取 row_index，写入 update_fields 步骤，runner 发送时携带正确行号。
+
+    同一连续片段里如果字段重复出现，不能只保留最终值。Combo/Boolean
+    开关常依赖中间值触发服务端联动；吞掉 toggle 会导致后续 F7/保存提前
+    触发必填校验。
     """
     out: list[dict] = []
     i = 0
@@ -2326,15 +2336,20 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
             i += 1
             continue
 
-        # 收集连续的 updateValue
+        # 收集连续的 updateValue。同字段重复时切断批次，保留 toggle 顺序。
         group: list[dict] = [s]
+        seen_keys = set(_extract_update_fields(s.get("post_data") or []).keys())
         j = i + 1
         while j < len(steps):
             nxt = steps[j]
             if (nxt.get("type") == "invoke" and nxt.get("method") == "updateValue"
                     and nxt.get("key") == ""
                     and nxt.get("form_id") == s.get("form_id")):
+                nxt_keys = set(_extract_update_fields(nxt.get("post_data") or []).keys())
+                if seen_keys.intersection(nxt_keys):
+                    break
                 group.append(nxt)
+                seen_keys.update(nxt_keys)
                 j += 1
             else:
                 break

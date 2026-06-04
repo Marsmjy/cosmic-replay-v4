@@ -15,9 +15,11 @@ from lib.har_extractor import (
     _build_preview_readback_plan,
     _build_preview_business_blocks,
     _clean_display_label,
+    _drop_locked_update_fields,
     _scoped_pick_field_id,
     build_yaml_case,
     detect_var_placeholders,
+    merge_consecutive_update_values,
     preview_har,
     to_yaml,
 )
@@ -51,6 +53,49 @@ def test_to_yaml_keeps_leading_zero_business_codes_as_strings():
     assert '"00407"' in yaml_text
     assert parsed["pick_fields"]["pick_city_id"]["value_id"] == "00407"
     assert parsed["pick_fields"]["pick_city_id"]["value_code"] == "00407"
+
+
+def test_merge_update_values_preserves_repeated_field_toggles():
+    def update_step(step_id: str, field: str, value: str) -> dict:
+        return {
+            "id": step_id,
+            "type": "invoke",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "hcdm",
+            "method": "updateValue",
+            "key": "",
+            "post_data": [{}, [{"k": field, "v": value, "r": -1}]],
+        }
+
+    merged = merge_consecutive_update_values([
+        update_step("set_proposal_0", "khr_salaryproposal", "0"),
+        update_step("set_scope_3", "khr_scope", "3"),
+        update_step("set_proposal_1", "khr_salaryproposal", "1"),
+        update_step("set_proposal_0_again", "khr_salaryproposal", "0"),
+    ])
+
+    assert [step["fields"] for step in merged] == [
+        {"khr_salaryproposal": "0", "khr_scope": "3"},
+        {"khr_salaryproposal": "1"},
+        {"khr_salaryproposal": "0"},
+    ]
+
+
+def test_drop_locked_fields_keeps_recorded_basedata_pick():
+    steps = [
+        {
+            "id": "pick_khr_proposer",
+            "type": "pick_basedata",
+            "form_id": "khr_hcdm_fapplybill",
+            "field_key": "khr_proposer",
+            "value_id": "2381390676873980001",
+            "value_code": "00001",
+            "_har_index": 64,
+        }
+    ]
+    observations = {"locked_events": {62: {"khr_proposer"}}}
+
+    assert _drop_locked_update_fields(steps, observations) == steps
 
 
 def test_append_readback_assertions_is_opt_in_and_uses_business_key():

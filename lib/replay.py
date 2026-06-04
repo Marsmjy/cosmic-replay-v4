@@ -612,10 +612,16 @@ class CosmicFormReplay:
                                 if _is_l2_pageid(pid):
                                     log.debug(f"[harvest/showForm] SKIP L2 pageId for {fid}: {pid[:30]}")
                                     continue
-                                # 如果该表单已 loadData 且不是当前请求表单，跳过覆盖
+                                # 如果该表单已 loadData 且不是当前请求表单，仅在 pageId 未变化时跳过。
+                                # 相同 pageId 通常是兄弟表单响应里的噪声 showForm；不同 pageId
+                                # 表示表单/弹窗被重新打开，必须接受新 pageId，否则后续会沿用
+                                # 已关闭窗口的过期 pageId。
                                 if fid in self._loaded_forms and fid != _invoking:
-                                    log.debug(f"[harvest/showForm] SKIP {fid}: already loaded, pid={str(pid)[:20]} from sibling {_invoking}")
-                                    continue
+                                    existing = self.page_ids.get(fid)
+                                    if existing == pid:
+                                        log.debug(f"[harvest/showForm] SKIP {fid}: already loaded, same pid={str(pid)[:20]} from sibling {_invoking}")
+                                        continue
+                                    log.debug(f"[harvest/showForm] REOPEN {fid}: {str(existing)[:20]}→{pid[:20]} (via {_invoking})")
                                 old = self.page_ids.get(fid)
                                 if old != pid:
                                     log.debug(f"[harvest/showForm] {fid}: {str(old)[:20]}→{pid[:20]}")
