@@ -841,6 +841,12 @@
                     </div>
                   </template>
                 </div>
+                <div x-show="failedPhase()?.wait_detail"
+                     class="mt-4 rounded-lg border border-amber-800/60 bg-slate-950/60 p-3">
+                  <div class="text-xs font-medium text-amber-200">等待详情</div>
+                  <div class="mt-1 text-sm text-slate-300" x-text="waitDetailSummary(failedPhase()?.wait_detail)"></div>
+                  <div class="mt-1 text-xs text-slate-500" x-text="waitDetailNextAction(failedPhase()?.wait_detail)"></div>
+                </div>
               </div>
               <div class="flex w-full shrink-0 flex-col gap-2 sm:w-56">
                 <button x-show="safeRepairCount() > 0"
@@ -1148,6 +1154,11 @@
                   <div class="text-sm" x-text="'· ' + e"></div>
                 </template>
               </div>
+              <div x-show="selectedPhase()?.wait_detail" class="pt-2 border-t border-slate-800 mt-2">
+                <div class="text-amber-200 mb-1">等待详情:</div>
+                <div class="text-sm text-slate-300" x-text="waitDetailSummary(selectedPhase()?.wait_detail)"></div>
+                <div class="text-xs text-slate-500 mt-1" x-text="waitDetailNextAction(selectedPhase()?.wait_detail)"></div>
+              </div>
             </div>
 
             <div x-show="selectedPhase()?.resolved_request" class="mt-3 pt-3 border-t border-slate-800">
@@ -1265,7 +1276,7 @@
                                    @input="setHarPickFieldDraft(item.ref, $event.target.value)"
                                    @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
                                    class="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-200 focus:border-sky-500 focus:outline-none"
-                                   :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                                   :placeholder="pickFieldPlaceholder(item.ref)">
                           </template>
                           <button class="px-3 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                                   x-show="!pickFieldHasOptions(item.ref)"
@@ -1914,7 +1925,7 @@
                                @input="setHarPickFieldDraft(item.ref, $event.target.value)"
                                @keydown.enter="savePickFieldValue(pickFieldDraftKey(item.ref), harPickFieldDraftValue(item.ref), 'display')"
                                class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
-                               :placeholder="item.ref.value_code || item.ref.value_name || '业务编码 / value_id'">
+                               :placeholder="pickFieldPlaceholder(item.ref)">
                       </template>
                       <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                               x-show="!pickFieldHasOptions(item.ref)"
@@ -1991,7 +2002,7 @@
                      @input="setHarPickFieldDraft(pf, $event.target.value)"
                      @keydown.enter="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')"
                      class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono"
-                     :placeholder="pf.value_code || pf.value_name || '业务编码 / value_id'">
+                     :placeholder="pickFieldPlaceholder(pf)">
               <button class="px-2.5 py-1 text-xs rounded bg-orange-700/80 hover:bg-orange-600 text-white transition-colors shrink-0"
                       @click="savePickFieldValue(pickFieldDraftKey(pf), harPickFieldDraftValue(pf), 'display')">确认</button>
               <!-- value_name 显示 -->
@@ -3035,7 +3046,7 @@
                 <div x-show="reportQueue('ai_agent').length"
                      class="mt-3 rounded-lg border border-rose-800/60 bg-rose-950/25 px-3 py-2 text-sm text-rose-100">
                   <span class="font-medium">下一步：</span>
-                  <span>点击「复制 AI 修复指令」发给 Codex/AI Agent；指令会要求 AI 先看 IR 摘要、pageId 链路、变量/环境字段和入库证据。</span>
+                  <span>点击「复制 AI 修复指令」发给 Codex/AI Agent；指令会要求 AI 先看 IR 摘要、动态值链路、pageId 链路、变量/环境字段和入库证据。</span>
                 </div>
                 <div class="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
                   <div class="bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2">
@@ -3085,9 +3096,10 @@
               <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
                 <div>
                   <div class="text-sm font-medium text-rose-200">需 AI Agent 诊断</div>
-                  <div class="text-xs text-slate-400 mt-1">系统已准备好修复上下文。复制指令后，AI 会优先检查 IR 摘要、pageId 链路、变量/环境字段和入库证据。</div>
+                  <div class="text-xs text-slate-400 mt-1">系统已准备好修复上下文。复制指令后，AI 会优先检查 IR 摘要、动态值链路、pageId 链路、变量/环境字段和入库证据。</div>
                   <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
                     <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">IR 摘要</span>
+                    <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">动态值链路</span>
                     <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">pageId 链路</span>
                     <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">变量/环境字段</span>
                     <span class="rounded bg-slate-900 px-2 py-0.5 text-slate-300">入库证据</span>
@@ -4005,7 +4017,12 @@ function app() {
       es.addEventListener('step_ok', (ev) => {
         const d = JSON.parse(ev.data);
         const p = record.phases.find(x => x.id === 'step:'+d.id);
-        if (p) { p.status = 'ok'; p.duration_ms = d.duration_ms; p.response = d.response; }
+        if (p) {
+          p.status = 'ok';
+          p.duration_ms = d.duration_ms;
+          p.response = d.response;
+          if (d.wait_detail) p.wait_detail = d.wait_detail;
+        }
       });
       es.addEventListener('step_fail', (ev) => {
         const d = JSON.parse(ev.data);
@@ -4015,6 +4032,7 @@ function app() {
           p.duration_ms = d.duration_ms;
           p.errors = d.errors || (d.error ? [d.error] : []);
           p.response = d.response;
+          if (d.wait_detail) p.wait_detail = d.wait_detail;
           // ⭐ P0-1: 自动选中失败步骤并滚动到视图中
           if (this.currentCase?.name === name) {
             this.selectedStep = 'step:'+d.id;
@@ -4480,6 +4498,11 @@ function app() {
           resolve_status: pf.resolve_status || '',
           manual_override: manualOverride,
           user_overridden: !!pf.user_overridden,
+          source_type: pf.source_type || '',
+          upload_endpoint: pf.upload_endpoint || '',
+          file_field: pf.file_field || '',
+          recorded_file_names: pf.recorded_file_names || [],
+          requires_user_file: !!pf.requires_user_file,
         };
       }
       return out;
@@ -4689,6 +4712,11 @@ function app() {
           resolve_status: pf.resolve_status || '',
           manual_override: manualOverride,
           user_overridden: !!pf.user_overridden,
+          source_type: pf.source_type || '',
+          upload_endpoint: pf.upload_endpoint || '',
+          file_field: pf.file_field || '',
+          recorded_file_names: pf.recorded_file_names || [],
+          requires_user_file: !!pf.requires_user_file,
         };
       }
       try {
@@ -4904,6 +4932,7 @@ function app() {
     pickFieldStoredDisplayValue(pf) {
       if (!pf) return '';
       if (Object.prototype.hasOwnProperty.call(pf, 'edit_value')) return String(pf.edit_value || '');
+      if (pf.source_type === 'upload_file') return String(pf.value_id || '');
       if (pf.context_only && pf.value_id) return String(pf.value_code || pf.value_number || pf.value_id || pf.value_name || '');
       return String(pf.value_code || pf.value_number || pf.value_name || pf.value_id || '');
     },
@@ -4980,10 +5009,23 @@ function app() {
 
     pickFieldDisplayKind(pf) {
       if (!pf) return 'id';
+      if (pf.source_type === 'upload_file') return 'file_path';
       if (pf.context_only && pf.value_id) return 'code';
       if (pf.value_code || pf.value_number || pf.resolve_by === 'value_code') return 'code';
       if (pf.value_name && String(pf.value_name) !== String(pf.value_id || '')) return 'name';
       return 'id';
+    },
+
+    pickFieldPlaceholder(pf) {
+      if (pf?.source_type === 'upload_file') {
+        const names = Array.isArray(pf.recorded_file_names)
+          ? pf.recorded_file_names
+          : (pf.recorded_file_names ? [String(pf.recorded_file_names)] : []);
+        const recordedName = names[0] || pf.value_name || '';
+        const recorded = recordedName ? `录制文件：${recordedName}` : '本地文件路径';
+        return `${recorded}，请填写本机可访问路径`;
+      }
+      return pf?.value_code || pf?.value_name || '业务编码 / value_id';
     },
 
     pickFieldOptions(pf) {
@@ -5215,6 +5257,7 @@ function app() {
 
     harMaintenancePriorityLabel(item) {
       const ref = item?.ref || {};
+      if (ref.source_type === 'upload_file' && !String(ref.value_id || '').trim()) return '必填';
       if (ref.required_context || ref.required || ref.env_sensitive === 'high') return '必填';
       if (ref.env_sensitive === 'medium') return '建议';
       return '可选';
@@ -5228,6 +5271,9 @@ function app() {
     },
 
     harPickResolveLabel(pf = {}) {
+      if (pf.source_type === 'upload_file') {
+        return String(pf.value_id || '').trim() ? '已配置文件' : '需文件';
+      }
       const status = String(pf.resolve_status || pf.status || '').toLowerCase();
       if (pf.user_overridden) return '已修改';
       if (status === 'resolved' || status === 'ok' || status === 'matched') return '已解析';
@@ -5239,8 +5285,8 @@ function app() {
 
     harPickResolveClass(pf = {}) {
       const label = this.harPickResolveLabel(pf);
-      if (label === '已解析' || label === '已修改') return 'bg-emerald-900/60 text-emerald-200';
-      if (label === '未解析') return 'bg-red-900/60 text-red-200';
+      if (label === '已解析' || label === '已修改' || label === '已配置文件') return 'bg-emerald-900/60 text-emerald-200';
+      if (label === '未解析' || label === '需文件') return 'bg-red-900/60 text-red-200';
       if (label === '需确认' || label === '待解析') return 'bg-amber-900/60 text-amber-200';
       return 'bg-slate-800 text-slate-300';
     },
@@ -5388,6 +5434,17 @@ function app() {
       const key = this.pickFieldDraftKey(pf);
       if (key) {
         this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
+      }
+      if (pf.source_type === 'upload_file') {
+        pf.value_id = text;
+        pf.value_code = '';
+        pf.value_number = '';
+        pf.resolve_by = '';
+        pf.auto_resolve = false;
+        pf.resolve_status = text ? 'manual' : 'missing_file';
+        pf.manual_override = true;
+        pf.user_overridden = true;
+        return;
       }
       const kind = this.pickFieldDisplayKind(pf);
       const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, text);
@@ -5660,6 +5717,16 @@ function app() {
           message: '执行过程没有明确失败，但入库证据不足。先确认业务数据是否真的入库，再让 AI 补专用回查规则。',
         };
       }
+      if (category === 'workflow_task_wait_timeout') {
+        return {
+          action: 'environment',
+          tone: 'amber',
+          badge: '待办未生成',
+          confidence: this.failureAnalysis?.confidence || '高',
+          title: '先确认审批待办',
+          message: '提交链路已经走到审批前置等待，但目标环境没有查到当前单号对应的待办。先去业务环境确认待办、审批人、权限和流程配置；环境恢复后重跑。',
+        };
+      }
       if (
         envCategories.has(category)
         || /环境|服务不可达|服务抛出|运行时异常|协议|无效请求|traceid|http 50[234]|502|503|504|gateway|timeout|timed out/.test(lower)
@@ -5741,7 +5808,11 @@ function app() {
       const decision = this.failureDecision();
       const failed = this.failedPhase();
       if (decision.action === 'environment') {
-        items.push('目标环境或接口响应异常优先级高，本次失败暂不建议直接判为用例问题。');
+        if (category === 'workflow_task_wait_timeout') {
+          items.push('已按运行时单号等待审批待办，但目标环境未返回对应列表行。');
+        } else {
+          items.push('目标环境或接口响应异常优先级高，本次失败暂不建议直接判为用例问题。');
+        }
       } else if (decision.action === 'vars') {
         items.push('失败信息包含业务字段、必填项或字段值校验信号。');
       } else if (decision.action === 'readback') {
@@ -5753,6 +5824,36 @@ function app() {
       if (category && category !== 'unknown') items.push(`系统分类：${this.failureCategoryLabel(category)}`);
       if (items.length < 3 && this.failureAnalysis?.root_cause) items.push(this.failureAnalysis.root_cause);
       return items.slice(0, 3);
+    },
+
+    waitDetailSummary(detail) {
+      if (!detail) return '';
+      const kind = detail.kind || '等待条件';
+      const attempts = Number(detail.attempts || 0);
+      const maxAttempts = Number(detail.max_attempts || 0);
+      const field = detail.field_key || (kind === 'grid_row_exists' ? '列表行' : '条件');
+      const value = detail.value ? `=${detail.value}` : '';
+      const rows = detail.last_row_count === null || detail.last_row_count === undefined
+        ? '未知'
+        : detail.last_row_count;
+      const statusText = detail.status === 'satisfied'
+        ? '已满足'
+        : (detail.status === 'timeout' ? '未满足' : '等待中');
+      if (kind === 'grid_row_exists') {
+        return `等待 ${field}${value} 对应的列表行，已尝试 ${attempts}/${maxAttempts || attempts} 次，最后一次返回 ${rows} 行，结果：${statusText}。`;
+      }
+      return `等待条件 ${kind}，已尝试 ${attempts}/${maxAttempts || attempts} 次，结果：${statusText}。`;
+    },
+
+    waitDetailNextAction(detail) {
+      if (!detail) return '';
+      if (detail.kind === 'grid_row_exists' && detail.field_key === 'billno') {
+        return '下一步：在目标环境按该单号查询审批待办，确认是否已生成、当前账号是否有权限、审批人和流程配置是否正常。';
+      }
+      if (detail.last_response_has_error) {
+        return '下一步：先确认目标环境接口是否恢复，再重新执行。';
+      }
+      return '下一步：确认目标环境是否真的产生了等待条件对应的数据，再决定是否让 AI 修用例。';
     },
 
     singleRunNeedsAgent() {
@@ -5775,9 +5876,9 @@ function app() {
         return '保存步骤已成功，但自动入库回查未命中。可先确认环境数据是否存在，再决定是否补专用回查策略。';
       }
       if (!this.summary?.passed) {
-        return '系统已准备好本次运行上下文。复制指令给 AI，可直接排查失败步骤、YAML、pageId 链路和环境字段。';
+        return '系统已准备好本次运行上下文。复制指令给 AI，可直接排查失败步骤、YAML、动态值链路、pageId 链路和环境字段。';
       }
-      return '这次执行 PASS，但保存/提交响应缺少明确入库证据。复制指令给 AI，可排查 pageId 链路或补充入库断言。';
+      return '这次执行 PASS，但保存/提交响应缺少明确入库证据。复制指令给 AI，可排查动态值链路、pageId 链路或补充入库断言。';
     },
 
     failureCategoryLabel(category) {
@@ -5790,6 +5891,7 @@ function app() {
         environment_field_context_missing: '环境字段缺失',
         f7_lookup_chain_missing: 'F7 选择链路缺失',
         dialog_detail_chain_incomplete: '子窗明细链路不完整',
+        workflow_task_wait_timeout: '审批待办未生成',
         component_rule_group_filter_missing: '组件明细缺失',
         transient_protocol: '环境/网络波动',
         unknown: '待 AI 诊断',
@@ -5820,8 +5922,8 @@ function app() {
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
-        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
-        '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
+        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、run_artifacts.dynamic_value_flow、pageid_trace 和失败/入库证据；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 优先查看 run_artifacts.ir_summary 与 run_artifacts.dynamic_value_flow：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions、response_anchor_candidates、warnings，以及 pageId/billno/确认回调/上传 URL/待办任务行是否仍在消费 HAR 录制旧值。',
         '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '4. 如本地有原始 HAR，可先运行 scripts/har_ir_tool.py build --har <har> 和 scripts/har_ir_tool.py dry-run --flow <normalized_flow.json> 生成脱敏 IR；原始 HAR 不得提交 Git。',
         '5. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
@@ -5869,8 +5971,8 @@ function app() {
         '',
         '请按项目内 skills/cosmic-replay-troubleshooter/SKILL.md 的协议执行：',
         '0. 永远围绕项目核心目标：HAR 解析出可维护字段、用户维护值必须生效、F7/下拉/基础资料按目标环境接口解析、跨环境动态适配、执行必须校验保存/提交和入库证据、经验沉淀为通用规则和知识库、批量 HAR 要比较优化前后并输出报告。',
-        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
-        '2. 优先查看 run_artifacts.ir_summary：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions 和 warnings，判断是变量/环境字段缺失、断言盲区还是 pageId 风险。',
+        '1. 先读取证据包、YAML、运行事件、run_artifacts.ir_summary、run_artifacts.dynamic_value_flow、pageid_trace、失败步骤和断言结果；若 failure_analysis.diagnosis_priority 存在，按该优先级排查。',
+        '2. 优先查看 run_artifacts.ir_summary 与 run_artifacts.dynamic_value_flow：确认 case_shape、写入步骤、steps.role、variables.value_shape、environment_fields.value_shape、assertions、response_anchor_candidates、warnings，以及 pageId/billno/确认回调/上传 URL/待办任务行是否仍在消费 HAR 录制旧值。',
         '3. 不论失败分类是什么，先比对 HAR 原始 pageId 链路与回放 pageId 是否一致：menuItemClick/loadData/treeNodeClick/addnew 等列表/树/工具栏步骤应保留 L2，真实编辑/保存/提交步骤才切到 L3。',
         '4. 如本地有原始 HAR，可先运行 scripts/har_ir_tool.py build --har <har> 和 scripts/har_ir_tool.py dry-run --flow <normalized_flow.json> 生成脱敏 IR；原始 HAR 不得提交 Git。',
         '5. 若出现 createorg/ctrlstrategy/默认组织/控制策略等默认上下文缺失，先从 HAR 的 loadData、showForm 元数据、列表 dataindex/rows 提取环境字段和内部 id；不要硬补 save.post_data。',
@@ -6281,7 +6383,12 @@ function app() {
             }
             case 'step_ok': {
               const p = this.phases.find(x => x.id === 'step:'+d.id);
-              if (p) { p.status = 'ok'; p.duration_ms = d.duration_ms; p.response = d.response; }
+              if (p) {
+                p.status = 'ok';
+                p.duration_ms = d.duration_ms;
+                p.response = d.response;
+                if (d.wait_detail) p.wait_detail = d.wait_detail;
+              }
               break;
             }
             case 'step_fail': {
@@ -6291,6 +6398,7 @@ function app() {
                 p.duration_ms = d.duration_ms;
                 p.errors = d.errors || (d.error ? [d.error] : []);
                 p.response = d.response;
+                if (d.wait_detail) p.wait_detail = d.wait_detail;
               }
               break;
             }
@@ -6742,12 +6850,23 @@ function app() {
           }
           case 'step_ok': {
             const okStep = stepMap[d.id];
-            if (okStep) { okStep.status = 'ok'; if (d.duration_ms) okStep.duration_ms = d.duration_ms; if (d.response !== undefined) okStep.response = d.response; }
+            if (okStep) {
+              okStep.status = 'ok';
+              if (d.duration_ms) okStep.duration_ms = d.duration_ms;
+              if (d.response !== undefined) okStep.response = d.response;
+              if (d.wait_detail) okStep.wait_detail = d.wait_detail;
+            }
             break;
           }
           case 'step_fail': {
             const failStep = stepMap[d.id];
-            if (failStep) { failStep.status = 'fail'; if (d.duration_ms) failStep.duration_ms = d.duration_ms; failStep.error = d.error || ''; if (d.response !== undefined) failStep.response = d.response; }
+            if (failStep) {
+              failStep.status = 'fail';
+              if (d.duration_ms) failStep.duration_ms = d.duration_ms;
+              failStep.error = d.error || '';
+              if (d.response !== undefined) failStep.response = d.response;
+              if (d.wait_detail) failStep.wait_detail = d.wait_detail;
+            }
             break;
           }
           case 'case_start':
@@ -7438,6 +7557,13 @@ function app() {
           write_step_id: entry.write_step_id || '',
           order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : undefined,
           options_text: entry.options_text || '',
+          source_type: entry.source_type || '',
+          upload_endpoint: entry.upload_endpoint || '',
+          file_field: entry.file_field || '',
+          recorded_file_names: Array.isArray(entry.recorded_file_names)
+            ? entry.recorded_file_names
+            : (entry.recorded_file_names ? [String(entry.recorded_file_names)] : (entry.value_name ? [String(entry.value_name)] : [])),
+          requires_user_file: entry.requires_user_file === 'true' || entry.requires_user_file === true,
           resolve_by: entry.resolve_by || '',
           auto_resolve: entry.auto_resolve === 'true' || entry.auto_resolve === true,
           resolve_status: entry.resolve_status || '',
@@ -7487,6 +7613,33 @@ function app() {
         if (draftKey) {
           this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [draftKey]: newValue};
         }
+        if (pf.source_type === 'upload_file') {
+          pf.value_id = newValue;
+          pf.value_code = '';
+          pf.value_number = '';
+          pf.resolve_by = '';
+          pf.auto_resolve = false;
+          pf.resolve_status = 'manual';
+          pf.manual_override = true;
+          pf.user_overridden = true;
+          payload = {
+            ...payload,
+            value_id: newValue,
+            value_name: '',
+            value_code: '',
+            value_number: '',
+            resolve_by: '',
+            auto_resolve: false,
+            resolve_status: 'manual',
+            manual_override: true,
+            user_overridden: true,
+            source_type: 'upload_file',
+            upload_endpoint: pf.upload_endpoint || '',
+            file_field: pf.file_field || '',
+            recorded_file_names: pf.recorded_file_names || [],
+            requires_user_file: !!pf.requires_user_file,
+          };
+        } else {
         const kind = this.pickFieldDisplayKind(pf);
         const asCode = kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue);
         if (asCode) {
@@ -7539,8 +7692,28 @@ function app() {
           this.markHarPickFieldManual(pf);
           payload = {...payload, value_id: newValue, manual_override: true};
         }
+        }
       } else {
         const pf = this.parsedPickFields().find(item => item.step_id === stepId || item.id === stepId);
+        if (pf && pf.source_type === 'upload_file') {
+          payload = {
+            ...payload,
+            value_id: newValue,
+            value_name: '',
+            value_code: '',
+            value_number: '',
+            resolve_by: '',
+            auto_resolve: false,
+            resolve_status: 'manual',
+            manual_override: true,
+            user_overridden: true,
+            source_type: 'upload_file',
+            upload_endpoint: pf.upload_endpoint || '',
+            file_field: pf.file_field || '',
+            recorded_file_names: pf.recorded_file_names || [],
+            requires_user_file: !!pf.requires_user_file,
+          };
+        } else {
         const kind = this.pickFieldDisplayKind(pf);
         const asCode = pf && (kind === 'code' || this.pickFieldCanResolveTypedCode(pf, newValue));
         if (pf && asCode) {
@@ -7571,6 +7744,7 @@ function app() {
           };
         } else {
           payload = {...payload, value_id: newValue, manual_override: true};
+        }
         }
       }
       var caseName = this.currentCase && this.currentCase.name;

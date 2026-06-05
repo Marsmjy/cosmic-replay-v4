@@ -13,6 +13,7 @@ from typing import Any
 
 _ROOT_RE = re.compile(r"^root[0-9a-f]{32}$")
 _HEX32_RE = re.compile(r"^[0-9a-f]{32}$")
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _NUMERIC_L2_RE = re.compile(r"^\d+root[0-9a-f]{32}$")
 _ROOT_WITH_BASE_RE = re.compile(r"root[0-9a-f]{32}")
 
@@ -64,7 +65,7 @@ def classify_pageid(value: Any) -> str:
         return "L0"
     if _NUMERIC_L2_RE.match(pid):
         return "L2"
-    if _HEX32_RE.match(pid):
+    if _HEX32_RE.match(pid) or _UUID_RE.match(pid):
         return "L1_or_L3"
     if _ROOT_WITH_BASE_RE.search(pid):
         return "compound_root"

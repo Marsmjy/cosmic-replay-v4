@@ -173,6 +173,43 @@ def test_failure_analysis_classifies_rule_group_filter_component_gap():
     assert any("不要硬补 save.post_data" in action for action in analysis["recommended_actions"])
 
 
+def test_failure_analysis_classifies_recorded_temp_attachment_stale():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "click_bar_submit",
+            "type": "invoke",
+            "form_id": "khr_hcdm_fapplybill",
+            "ok": False,
+            "error": "[Timeout] 临时附件已超时，请重新上传以下文件:\nimage.png",
+        }],
+        assertions=[],
+        case={"main_form_id": "khr_hcdm_fapplybill"},
+    )
+
+    assert analysis["category"] == "recorded_temp_attachment_stale"
+    assert "临时附件句柄已过期" in analysis["root_cause"]
+    assert any("skip_replay" in action for action in analysis["recommended_actions"])
+
+
+def test_failure_analysis_classifies_upload_file_configuration_missing():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "upload_attach_1",
+            "type": "upload_file",
+            "form_id": "khr_hcdm_fapplybill",
+            "ok": False,
+            "error": "协议错误: 真实附件上传缺少 upload_endpoint/upload_url",
+        }],
+        assertions=[],
+        case={"main_form_id": "khr_hcdm_fapplybill"},
+    )
+
+    assert analysis["category"] == "upload_file_configuration_missing"
+    assert "真实附件上传配置不完整" in analysis["root_cause"]
+    assert any("file_path" in action for action in analysis["recommended_actions"])
+    assert any("upload_endpoint" in action for action in analysis["recommended_actions"])
+
+
 def test_failure_analysis_classifies_database_schema_mismatch():
     analysis = classify_run_failure(
         steps=[{
@@ -278,3 +315,16 @@ def test_failure_analysis_classifies_readback_assertion_gap():
     assert result["category"] == "readback_assertion_gap"
     assert result["confidence"] == "high"
     assert any("commonSearch" in item for item in result["diagnosis_priority"])
+
+
+def test_failure_analysis_classifies_workflow_task_wait_timeout():
+    result = classify_error(
+        "TimeoutError: wait_until 未在 15s/15 次内满足条件 (grid_row_exists)",
+        step={"id": "wait_wf_task_billno_10", "type": "wait_until", "form_id": "wf_task"},
+        case={"main_form_id": "khr_hcdm_fapplybill"},
+    )
+
+    assert result["category"] == "workflow_task_wait_timeout"
+    assert result["retryable"] is True
+    assert "审批待办" in result["root_cause"]
+    assert any("运行时单号" in item for item in result["diagnosis_priority"])

@@ -11,6 +11,7 @@ def test_classify_pageid_layers():
     assert classify_pageid("root" + "a" * 32) == "L0"
     assert classify_pageid("1443450410974114816root" + "b" * 32) == "L2"
     assert classify_pageid("c" * 32) == "L1_or_L3"
+    assert classify_pageid("cd0f5bfd-897c-443e-959c-2c61dc32b0cc") == "L1_or_L3"
     assert classify_pageid("") == "missing"
 
 

@@ -15,7 +15,7 @@ YAML 用例 schema（最小可用）：
     steps:
       - id: <step-id>
         type: open_form | invoke | update_fields | pick_basedata |
-              select_f7_list_row | click_toolbar | sleep
+              select_f7_list_row | click_toolbar | upload_file | sleep | wait_until
         form_id: <form_id>
         app_id: <app_id>
         ...                       # 每种 type 字段见下文 STEP_HANDLERS
@@ -46,6 +46,7 @@ import random
 import re
 import sys
 import time
+import urllib.parse
 import uuid
 from datetime import date, datetime
 from pathlib import Path
@@ -71,6 +72,7 @@ from .pageid_trace import (
 log = logging.getLogger("cosmic_replay.runner")
 
 _WORKFLOW_DECISION_FIELD_KEY = "decision_radio_group"
+_WORKFLOW_COMBO_DECISION_FIELD_KEY = "combo_decision"
 _WORKFLOW_DECISION_ALIASES = {
     "consent": "Consent",
     "agree": "Consent",
@@ -759,6 +761,7 @@ def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     return replay.pick_basedata(
         step["form_id"], step["app_id"],
         step["field_key"], str(step["value_id"]),
+        row_index=int(step.get("row_index", 0) or 0),
     )
 
 
@@ -978,6 +981,302 @@ def _h_click_menu(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
 def _h_sleep(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     time.sleep(float(step.get("seconds", 1)))
     return None
+
+
+@step_handler("upload_file")
+def _h_upload_file(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
+    file_path = str(step.get("file_path") or step.get("path") or "").strip()
+    endpoint = str(
+        step.get("upload_endpoint")
+        or step.get("upload_url")
+        or step.get("endpoint")
+        or ""
+    ).strip()
+    if not file_path:
+        recorded = ", ".join(str(x) for x in (step.get("recorded_file_names") or []) if x)
+        hint = f"；录制文件名: {recorded}" if recorded else ""
+        raise ProtocolError(
+            "真实附件上传缺少 file_path，请在 YAML 或变量面板配置本地文件路径"
+            f"{hint}"
+        )
+    if not endpoint:
+        raise ProtocolError(
+            "真实附件上传缺少 upload_endpoint/upload_url；HAR 若只有 tempfile.mock "
+            "临时句柄，需要先从真实上传请求或环境接口补齐上传端点"
+        )
+
+    extra_data = step.get("extra_data")
+    if extra_data is None:
+        extra_data = step.get("data")
+    if extra_data is None:
+        extra_data = {}
+    if not isinstance(extra_data, (dict, list, tuple)):
+        raise ProtocolError("upload_file.extra_data/data 必须是 dict 或表单字段列表")
+
+    upload_id = str(step.get("upload_id") or step.get("id") or "upload_file")
+    file_name = Path(file_path).name
+    resp = replay.upload_file(
+        endpoint,
+        file_path,
+        app_id=str(step.get("app_id") or "bos"),
+        field_name=str(step.get("file_field") or step.get("field_name") or "file"),
+        extra_data=extra_data,
+        extra_headers=step.get("headers") if isinstance(step.get("headers"), dict) else None,
+    )
+    record = {
+        "step_id": step.get("id") or "",
+        "upload_id": upload_id,
+        "field_key": step.get("field_key") or "",
+        "file_name": file_name,
+        "file_path": file_path,
+        "endpoint": endpoint,
+        "response": resp,
+    }
+    uploads = ctx.setdefault("runtime_uploads", {})
+    uploads[upload_id] = record
+    if step.get("field_key"):
+        uploads[str(step["field_key"])] = record
+    uploads["_latest"] = record
+    run_ev = ctx.get("run_event")
+    if run_ev:
+        run_ev("upload_file_ok", {
+            "step_id": step.get("id") or upload_id,
+            "upload_id": upload_id,
+            "field_key": step.get("field_key") or "",
+            "file_name": file_name,
+            "endpoint": endpoint,
+        })
+    return {
+        "upload_file": "ok",
+        "upload_id": upload_id,
+        "field_key": step.get("field_key") or "",
+        "file_name": file_name,
+        "response": resp,
+    }
+
+
+def _upload_step_has_runtime_file_config(step: dict) -> bool:
+    if not (
+        step.get("skip_replay")
+        and step.get("requires_user_file")
+        and step.get("upload_replay_strategy") == "user_file_required"
+    ):
+        return False
+    method = str(step.get("method") or step.get("methodName") or "").strip().lower()
+    ac = str(step.get("ac") or "").strip().lower()
+    if method == "beforeupload" or ac == "beforeupload":
+        return False
+    if method and method != "upload":
+        return False
+    if not method and ac and ac != "upload":
+        return False
+    return bool(
+        step.get("file_path")
+        or step.get("path")
+        or step.get("upload_endpoint")
+        or step.get("upload_url")
+        or step.get("endpoint")
+    )
+
+
+@step_handler("wait_until")
+def _h_wait_until(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
+    """Repeat a readonly protocol request until a safe completion condition is met."""
+    interval = max(float(step.get("interval_seconds", 1) or 1), 0.1)
+    timeout = max(float(step.get("timeout_seconds", 30) or 30), interval)
+    max_attempts = int(step.get("max_attempts") or max(1, int(timeout / interval)))
+    max_attempts = max(1, min(max_attempts, 120))
+    action = {
+        "key": step.get("key", ""),
+        "methodName": step.get("method", ""),
+        "args": step.get("args", []),
+        "postData": step.get("post_data", [{}, []]),
+    }
+    started = time.time()
+    last_resp = None
+    last_error: Exception | None = None
+    wait_detail = _wait_until_base_detail(step, max_attempts=max_attempts, timeout=timeout)
+    ctx.setdefault("wait_until_details", {})[step.get("id") or "<wait_until>"] = wait_detail
+    for attempt in range(1, max_attempts + 1):
+        try:
+            last_resp = replay.invoke(
+                step["form_id"],
+                step["app_id"],
+                step.get("ac", ""),
+                [action],
+            )
+            last_error = None
+        except Exception as exc:
+            last_error = exc
+            last_resp = None
+            wait_detail.update({
+                "status": "retrying",
+                "attempts": attempt,
+                "last_error": str(exc)[:180],
+                "last_row_count": None,
+                "last_response_has_error": True,
+            })
+            if time.time() - started >= timeout or attempt >= max_attempts:
+                break
+            time.sleep(interval)
+            continue
+        response_detail = _wait_until_response_detail(last_resp, step.get("condition") or {})
+        wait_detail.update({
+            "status": "checking",
+            "attempts": attempt,
+            "last_error": "",
+            **response_detail,
+        })
+        if _wait_until_condition_met(last_resp, step.get("condition") or {}):
+            wait_detail.update({
+                "status": "satisfied",
+                "matched": True,
+                "attempts": attempt,
+            })
+            return {
+                "wait_until": "satisfied",
+                "attempts": attempt,
+                "source_step_count": step.get("source_step_count", 0),
+                "condition": step.get("condition") or {},
+                "wait_detail": dict(wait_detail),
+                "last_response": last_resp,
+            }
+        if time.time() - started >= timeout or attempt >= max_attempts:
+            break
+        time.sleep(interval)
+    suffix = f"，最后一次错误：{str(last_error)[:150]}" if last_error else ""
+    wait_detail.update({
+        "status": "timeout",
+        "matched": False,
+        "last_error": str(last_error)[:180] if last_error else "",
+    })
+    raise TimeoutError(
+        f"wait_until 未在 {timeout:g}s/{max_attempts} 次内满足条件 "
+        f"({step.get('condition', {}).get('kind', 'response_complete')}){suffix}"
+    )
+
+
+def _wait_until_base_detail(step: dict, *, max_attempts: int, timeout: float) -> dict[str, Any]:
+    condition = step.get("condition") if isinstance(step.get("condition"), dict) else {}
+    return {
+        "status": "pending",
+        "kind": str(condition.get("kind") or "response_complete"),
+        "form_id": str(step.get("form_id") or ""),
+        "ac": str(step.get("ac") or ""),
+        "grid_key": str(condition.get("grid_key") or condition.get("key") or ""),
+        "field_key": str(condition.get("field_key") or condition.get("field") or ""),
+        "value": str(condition.get("value") or condition.get("value_code") or condition.get("needle") or ""),
+        "attempts": 0,
+        "max_attempts": max_attempts,
+        "timeout_seconds": timeout,
+        "matched": False,
+        "last_row_count": None,
+        "last_response_has_error": False,
+        "last_error": "",
+        "wait_source": str(step.get("wait_source") or ""),
+    }
+
+
+def _wait_until_response_detail(resp: Any, condition: dict[str, Any]) -> dict[str, Any]:
+    detail: dict[str, Any] = {
+        "last_response_has_error": bool(has_error_action(resp)),
+    }
+    kind = str((condition or {}).get("kind") or "").lower()
+    if kind in {"grid_row_exists", "list_row_exists", "table_row_exists"}:
+        grid_key = str(condition.get("grid_key") or condition.get("key") or "billlistap")
+        field_key = str(condition.get("field_key") or condition.get("field") or "billno")
+        dataindex, rows = _extract_grid_payload_with_field(resp, grid_key, field_key)
+        detail["last_row_count"] = len(rows or [])
+        detail["grid_key"] = grid_key
+        detail["field_key"] = field_key
+    return detail
+
+
+def _wait_until_condition_met(resp: Any, condition: dict[str, Any]) -> bool:
+    kind = str((condition or {}).get("kind") or "response_complete").lower()
+    text = json.dumps(resp, ensure_ascii=False, default=str).lower()
+    if kind in {"grid_row_exists", "list_row_exists", "table_row_exists"}:
+        return _wait_until_grid_row_exists(resp, condition or {})
+    if kind in {"percent_at_least", "poll_percent_at_least"}:
+        threshold = float((condition or {}).get("threshold", 100) or 100)
+        for key in ("percent", "progress"):
+            for m in re.finditer(rf'"{key}"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?', text):
+                try:
+                    if float(m.group(1)) >= threshold:
+                        return True
+                except Exception:
+                    continue
+        return False
+    if kind == "response_contains":
+        needles = condition.get("contains") or []
+        if isinstance(needles, str):
+            needles = [needles]
+        return any(str(needle).lower() in text for needle in needles if needle)
+    if kind == "response_not_contains":
+        needles = condition.get("not_contains") or condition.get("contains") or []
+        if isinstance(needles, str):
+            needles = [needles]
+        return all(str(needle).lower() not in text for needle in needles if needle)
+    if kind in {"error_absent", "no_error_actions"}:
+        return not has_error_action(resp)
+    return any(token in text for token in ("success", "complete", "done", "finished", "成功", "完成", "已完成"))
+
+
+def _wait_until_grid_row_exists(resp: Any, condition: dict[str, Any]) -> bool:
+    """Return true when a grid/list response contains the target row.
+
+    This is used for submit → async workflow task creation: after runtime
+    billno is known, repeatedly query the readonly task list until the row
+    appears, then the following entryRowClick can rebuild selDatas from that
+    fresh row instead of clicking a recorded task.
+    """
+    grid_key = str(condition.get("grid_key") or condition.get("key") or "billlistap")
+    field_key = str(condition.get("field_key") or condition.get("field") or "billno")
+    dataindex, rows = _extract_grid_payload_with_field(resp, grid_key, field_key)
+    if not dataindex or not rows:
+        return False
+
+    match_fields = condition.get("match_fields") or [field_key]
+    if isinstance(match_fields, str):
+        match_fields = [part.strip() for part in match_fields.split(",") if part.strip()]
+    if not isinstance(match_fields, list):
+        match_fields = [field_key]
+
+    field_values = condition.get("field_values") or condition.get("match")
+    if isinstance(field_values, dict) and field_values:
+        for row in rows:
+            matched = True
+            for field, expected in field_values.items():
+                if str(_grid_cell(row, dataindex, str(field)) or "").strip() != str(expected or "").strip():
+                    matched = False
+                    break
+            if matched:
+                return True
+        return False
+
+    raw_value = (
+        condition.get("value")
+        or condition.get("value_code")
+        or condition.get("value_name")
+        or condition.get("needle")
+    )
+    values = raw_value if isinstance(raw_value, list) else [raw_value]
+    for value in values:
+        needle = str(value or "").strip()
+        if not needle:
+            continue
+        try:
+            _find_grid_row(
+                rows,
+                dataindex,
+                value_code=needle,
+                value_name=needle,
+                match_fields=[str(field) for field in match_fields if str(field or "").strip()],
+            )
+            return True
+        except ProtocolError:
+            continue
+    return False
 
 
 # =============================================================
@@ -1325,10 +1624,13 @@ def _pick_field_targets_update_step(pf_meta: dict, step: dict) -> bool:
     step_form_id = str(step.get("form_id") or "")
     if form_id and step_form_id and form_id != step_form_id:
         return False
-    if not form_id:
-        source_step_id = str(pf_meta.get("source_step_id") or "")
-        if source_step_id and str(step.get("id") or "") != source_step_id:
-            return False
+    source_step_id = str(pf_meta.get("source_step_id") or "")
+    field_key = str(pf_meta.get("field_key") or "").lower()
+    if source_step_id and (
+        not form_id
+        or field_key in {_WORKFLOW_DECISION_FIELD_KEY, _WORKFLOW_COMBO_DECISION_FIELD_KEY}
+    ) and str(step.get("id") or "") != source_step_id:
+        return False
     return True
 
 
@@ -1391,6 +1693,8 @@ def _apply_pick_fields(case: dict):
             source_step_id = str(pf_meta.get("source_step_id") or "")
             step = step_map.get(source_step_id)
             if not step:
+                continue
+            if _is_workflow_task_entry_row_step(step, pf_meta):
                 continue
             step["_selector_env_field_id"] = pf_id
             step["_selector_env_field_meta"] = pf_meta
@@ -1542,9 +1846,26 @@ def _selector_query_value(pf_meta: dict) -> str:
     return str(pf_meta.get("value_name") or "").strip()
 
 
+def _is_workflow_task_entry_row_step(step: dict, pf_meta: dict | None = None) -> bool:
+    """Return true for wf_task list row clicks driven by runtime billno.
+
+    Workflow task rows are not user-maintained F7/list selector fields. They are
+    produced by the current submit/approve response and must be selected from
+    the current wf_task search result.
+    """
+    if step.get("type") != "invoke" or step.get("ac") != "entryRowClick":
+        return False
+    meta = pf_meta if isinstance(pf_meta, dict) else {}
+    form_id = str(meta.get("form_id") or step.get("form_id") or "")
+    control_key = str(meta.get("selector_control_key") or step.get("key") or "")
+    return form_id == "wf_task" and control_key == "billlistap"
+
+
 def _resolve_selector_row_from_recent_grid(step: dict, ctx: dict) -> None:
     pf_meta = step.get("_selector_env_field_meta") or {}
     if not isinstance(pf_meta, dict) or not pf_meta.get("auto_resolve"):
+        return
+    if _is_workflow_task_entry_row_step(step, pf_meta):
         return
     query_value = _selector_query_value(pf_meta)
     if not query_value:
@@ -1666,9 +1987,279 @@ def _remember_runtime_response_values(resp: Any, ctx: dict) -> None:
         ctx.setdefault("runtime_fields", {})["billno"] = billno
 
 
+_TEMPFILE_DOWNLOAD_RE = re.compile(
+    r"(?:https?://[^\s\"'<>\\]+)?/?(?:[^\s\"'<>\\]*/)?tempfile/download\.do\?[^\s\"'<>\\]+",
+    re.IGNORECASE,
+)
+_UPLOAD_URL_KEYS = {
+    "url", "downloadurl", "download_url", "fileurl", "file_url",
+    "tempfileurl", "temp_file_url", "attachmenturl", "attachment_url",
+    "viewurl", "view_url", "path", "location",
+}
+_UPLOAD_ID_KEYS = {
+    "id", "fileid", "file_id", "attachmentid", "attachment_id",
+    "uid", "pkid", "pk_id",
+}
+
+
+def _runtime_upload_response_values(resp: Any) -> dict[str, str]:
+    """Extract value-safe runtime upload handles from a multipart response."""
+    values = {"url": "", "id": ""}
+
+    def remember_url(value: Any, key: str = "") -> None:
+        if values["url"] or value in (None, ""):
+            return
+        text = str(value).strip()
+        if not text:
+            return
+        lowered = text.lower()
+        key_l = key.lower()
+        if (
+            "tempfile" in lowered
+            or "download.do" in lowered
+            or lowered.startswith(("http://", "https://", "/"))
+            or key_l in _UPLOAD_URL_KEYS
+        ):
+            values["url"] = text
+
+    def remember_id(value: Any, key: str = "") -> None:
+        if values["id"] or value in (None, ""):
+            return
+        key_l = key.lower()
+        if key_l not in _UPLOAD_ID_KEYS:
+            return
+        text = str(value).strip()
+        if text:
+            values["id"] = text
+
+    def walk(node: Any, parent_key: str = "") -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                key_s = str(key or "")
+                if isinstance(value, (dict, list)):
+                    walk(value, key_s)
+                else:
+                    remember_url(value, key_s)
+                    remember_id(value, key_s)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, parent_key)
+        else:
+            remember_url(node, parent_key)
+
+    walk(resp)
+    return values
+
+
+def _replace_tempfile_url_id(recorded_url: str, runtime_id: str) -> str:
+    if not runtime_id:
+        return recorded_url
+    parsed = urllib.parse.urlsplit(recorded_url)
+    if not parsed.query:
+        sep = "&" if "?" in recorded_url else "?"
+        return f"{recorded_url}{sep}id={urllib.parse.quote(runtime_id)}"
+    pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    changed = False
+    next_pairs = []
+    for key, value in pairs:
+        if key.lower() == "id":
+            next_pairs.append((key, runtime_id))
+            changed = True
+        else:
+            next_pairs.append((key, value))
+    if not changed:
+        next_pairs.append(("id", runtime_id))
+    query = urllib.parse.urlencode(next_pairs)
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, query, parsed.fragment))
+
+
+def _replace_recorded_tempfile_text(text: str, upload_record: dict[str, Any]) -> tuple[str, int]:
+    if "tempfile" not in text.lower() or "download.do" not in text.lower():
+        return text, 0
+    response_values = _runtime_upload_response_values(upload_record.get("response"))
+    runtime_url = response_values.get("url", "")
+    runtime_id = response_values.get("id", "")
+    if not runtime_url and not runtime_id:
+        return text, 0
+
+    count = 0
+
+    def replace_match(match: re.Match) -> str:
+        nonlocal count
+        count += 1
+        recorded_url = match.group(0)
+        if runtime_url:
+            return runtime_url
+        return _replace_tempfile_url_id(recorded_url, runtime_id)
+
+    replaced = _TEMPFILE_DOWNLOAD_RE.sub(replace_match, text)
+    if replaced != text:
+        return replaced, count
+    if runtime_url:
+        return runtime_url, 1
+    return re.sub(r"([?&]id=)[^&\"'<>\\]+", rf"\g<1>{runtime_id}", text, count=1), 1
+
+
+def _apply_runtime_upload_value(node: Any, upload_record: dict[str, Any]) -> tuple[Any, int]:
+    if isinstance(node, str):
+        return _replace_recorded_tempfile_text(node, upload_record)
+    if isinstance(node, list):
+        total = 0
+        changed = False
+        out = []
+        for item in node:
+            next_item, count = _apply_runtime_upload_value(item, upload_record)
+            out.append(next_item)
+            total += count
+            changed = changed or count > 0
+        return (out if changed else node), total
+    if isinstance(node, dict):
+        total = 0
+        changed = False
+        out = {}
+        for key, value in node.items():
+            next_value, count = _apply_runtime_upload_value(value, upload_record)
+            out[key] = next_value
+            total += count
+            changed = changed or count > 0
+        return (out if changed else node), total
+    return node, 0
+
+
+def _pick_runtime_upload_record(step: dict, ctx: dict) -> dict[str, Any] | None:
+    uploads = ctx.get("runtime_uploads") or {}
+    if not isinstance(uploads, dict):
+        return None
+    candidates = [
+        step.get("upload_id"),
+        step.get("field_key"),
+        step.get("key"),
+        step.get("id"),
+        "_latest",
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        record = uploads.get(str(candidate))
+        if isinstance(record, dict):
+            return record
+    return None
+
+
+def _apply_runtime_uploads_to_step(step: dict, ctx: dict) -> None:
+    if step.get("type") not in {"invoke", "wait_until"}:
+        return
+    upload_record = _pick_runtime_upload_record(step, ctx)
+    if not upload_record:
+        return
+    changed = 0
+    for key in ("args", "post_data", "condition"):
+        if key not in step:
+            continue
+        next_value, count = _apply_runtime_upload_value(step.get(key), upload_record)
+        if count:
+            step[key] = next_value
+            changed += count
+    if not changed:
+        return
+    step["_runtime_upload_applied"] = {
+        "upload_id": upload_record.get("upload_id") or "",
+        "field_key": upload_record.get("field_key") or "",
+        "replacement_count": changed,
+    }
+    run_ev = ctx.get("run_event")
+    if run_ev:
+        run_ev("runtime_upload_applied", {
+            "step_id": step.get("id") or "",
+            "upload_id": upload_record.get("upload_id") or "",
+            "field_key": upload_record.get("field_key") or "",
+            "replacement_count": changed,
+            "kind": "upload_url",
+        })
+
+
+def _find_show_confirm_callback(resp: Any, confirm_id: str) -> str:
+    """Return the latest callbackValue for a showConfirm action id in a response."""
+    target = str(confirm_id or "").strip()
+    if not target:
+        return ""
+    latest = ""
+
+    def walk(obj: Any) -> None:
+        nonlocal latest
+        if isinstance(obj, dict):
+            if obj.get("a") == "showConfirm":
+                params = obj.get("p")
+                if isinstance(params, list):
+                    for item in params:
+                        if (
+                            isinstance(item, dict)
+                            and str(item.get("id") or "") == target
+                            and item.get("callbackValue") not in (None, "")
+                        ):
+                            latest = str(item.get("callbackValue"))
+            for value in obj.values():
+                walk(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(resp)
+    return latest
+
+
+def _apply_latest_afterconfirm_callback(step: dict, ctx: dict) -> None:
+    """Replace recorded afterConfirm callbackValue with the current runtime callback."""
+    if step.get("type") != "invoke" or step.get("ac") != "afterConfirm":
+        return
+    args = step.get("args")
+    if not (isinstance(args, list) and len(args) >= 3):
+        return
+    confirm_id = str(args[0] or "")
+    if not confirm_id:
+        return
+
+    callback = _find_show_confirm_callback(ctx.get("last_response"), confirm_id)
+    if not callback:
+        for resp in reversed(ctx.get("response_history") or []):
+            callback = _find_show_confirm_callback(resp, confirm_id)
+            if callback:
+                break
+    if not callback:
+        return
+
+    if args[2] != callback:
+        args[2] = callback
+        step["_runtime_confirm_callback_applied"] = confirm_id
+
+
 def _apply_runtime_billno_to_step(step: dict, ctx: dict, replay: CosmicFormReplay | None = None) -> None:
     billno = str((ctx.get("runtime_fields") or {}).get("billno") or "").strip()
-    if not billno or step.get("type") != "invoke":
+    if not billno:
+        return
+
+    if step.get("type") == "wait_until" and step.get("ac") == "commonSearch":
+        applied = False
+        for criteria_group in step.get("args") or []:
+            if not isinstance(criteria_group, list):
+                continue
+            for criteria in criteria_group:
+                if not isinstance(criteria, dict):
+                    continue
+                field_names = criteria.get("FieldName")
+                if not isinstance(field_names, list) or "billno" not in field_names:
+                    continue
+                criteria["Value"] = [billno]
+                applied = True
+        condition = step.get("condition")
+        if isinstance(condition, dict) and str(condition.get("field_key") or "") == "billno":
+            condition["value"] = billno
+            applied = True
+        if applied:
+            step["_runtime_billno_applied"] = billno
+        return
+
+    if step.get("type") != "invoke":
         return
 
     if step.get("ac") == "commonSearch":
@@ -1747,36 +2338,69 @@ def _apply_runtime_billno_to_step(step: dict, ctx: dict, replay: CosmicFormRepla
         search = ctx.get("runtime_billno_search")
         if isinstance(search, dict) and search.get("form_id") and search.get("app_id"):
             run_ev = ctx.get("run_event")
-            for attempt in range(1, 6):
-                if attempt > 1:
-                    time.sleep(1)
-                try:
-                    resp = replay.invoke(str(search["form_id"]), str(search["app_id"]), str(search.get("ac") or "commonSearch"), [{
-                        "key": str(search.get("key") or "filtercontainerap"),
-                        "methodName": str(search.get("method") or "commonSearch"),
-                        "args": copy.deepcopy(search.get("args") or []),
-                        "postData": copy.deepcopy(search.get("post_data") or []),
-                    }])
-                except Exception as exc:
-                    if run_ev:
-                        run_ev("runtime_billno_search_retry", {
-                            "billno": billno,
-                            "attempt": attempt,
-                            "status": "error",
-                            "error": str(exc)[:150],
-                        })
-                    continue
-                ctx.setdefault("response_history", []).append(resp)
-                _remember_runtime_response_values(resp, ctx)
-                resolved = resolve_from_history()
+            wait_step = {
+                "id": f"wait_runtime_billno_{control_key or 'billlistap'}",
+                "type": "wait_until",
+                "form_id": str(search["form_id"]),
+                "app_id": str(search["app_id"]),
+                "ac": str(search.get("ac") or "commonSearch"),
+                "key": str(search.get("key") or "filtercontainerap"),
+                "method": str(search.get("method") or "commonSearch"),
+                "args": copy.deepcopy(search.get("args") or []),
+                "post_data": copy.deepcopy(search.get("post_data") or []),
+                "condition": {
+                    "kind": "grid_row_exists",
+                    "grid_key": control_key or "billlistap",
+                    "field_key": "billno",
+                    "value": billno,
+                    "match_fields": ["billno"],
+                },
+                "interval_seconds": 1,
+                "timeout_seconds": 5,
+                "max_attempts": 5,
+            }
+            if run_ev:
+                run_ev("runtime_billno_wait_start", {
+                    "billno": billno,
+                    "grid_key": control_key or "billlistap",
+                    "max_attempts": wait_step["max_attempts"],
+                })
+            try:
+                wait_result = _h_wait_until(wait_step, replay, ctx)
+            except Exception as exc:
                 if run_ev:
+                    event_name = "runtime_billno_wait_timeout" if isinstance(exc, TimeoutError) else "runtime_billno_wait_error"
+                    run_ev(event_name, {
+                        "billno": billno,
+                        "grid_key": control_key or "billlistap",
+                        "status": "not_found" if isinstance(exc, TimeoutError) else "error",
+                        "error": str(exc)[:150],
+                    })
                     run_ev("runtime_billno_search_retry", {
                         "billno": billno,
-                        "attempt": attempt,
+                        "attempt": int(wait_step["max_attempts"]),
+                        "status": "not_found" if isinstance(exc, TimeoutError) else "error",
+                        "error": str(exc)[:150],
+                    })
+            else:
+                last_resp = wait_result.get("last_response") if isinstance(wait_result, dict) else None
+                if last_resp is not None:
+                    ctx.setdefault("response_history", []).append(last_resp)
+                    _remember_runtime_response_values(last_resp, ctx)
+                resolved = resolve_from_history()
+                attempts = wait_result.get("attempts") if isinstance(wait_result, dict) else None
+                if run_ev:
+                    run_ev("runtime_billno_wait_ok", {
+                        "billno": billno,
+                        "grid_key": control_key or "billlistap",
+                        "attempts": attempts,
+                        "status": "resolved" if resolved else "matched_but_unresolved",
+                    })
+                    run_ev("runtime_billno_search_retry", {
+                        "billno": billno,
+                        "attempt": attempts,
                         "status": "resolved" if resolved else "not_found",
                     })
-                if resolved:
-                    break
 
     if resolved is None:
         step["_runtime_billno_grid_missing"] = billno
@@ -2006,6 +2630,8 @@ def _selector_lookup_scope(step: dict, pf_meta: dict, ctx: dict) -> tuple[str, s
 def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
     pf_meta = step.get("_selector_env_field_meta") or {}
     if not isinstance(pf_meta, dict) or not pf_meta.get("auto_resolve"):
+        return
+    if _is_workflow_task_entry_row_step(step, pf_meta):
         return
     pf_id = step.get("_selector_env_field_id") or ""
     if step.get("_selector_grid_resolved"):
@@ -2576,13 +3202,21 @@ def run_case(case: dict, on_event=None) -> RunResult:
                         step.setdefault("fields", {})[_field_key] = _value
         # ---- end date pick_fields 后置注入 ----
 
+        if _upload_step_has_runtime_file_config(step):
+            step = dict(step)
+            step["type"] = "upload_file"
+            step["skip_replay"] = False
+
         stype = step.get("type")
         sid = step.get("id") or f"<{stype}>"
         optional = bool(step.get("optional"))
         if stype == "invoke" and step.get("_selector_env_field_meta"):
             _resolve_selector_row_from_recent_grid(step, ctx)
-        if stype == "invoke":
+        if stype in ("invoke", "wait_until"):
             _apply_runtime_billno_to_step(step, ctx, replay)
+            _apply_runtime_uploads_to_step(step, ctx)
+        if stype == "invoke":
+            _apply_latest_afterconfirm_callback(step, ctx)
         print(f"\n[{sid}] {stype}", end="")
         detail = _step_detail(step)
         if detail:
@@ -2600,6 +3234,31 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "resolved_request": resolved_request,
         })
 
+        if step.get("skip_replay"):
+            reason = str(step.get("skip_reason") or "该步骤标记为不回放").strip()
+            print(f"  [skip] {reason}")
+            result.steps.append({
+                "id": sid,
+                "type": stype,
+                "ok": True,
+                "optional": optional,
+                "detail": detail,
+                "skipped": True,
+                "warning": reason,
+            })
+            emit("step_ok", {
+                "id": sid,
+                "duration_ms": int((time.time() - step_start) * 1000),
+                "skipped": True,
+                "skip_reason": reason,
+                "pageid_trace": build_runtime_pageid_trace(
+                    step,
+                    phase="after_handler",
+                    status="ok",
+                ),
+            })
+            continue
+
         handler = STEP_HANDLERS.get(stype)
         if not handler:
             err_msg = f"未知 step type: {stype}"
@@ -2616,7 +3275,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         # ⭐ 通用安全网：如果目标 form_id 没有有效 pageId，自动 open_form 补偿
         _target_form = step.get("form_id")
         _target_app = step.get("app_id")
-        if _target_form and _target_app and stype not in ("open_form", "sleep") and not step.get("bind_l2_only"):
+        if _target_form and _target_app and stype not in ("open_form", "sleep", "upload_file") and not step.get("bind_l2_only"):
             _need_open = False
 
             # pageId 完全缺失时才触发 auto-open
@@ -2644,6 +3303,10 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 phase=phase,
                 status=status,
             )
+
+        def _current_wait_detail() -> dict[str, Any] | None:
+            detail_obj = (ctx.get("wait_until_details") or {}).get(sid)
+            return dict(detail_obj) if isinstance(detail_obj, dict) else None
 
         if stype not in ("sleep",):
             emit("pageid_trace", _runtime_pageid_trace("before_handler"))
@@ -2779,20 +3442,28 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 # 进一步尝试从 bos_operationresult 拉详情
                 save_errs = extract_save_errors(resp, replay) if resp else errs
                 collected = save_errs or errs
-                result.steps.append({
+                step_record = {
                     "id": sid, "type": stype, "ok": False, "optional": optional,
                     "detail": detail,
                     "error": "; ".join(collected[:5]),
                     "_errors": collected,
-                })
+                }
+                wait_detail = _current_wait_detail()
+                if wait_detail:
+                    step_record["wait_detail"] = wait_detail
+                result.steps.append(step_record)
                 _print_error_detail(sid, collected, resp)
                 resp_snapshot = _truncate_response(resp)
-                emit("step_fail", {
+                fail_payload = {
                     "id": sid, "errors": collected[:5],
                     "duration_ms": int((time.time() - step_start) * 1000),
                     "response": resp_snapshot,
                     "pageid_trace": _runtime_pageid_trace("after_handler", "fail"),
-                })
+                }
+                wait_detail = _current_wait_detail()
+                if wait_detail:
+                    fail_payload["wait_detail"] = wait_detail
+                emit("step_fail", fail_payload)
                 if stype in ("invoke", "update_fields", "pick_basedata", "click_toolbar"):
                     break
             else:
@@ -2800,6 +3471,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     "id": sid, "type": stype, "ok": True, "optional": optional,
                     "detail": detail,
                 }
+                wait_detail = _current_wait_detail()
+                if wait_detail:
+                    step_record["wait_detail"] = wait_detail
                 if expected_errs:
                     step_record["expected_notifications"] = expected_errs
                 if errs and optional:
@@ -2813,40 +3487,67 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 result.steps.append(step_record)
                 # ⭐ 推送完整响应数据供前端展示
                 resp_snapshot = _truncate_response(resp)
-                emit("step_ok", {
+                ok_payload = {
                     "id": sid,
                     "duration_ms": int((time.time() - step_start) * 1000),
                     "response": resp_snapshot,
                     "pageid_trace": _runtime_pageid_trace("after_handler", "ok"),
-                })
+                }
+                if wait_detail:
+                    ok_payload["wait_detail"] = wait_detail
+                emit("step_ok", ok_payload)
                 if step.get("capture"):
                     vars_ns[step["capture"]] = resp
         except BusinessError as e:
-            result.steps.append({
+            step_record = {
                 "id": sid, "type": stype, "ok": False, "optional": optional,
                 "detail": detail, "error": f"业务错误: {e}",
-            })
-            emit("step_fail", {"id": sid, "error": f"业务错误: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000),
-                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
+            }
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                step_record["wait_detail"] = wait_detail
+            result.steps.append(step_record)
+            fail_payload = {"id": sid, "error": f"业务错误: {e}",
+                            "duration_ms": int((time.time() - step_start) * 1000),
+                            "pageid_trace": _runtime_pageid_trace("after_handler", "fail")}
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                fail_payload["wait_detail"] = wait_detail
+            emit("step_fail", fail_payload)
             if not optional: break
         except ProtocolError as e:
-            result.steps.append({
+            step_record = {
                 "id": sid, "type": stype, "ok": False, "optional": optional,
                 "detail": detail, "error": f"协议错误: {e}",
-            })
-            emit("step_fail", {"id": sid, "error": f"协议错误: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000),
-                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
+            }
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                step_record["wait_detail"] = wait_detail
+            result.steps.append(step_record)
+            fail_payload = {"id": sid, "error": f"协议错误: {e}",
+                            "duration_ms": int((time.time() - step_start) * 1000),
+                            "pageid_trace": _runtime_pageid_trace("after_handler", "fail")}
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                fail_payload["wait_detail"] = wait_detail
+            emit("step_fail", fail_payload)
             if not optional: break
         except Exception as e:
-            result.steps.append({
+            step_record = {
                 "id": sid, "type": stype, "ok": False, "optional": optional,
                 "detail": detail, "error": f"{type(e).__name__}: {e}",
-            })
-            emit("step_fail", {"id": sid, "error": f"{type(e).__name__}: {e}",
-                               "duration_ms": int((time.time() - step_start) * 1000),
-                               "pageid_trace": _runtime_pageid_trace("after_handler", "fail")})
+            }
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                step_record["wait_detail"] = wait_detail
+            result.steps.append(step_record)
+            fail_payload = {"id": sid, "error": f"{type(e).__name__}: {e}",
+                            "duration_ms": int((time.time() - step_start) * 1000),
+                            "pageid_trace": _runtime_pageid_trace("after_handler", "fail")}
+            wait_detail = _current_wait_detail()
+            if wait_detail:
+                fail_payload["wait_detail"] = wait_detail
+            emit("step_fail", fail_payload)
             if not optional: break
 
     # 6. 断言（先把 ${vars.xxx} 解析掉）
@@ -3139,11 +3840,15 @@ def _build_resolved_request(step: dict) -> dict:
         req["post_data"] = step.get("post_data", [{}, []])
         if step.get("keep_page"):
             req["keep_page"] = True
+        if isinstance(step.get("_runtime_upload_applied"), dict):
+            req["runtime_upload_applied"] = dict(step["_runtime_upload_applied"])
     elif t == "update_fields":
         req["fields"] = step.get("fields", {})
     elif t == "pick_basedata":
         req["field_key"] = step.get("field_key", "")
         req["value_id"] = step.get("value_id", "")
+        if "row_index" in step:
+            req["row_index"] = step.get("row_index")
         if step.get("value_code"):
             req["value_code"] = step.get("value_code", "")
     elif t == "select_f7_list_row":
@@ -3155,6 +3860,22 @@ def _build_resolved_request(step: dict) -> dict:
         req["confirm_key"] = step.get("confirm_key", "btnok")
     elif t == "open_form":
         pass  # form_id/app_id already included
+    elif t == "wait_until":
+        req["ac"] = step.get("ac", "")
+        req["key"] = step.get("key", "")
+        req["method"] = step.get("method", "")
+        req["args"] = step.get("args", [])
+        req["post_data"] = step.get("post_data", [{}, []])
+        req["condition"] = step.get("condition", {})
+        req["timeout_seconds"] = step.get("timeout_seconds", 30)
+        req["interval_seconds"] = step.get("interval_seconds", 1)
+        if isinstance(step.get("_runtime_upload_applied"), dict):
+            req["runtime_upload_applied"] = dict(step["_runtime_upload_applied"])
+    elif t == "upload_file":
+        req["upload_endpoint"] = step.get("upload_endpoint") or step.get("upload_url") or step.get("endpoint", "")
+        req["file_path"] = step.get("file_path") or step.get("path") or ""
+        req["file_field"] = step.get("file_field") or step.get("field_name") or "file"
+        req["field_key"] = step.get("field_key", "")
     return req
 
 
@@ -3188,6 +3909,11 @@ def _step_detail(step: dict) -> str:
         return f"{step.get('form_id')}  {step.get('field_key')}={step.get('value_id')}"
     if t == "select_f7_list_row":
         return f"{step.get('form_id')}  {step.get('grid_key', 'billlistap')}={step.get('value_code') or step.get('value_name')}"
+    if t == "upload_file":
+        endpoint = step.get("upload_endpoint") or step.get("upload_url") or step.get("endpoint", "")
+        return f"{endpoint}  file={step.get('file_path') or step.get('path') or ''}"
+    if t == "wait_until":
+        return f"{step.get('form_id')}/{step.get('ac')}  condition={step.get('condition', {}).get('kind', '')}"
     return ""
 
 def _step_label(step: dict) -> str:
@@ -3223,7 +3949,9 @@ def _step_label(step: dict) -> str:
         "select_f7_list_row": "选择F7列表行",
         "click_toolbar": "点击工具栏",
         "click_menu": "点击菜单",
+        "upload_file": "上传附件",
         "sleep": "等待",
+        "wait_until": "等待完成",
         "assert": "断言检查",
         "wait_loading": "等待加载",
     }

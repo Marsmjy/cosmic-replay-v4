@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import logging
 import re
@@ -216,6 +217,9 @@ _NAVIGATION_FORM_IDS = {
     "hbp_reviselogpage",
     "khr_hrobs_announcement",
     "nbj_user_selfhelp_sc",
+    # 工作流消息列表只是审批入口的导航/消息中心副作用；实际审核链路由 wf_task
+    # 和目标审批/业务表单承接，目标环境缺少消息列表后端类时不应阻断主链路。
+    "wf_msg_message",
 }
 
 _PORTAL_SIDE_EFFECT_FORM_IDS = {
@@ -284,11 +288,149 @@ _RX_INTEGER = re.compile(r"^\d+$")
 # ⭐ 规则2：识别 session-specific pageId 模式（嵌入 root_base_id 的 32位hex）
 _RX_ROOT_BASE_ID = re.compile(r"root([a-f0-9]{32})")
 _RX_L2_PAGE_ID = re.compile(r"^\d+root[0-9a-f]{32}$")
-# 匹配纯随机 32hex pageId（不含 "root" 前缀的独立 pageId）
-_RX_RANDOM_PAGE_ID = re.compile(r"^[a-f0-9]{32}$")
+# 匹配独立表单 pageId（不含 "root" 前缀的 32hex 或 UUID）
+_RX_RANDOM_PAGE_ID = re.compile(
+    r"^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$"
+)
 
 # ⭐ 规则5：从原始测试值中提取前缀（去掉末尾数字/随机部分）
 _RX_TRAILING_DIGITS = re.compile(r"^(.*?[^0-9])\d{2,}$")
+
+
+def _contains_recorded_tempfile_reference(value: Any) -> bool:
+    """Return true when a HAR action only references an expired tempfile handle."""
+    if isinstance(value, str):
+        return "tempfile" in value and ("download.do" in value or "tempfile.mock" in value)
+    if isinstance(value, dict):
+        return any(_contains_recorded_tempfile_reference(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_contains_recorded_tempfile_reference(v) for v in value)
+    return False
+
+
+def _extract_recorded_upload_file_names(value: Any) -> list[str]:
+    names: list[str] = []
+
+    def visit(node: Any) -> None:
+        if isinstance(node, dict):
+            name = node.get("name") or node.get("fileName") or node.get("filename")
+            if isinstance(name, str) and name.strip():
+                names.append(name.strip())
+            for child in node.values():
+                visit(child)
+        elif isinstance(node, list):
+            for child in node:
+                visit(child)
+
+    visit(value)
+    result: list[str] = []
+    seen: set[str] = set()
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        result.append(name)
+    return result[:20]
+
+
+def _header_value(headers: list[dict], name: str) -> str:
+    target = str(name or "").lower()
+    for item in headers or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("name") or "").lower() == target:
+            return str(item.get("value") or "")
+    return ""
+
+
+def _normalize_upload_endpoint_from_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(str(url or ""))
+    path = parsed.path or ""
+    if not path:
+        return ""
+    # Prefer app-root-relative endpoints so the same YAML can run on SIT/UAT.
+    for marker in ("/tempfile/", "/attachment/", "/file/", "/fileservice/"):
+        if marker in path:
+            endpoint = path[path.index(marker):]
+            return endpoint + (f"?{parsed.query}" if parsed.query else "")
+    return path + (f"?{parsed.query}" if parsed.query else "")
+
+
+def _extract_har_upload_endpoint_hints(har: dict) -> list[dict[str, Any]]:
+    """Extract real upload endpoints from HAR multipart requests.
+
+    batchInvokeAction upload actions only contain client-side state. The actual
+    file bytes, when recorded, appear as a separate multipart request; capture
+    its endpoint and file field so a later replay can upload a user-provided
+    local file instead of reusing tempfile URLs.
+    """
+    hints: list[dict[str, Any]] = []
+    for idx, entry in enumerate((har.get("log") or {}).get("entries", [])):
+        req = entry.get("request") or {}
+        url = str(req.get("url") or "")
+        if not url:
+            continue
+        post_data = req.get("postData") or {}
+        mime_type = str(post_data.get("mimeType") or _header_value(req.get("headers") or [], "content-type")).lower()
+        params = post_data.get("params") or []
+        file_field = ""
+        file_names: list[str] = []
+        extra_data: dict[str, str] = {}
+        if isinstance(params, list):
+            for item in params:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name") or "")
+                file_name = str(item.get("fileName") or item.get("filename") or "")
+                if file_name:
+                    file_field = file_field or name or "file"
+                    file_names.append(file_name)
+                elif name:
+                    value = item.get("value")
+                    if value is not None:
+                        extra_data[name] = str(value)
+        path_l = urllib.parse.urlparse(url).path.lower()
+        is_upload = (
+            "multipart/form-data" in mime_type
+            or bool(file_names)
+            or ("upload" in path_l and any(token in path_l for token in ("tempfile", "attach", "file")))
+        )
+        if not is_upload:
+            continue
+        endpoint = _normalize_upload_endpoint_from_url(url)
+        if not endpoint:
+            continue
+        hints.append({
+            "endpoint": endpoint,
+            "file_field": file_field or "file",
+            "recorded_file_names": file_names[:20],
+            "extra_data": extra_data,
+            "_har_index": idx,
+        })
+    return hints
+
+
+def _pick_upload_hint_for_action(
+    hints: list[dict[str, Any]],
+    recorded_file_names: list[str],
+) -> dict[str, Any]:
+    if not hints:
+        return {}
+    wanted = {str(name or "").strip() for name in recorded_file_names or [] if str(name or "").strip()}
+    if wanted:
+        for hint in hints:
+            names = {str(name or "").strip() for name in hint.get("recorded_file_names") or [] if str(name or "").strip()}
+            if wanted & names:
+                return hint
+    return hints[0]
+
+
+def _is_real_upload_action_step(step: dict) -> bool:
+    method = str(step.get("method") or step.get("methodName") or "").strip().lower()
+    ac = str(step.get("ac") or "").strip().lower()
+    if method:
+        return method == "upload"
+    return method == "upload" or ac == "upload"
 
 _DEFAULT_CONTEXT_FIELD_KEYS = {"parentorg"}
 _RECORDED_DEFAULT_PICK_FIELDS_BY_FORM = {
@@ -320,10 +462,14 @@ _FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
     "wf_batchtask_handle": {
         "decision_radio_group": "审批动作",
     },
+    "wf_approvalpage_bac": {
+        "combo_decision": "审批决策",
+    },
 }
 
 _WORKFLOW_APPROVAL_FORM_IDS = {"wf_batchtask_handle"}
 _WORKFLOW_DECISION_FIELD_KEY = "decision_radio_group"
+_WORKFLOW_COMBO_DECISION_FIELD_KEY = "combo_decision"
 _WORKFLOW_OPINION_FIELD_KEY = "msg_approval"
 _WORKFLOW_DECISION_OPTIONS = OrderedDict([
     ("Consent", "同意"),
@@ -632,6 +778,8 @@ _FIELD_LABELS = {
     'khr_hsalarylevel':       '调薪后-薪酬水平',
     'khr_hsalarymodel':       '调薪后-薪酬模式',
     'khr_zcurrencyfield':     '调薪后-币种',
+    'khr_saproposal':         '薪酬提案',
+    'khr_sapexplanation':     '提案说明',
     'khr_heffectivedate':     '调薪后-生效日期',
     'khr_scope':              '定调薪范围',
     'khr_upperson':           '薪酬直接上级',
@@ -901,6 +1049,15 @@ def generate_step_description(step: dict) -> str:
         if form_name:
             return f"「{form_name}」{ac_label}"
         return ac_label
+
+    # ---------- wait_until ----------
+    if step_type == 'wait_until':
+        condition = step.get("condition") or {}
+        if step.get("wait_source") == "workflow_task_search" or condition.get("kind") == "grid_row_exists":
+            return "等待「审批待办」生成"
+        count = step.get("source_step_count") or 0
+        suffix = f"（折叠 {count} 次轮询）" if count else ""
+        return f"等待「{form_name or '进度'}」完成{suffix}"
 
     # ---------- update_fields ----------
     if step_type == 'update_fields':
@@ -1695,7 +1852,14 @@ def _apply_user_pick_field_values_to_update_steps(
                 continue
             if form_id and str(step.get("form_id") or "") != form_id:
                 continue
-            if not form_id and source_step_id and str(step.get("id") or "") != source_step_id:
+            if (
+                source_step_id
+                and (
+                    not form_id
+                    or field_key.lower() in {_WORKFLOW_DECISION_FIELD_KEY, _WORKFLOW_COMBO_DECISION_FIELD_KEY}
+                )
+                and str(step.get("id") or "") != source_step_id
+            ):
                 continue
             fields = step.get("fields") or {}
             if not isinstance(fields, dict):
@@ -1758,6 +1922,7 @@ _TEXT_VARIABLE_KEYS = {
     "changedescription",
     "changedesc",
     "khr_homs_condes",
+    "khr_sapexplanation",
 }
 
 _BUSINESS_INPUT_VARIABLE_KEYS = {
@@ -1773,6 +1938,7 @@ _BUSINESS_INPUT_VARIABLE_KEYS = {
     "khr_hquarterlybonus": ("salary_after_quarterly_bonus", "调薪后-季度奖金"),
     "khr_hhalfyearbonus": ("salary_after_half_year_bonus", "调薪后-半年奖金"),
     "khr_hannualbonus": ("salary_after_annual_bonus", "调薪后-年度奖金"),
+    "khr_saproposal": ("salary_proposal_amount", "薪酬提案"),
 }
 
 _SALARY_DETAIL_VALUE_HINTS = (
@@ -1941,6 +2107,7 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             "changedescription": "test_change_description",
             "changedesc": "test_change_description",
             "khr_homs_condes": "test_confidential_description",
+            "khr_sapexplanation": "test_salary_proposal_explanation",
         }
         if kl in mapping:
             return mapping[kl]
@@ -2328,6 +2495,7 @@ def extract_steps(har: dict) -> list[dict]:
     steps: list[dict] = []
     counter = 0
     pending_lookup: dict[tuple[str, str, str], dict[str, Any]] = {}
+    upload_hints = _extract_har_upload_endpoint_hints(har)
     for i, entry in enumerate(har.get("log", {}).get("entries", [])):
         req = entry.get("request", {})
         url = req.get("url", "")
@@ -2400,6 +2568,32 @@ def extract_steps(har: dict) -> list[dict]:
                     "_har_page_id": req_page_id,   # HAR 原始 pageId
                     "_tier": tier,
                 }
+                if (
+                    action.get("methodName") in {"beforeUpload", "upload"}
+                    or ac in {"beforeUpload", "upload"}
+                ):
+                    step_dict["optional"] = True
+                    step_dict["skip_replay"] = True
+                    step_dict["requires_user_file"] = True
+                    step_dict["upload_replay_strategy"] = "user_file_required"
+                    step_dict["recorded_file_names"] = _extract_recorded_upload_file_names(action)
+                    step_dict["recorded_tempfile_reference"] = _contains_recorded_tempfile_reference(action)
+                    upload_hint = (
+                        _pick_upload_hint_for_action(upload_hints, step_dict["recorded_file_names"])
+                        if _is_real_upload_action_step(step_dict)
+                        else {}
+                    )
+                    if upload_hint:
+                        if upload_hint.get("endpoint"):
+                            step_dict["upload_endpoint"] = upload_hint["endpoint"]
+                        if upload_hint.get("file_field"):
+                            step_dict["file_field"] = upload_hint["file_field"]
+                        if upload_hint.get("extra_data"):
+                            step_dict["extra_data"] = upload_hint["extra_data"]
+                    if step_dict["recorded_tempfile_reference"]:
+                        step_dict["skip_reason"] = "HAR 仅包含录制期临时附件句柄，回放时跳过以避免过期附件污染表单"
+                    else:
+                        step_dict["skip_reason"] = "HAR 附件预上传动作没有真实文件字节，回放时跳过以避免表单停留在上传中状态"
                 if action.get("methodName") == "setItemByIdFromClient" and action.get("key"):
                     lookup = pending_lookup.get((form_id, app_id, str(action.get("key") or "")))
                     if lookup:
@@ -2412,6 +2606,7 @@ def extract_steps(har: dict) -> list[dict]:
                 if _resp_text and (
                     action.get("methodName") == "setItemByIdFromClient"
                     or "ShowNotificationMsg" in _resp_text
+                    or "showMessage" in _resp_text
                     or "showErrMsg" in _resp_text
                 ):
                     step_dict["_resp_text"] = _resp_text
@@ -2648,8 +2843,15 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
             args = s["args"]
             # args 形如 [["id_str", 0]]
             value_id = ""
+            set_item_row_idx: int | None = None
             if isinstance(args, list) and args and isinstance(args[0], list) and args[0]:
                 value_id = str(args[0][0])
+                if len(args[0]) >= 2:
+                    raw_row = args[0][1]
+                    if isinstance(raw_row, int):
+                        set_item_row_idx = raw_row
+                    elif isinstance(raw_row, str) and raw_row.isdigit():
+                        set_item_row_idx = int(raw_row)
 
             # 从 postData 中提取多语言字段更新（如 name）
             extra_fields: dict[str, Any] = {}
@@ -2748,6 +2950,8 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     pick_step["value_code"] = value_code
                 if value_number:
                     pick_step["value_number"] = value_number
+                if set_item_row_idx is not None:
+                    pick_step["row_index"] = set_item_row_idx
                 out.append(pick_step)
                 continue
         out.append(s)
@@ -2988,6 +3192,23 @@ def _entry_row_selected_rows(step: dict) -> list:
     return rows if isinstance(rows, list) else []
 
 
+def _is_workflow_task_entry_row(step: dict) -> bool:
+    """Return true for workflow task list row clicks.
+
+    These rows are runtime navigation anchors produced by wf_task searches. They
+    should be rebuilt from the current billno/task row during replay, not exposed
+    as user-maintained selector fields.
+    """
+    if step.get("type") != "invoke" or step.get("ac") != "entryRowClick":
+        return False
+    form_id = str(step.get("form_id") or "")
+    key = str(step.get("key") or "")
+    if form_id != "wf_task":
+        return False
+    control_key, _payload = _entry_row_payload(step)
+    return (control_key or key) == "billlistap"
+
+
 def _infer_entry_row_selector_contexts(steps: list[dict]) -> dict[str, dict[str, str]]:
     """Map generic F7 entryRowClick steps back to the parent field that opened them.
 
@@ -3053,6 +3274,8 @@ def _extract_entry_row_selector(step: dict, context: dict[str, str] | None = Non
     一行后再点确定。若不暴露这个 selDatas，用户无法在预览页维护“选择人”。
     """
     if step.get("type") != "invoke" or step.get("ac") != "entryRowClick":
+        return None
+    if _is_workflow_task_entry_row(step):
         return None
     form_id = str(step.get("form_id") or "")
     selector_key, label, field_key = _F7_SELECTOR_FORM_LABELS.get(form_id, ("", "", ""))
@@ -3198,6 +3421,71 @@ def _mark_navigation_steps_optional(steps: list[dict], main_form: str) -> None:
             step["optional"] = True
 
 
+def _inject_workflow_message_center_bootstrap(steps: list[dict]) -> list[dict]:
+    """Ensure wf_task has the message-center page model before task search.
+
+    Browser navigation opens ``wf_msg_center`` via ``openUrl`` and its loadData
+    response creates the real UUID pageId for ``wf_task``/``wf_task_list``. HAR
+    often contains only the later wf_task requests, so API replay otherwise
+    falls back to root or an unrelated menu L2 pageId and searches an empty list.
+    """
+    if not any(str(step.get("form_id") or "") == "wf_task" for step in steps):
+        return steps
+
+    first_workflow_idx = next(
+        (
+            idx
+            for idx, step in enumerate(steps)
+            if str(step.get("form_id") or "") in {"wf_msg_message", "wf_task", "wf_approvalbill"}
+        ),
+        None,
+    )
+    if first_workflow_idx is None:
+        return steps
+
+    if any(
+        str(step.get("form_id") or "") == "wf_msg_center"
+        and str(step.get("ac") or "") == "loadData"
+        for step in steps[:first_workflow_idx]
+    ):
+        return steps
+
+    existing_ids = {str(step.get("id") or "") for step in steps}
+
+    def _unique_id(base: str) -> str:
+        if base not in existing_ids:
+            existing_ids.add(base)
+            return base
+        idx = 2
+        while f"{base}_{idx}" in existing_ids:
+            idx += 1
+        value = f"{base}_{idx}"
+        existing_ids.add(value)
+        return value
+
+    bootstrap_steps = [
+        {
+            "id": _unique_id("open_wf_msg_center"),
+            "type": "open_form",
+            "form_id": "wf_msg_center",
+            "app_id": "bos",
+            "lazy": False,
+        },
+        {
+            "id": _unique_id("load_wf_msg_center"),
+            "type": "invoke",
+            "form_id": "wf_msg_center",
+            "app_id": "bos",
+            "ac": "loadData",
+            "key": "",
+            "method": "loadData",
+            "args": [],
+            "post_data": [],
+        },
+    ]
+    return steps[:first_workflow_idx] + bootstrap_steps + steps[first_workflow_idx:]
+
+
 def _drop_portal_side_effect_steps(steps: list[dict], main_form: str) -> list[dict]:
     """Remove browser portal cards that are not part of the business replay path."""
     if not main_form:
@@ -3303,6 +3591,73 @@ def _append_context_default_pick_fields(
             pick_fields_map[step_id] = item
 
 
+def _upload_pick_field_id(step: dict) -> str:
+    raw = str(step.get("id") or step.get("key") or step.get("method") or "attachment")
+    return f"upload_{_sanitize(raw) or 'attachment'}_file_path"
+
+
+def _append_upload_file_pick_fields(pick_fields_map: OrderedDict, steps: list[dict]) -> None:
+    for step in steps or []:
+        if not (
+            step.get("requires_user_file")
+            and step.get("upload_replay_strategy") == "user_file_required"
+            and _is_real_upload_action_step(step)
+        ):
+            continue
+        step_id = _upload_pick_field_id(step)
+        if step_id in pick_fields_map:
+            continue
+        names = [str(name) for name in (step.get("recorded_file_names") or []) if str(name or "").strip()]
+        label_suffix = f"（录制：{names[0]}）" if names else ""
+        pick_fields_map[step_id] = OrderedDict([
+            ("value_id", str(step.get("file_path") or "")),
+            ("value_name", names[0] if names else ""),
+            ("value_code", ""),
+            ("value_number", ""),
+            ("recorded_value_id", ""),
+            ("label", f"附件文件路径{label_suffix}"),
+            ("env_sensitive", "medium"),
+            ("field_key", "file_path"),
+            ("form_id", step.get("form_id", "")),
+            ("app_id", step.get("app_id", "")),
+            ("source_step_id", step.get("id", "")),
+            ("auto_resolve", False),
+            ("resolve_by", ""),
+            ("resolve_status", "missing_file" if not step.get("file_path") else "manual"),
+            ("source_type", "upload_file"),
+            ("upload_endpoint", step.get("upload_endpoint") or step.get("upload_url") or step.get("endpoint") or ""),
+            ("file_field", step.get("file_field") or step.get("field_name") or "file"),
+            ("recorded_file_names", names),
+            ("requires_user_file", True),
+        ])
+
+
+def _apply_upload_pick_fields_to_steps(steps: list[dict], pick_fields_map: OrderedDict) -> None:
+    if not pick_fields_map:
+        return
+    for step in steps or []:
+        if not (
+            step.get("requires_user_file")
+            and step.get("upload_replay_strategy") == "user_file_required"
+            and _is_real_upload_action_step(step)
+        ):
+            continue
+        pf = pick_fields_map.get(_upload_pick_field_id(step))
+        if not isinstance(pf, dict):
+            continue
+        file_path = str(pf.get("value_id") or pf.get("value_name") or "").strip()
+        # value_name initially stores the recorded file name, not a local path.
+        recorded_names = {str(name) for name in (pf.get("recorded_file_names") or [])}
+        if file_path and file_path not in recorded_names:
+            step["file_path"] = file_path
+        endpoint = str(pf.get("upload_endpoint") or "").strip()
+        if endpoint:
+            step["upload_endpoint"] = endpoint
+        file_field = str(pf.get("file_field") or "").strip()
+        if file_field:
+            step["file_field"] = file_field
+
+
 def _scoped_pick_field_id(
     base_id: str,
     existing: dict,
@@ -3326,6 +3681,35 @@ def _scoped_pick_field_id(
         candidate = f"{base_id}__{suffix}_{idx}"
         idx += 1
     return candidate
+
+
+def _refresh_existing_pick_field(
+    existing: dict,
+    base_id: str,
+    *,
+    form_id: str,
+    field_key: str,
+    value_id: str,
+    value_name: str,
+    value_code: str,
+    source_step_id: str,
+    app_id: str = "",
+) -> bool:
+    """Refresh a repeated same-form pick field with the latest recorded value."""
+    item = existing.get(base_id)
+    if not isinstance(item, dict):
+        return False
+    if str(item.get("form_id") or "") != str(form_id or ""):
+        return False
+    if str(item.get("field_key") or "").lower() != str(field_key or "").lower():
+        return False
+    item["value_id"] = value_id
+    item["value_name"] = value_name
+    item["value_code"] = value_code
+    item["source_step_id"] = source_step_id
+    if app_id:
+        item["app_id"] = app_id
+    return True
 
 
 def _append_context_default_steps(
@@ -4014,24 +4398,34 @@ def _extract_error_notifications(resp_text: str) -> list[dict[str, Any]]:
     )
     messages: list[dict[str, Any]] = []
     seen: set[str] = set()
+
+    def remember(content: Any, ntype: Any) -> None:
+        text = str(content or "").strip()
+        if not text or text in seen:
+            return
+        if ntype == 0 or any(kw in text for kw in success_kw):
+            return
+        seen.add(text)
+        messages.append({
+            "content": text,
+            "type": ntype,
+            "source": "har_recorded",
+        })
+
     for cmd in _iter_response_actions(resp):
-        if cmd.get("a") != "ShowNotificationMsg":
+        action = str(cmd.get("a") or "")
+        if action == "ShowNotificationMsg":
+            for payload in cmd.get("p", []):
+                if isinstance(payload, dict):
+                    remember(payload.get("content"), payload.get("type"))
             continue
-        for payload in cmd.get("p", []):
-            if not isinstance(payload, dict):
-                continue
-            content = str(payload.get("content") or "").strip()
-            if not content or content in seen:
-                continue
-            ntype = payload.get("type")
-            if ntype == 0 or any(kw in content for kw in success_kw):
-                continue
-            seen.add(content)
-            messages.append({
-                "content": content,
-                "type": ntype,
-                "source": "har_recorded",
-            })
+        if action.lower() == "showmessage":
+            for payload in cmd.get("p", []):
+                if isinstance(payload, dict):
+                    remember(
+                        payload.get("msg") or payload.get("message") or payload.get("content"),
+                        payload.get("messageType"),
+                    )
     return messages
 
 
@@ -4539,6 +4933,12 @@ def _build_unified_field_catalog(
                     add_field(idx, step, str(field_key), value, action="update_fields")
         elif stype == "pick_basedata":
             add_field(idx, step, str(step.get("field_key") or ""), step.get("value_id"), action="pick_basedata")
+        elif (
+            step.get("requires_user_file")
+            and step.get("upload_replay_strategy") == "user_file_required"
+            and _is_real_upload_action_step(step)
+        ):
+            add_field(idx, step, "file_path", step.get("file_path", ""), kind="field", action="upload_file")
         elif stype == "invoke":
             ac = str(step.get("ac") or "")
             key = str(step.get("key") or "")
@@ -4898,6 +5298,197 @@ def insert_loaddata_on_form_change(steps: list) -> list:
     return out
 
 
+def collapse_repeated_polling_steps(steps: list[dict], *, min_repeats: int = 3) -> list[dict]:
+    """Collapse consecutive readonly polling requests into one wait_until step."""
+    out: list[dict] = []
+    i = 0
+    while i < len(steps):
+        step = steps[i]
+        if not _is_polling_step(step):
+            out.append(step)
+            i += 1
+            continue
+        signature = _polling_signature(step)
+        j = i + 1
+        while j < len(steps) and _is_polling_step(steps[j]) and _polling_signature(steps[j]) == signature:
+            j += 1
+        run = steps[i:j]
+        if len(run) >= min_repeats:
+            out.append(_build_wait_until_step(run))
+        else:
+            out.extend(run)
+        i = j
+    return out
+
+
+def _is_polling_step(step: dict) -> bool:
+    if step.get("type") != "invoke":
+        return False
+    ac = str(step.get("ac") or "").lower()
+    method = str(step.get("method") or "").lower()
+    key = str(step.get("key") or "").lower()
+    text = " ".join([ac, method, key])
+    if any(token in text for token in ("getpercent", "getprogress", "getstatus", "progress", "percent")):
+        return True
+    return False
+
+
+def _polling_signature(step: dict) -> tuple:
+    return (
+        step.get("form_id", ""),
+        step.get("app_id", ""),
+        step.get("ac", ""),
+        step.get("key", ""),
+        step.get("method", ""),
+        json.dumps(step.get("args", []), ensure_ascii=False, sort_keys=True, default=str),
+        json.dumps(step.get("post_data", [{}, []]), ensure_ascii=False, sort_keys=True, default=str),
+    )
+
+
+def _build_wait_until_step(run: list[dict]) -> dict:
+    first = dict(run[0])
+    method = str(first.get("method") or first.get("ac") or "poll")
+    form_short = _form_short(str(first.get("form_id") or "")) or "poll"
+    har_index = first.get("_har_index", 0)
+    source_optional = all(s.get("optional") or s.get("_tier") == "ui_reaction" for s in run)
+    wait_step = {
+        "_har_index": har_index,
+        "type": "wait_until",
+        "id": f"wait_{_sanitize_id(method)}_{_sanitize_id(form_short)}_{har_index}",
+        "form_id": first.get("form_id", ""),
+        "app_id": first.get("app_id", ""),
+        "ac": first.get("ac", ""),
+        "key": first.get("key", ""),
+        "method": first.get("method", ""),
+        "args": first.get("args", []),
+        "post_data": first.get("post_data", [{}, []]),
+        "condition": {
+            "kind": "percent_at_least",
+            "threshold": 100,
+        },
+        "interval_seconds": 1,
+        "timeout_seconds": max(10, min(120, len(run) * 2)),
+        "max_attempts": max(10, len(run)),
+        "source_step_count": len(run),
+        "_tier": "ui_reaction" if source_optional else "core",
+        "optional": bool(source_optional),
+        "wait_source": "collapsed_polling",
+    }
+    if first.get("_har_page_id"):
+        wait_step["_har_page_id"] = first["_har_page_id"]
+    if first.get("preserve_l2_page"):
+        wait_step["preserve_l2_page"] = True
+    return wait_step
+
+
+def insert_workflow_task_wait_steps(steps: list[dict]) -> list[dict]:
+    """Insert an explicit wait before clicking an async workflow task row.
+
+    Recorded workflow HARs often contain:
+    submit/save -> wf_task/commonSearch(billno=recorded) -> entryRowClick.
+    Replay must wait for the runtime billno row to appear before clicking.
+    """
+    out: list[dict] = []
+    for idx, step in enumerate(steps):
+        out.append(step)
+        billno = _workflow_task_billno_search_value(step)
+        if not billno:
+            continue
+        if _next_step_is_workflow_wait(steps, idx):
+            continue
+        if not _workflow_task_entry_click_follows(steps, idx):
+            continue
+        out.append(_build_workflow_task_wait_step(step, billno))
+    return out
+
+
+def _workflow_task_billno_search_value(step: dict) -> str:
+    if step.get("type") != "invoke":
+        return ""
+    if str(step.get("form_id") or "") != "wf_task":
+        return ""
+    if str(step.get("ac") or "") != "commonSearch":
+        return ""
+    for criteria_group in step.get("args") or []:
+        if not isinstance(criteria_group, list):
+            continue
+        for criteria in criteria_group:
+            if not isinstance(criteria, dict):
+                continue
+            field_names = criteria.get("FieldName")
+            if not isinstance(field_names, list) or "billno" not in field_names:
+                continue
+            values = criteria.get("Value")
+            if isinstance(values, list) and values:
+                return str(values[0] or "").strip()
+            if values not in (None, ""):
+                return str(values).strip()
+    return ""
+
+
+def _next_step_is_workflow_wait(steps: list[dict], idx: int) -> bool:
+    if idx + 1 >= len(steps):
+        return False
+    nxt = steps[idx + 1]
+    return (
+        nxt.get("type") == "wait_until"
+        and str(nxt.get("form_id") or "") == "wf_task"
+        and str((nxt.get("condition") or {}).get("kind") or "") == "grid_row_exists"
+    )
+
+
+def _workflow_task_entry_click_follows(steps: list[dict], idx: int) -> bool:
+    for nxt in steps[idx + 1: idx + 8]:
+        if nxt.get("type") == "wait_until" and str(nxt.get("form_id") or "") == "wf_task":
+            return False
+        if str(nxt.get("form_id") or "") == "wf_task" and str(nxt.get("ac") or "") == "entryRowClick":
+            return True
+        if str(nxt.get("form_id") or "").startswith("wf_") and str(nxt.get("ac") or "") in {"save", "submit", "audit"}:
+            return False
+        if str(nxt.get("form_id") or "") not in {"wf_task", "wf_msg_message", "wf_msg_center", "wf_approvalbill"}:
+            if str(nxt.get("ac") or "") in {"save", "submit", "audit"}:
+                return False
+    return False
+
+
+def _build_workflow_task_wait_step(search_step: dict, billno: str) -> dict:
+    har_index = search_step.get("_har_index", 0)
+    wait_step = {
+        "_har_index": har_index,
+        "type": "wait_until",
+        "id": f"wait_wf_task_billno_{har_index}",
+        "form_id": "wf_task",
+        "app_id": search_step.get("app_id", "bos"),
+        "ac": search_step.get("ac", "commonSearch"),
+        "key": search_step.get("key", "filtercontainerap"),
+        "method": search_step.get("method", "commonSearch"),
+        "args": copy.deepcopy(search_step.get("args") or []),
+        "post_data": copy.deepcopy(search_step.get("post_data") or [{}, []]),
+        "condition": {
+            "kind": "grid_row_exists",
+            "grid_key": "billlistap",
+            "field_key": "billno",
+            "value": billno,
+            "match_fields": ["billno"],
+        },
+        "interval_seconds": 1,
+        "timeout_seconds": 15,
+        "max_attempts": 15,
+        "source_step_count": 1,
+        "_tier": "core",
+        "wait_source": "workflow_task_search",
+    }
+    if search_step.get("_har_page_id"):
+        wait_step["_har_page_id"] = search_step["_har_page_id"]
+    if search_step.get("preserve_l2_page"):
+        wait_step["preserve_l2_page"] = True
+    return wait_step
+
+
+def _sanitize_id(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_]+", "_", str(value or "")).strip("_").lower() or "step"
+
+
 def build_yaml_case(
     har_path: Path,
     case_name: str | None = None,
@@ -4913,6 +5504,8 @@ def build_yaml_case(
     raw_steps = relocate_premature_open_forms(raw_steps)
     raw_steps = lower_set_item_to_pick_basedata(raw_steps)
     raw_steps = merge_consecutive_update_values(raw_steps)
+    raw_steps = collapse_repeated_polling_steps(raw_steps)
+    raw_steps = insert_workflow_task_wait_steps(raw_steps)
     raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
 
     # ⭐ 规则2：session pageId 动态化（selectTab args 中的 root{32hex} → ${session.root_base_id}）
@@ -5054,9 +5647,12 @@ def build_yaml_case(
                     fid = step.get("form_id", "")
                     if fid and fid != main_form:
                         target_forms_set.add(fid)
-            # 方案B兜底：如果 _har_page_id 不可用，用启发式——menuItemClick 后紧跟的
-            # loadData 步骤（在下一个 open_form/menuItemClick 之前），form_id != main_form
+            # 方案B兜底：如果 _har_page_id 不可用，用启发式——仅取 menuItemClick 后
+            # 紧跟的 loadData 小段（在下一个业务动作/open_form/menuItemClick 之前），
+            # form_id != main_form。不要一路扫到后续待办/审批/弹窗表单，否则会把
+            # wf_task、proposalplan 等独立页面误绑成菜单 L2。
             if not target_forms_set:
+                fallback_started = False
                 for i in range(menu_idx + 1, len(cleaned)):
                     step = cleaned[i]
                     if step.get("ac") in ("menuItemClick", "appItemClick"):
@@ -5067,6 +5663,13 @@ def build_yaml_case(
                         fid = step.get("form_id", "")
                         if fid and fid != main_form:
                             target_forms_set.add(fid)
+                        fallback_started = True
+                        continue
+                    if fallback_started:
+                        break
+                    if step.get("optional") and step.get("ac") in ("selectTab", "getFrequentData", "click"):
+                        continue
+                    break
             if target_forms_set:
                 cleaned[menu_idx]["target_forms"] = sorted(target_forms_set)
             # 移除 menuItemClick 之后的第一个 open_form(main_form)
@@ -5213,6 +5816,8 @@ def build_yaml_case(
                         insert_pos = idx + 1
                         break
             cleaned.insert(insert_pos, inject_step)
+
+    cleaned = _inject_workflow_message_center_bootstrap(cleaned)
 
     # 用 HAR 中已有的上下文线索补足隐式字段，避免浏览器自动带出的值在 API 回放中丢失。
     cleaned = _inject_context_field_steps(
@@ -5417,6 +6022,7 @@ def build_yaml_case(
         app_id=_main_app_id,
         meta_resolver=meta_resolver,
     )
+    _append_upload_file_pick_fields(pick_fields_map, cleaned)
 
     # --- 从 addnew/new 步骤中提取 treeview.focus（环境上下文组织） ---
     for s in cleaned:
@@ -5549,14 +6155,6 @@ def build_yaml_case(
                 meta_resolver,
             )
             if enum_label:
-                step_id = _scoped_pick_field_id(
-                    f"pick_{fk_lower}_id",
-                    pick_fields_map,
-                    form_id=step_form_id,
-                    source_step_id=s.get("id", ""),
-                )
-                if not step_id:
-                    continue
                 fv = fields[fk]
                 display_val = str(fv) if fv is not None else ""
                 combo_options = (
@@ -5567,6 +6165,26 @@ def build_yaml_case(
                 if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
                     combo_options = dict(_WORKFLOW_DECISION_OPTIONS)
                 display_name = combo_options.get(display_val, display_val)
+                base_step_id = f"pick_{fk_lower}_id"
+                step_id = _scoped_pick_field_id(
+                    base_step_id,
+                    pick_fields_map,
+                    form_id=step_form_id,
+                    source_step_id=s.get("id", ""),
+                )
+                if not step_id:
+                    _refresh_existing_pick_field(
+                        pick_fields_map,
+                        base_step_id,
+                        form_id=step_form_id,
+                        field_key=fk_lower,
+                        value_id=display_val,
+                        value_name=display_name,
+                        value_code=display_val,
+                        source_step_id=s.get("id", ""),
+                        app_id=s.get("app_id", ""),
+                    )
+                    continue
                 pick_fields_map[step_id] = OrderedDict([
                     ("value_id", display_val),
                     ("value_name", display_name),
@@ -5734,6 +6352,7 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["resolve_status"] = "pending"
 
     _apply_user_pick_field_values_to_update_steps(cleaned, pick_fields_map)
+    _apply_upload_pick_fields_to_steps(cleaned, pick_fields_map)
 
     # ⭐ 应用用户的变量配置覆盖（来自 HAR 向导的变量面板）
     if var_overrides:
@@ -5762,7 +6381,15 @@ def build_yaml_case(
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
                   "navigation_form_id", "expected_notifications",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
-                  "prefetch_lookup", "prefetch_lookup_args"):
+                  "prefetch_lookup", "prefetch_lookup_args",
+                  "skip_replay", "skip_reason",
+                  "condition", "interval_seconds", "timeout_seconds",
+                  "max_attempts", "source_step_count", "wait_source",
+                  "requires_user_file", "upload_replay_strategy",
+                  "recorded_file_names", "recorded_tempfile_reference",
+                  "file_path", "upload_endpoint", "upload_url", "endpoint",
+                  "file_field", "field_name", "extra_data", "data",
+                  "headers", "upload_id"):
             if k in s:
                 entry[k] = s[k]
         # ⭐ 自动生成步骤业务描述
@@ -5954,6 +6581,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     raw_steps = relocate_premature_open_forms(raw_steps)
     raw_steps = lower_set_item_to_pick_basedata(raw_steps)
     raw_steps = merge_consecutive_update_values(raw_steps)
+    raw_steps = collapse_repeated_polling_steps(raw_steps)
+    raw_steps = insert_workflow_task_wait_steps(raw_steps)
     raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
 
     by_tier = {"core": 0, "ui_reaction": 0, "noise": 0}
@@ -6283,14 +6912,6 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     meta_resolver,
                 )
                 if enum_label:
-                    step_id = _scoped_pick_field_id(
-                        f"pick_{fk_lower}_id",
-                        _seen_pick_map,
-                        form_id=step_form_id,
-                        source_step_id=s.get("id", ""),
-                    )
-                    if not step_id:
-                        continue
                     fv = fields[fk]
                     display_val = str(fv) if fv is not None else ""
                     combo_options = (
@@ -6300,6 +6921,31 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                     )
                     if step_form_id in _WORKFLOW_APPROVAL_FORM_IDS and fk_lower == _WORKFLOW_DECISION_FIELD_KEY:
                         combo_options = dict(_WORKFLOW_DECISION_OPTIONS)
+                    display_name = combo_options.get(display_val, display_val)
+                    base_step_id = f"pick_{fk_lower}_id"
+                    step_id = _scoped_pick_field_id(
+                        base_step_id,
+                        _seen_pick_map,
+                        form_id=step_form_id,
+                        source_step_id=s.get("id", ""),
+                    )
+                    if not step_id:
+                        if _refresh_existing_pick_field(
+                            _seen_pick_map,
+                            base_step_id,
+                            form_id=step_form_id,
+                            field_key=fk_lower,
+                            value_id=display_val,
+                            value_name=display_name,
+                            value_code=display_val,
+                            source_step_id=s.get("id", ""),
+                            app_id=s.get("app_id", ""),
+                        ):
+                            for item in pick_fields:
+                                if item.get("id") == base_step_id:
+                                    item.update(_seen_pick_map[base_step_id])
+                                    break
+                        continue
                     item = {
                         "id": step_id,
                         "field_key": fk_lower,
@@ -6394,6 +7040,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         app_id=_preview_app_id,
         meta_resolver=meta_resolver,
     )
+    _append_upload_file_pick_fields(_preview_pick_map, preview_steps)
     _attach_pick_field_scopes(_preview_pick_map, preview_steps, main_form)
     _annotate_env_field_sources(
         _preview_pick_map,

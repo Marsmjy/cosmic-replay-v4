@@ -29,6 +29,36 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 
 ---
 
+## SAZ/JMX 迁移经验：动态值链路优先
+
+已验证的 `saz-to-jmx` 经验对 Cosmic Replay 同样适用：不能只看单个请求是否 replay 成功，要先画出“响应产生动态值 → 后续请求消费动态值”的链路。
+
+排障时优先查看证据包：
+
+- `run_artifacts.dynamic_value_flow`
+- `run_artifacts.ir_summary.dynamic_value_flow`
+
+该图只包含值类型、步骤、来源和风险，不包含真实 pageId、单号、内部 id、URL、token 或 cookie。重点看这些类型：
+
+| 动态值类型 | 典型生产者 | 典型消费者 | 风险 |
+|---|---|---|---|
+| `page_id` | `menuItemClick/showForm/getConfig/loadData` 响应 | 后续 `invoke` 请求 | 使用已关闭弹窗或旧页面 pageId |
+| `billno` | 保存/提交响应或 `u` action | 审批待办 `wf_task/commonSearch` | 继续搜索 HAR 录制旧单据 |
+| `confirm_callback` | `showConfirm.callbackValue` | `afterConfirm/doConfirm` | 继续提交旧 pkvalue 或旧单号 |
+| `task_row` | 待办列表 `commonSearch` 响应 rows 或 `wait_until(grid_row_exists)` | `entryRowClick.selDatas` | 点击录制旧任务行，或任务异步生成未等待 |
+| `upload_url` | 真实文件上传接口响应 | 附件 `upload/beforeUpload` | 复用 HAR 临时附件 URL |
+| `poll_percent` | `getpercent/status` 响应 | 轮询请求 | 多条重复轮询会在导入阶段折叠为 `wait_until` |
+| `lookup_candidate` | F7/基础资料查询响应 | `setItemByIdFromClient/pick_basedata` | 用户维护编码未按目标环境解析 |
+
+处理原则：
+
+1. 若 `dynamic_consumer_without_prior_producer` 命中 `billno/confirm_callback/task_row/upload_url`，先查是否仍在消费 HAR 录制旧值。
+2. 审批链路必须从运行时保存/提交响应提取新 `billno`，再用只读 `wait_until(grid_row_exists: billno)` 搜索待办并重建 `entryRowClick.selDatas`。
+3. 确认弹窗必须用最新 `showConfirm.callbackValue` 覆盖后续 `afterConfirm/doConfirm`，不能复用录制时的 pkvalue。
+4. 真实上传必须是“用户文件 → 上传接口 → 提取 URL/id → 后续附件请求回填”。当前导入会识别 `requires_user_file/upload_replay_strategy/recorded_file_names/recorded_tempfile_reference`，没有真实文件时只允许跳过 HAR 临时附件并提示用户提供文件。
+5. 连续 `getpercent/status` 轮询不要保留成几十条等价步骤，导入阶段会折叠为 `wait_until` 语义步骤并设置超时；提交后待办异步生成也应抽象为 `wait_until(grid_row_exists)`，不要用固定 sleep。
+6. 保存/提交/审批响应中的中文提示可作为断言候选，但只能补充 `no_save_failure/readback`，不能替代入库验证。
+
 ## 一、整体防护架构
 
 ### 三层防护总览
@@ -131,10 +161,15 @@ def _is_l2_pageid(pid: str) -> bool:
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
 - `薪资核算 / 薪资核算场景` 已验证写入闭环：保存提示“规则分组/常用筛选至少一行”时，pageId 链路通常已正常，缺的是 F7 子窗口回填链。正确链路是维护 `country` 后点击 `labelap4` 打开 `hsas_salarycalcstyle` F7，用 `select_f7_list_row` 按编码/名称选中算发薪方式并点击 `btnok`，确认响应回填 `groupcontent/entryentity` 后再保存；仅补选 `callistrule` 不会生成筛选行。
 - F7/子弹窗可能多次打开同一个 `billFormId`。若 `showForm` 返回的 formId/billFormId 已在 `_loaded_forms` 中，但 pageId 与当前缓存不同，应视为弹窗重开并更新 pageId；只有 pageId 相同才当作兄弟表单噪声跳过。否则会沿用已关闭弹窗的旧 pageId，典型表现是 F7 `btnok` 误报业务必填字段（如定调薪人员确定时报“生效日期”）。
-- 提交后继续审核的链路不能沿用 HAR 录制的 `billno` 搜索待办。应从提交响应 `u` action 中提取运行时 `billno`，注入后续 `wf_task/commonSearch`，并按最新任务列表重建 `entryRowClick.selDatas`；若待办异步生成，可安全重试只读 `commonSearch`，不要点击录制旧单据的任务行。
+- 提交后继续审核的链路不能沿用 HAR 录制的 `billno` 搜索待办。应从提交响应 `u` action 中提取运行时 `billno`，注入后续 `wf_task/commonSearch`，并通过 `wait_until(grid_row_exists, field_key=billno)` 等到目标环境真正生成待办行，再按最新任务列表重建 `entryRowClick.selDatas`；超时应提示“目标环境未生成待办/权限或流程配置异常”，不要点击录制旧单据的任务行。
 - `基础资料-受控-变动原因` 已验证闭环：原始 HAR 通过 `homs_apphome/treeMenuClick` 建立树菜单 L2，但 API replay 可能无法重建 apphome shell。若保存提示“请按要求填写创建组织”，先检查是否从 HAR 的列表 `createorg_id` 和新增态 `loadData` 提取了 `createorg/ctrlstrategy` 默认上下文；`createorg` 要用内部 Long id 写 `update_fields`，`ctrlstrategy` 要解析 ComboField 编码/中文并暴露为环境字段，不要硬补 `save.post_data`。
 - `基础资料-受控-变动原因` 的环境字段覆盖经验：`createorg/ctrlstrategy` 这类 `context_only` 服务端默认上下文字段，用户在预览页或用例详情变量面板维护后，必须在 YAML `pick_fields` 中留下 `user_overridden: true`，并在运行前由 `_apply_pick_fields()` 注入到对应 `update_fields`。若页面看起来已修改但执行仍用 HAR 原值，优先检查 `user_overridden`、`source_step_id/form_id` 作用域、`value_code/value_number/value_id` 优先级，以及运行前是否保存了最新 YAML；不要误判为 pageId 错。
 - `resolve_by=value_code` 的基础资料环境字段覆盖经验：当用户只改业务编码时，YAML 中旧的 `value_id/value_name/value_number` 可能仍是录制值。运行期必须把 `value_code` 当作权威输入，旧 `value_name` 只能作为展示/诊断信息，不能因为名称不匹配就回退到录制 `recorded_value_id`。若 run events 中 `pick_fields_preview.value_code` 已是新值，但 `step_start.detail/resolved_request.value_id` 仍是旧值，优先查 `_apply_pick_fields()` 和 `_auto_resolve_pick_basedata_step()` 的编码优先级，而不是改保存包体。
+- `setItemByIdFromClient` 的第二参数不能丢：基础资料/F7 在分录或审核表单中常见 `args=[[internal_id, row_index]]`。如果 HAR 原始参数是 `row_index=1`，但回放硬编码成 `0`，可能出现“执行 PASS、保存/提案提示成功，但业务页面实际字段落错行或显示不一致”。解析降级为 `pick_basedata` 时必须保留 `row_index`，运行器调用 `pick_basedata` 时也必须传回该值；不要先硬补 save/postData。
+- `recorded_temp_attachment_stale`：HAR 只记录了附件预上传/上传后的临时状态或 `tempfile/download.do?configKey=tempfile.mock&id=...` 句柄，没有真实文件字节。继续回放 `beforeUpload` 可能让表单停在“附件上传中”，继续回放 `upload` 可能让保存/提交报“临时附件已超时，请重新上传”。导入时应将 `beforeUpload/upload` 标记 `skip_replay` 并在运行结果中说明已跳过；若业务强制要求附件，再要求用户提供可重新上传的本地文件，不要复用 HAR 的临时 URL。
+- 真实附件上传的最小安全 schema 是 `type: upload_file`、`file_path`、`upload_endpoint`/`upload_url`、可选 `file_field/extra_data/field_key/upload_id`。导入时应从 HAR 的真实 `multipart/form-data` 上传请求提取端点、文件字段和额外表单字段，并把真正的 `upload` 动作暴露为 `source_type=upload_file` 的可维护字段；`beforeUpload` 只作为预检步骤跳过，不能升级成真实上传。若 HAR 上传步骤已带 `skip_replay/requires_user_file/upload_replay_strategy=user_file_required`，用户后续补了 `file_path/upload_endpoint` 后 runner 会把真实 `upload` 步骤转为 `upload_file` 执行。缺 `file_path` 或缺端点要归类为 `upload_file_configuration_missing`，提示用户补本地文件或从真实上传请求/环境接口补端点；不能把它误判为 pageId 或 save.post_data 问题。
+- 附件上传闭环必须检查“上传响应 → 后续附件/保存请求消费”。真实 `upload_file` 成功后，runner 会把响应里的运行时 `url/id` 记录为 `runtime_uploads`，后续请求中若仍出现 HAR 录制期 `tempfile/download.do?...id=expired`，应替换为运行时上传返回值；证据包 `dynamic_value_flow` 应出现 `upload_url` producer→consumer 边。若保存过了但附件没入库，优先排查是否缺少这条消费边，而不是直接硬补 save.post_data。
+- 附件链路排查时要确认“上传响应 id/url → 后续附件字段/确认请求”是否被消费。若后续请求仍拿 HAR 的 `tempfile.mock` URL 或旧 upload id，应修复动态值链路或补 `dynamic_value_flow.upload_url` 关联；若上传成功但保存仍报附件缺失，优先检查后续附件字段回填步骤，不要直接改保存包体。
 - `基础资料-受控-变动原因` 的入库回查经验：保存响应含“保存成功”且 `no_save_failure/no_error_actions` 通过，但 `readback_by_business_key` 失败时，优先归类为 `readback_assertion_gap`。通用 `commonSearch` 对某些受控基础资料不一定能查到刚保存记录，只能作为建议回查策略，不能自动生成硬断言；需要表单专用回查策略或人工确认入库。
 - 深链路样本排障完成后，运行 `scripts/deep_chain_pipeline.py scenario-report` 生成脱敏闭环报告，把 HAR 链路画像、YAML smoke、失败分类、入库验证策略和 `experience_candidate` 沉淀为经验库候选。也可单独运行 `scripts/deep_chain_pipeline.py experience-candidate --scenario-id <id> --case <yaml> --smoke-evidence <json>` 输出可审查的 catalog patch；只有 `status=ready` 且脱敏通过时，才允许人工合入经验库。若执行 PASS 但只有“保存成功”提示，应先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>` 生成推荐查询表单和业务键，再把 `suggested_assertion` 补为 `readback_by_business_key` 只读断言；不能把 PASS 直接当作入库已验证。
 - 新 HAR 或失败证据包若包含 `experience_matches`，先看命中的已闭环样本和 `reusable_lessons`。也可运行 `scripts/deep_chain_pipeline.py match-experience --case <yaml> --har <har>`，按结构特征匹配成功经验。匹配结果只用于排障优先级，仍必须回到 HAR 原始 pageId 与回放 pageId 比对，不能因为命中样本就硬补 save 字段。
@@ -545,6 +580,10 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
    - `business_validation_expected`：录制中出现且后续有补录动作的业务校验应保留为 `expected_notification`，不是失败。
    - `environment_field_override_not_applied`：预览页或用例详情维护环境字段后仍跑旧值。检查 `pick_fields.user_overridden`、`context_only`、`source_step_id/form_id`、`value_code/value_number`、`resolve_by=value_code` 是否被旧 `value_id/value_name` 覆盖，以及运行前自动保存。
    - `workflow_approval_field_not_applied`：审批弹窗（如 `wf_batchtask_handle`）的审批动作/意见未随用户维护值生效。检查 HAR `loadData` 是否下发 `decision_radio_group`（`Consent/Reject`）和 `msg_approval`，预览页维护“同意/驳回”后是否写入 YAML `pick_fields`，是否同步到 `fill_workflow_approval.update_fields`，以及运行期 `_apply_pick_fields()` 是否把中文展示值归一化为服务端码。
+   - `proposal_audit_field_missing`：提案审核/二级审核业务表单（如 `khr_hcdm_proposalplan`）已有 `updateValue` 写入但预览和变量面板缺字段。先确认字段是否来自真实审核表单而非消息中心；将可录入的数值/文本字段抽为 vars，基础资料字段保留为 pick_fields。`wf_msg_message/loadData` 这类消息中心导航副作用若报后端类缺失，可以标为非关键导航 optional，但不能把 `wf_task`、审核表单保存/提交、主保存/提交标 optional。
+   - `workflow_task_pageid_missing`：提交后按运行时 `billno` 搜索待办但 `wf_task/commonSearch` 返回空，或后续 `wf_approvalbill` 报“任务不存在”。检查是否先 `open/load wf_msg_center`；`wf_msg_center/loadData` 会下发真实 UUID pageId 给 `wf_task/wf_task_list`。不要让 `wf_task` 继续使用 root、菜单 L2 或录制旧任务行；搜索未命中时应走只读 `wait_until(grid_row_exists)`，命中后重建 `entryRowClick.selDatas`，超时才归类为环境未生成待办/权限/流程配置问题。
+   - `workflow_task_wait_timeout`：显式 `wait_until(grid_row_exists, field_key=billno)` 已按运行时单号等待，但目标环境没有返回待办行。先去业务环境查该单号是否提交成功、是否生成待办、当前账号/审批人是否有权限，以及消息中心/流程配置是否正常；不要把这种超时改成点击录制旧任务行或硬补审核请求体。
+   - `afterconfirm_callback_stale`：`afterConfirm` 后字段仍被锁定、审核表单打开旧单据，或确认后继续报“任务不存在/无法修改锁定字段”。检查 `afterConfirm.args[2]` 是否仍是 HAR 录制时的旧 `billNo/pkvalue/MUTEX_OBJ_ID`；运行期必须用最近一次同 ID `showConfirm.callbackValue` 替换，再执行确认，不能把旧 callback 硬编码进 YAML。
    - HAR 解析变量遗漏、保存断言盲区、环境字段缺失或跨环境 value_id 错误、真实业务校验错误、执行器问题。
 6. 输出最小补丁：
    - 优先改当前 YAML。

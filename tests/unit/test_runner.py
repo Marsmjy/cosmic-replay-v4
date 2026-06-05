@@ -22,15 +22,17 @@ from lib import runner as runner_mod
 from lib.field_resolver import ResolveResult
 from lib.runner import (
     load_yaml, _parse_yaml_light, resolve_vars, _resolve_str, _resolve_ref,
-    STEP_HANDLERS, ASSERTION_HANDLERS, _auto_resolve_pick_basedata_step,
+    STEP_HANDLERS, ASSERTION_HANDLERS, run_case, _auto_resolve_pick_basedata_step,
     _step_allows_l2_pageid, _case_targets_form_via_menu,
     _case_reaches_form_via_recorded_context,
     _claim_pending_pageid_for_form, _apply_pick_fields,
     _auto_resolve_selector_row_step, _bind_l2_targets_from_navigation_step,
     _build_env_fields, _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
     _build_selector_selected_row, _apply_runtime_billno_to_step,
+    _apply_latest_afterconfirm_callback, _apply_runtime_uploads_to_step,
+    _build_resolved_request,
 )
-from lib.replay import CosmicFormReplay, CosmicSession, has_error_action
+from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
 
 
 def test_env_fields_display_business_code_and_keep_har_order():
@@ -722,6 +724,298 @@ class TestReplayErrorDetection:
             "请审批赵月凛发起的定调薪申请单（单据编号：DTX20260604269）",
         ]]
 
+    def test_workflow_task_selector_metadata_does_not_reapply_recorded_billno(self):
+        recorded_row = [
+            "2494949344130694145",
+            "DTX20260605332",
+            "请对定调薪申请单进行薪酬结构拆解（单据编号：DTX20260605332）",
+        ]
+        entry_click = {
+            "id": "entryRowClick_88",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "method": "entryRowClick",
+            "args": [0, "subject"],
+            "post_data": [{
+                "billlistap": {
+                    "fieldKey": "subject",
+                    "row": 0,
+                    "selRows": [0],
+                    "selDatas": [recorded_row[:]],
+                }
+            }, []],
+        }
+        selector_meta = {
+            "field_key": "khr_zcurrencyfield",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "source_step_id": "entryRowClick_88",
+            "value_id": "DTX20260605332",
+            "value_code": "DTX20260605332",
+            "recorded_value_id": "2494949344130694145",
+            "auto_resolve": True,
+            "resolve_by": "value_code",
+            "user_overridden": True,
+            "selector_control_key": "billlistap",
+            "selector_value_index": 0,
+            "selector_code_index": 1,
+        }
+        case = {
+            "steps": [entry_click],
+            "pick_fields": {
+                "selector_khr_zcurrencyfield_id": selector_meta,
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        assert "_selector_env_field_meta" not in entry_click
+
+        # Simulate an older loaded YAML that already carried selector metadata:
+        # runtime billno must still win, and handler-time selector resolution must
+        # not put the recorded billno back into selDatas.
+        entry_click["_selector_env_field_id"] = "selector_khr_zcurrencyfield_id"
+        entry_click["_selector_env_field_meta"] = selector_meta
+        ctx = {
+            "runtime_fields": {"billno": "DTX20260605335"},
+            "response_history": [{
+                "a": "u",
+                "p": [{
+                    "k": "billlistap",
+                    "data": {
+                        "dataindex": {
+                            "rk": 0,
+                            "id": 1,
+                            "billno": 2,
+                            "subject": 6,
+                            "wf_task_id": 1,
+                        },
+                        "rows": [[
+                            0,
+                            "2494978060030324738",
+                            "DTX20260605335",
+                            "员工定调薪申请单",
+                            None,
+                            None,
+                            "请对定调薪申请单进行薪酬结构拆解（单据编号：DTX20260605335）",
+                        ]],
+                    },
+                }],
+            }],
+        }
+
+        _apply_runtime_billno_to_step(entry_click, ctx)
+        _auto_resolve_selector_row_step(entry_click, object(), ctx)
+
+        payload = entry_click["post_data"][0]["billlistap"]
+        assert payload["selDatas"] == [[
+            "2494978060030324738",
+            "DTX20260605335",
+            "请对定调薪申请单进行薪酬结构拆解（单据编号：DTX20260605335）",
+        ]]
+        assert "DTX20260605332" not in json.dumps(payload["selDatas"], ensure_ascii=False)
+
+    def test_runtime_billno_entry_click_waits_for_async_task_row(self, monkeypatch):
+        common_search = {
+            "id": "commonSearch_96",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "key": "filtercontainerap",
+            "method": "commonSearch",
+            "args": [
+                [{"FieldName": ["billno"], "Value": ["DTX20260604256"]}],
+                "wf_task",
+            ],
+            "post_data": [{}, []],
+        }
+        entry_click = {
+            "id": "entryRowClick_97",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "method": "entryRowClick",
+            "args": [0, "priorityshow"],
+            "post_data": [{
+                "billlistap": {
+                    "fieldKey": "priorityshow",
+                    "row": 0,
+                    "selRows": [0],
+                    "selDatas": [[
+                        "2494284326619915265",
+                        "DTX20260604256",
+                        "请审批录制单据（单据编号：DTX20260604256）",
+                    ]],
+                }
+            }, []],
+        }
+        events = []
+        calls = []
+
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                rows = []
+                if len(calls) >= 2:
+                    rows = [[
+                        3,
+                        "2500000000000000001",
+                        "DTX20260604269",
+                        "员工定调薪申请单",
+                        None,
+                        None,
+                        "请审批运行时单据（单据编号：DTX20260604269）",
+                    ]]
+                return {
+                    "a": "u",
+                    "p": [{
+                        "k": "gridview",
+                        "data": {
+                            "dataindex": {
+                                "rk": 0,
+                                "id": 1,
+                                "billno": 2,
+                                "subject": 6,
+                                "wf_task_id": 1,
+                            },
+                            "rows": rows,
+                        },
+                    }],
+                }
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        ctx = {
+            "runtime_fields": {"billno": "DTX20260604269"},
+            "response_history": [],
+            "run_event": lambda event, payload: events.append((event, payload)),
+        }
+
+        _apply_runtime_billno_to_step(common_search, ctx)
+        _apply_runtime_billno_to_step(entry_click, ctx, replay=FakeReplay())
+
+        assert len(calls) == 2
+        assert calls[0][3][0]["args"][0][0]["Value"] == ["DTX20260604269"]
+        payload = entry_click["post_data"][0]["billlistap"]
+        assert entry_click["args"][0] == 3
+        assert payload["selRows"] == [3]
+        assert payload["selDatas"][0][1] == "DTX20260604269"
+        assert "运行时单据" in payload["selDatas"][0][2]
+        assert any(event == "runtime_billno_wait_ok" for event, _payload in events)
+        assert not entry_click.get("_runtime_billno_grid_missing")
+
+    def test_runtime_billno_rewrites_explicit_wait_until_task_search(self):
+        step = {
+            "id": "wait_wf_task_billno_10",
+            "type": "wait_until",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "args": [[{"FieldName": ["billno"], "Value": ["DTX20260605001"]}]],
+            "condition": {
+                "kind": "grid_row_exists",
+                "grid_key": "billlistap",
+                "field_key": "billno",
+                "value": "DTX20260605001",
+                "match_fields": ["billno"],
+            },
+        }
+        ctx = {"runtime_fields": {"billno": "DTX20260605999"}}
+
+        _apply_runtime_billno_to_step(step, ctx)
+
+        assert step["args"][0][0]["Value"] == ["DTX20260605999"]
+        assert step["condition"]["value"] == "DTX20260605999"
+        assert step["_runtime_billno_applied"] == "DTX20260605999"
+
+    def test_afterconfirm_uses_latest_runtime_show_confirm_callback(self):
+        step = {
+            "id": "afterConfirm_50",
+            "type": "invoke",
+            "form_id": "khr_hcdm_proposalplan",
+            "app_id": "hcdm",
+            "ac": "afterConfirm",
+            "args": [
+                "lockedConfirm",
+                6,
+                '{"operateKey":"modify","entityId":"khr_hcdm_fapplybill","pkvalue":"old-pk"}',
+            ],
+        }
+        ctx = {
+            "last_response": [
+                {
+                    "a": "showConfirm",
+                    "p": [
+                        {
+                            "id": "lockedConfirm",
+                            "callbackValue": (
+                                '{"operateKey":"modify","entityId":"khr_hcdm_fapplybill",'
+                                '"pkvalue":"new-runtime-pk"}'
+                            ),
+                        }
+                    ],
+                }
+            ],
+            "response_history": [],
+        }
+
+        _apply_latest_afterconfirm_callback(step, ctx)
+
+        assert step["args"][2] == (
+            '{"operateKey":"modify","entityId":"khr_hcdm_fapplybill",'
+            '"pkvalue":"new-runtime-pk"}'
+        )
+        assert step["_runtime_confirm_callback_applied"] == "lockedConfirm"
+
+    def test_afterconfirm_finds_callback_in_response_history(self):
+        step = {
+            "id": "afterConfirm_48",
+            "type": "invoke",
+            "form_id": "khr_hcdm_proposalplan",
+            "app_id": "hcdm",
+            "ac": "afterConfirm",
+            "args": [
+                "billController_lockedConfirm",
+                7,
+                '{"current":{"billNo":"old-bill","pkvalue":"old-pk"}}',
+            ],
+        }
+        ctx = {
+            "last_response": [],
+            "response_history": [
+                {"a": "noop"},
+                {
+                    "a": "u",
+                    "p": [
+                        {
+                            "a": "showConfirm",
+                            "p": [
+                                {
+                                    "id": "billController_lockedConfirm",
+                                    "callbackValue": (
+                                        '{"current":{"billNo":"DTX20260604308",'
+                                        '"pkvalue":"new-runtime-pk"}}'
+                                    ),
+                                }
+                            ],
+                        }
+                    ],
+                },
+            ],
+        }
+
+        _apply_latest_afterconfirm_callback(step, ctx)
+
+        assert step["args"][2] == (
+            '{"current":{"billNo":"DTX20260604308",'
+            '"pkvalue":"new-runtime-pk"}}'
+        )
+
     def test_select_f7_list_row_loads_selects_and_confirms(self):
         calls = []
         f7_row = [
@@ -1227,6 +1521,570 @@ class TestStepHandlers:
         """pick_basedata处理器已注册"""
         assert "pick_basedata" in STEP_HANDLERS
         assert callable(STEP_HANDLERS["pick_basedata"])
+
+    def test_pick_basedata_handler_preserves_row_index(self):
+        calls = []
+
+        class FakeReplay:
+            def pick_basedata(self, form_id, app_id, field_key, value_id, row_index=0):
+                calls.append((form_id, app_id, field_key, value_id, row_index))
+                return {"ok": True}
+
+        step = {
+            "id": "pick_khr_upperson",
+            "type": "pick_basedata",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "hcdm",
+            "field_key": "khr_upperson",
+            "value_id": "2381416156917661696",
+            "row_index": 1,
+        }
+
+        result = STEP_HANDLERS["pick_basedata"](step, FakeReplay(), {})
+
+        assert result == {"ok": True}
+        assert calls == [
+            ("khr_hcdm_fapplybill", "hcdm", "khr_upperson", "2381416156917661696", 1)
+        ]
+
+    def test_resolved_request_includes_pick_basedata_row_index(self):
+        req = _build_resolved_request({
+            "type": "pick_basedata",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "hcdm",
+            "field_key": "khr_upperson",
+            "value_id": "2381416156917661696",
+            "value_code": "53478",
+            "row_index": 1,
+        })
+
+        assert req["row_index"] == 1
+        assert req["value_code"] == "53478"
+
+    def test_run_case_skip_replay_does_not_call_step_handler(self, monkeypatch):
+        events = []
+
+        class FakeSession:
+            user_id = "user-1"
+            root_base_id = "a" * 32
+            root_page_id = "root" + root_base_id
+
+        class FakeReplay:
+            def __init__(self, session, sign_required=True):
+                self.s = session
+                self.page_ids = {}
+
+            def init_root(self):
+                return self.s.root_page_id
+
+        monkeypatch.setattr(runner_mod, "login", lambda *args, **kwargs: FakeSession())
+        monkeypatch.setattr(runner_mod, "CosmicFormReplay", FakeReplay)
+        case = {
+            "name": "skip-upload",
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "steps": [
+                {
+                    "id": "upload_1",
+                    "type": "unknown_handler_would_fail",
+                    "skip_replay": True,
+                    "skip_reason": "HAR 仅包含录制期临时附件句柄",
+                }
+            ],
+        }
+
+        result = run_case(case, on_event=lambda event, payload: events.append((event, payload)))
+
+        assert result.passed is True
+        assert result.steps[0]["skipped"] is True
+        assert result.steps[0]["warning"] == "HAR 仅包含录制期临时附件句柄"
+        assert any(event == "step_ok" and payload.get("skipped") for event, payload in events)
+
+    def test_upload_file_handler_calls_replay_and_records_runtime_upload(self, tmp_path):
+        uploaded = tmp_path / "salary.xlsx"
+        uploaded.write_bytes(b"demo")
+        calls = []
+
+        class FakeReplay:
+            def upload_file(self, endpoint, file_path, **kwargs):
+                calls.append((endpoint, file_path, kwargs))
+                return {"id": "upload-1", "url": "/tempfile/download.do?id=upload-1"}
+
+        ctx = {}
+        step = {
+            "id": "upload_attach_1",
+            "type": "upload_file",
+            "app_id": "hcdm",
+            "field_key": "attachmentpanel",
+            "file_path": str(uploaded),
+            "upload_endpoint": "/ierp/tempfile/upload.do",
+            "file_field": "files",
+            "extra_data": {"configKey": "tempfile"},
+        }
+
+        resp = STEP_HANDLERS["upload_file"](step, FakeReplay(), ctx)
+
+        assert resp["upload_file"] == "ok"
+        assert resp["file_name"] == "salary.xlsx"
+        assert calls == [
+            (
+                "/ierp/tempfile/upload.do",
+                str(uploaded),
+                {
+                    "app_id": "hcdm",
+                    "field_name": "files",
+                    "extra_data": {"configKey": "tempfile"},
+                    "extra_headers": None,
+                },
+            )
+        ]
+        assert ctx["runtime_uploads"]["upload_attach_1"]["response"]["id"] == "upload-1"
+        assert ctx["runtime_uploads"]["attachmentpanel"]["file_name"] == "salary.xlsx"
+
+    def test_cosmic_replay_upload_file_posts_multipart(self, tmp_path):
+        uploaded = tmp_path / "salary.txt"
+        uploaded.write_text("demo", encoding="utf-8")
+        captured = {}
+
+        class FakeResp:
+            status_code = 200
+            text = '{"id":"upload-1"}'
+
+            def json(self):
+                return {"id": "upload-1"}
+
+        class FakeHTTP:
+            def post(self, url, *, data=None, json=None, files=None, headers=None, timeout=None):
+                file_name, file_handle, content_type = files["attachment"]
+                captured.update({
+                    "url": url,
+                    "data": data,
+                    "file_name": file_name,
+                    "file_bytes": file_handle.read(),
+                    "content_type": content_type,
+                    "headers": headers,
+                    "timeout": timeout,
+                })
+                return FakeResp()
+
+        sess = CosmicSession(
+            base_url="https://example.test/ierp",
+            cookie="kdservice-sessionid=s1",
+            user_id="acct_user",
+            account_id="acct",
+            csrf_token="csrf-1",
+        )
+        replay = CosmicFormReplay(sess, timeout=7)
+        replay.http = FakeHTTP()
+
+        resp = replay.upload_file(
+            "/tempfile/upload.do",
+            str(uploaded),
+            app_id="hcdm",
+            field_name="attachment",
+            extra_data={"configKey": "tempfile"},
+        )
+
+        assert resp == {"id": "upload-1"}
+        assert captured["url"] == "https://example.test/ierp/tempfile/upload.do"
+        assert captured["data"] == {"configKey": "tempfile"}
+        assert captured["file_name"] == "salary.txt"
+        assert captured["file_bytes"] == b"demo"
+        assert captured["content_type"] == "text/plain"
+        assert captured["headers"]["cqappid"] == "hcdm"
+        assert captured["headers"]["kd-csrf-token"] == "csrf-1"
+        assert captured["timeout"] == 7
+
+    def test_upload_file_handler_reports_missing_runtime_config(self):
+        class FakeReplay:
+            pass
+
+        with pytest.raises(ProtocolError, match="缺少 file_path"):
+            STEP_HANDLERS["upload_file"](
+                {
+                    "id": "upload_attach_1",
+                    "type": "upload_file",
+                    "recorded_file_names": ["image.png"],
+                    "upload_endpoint": "/ierp/tempfile/upload.do",
+                },
+                FakeReplay(),
+                {},
+            )
+
+        with pytest.raises(ProtocolError, match="缺少 upload_endpoint"):
+            STEP_HANDLERS["upload_file"](
+                {
+                    "id": "upload_attach_1",
+                    "type": "upload_file",
+                    "file_path": "/tmp/image.png",
+                },
+                FakeReplay(),
+                {},
+            )
+
+    def test_run_case_replays_skipped_upload_when_user_file_is_configured(self, monkeypatch, tmp_path):
+        uploaded = tmp_path / "image.png"
+        uploaded.write_bytes(b"png")
+        events = []
+        calls = []
+
+        class FakeSession:
+            user_id = "user-1"
+            root_base_id = "a" * 32
+            root_page_id = "root" + root_base_id
+
+        class FakeReplay:
+            def __init__(self, session, sign_required=True):
+                self.s = session
+                self.page_ids = {}
+                self._pending_by_app = {}
+
+            def init_root(self):
+                return self.s.root_page_id
+
+            def upload_file(self, endpoint, file_path, **kwargs):
+                calls.append((endpoint, file_path, kwargs))
+                return {"id": "runtime-upload"}
+
+        monkeypatch.setattr(runner_mod, "login", lambda *args, **kwargs: FakeSession())
+        monkeypatch.setattr(runner_mod, "CosmicFormReplay", FakeReplay)
+        case = {
+            "name": "runtime-upload",
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "steps": [
+                {
+                    "id": "upload_1",
+                    "type": "invoke",
+                    "app_id": "hcdm",
+                    "skip_replay": True,
+                    "requires_user_file": True,
+                    "upload_replay_strategy": "user_file_required",
+                    "file_path": str(uploaded),
+                    "upload_endpoint": "/ierp/tempfile/upload.do",
+                }
+            ],
+        }
+
+        result = run_case(case, on_event=lambda event, payload: events.append((event, payload)))
+
+        assert result.passed is True
+        assert result.steps[0]["type"] == "upload_file"
+        assert result.steps[0].get("skipped") is not True
+        assert calls[0][0] == "/ierp/tempfile/upload.do"
+        assert calls[0][1] == str(uploaded)
+        assert any(event == "upload_file_ok" for event, _payload in events)
+
+    def test_runtime_upload_rewrites_recorded_tempfile_reference_before_following_invoke(self, monkeypatch, tmp_path):
+        uploaded = tmp_path / "image.png"
+        uploaded.write_bytes(b"png")
+        events = []
+        captured_actions = []
+        old_url = "http://example.test/ierp/tempfile/download.do?configKey=tempfile.mock&id=expired"
+
+        class FakeSession:
+            user_id = "user-1"
+            root_base_id = "a" * 32
+            root_page_id = "root" + root_base_id
+
+        class FakeReplay:
+            def __init__(self, session, sign_required=True):
+                self.s = session
+                self.page_ids = {}
+                self._pending_by_app = {}
+                self._loaded_forms = set()
+
+            def init_root(self):
+                return self.s.root_page_id
+
+            def open_form(self, form_id, app_id, lazy=False):
+                self.page_ids[form_id] = f"runtime-page-{form_id}"
+                return self.page_ids[form_id]
+
+            def load_data(self, form_id, app_id):
+                self._loaded_forms.add(form_id)
+                return []
+
+            def upload_file(self, endpoint, file_path, **kwargs):
+                return {
+                    "id": "runtime-upload",
+                    "url": "/tempfile/download.do?configKey=tempfile.mock&id=runtime-upload",
+                }
+
+            def invoke(self, form_id, app_id, ac, actions):
+                captured_actions.append(actions[0])
+                return []
+
+        monkeypatch.setattr(runner_mod, "login", lambda *args, **kwargs: FakeSession())
+        monkeypatch.setattr(runner_mod, "CosmicFormReplay", FakeReplay)
+        case = {
+            "name": "runtime-upload-rewrite",
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "steps": [
+                {
+                    "id": "upload_1",
+                    "type": "invoke",
+                    "app_id": "hcdm",
+                    "ac": "upload",
+                    "method": "upload",
+                    "key": "attachmentpanel",
+                    "field_key": "attachmentpanel",
+                    "skip_replay": True,
+                    "requires_user_file": True,
+                    "upload_replay_strategy": "user_file_required",
+                    "file_path": str(uploaded),
+                    "upload_endpoint": "/ierp/tempfile/upload.do",
+                },
+                {
+                    "id": "attach_commit",
+                    "type": "invoke",
+                    "form_id": "hcdm_adjfileinfof7",
+                    "app_id": "hcdm",
+                    "ac": "click",
+                    "method": "click",
+                    "key": "attachmentpanel",
+                    "args": [{"url": old_url}],
+                    "post_data": [{"attachmentpanel": {"files": [{"url": old_url}]}}, []],
+                },
+            ],
+        }
+
+        result = run_case(case, on_event=lambda event, payload: events.append((event, payload)))
+
+        assert result.passed is True
+        sent_payload = json.dumps(captured_actions, ensure_ascii=False)
+        assert "expired" not in sent_payload
+        assert "runtime-upload" in sent_payload
+        assert any(event == "runtime_upload_applied" for event, _payload in events)
+        attach_start = next(
+            payload for event, payload in events
+            if event == "step_start" and payload.get("id") == "attach_commit"
+        )
+        resolved_payload = json.dumps(attach_start["resolved_request"], ensure_ascii=False)
+        assert "expired" not in resolved_payload
+        assert "runtime-upload" in resolved_payload
+        assert attach_start["resolved_request"]["runtime_upload_applied"]["replacement_count"] >= 2
+
+    def test_runtime_upload_id_only_preserves_recorded_download_url_shape(self):
+        old_url = "http://example.test/ierp/tempfile/download.do?configKey=tempfile.mock&id=expired"
+        step = {
+            "id": "attach_commit",
+            "type": "invoke",
+            "key": "attachmentpanel",
+            "args": [old_url],
+        }
+        ctx = {
+            "runtime_uploads": {
+                "attachmentpanel": {
+                    "upload_id": "upload_1",
+                    "field_key": "attachmentpanel",
+                    "response": {"id": "runtime-only-id"},
+                }
+            }
+        }
+
+        _apply_runtime_uploads_to_step(step, ctx)
+
+        assert step["args"][0] == (
+            "http://example.test/ierp/tempfile/download.do"
+            "?configKey=tempfile.mock&id=runtime-only-id"
+        )
+        assert step["_runtime_upload_applied"]["replacement_count"] == 1
+
+    def test_wait_until_repeats_until_condition_is_met(self, monkeypatch):
+        calls = []
+
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                if len(calls) == 1:
+                    return {"percent": 40}
+                return {"percent": 100}
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        step = {
+            "id": "wait_upload",
+            "type": "wait_until",
+            "form_id": "bos_upload_progress",
+            "app_id": "bos",
+            "ac": "getpercent",
+            "key": "progress",
+            "method": "getpercent",
+            "args": ["upload-token"],
+            "post_data": [{}, []],
+            "condition": {"kind": "percent_at_least", "threshold": 100},
+            "interval_seconds": 0.1,
+            "max_attempts": 3,
+        }
+
+        result = STEP_HANDLERS["wait_until"](step, FakeReplay(), {})
+
+        assert result["wait_until"] == "satisfied"
+        assert result["attempts"] == 2
+        assert len(calls) == 2
+        assert calls[0][3][0]["methodName"] == "getpercent"
+
+    def test_wait_until_repeats_until_grid_row_exists(self, monkeypatch):
+        calls = []
+
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                rows = []
+                if len(calls) == 3:
+                    rows = [[7, "2500000000000000001", "DTX20260604999"]]
+                return {
+                    "a": "u",
+                    "p": [{
+                        "k": "gridview",
+                        "data": {
+                            "dataindex": {"rk": 0, "id": 1, "billno": 2},
+                            "rows": rows,
+                        },
+                    }],
+                }
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        step = {
+            "id": "wait_task_row",
+            "type": "wait_until",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "key": "filtercontainerap",
+            "method": "commonSearch",
+            "args": [[{"FieldName": ["billno"], "Value": ["DTX20260604999"]}]],
+            "post_data": [{}, []],
+            "condition": {
+                "kind": "grid_row_exists",
+                "grid_key": "billlistap",
+                "field_key": "billno",
+                "value": "DTX20260604999",
+                "match_fields": ["billno"],
+            },
+            "interval_seconds": 0.1,
+            "max_attempts": 4,
+        }
+
+        result = STEP_HANDLERS["wait_until"](step, FakeReplay(), {})
+
+        assert result["wait_until"] == "satisfied"
+        assert result["attempts"] == 3
+        assert result["condition"]["kind"] == "grid_row_exists"
+        assert result["wait_detail"]["status"] == "satisfied"
+        assert result["wait_detail"]["attempts"] == 3
+        assert result["wait_detail"]["last_row_count"] == 1
+        assert result["wait_detail"]["value"] == "DTX20260604999"
+        assert len(calls) == 3
+        assert result["last_response"]["p"][0]["data"]["rows"][0][2] == "DTX20260604999"
+
+    def test_wait_until_retries_readonly_errors_until_error_absent(self, monkeypatch):
+        calls = []
+
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                calls.append((form_id, app_id, ac, actions))
+                if len(calls) == 1:
+                    return {"msg": "无效请求"}
+                return {"success": True}
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        step = {
+            "id": "wait_error_clear",
+            "type": "wait_until",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "method": "commonSearch",
+            "condition": {"kind": "error_absent"},
+            "interval_seconds": 0.1,
+            "max_attempts": 2,
+        }
+
+        result = STEP_HANDLERS["wait_until"](step, FakeReplay(), {})
+
+        assert result["wait_until"] == "satisfied"
+        assert result["attempts"] == 2
+
+    def test_wait_until_raises_timeout_when_condition_is_not_met(self, monkeypatch):
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                return {"percent": 20}
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        step = {
+            "id": "wait_upload",
+            "type": "wait_until",
+            "form_id": "bos_upload_progress",
+            "app_id": "bos",
+            "ac": "getpercent",
+            "key": "progress",
+            "method": "getpercent",
+            "condition": {"kind": "percent_at_least", "threshold": 100},
+            "interval_seconds": 0.1,
+            "timeout_seconds": 0.1,
+            "max_attempts": 2,
+        }
+
+        with pytest.raises(TimeoutError):
+            STEP_HANDLERS["wait_until"](step, FakeReplay(), {})
+
+    def test_wait_until_timeout_records_user_readable_detail(self, monkeypatch):
+        class FakeReplay:
+            def invoke(self, form_id, app_id, ac, actions):
+                return {
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"rk": 0, "billno": 1},
+                            "rows": [],
+                        },
+                    }],
+                }
+
+        monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+        ctx = {}
+        step = {
+            "id": "wait_wf_task_billno_10",
+            "type": "wait_until",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "method": "commonSearch",
+            "condition": {
+                "kind": "grid_row_exists",
+                "grid_key": "billlistap",
+                "field_key": "billno",
+                "value": "DTX20260605999",
+            },
+            "interval_seconds": 0.1,
+            "timeout_seconds": 0.1,
+            "max_attempts": 2,
+        }
+
+        with pytest.raises(TimeoutError):
+            STEP_HANDLERS["wait_until"](step, FakeReplay(), ctx)
+
+        detail = ctx["wait_until_details"]["wait_wf_task_billno_10"]
+        assert detail["status"] == "timeout"
+        assert detail["attempts"] == 2
+        assert detail["last_row_count"] == 0
+        assert detail["value"] == "DTX20260605999"
+        assert detail["field_key"] == "billno"
     
     def test_click_toolbar_handler_registered(self):
         """click_toolbar处理器已注册"""

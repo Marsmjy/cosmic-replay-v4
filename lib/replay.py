@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import mimetypes
 import os
 import re
 import subprocess
@@ -267,6 +268,67 @@ class CosmicFormReplay:
         headers["Content-Type"] = "application/json;charset=utf-8"
         url = self.s.base_url + path
         return self.http.get(url, params=params, headers=headers, timeout=self.timeout)
+
+    def _abs_url(self, endpoint: str) -> str:
+        endpoint = str(endpoint or "").strip()
+        if not endpoint:
+            raise ProtocolError("upload_file 缺少 upload_endpoint/upload_url")
+        if endpoint.startswith(("http://", "https://")):
+            return endpoint
+        if endpoint.startswith("/"):
+            return self.s.base_url.rstrip("/") + endpoint
+        return self.s.base_url.rstrip("/") + "/" + endpoint.lstrip("/")
+
+    def upload_file(
+        self,
+        endpoint: str,
+        file_path: str | os.PathLike,
+        *,
+        app_id: str = "bos",
+        field_name: str = "file",
+        extra_data: dict | list[tuple[str, Any]] | None = None,
+        extra_headers: dict | None = None,
+    ) -> Any:
+        """Upload a real local file through a recorded/configured multipart endpoint.
+
+        HAR files only contain the browser's temporary upload state, not the file
+        bytes. This helper is the runtime path for "用户文件 → 上传接口 → 响应 id/url".
+        It deliberately does not reuse any tempfile/download.do URL from the HAR.
+        """
+        path = Path(file_path).expanduser()
+        if not path.exists() or not path.is_file():
+            raise ProtocolError(f"真实附件上传找不到本地文件: {path}")
+        if not field_name:
+            field_name = "file"
+
+        url = self._abs_url(endpoint)
+        headers = self.s.base_headers(cqappid=app_id or "bos")
+        if extra_headers:
+            headers.update(extra_headers)
+        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        with path.open("rb") as fh:
+            files = {field_name: (path.name, fh, content_type)}
+            r = self._post_with_retry(
+                url,
+                data=extra_data or {},
+                files=files,
+                headers=headers,
+                timeout=self.timeout,
+            )
+        if r.status_code < 200 or r.status_code >= 300:
+            raise ProtocolError(f"upload_file HTTP {r.status_code}: {r.text[:200]}")
+        try:
+            resp: Any = r.json()
+        except Exception:
+            resp = {
+                "status_code": r.status_code,
+                "text": r.text,
+            }
+        self.last_response = resp
+        self._current_invoke_form = None
+        self._harvest_page_ids(resp)
+        self._harvest_virtual_tab_pageids(resp)
+        return resp
 
     # ---------- 会话初始化 ----------
 
@@ -750,11 +812,12 @@ class CosmicFormReplay:
         }])
 
     def pick_basedata(self, form_id: str, app_id: str,
-                      field_key: str, value_id: str) -> list | dict:
+                      field_key: str, value_id: str,
+                      row_index: int = 0) -> list | dict:
         """setItemByIdFromClient 选基础资料"""
         return self.invoke(form_id, app_id, "setItemByIdFromClient", [{
             "key": field_key, "methodName": "setItemByIdFromClient",
-            "args": [[value_id, 0]], "postData": [{}, []],
+            "args": [[value_id, row_index]], "postData": [{}, []],
         }])
 
     def query_tree(self, form_id: str, app_id: str,

@@ -178,6 +178,21 @@ def test_har_import_supports_multi_file_batch_import():
     assert 'accept=".har" multiple' in html
     assert "importHarBatch(files)" in html
     assert "harBatchResults: []" in html
+
+
+def test_upload_file_pick_fields_are_editable_in_preview_and_case_panels():
+    html = _index_html()
+
+    assert "pf.source_type === 'upload_file'" in html
+    assert "return 'file_path';" in html
+    assert "pickFieldPlaceholder(item.ref)" in html
+    assert "录制文件：" in html
+    assert "已配置文件" in html
+    assert "需文件" in html
+    assert "source_type: entry.source_type || ''" in html
+    assert "upload_endpoint: entry.upload_endpoint || ''" in html
+    assert "file_field: entry.file_field || ''" in html
+    assert "requires_user_file: entry.requires_user_file === 'true' || entry.requires_user_file === true" in html
     assert "harBatchSummary()" in html
     assert "批量导入结果" in html
     assert "this.uniqueCaseName(file.name.replace(/\\.har$/i, ''), usedNames)" in html
@@ -206,6 +221,10 @@ def test_agent_repair_prompt_points_ai_to_ir_summary_and_safe_har_tool():
     assert "用户维护值必须生效" in html
     assert "执行必须校验保存/提交和入库证据" in html
     assert "run_artifacts.ir_summary" in html
+    assert "run_artifacts.dynamic_value_flow" in html
+    assert "response_anchor_candidates" in html
+    assert "动态值链路" in html
+    assert "确认回调/上传 URL/待办任务行" in html
     assert "variables.value_shape" in html
     assert "environment_fields.value_shape" in html
     assert "scripts/har_ir_tool.py build --har" in html
@@ -245,6 +264,11 @@ def test_ai_repair_ui_explains_handoff_without_hidden_steps():
     assert "复制 AI 修复指令" in html
     assert "用户补充信息（发送给 AI 前可填写；没有可留空）" in html
     assert "我刚维护过的变量/环境字段" in html
+    assert "待办未生成" in html
+    assert "先确认审批待办" in html
+    assert "等待详情" in html
+    assert "waitDetailSummary" in html
+    assert "按该单号查询审批待办" in html
     assert "让AI修复" not in html
 
 

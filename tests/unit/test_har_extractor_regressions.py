@@ -1,4 +1,6 @@
+import json
 import sys
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -14,12 +16,19 @@ from lib.har_extractor import (
     _attach_pick_field_scopes,
     _build_preview_readback_plan,
     _build_preview_business_blocks,
+    _build_default_assertions,
     _clean_display_label,
+    collapse_repeated_polling_steps,
     _drop_locked_update_fields,
     _apply_user_pick_field_values_to_update_steps,
+    _extract_entry_row_selector,
+    _mark_recorded_business_validations,
     _scoped_pick_field_id,
     build_yaml_case,
     detect_var_placeholders,
+    extract_steps,
+    insert_workflow_task_wait_steps,
+    lower_set_item_to_pick_basedata,
     merge_consecutive_update_values,
     preview_har,
     to_yaml,
@@ -54,6 +63,36 @@ def test_to_yaml_keeps_leading_zero_business_codes_as_strings():
     assert '"00407"' in yaml_text
     assert parsed["pick_fields"]["pick_city_id"]["value_id"] == "00407"
     assert parsed["pick_fields"]["pick_city_id"]["value_code"] == "00407"
+
+
+def test_workflow_task_entry_row_is_not_exposed_as_selector_pick_field():
+    step = {
+        "id": "entryRowClick_88",
+        "type": "invoke",
+        "form_id": "wf_task",
+        "app_id": "bos",
+        "ac": "entryRowClick",
+        "key": "billlistap",
+        "method": "entryRowClick",
+        "post_data": [{
+            "billlistap": {
+                "fieldKey": "subject",
+                "row": 0,
+                "selRows": [0],
+                "selDatas": [[
+                    "2494949344130694145",
+                    "DTX20260605332",
+                    "请对定调薪申请单进行薪酬结构拆解（单据编号：DTX20260605332）",
+                ]],
+            }
+        }, []],
+    }
+
+    assert _extract_entry_row_selector(step, {
+        "parent_form_id": "khr_hcdm_proposalplan",
+        "parent_field_key": "khr_zcurrencyfield",
+        "label": "调薪后-币种",
+    }) is None
 
 
 def test_merge_update_values_preserves_repeated_field_toggles():
@@ -956,6 +995,391 @@ def test_salary_adjust_approval_import_exposes_action_and_opinion_when_local_har
     assert approval_step["fields"]["msg_approval"]["zh_CN"] == "${vars.test_workflow_approval_opinion}"
 
 
+def test_salary_adjust_proposal_audit_import_exposes_proposal_fields_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780560406_金蝶HR-新增员工定调薪申请单-薪酬提案为是-提案审核.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary adjustment proposal audit HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    detected_vars = {item["name"]: item for item in preview["detected_vars"]}
+
+    proposal_amount = detected_vars["test_salary_proposal_amount"]
+    assert proposal_amount["label"] == "薪酬提案"
+    assert proposal_amount["field_key"] == "khr_saproposal"
+    assert proposal_amount["form_id"] == "khr_hcdm_proposalplan"
+    assert proposal_amount["template"] == "5"
+
+    proposal_explanation = detected_vars["test_salary_proposal_explanation"]
+    assert proposal_explanation["label"] == "提案说明"
+    assert proposal_explanation["field_key"] == "khr_sapexplanation"
+    assert proposal_explanation["form_id"] == "khr_hcdm_proposalplan"
+    assert proposal_explanation["template"] == "okokok"
+
+    yaml_text = build_yaml_case(har_path, case_name="salary_adjust_proposal_audit")
+    case = yaml.safe_load(yaml_text)
+    message_step = next(step for step in case["steps"] if step["id"] == "load_msg_message")
+    task_step = next(step for step in case["steps"] if step["id"] == "load_task")
+    message_center_open = next(step for step in case["steps"] if step["id"] == "open_wf_msg_center")
+    message_center_load = next(step for step in case["steps"] if step["id"] == "load_wf_msg_center")
+    message_center_tab = next(step for step in case["steps"] if step["id"] == "selectTab_45")
+    amount_step = next(step for step in case["steps"] if step["id"] == "fill_khr_saproposal")
+    explanation_step = next(step for step in case["steps"] if step["id"] == "fill_khr_sapexplanation")
+    menu_step = next(step for step in case["steps"] if step["id"] == "menuItemClick_2")
+    steps_by_id = {step["id"]: idx for idx, step in enumerate(case["steps"])}
+
+    assert message_step["optional"] is True
+    assert task_step.get("optional") is not True
+    assert message_center_open["type"] == "open_form"
+    assert message_center_open["form_id"] == "wf_msg_center"
+    assert message_center_open["lazy"] is False
+    assert message_center_load["form_id"] == "wf_msg_center"
+    assert message_center_load["ac"] == "loadData"
+    assert steps_by_id["load_wf_msg_center"] < steps_by_id["load_task"]
+    assert message_center_tab["optional"] is True
+    assert "wf_task" not in (menu_step.get("target_forms") or [])
+    assert "khr_hcdm_proposalplan" not in (menu_step.get("target_forms") or [])
+    assert case["vars"]["test_salary_proposal_amount"] == 5
+    assert case["vars"]["test_salary_proposal_explanation"] == "okokok"
+    assert case["vars_meta"]["test_salary_proposal_amount"]["label"] == "薪酬提案"
+    assert case["vars_meta"]["test_salary_proposal_explanation"]["label"] == "提案说明"
+    assert amount_step["fields"]["khr_saproposal"] == "${vars.test_salary_proposal_amount}"
+    assert explanation_step["fields"]["khr_sapexplanation"] == "${vars.test_salary_proposal_explanation}"
+
+
+def test_set_item_lowering_preserves_entry_row_index_for_basedata_fields():
+    lowered = lower_set_item_to_pick_basedata([
+        {
+            "id": "pick_khr_upperson",
+            "type": "invoke",
+            "form_id": "khr_hcdm_fapplybill",
+            "app_id": "hcdm",
+            "ac": "setItemByIdFromClient",
+            "method": "setItemByIdFromClient",
+            "key": "khr_upperson",
+            "args": [["2381416156917661696", 1]],
+            "post_data": [{}, []],
+            "_har_index": 123,
+            "_har_page_id": "proposal-page",
+        }
+    ])
+
+    assert len(lowered) == 1
+    pick_step = lowered[0]
+    assert pick_step["type"] == "pick_basedata"
+    assert pick_step["field_key"] == "khr_upperson"
+    assert pick_step["value_id"] == "2381416156917661696"
+    assert pick_step["row_index"] == 1
+
+
+def test_extract_steps_marks_recorded_tempfile_upload_as_skip_replay():
+    actions = [
+        {
+            "key": "attachmentpanel",
+            "methodName": "beforeUpload",
+            "args": [[{"name": "image.png", "size": 140526, "type": "image/png"}]],
+            "postData": [{}, []],
+        },
+        {
+            "key": "attachmentpanel",
+            "methodName": "upload",
+            "args": [[{
+                "name": "image.png",
+                "status": "success",
+                "url": "http://example.test/ierp/tempfile/download.do?configKey=tempfile.mock&id=expired",
+            }]],
+            "postData": [{}, []],
+        },
+    ]
+    har = {
+        "log": {
+            "entries": [{
+                "request": {
+                    "url": "http://example.test/ierp/kapi/app/hcdm/form/batchInvokeAction.do?f=khr_hcdm_fapplybill&appId=hcdm&ac=upload",
+                    "postData": {
+                        "text": urllib.parse.urlencode({
+                            "pageId": "runtime-page",
+                            "params": json.dumps(actions),
+                        })
+                    },
+                },
+                "response": {"content": {"text": "[]"}},
+            }]
+        }
+    }
+
+    steps = extract_steps(har)
+
+    assert [step["method"] for step in steps] == ["beforeUpload", "upload"]
+    assert all(step["skip_replay"] is True for step in steps)
+    assert all(step["optional"] is True for step in steps)
+    assert "预上传" in steps[0]["skip_reason"]
+    assert "临时附件" in steps[1]["skip_reason"]
+    assert steps[0]["requires_user_file"] is True
+    assert steps[1]["upload_replay_strategy"] == "user_file_required"
+    assert steps[1]["recorded_tempfile_reference"] is True
+    assert steps[1]["recorded_file_names"] == ["image.png"]
+
+
+def _upload_har_with_real_multipart_request() -> dict:
+    actions = [
+        {
+            "key": "attachmentpanel",
+            "methodName": "beforeUpload",
+            "args": [[{"name": "image.png", "size": 140526, "type": "image/png"}]],
+            "postData": [{}, []],
+        },
+        {
+            "key": "attachmentpanel",
+            "methodName": "upload",
+            "args": [[{
+                "name": "image.png",
+                "status": "success",
+                "url": "http://example.test/ierp/tempfile/download.do?configKey=tempfile.mock&id=expired",
+            }]],
+            "postData": [{}, []],
+        },
+    ]
+    return {
+        "log": {
+            "entries": [
+                {
+                    "request": {
+                        "url": "http://example.test/ierp/tempfile/upload.do?configKey=tempfile.mock",
+                        "headers": [
+                            {
+                                "name": "Content-Type",
+                                "value": "multipart/form-data; boundary=----cosmic",
+                            }
+                        ],
+                        "postData": {
+                            "mimeType": "multipart/form-data; boundary=----cosmic",
+                            "params": [
+                                {"name": "file", "fileName": "image.png", "contentType": "image/png"},
+                                {"name": "configKey", "value": "tempfile.mock"},
+                            ],
+                        },
+                    },
+                    "response": {"content": {"text": "{\"id\":\"runtime-upload\"}"}},
+                },
+                {
+                    "request": {
+                        "url": "http://example.test/ierp/kapi/app/hcdm/form/batchInvokeAction.do?f=khr_hcdm_fapplybill&appId=hcdm&ac=upload",
+                        "postData": {
+                            "text": urllib.parse.urlencode({
+                                "pageId": "runtime-page",
+                                "params": json.dumps(actions),
+                            })
+                        },
+                    },
+                    "response": {"content": {"text": "[]"}},
+                },
+            ]
+        }
+    }
+
+
+def test_extract_steps_attaches_real_upload_endpoint_only_to_upload_action():
+    steps = extract_steps(_upload_har_with_real_multipart_request())
+
+    assert [step["method"] for step in steps] == ["beforeUpload", "upload"]
+    assert "upload_endpoint" not in steps[0]
+    assert steps[1]["upload_endpoint"] == "/tempfile/upload.do?configKey=tempfile.mock"
+    assert steps[1]["file_field"] == "file"
+    assert steps[1]["extra_data"] == {"configKey": "tempfile.mock"}
+
+
+def test_preview_har_exposes_single_upload_file_path_pick_field(tmp_path):
+    har_path = tmp_path / "upload.har"
+    har_path.write_text(json.dumps(_upload_har_with_real_multipart_request()), encoding="utf-8")
+
+    preview = preview_har(har_path)
+    upload_fields = [pf for pf in preview["pick_fields"] if pf.get("source_type") == "upload_file"]
+
+    assert len(upload_fields) == 1
+    pf = upload_fields[0]
+    assert pf["value_id"] == ""
+    assert pf["value_name"] == "image.png"
+    assert pf["upload_endpoint"] == "/tempfile/upload.do?configKey=tempfile.mock"
+    assert pf["file_field"] == "file"
+    assert pf["recorded_file_names"] == ["image.png"]
+    assert pf["resolve_status"] == "missing_file"
+
+
+def test_build_yaml_case_applies_upload_file_path_override_to_upload_step(tmp_path):
+    har_path = tmp_path / "upload.har"
+    har_path.write_text(json.dumps(_upload_har_with_real_multipart_request()), encoding="utf-8")
+    preview = preview_har(har_path)
+    upload_pf = next(pf for pf in preview["pick_fields"] if pf.get("source_type") == "upload_file")
+    file_path = "/Users/mars/Desktop/image.png"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="upload attachment",
+        pick_field_overrides={
+            upload_pf["id"]: {
+                "value_id": file_path,
+                "value_name": "",
+                "manual_override": True,
+                "resolve_status": "manual",
+                "source_type": "upload_file",
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    upload_steps = [
+        step for step in case["steps"]
+        if step.get("requires_user_file") and step.get("method") == "upload"
+    ]
+    before_steps = [
+        step for step in case["steps"]
+        if step.get("requires_user_file") and step.get("method") == "beforeUpload"
+    ]
+
+    assert case["pick_fields"][upload_pf["id"]]["value_id"] == file_path
+    assert len(upload_steps) == 1
+    assert upload_steps[0]["file_path"] == file_path
+    assert upload_steps[0]["upload_endpoint"] == "/tempfile/upload.do?configKey=tempfile.mock"
+    assert upload_steps[0]["file_field"] == "file"
+    assert before_steps and "file_path" not in before_steps[0]
+
+
+def test_collapse_repeated_polling_steps_to_wait_until():
+    poll_steps = [
+        {
+            "id": f"getpercent_{idx}",
+            "type": "invoke",
+            "form_id": "bos_upload_progress",
+            "app_id": "bos",
+            "ac": "getpercent",
+            "key": "progress",
+            "method": "getpercent",
+            "args": ["upload-token"],
+            "post_data": [{}, []],
+            "_har_index": 40 + idx,
+            "optional": True,
+        }
+        for idx in range(4)
+    ]
+
+    collapsed = collapse_repeated_polling_steps([
+        {"id": "before", "type": "invoke", "ac": "loadData"},
+        *poll_steps,
+        {"id": "after", "type": "invoke", "ac": "save"},
+    ])
+
+    assert [step["id"] for step in collapsed] == ["before", "wait_getpercent_upload_progress_40", "after"]
+    wait_step = collapsed[1]
+    assert wait_step["type"] == "wait_until"
+    assert wait_step["condition"] == {"kind": "percent_at_least", "threshold": 100}
+    assert wait_step["source_step_count"] == 4
+    assert wait_step["optional"] is True
+    assert wait_step["max_attempts"] >= 10
+
+
+def test_build_yaml_case_emits_wait_until_for_repeated_polling(tmp_path):
+    actions = [
+        {
+            "key": "progress",
+            "methodName": "getpercent",
+            "args": ["upload-token"],
+            "postData": [{}, []],
+        }
+        for _ in range(4)
+    ]
+    har_path = tmp_path / "polling.har"
+    har_path.write_text(
+        json.dumps({
+            "log": {
+                "entries": [{
+                    "request": {
+                        "url": "http://example.test/ierp/kapi/app/bos/form/batchInvokeAction.do?f=bos_upload_progress&appId=bos&ac=getpercent",
+                        "postData": {
+                            "text": urllib.parse.urlencode({
+                                "pageId": "runtime-page",
+                                "params": json.dumps(actions),
+                            })
+                        },
+                    },
+                    "response": {"content": {"text": json.dumps({"percent": 100})}},
+                }]
+            }
+        }),
+        encoding="utf-8",
+    )
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="polling_case"))
+
+    wait_steps = [step for step in case["steps"] if step["type"] == "wait_until"]
+    assert len(wait_steps) == 1
+    assert wait_steps[0]["source_step_count"] == 4
+    assert wait_steps[0]["condition"]["kind"] == "percent_at_least"
+    assert wait_steps[0]["optional"] is True
+
+
+def test_insert_workflow_task_wait_steps_before_recorded_task_click():
+    steps = [
+        {
+            "_har_index": 10,
+            "id": "commonSearch_10",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "key": "filtercontainerap",
+            "method": "commonSearch",
+            "args": [[{"FieldName": ["billno"], "Value": ["DTX20260605001"]}]],
+            "post_data": [{}, []],
+        },
+        {
+            "_har_index": 11,
+            "id": "entryRowClick_11",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "method": "entryRowClick",
+        },
+    ]
+
+    inserted = insert_workflow_task_wait_steps(steps)
+
+    assert [step["type"] for step in inserted] == ["invoke", "wait_until", "invoke"]
+    wait_step = inserted[1]
+    assert wait_step["id"] == "wait_wf_task_billno_10"
+    assert wait_step["wait_source"] == "workflow_task_search"
+    assert wait_step["condition"] == {
+        "kind": "grid_row_exists",
+        "grid_key": "billlistap",
+        "field_key": "billno",
+        "value": "DTX20260605001",
+        "match_fields": ["billno"],
+    }
+    assert wait_step["timeout_seconds"] == 15
+
+
+def test_insert_workflow_task_wait_steps_does_not_touch_plain_search():
+    steps = [
+        {
+            "id": "commonSearch_1",
+            "type": "invoke",
+            "form_id": "wf_task",
+            "app_id": "bos",
+            "ac": "commonSearch",
+            "args": [[{"FieldName": ["billno"], "Value": ["DTX20260605001"]}]],
+        },
+        {
+            "id": "loadData_2",
+            "type": "invoke",
+            "form_id": "wf_msg_message",
+            "app_id": "bos",
+            "ac": "loadData",
+        },
+    ]
+
+    assert insert_workflow_task_wait_steps(steps) == steps
+
+
 def test_salary_adjust_approval_preview_override_updates_generated_step_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780544303_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
     if not har_path.exists():
@@ -1334,6 +1758,68 @@ def test_real_adminorg_marks_recorded_intermediate_validation_as_expected():
     assert {"type": "expected_notification", "step": "click_new_save", "contains": "请选择所属L1流程：ITM下的L2流程"} in case["assertions"]
     assert {"type": "no_save_failure", "step": "click_new_save_2"} in case["assertions"]
     assert {"type": "no_save_failure", "step": "click_new_save"} not in case["assertions"]
+
+
+def test_show_message_validation_between_input_and_retry_save_is_expected():
+    steps = [
+        {
+            "id": "click_save",
+            "type": "invoke",
+            "form_id": "demo_form",
+            "ac": "save",
+            "_resp_text": json.dumps([{
+                "a": "showMessage",
+                "p": [{"msg": "xhtestone 调薪后-目标年度奖金不能为空，请填写。；", "messageType": -1}],
+            }], ensure_ascii=False),
+        },
+        {
+            "id": "fill_khr_hannualbonus",
+            "type": "update_fields",
+            "form_id": "demo_form",
+            "fields": {"khr_hannualbonus": "88888"},
+        },
+        {
+            "id": "click_save_2",
+            "type": "invoke",
+            "form_id": "demo_form",
+            "ac": "save",
+            "_resp_text": json.dumps([{
+                "a": "showConfirm",
+                "p": [{"msg": "点击“确定”继续提交"}],
+            }], ensure_ascii=False),
+        },
+    ]
+
+    _mark_recorded_business_validations(steps)
+    assertions = _build_default_assertions(steps)
+
+    assert steps[0]["expected_notifications"][0]["content"] == "xhtestone 调薪后-目标年度奖金不能为空，请填写。；"
+    assert steps[0]["continue_on_expected_error"] is True
+    assert {"type": "expected_notification", "step": "click_save", "contains": "xhtestone 调薪后-目标年度奖金不能为空，请填写。；"} in assertions
+    assert {"type": "no_save_failure", "step": "click_save_2"} in assertions
+    assert {"type": "no_save_failure", "step": "click_save"} not in assertions
+
+
+def test_salary_calc_decompose_validation_and_final_combo_decision_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780627096_金蝶HR-薪资核算为是-提交-确认薪资调整审批第一节点-NEW.har"
+    if not har_path.exists():
+        pytest.skip("local ignored salary calculation HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    combo = next(item for item in preview["pick_fields"] if item["id"] == "pick_combo_decision_id")
+    assert combo["value_id"] == "同意_and_Consent_and_approve"
+    assert combo["source_step_id"] == "fill_combo_decision_2"
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="salary_calc_decompose_expected_validation"))
+    first_save = next(step for step in case["steps"] if step["id"] == "click_khr_baritemap_2")
+    final_save = next(step for step in case["steps"] if step["id"] == "click_khr_baritemap_3")
+
+    assert first_save["expected_notifications"][0]["content"] == "xhtestone 调薪后-目标年度奖金不能为空，请填写。；"
+    assert first_save["continue_on_expected_error"] is True
+    assert "expected_notifications" not in final_save
+    assert case["pick_fields"]["pick_combo_decision_id"]["value_id"] == "同意_and_Consent_and_approve"
+    assert {"type": "expected_notification", "step": "click_khr_baritemap_2", "contains": "xhtestone 调薪后-目标年度奖金不能为空，请填写。；"} in case["assertions"]
+    assert {"type": "no_save_failure", "step": "click_khr_baritemap_2"} not in case["assertions"]
 
 
 def test_pick_field_code_override_keeps_code_resolve_editable():

@@ -7,6 +7,7 @@ from typing import Any
 
 from lib.pageid_trace import build_pageid_trace
 
+from .dynamic_flow import build_dynamic_value_flow
 from .sanitizer import scan_sensitive_text
 
 
@@ -25,6 +26,7 @@ def build_case_ir_summary(
     if not isinstance(case, dict):
         case = {}
     pageid_trace = build_pageid_trace(case, run_events=run_events or [], include_fragments=False)
+    dynamic_value_flow = build_dynamic_value_flow(case, run_events=run_events or [])
     trace_by_id = {
         str(row.get("step_id") or ""): row
         for row in pageid_trace.get("steps") or []
@@ -61,11 +63,13 @@ def build_case_ir_summary(
         "note": "由 YAML 和运行事件派生；如需 HAR 原始链路，请结合 pageid_trace 或本地 har_ir_tool。",
         "case_shape": _case_shape(case),
         "pageid_trace_summary": pageid_trace.get("summary", {}),
+        "dynamic_value_flow": dynamic_value_flow,
+        "response_anchor_candidates": _response_anchor_candidates(run_events or []),
         "steps": steps,
         "variables": _variables_shape(case),
         "environment_fields": _pick_fields_shape(case),
         "assertions": _assertions_shape(case),
-        "warnings": _warnings(case, steps, pageid_trace),
+        "warnings": _warnings(case, steps, pageid_trace, dynamic_value_flow),
     }
     risks = scan_sensitive_text(json.dumps(summary, ensure_ascii=False))
     if risks:
@@ -142,7 +146,59 @@ def _assertions_shape(case: dict[str, Any]) -> list[dict[str, Any]]:
     return result[:120]
 
 
-def _warnings(case: dict[str, Any], steps: list[dict[str, Any]], pageid_trace: dict[str, Any]) -> list[dict[str, Any]]:
+def _response_anchor_candidates(run_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return value-safe response anchor suggestions from runtime events."""
+    candidates: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    success_patterns = [
+        ("save_success", "保存成功", "response_contains/no_save_failure"),
+        ("submit_success", "提交成功", "response_contains/no_save_failure"),
+        ("audit_success", "审核成功", "response_contains/no_save_failure"),
+        ("operation_success", "操作成功", "response_contains/no_save_failure"),
+    ]
+    failure_patterns = [
+        ("invalid_request", "无效请求", "no_error_actions/no_save_failure"),
+        ("required_missing", "必填", "expected_notification 或字段补全"),
+        ("empty_required", "不能为空", "expected_notification 或字段补全"),
+        ("backend_error", "异常", "no_error_actions/no_save_failure"),
+        ("operation_failed", "失败", "no_error_actions/no_save_failure"),
+        ("task_missing", "任务不存在", "动态 billno/task_row 链路"),
+        ("page_expired", "页面未初始化或者已经过期", "pageid_trace"),
+    ]
+    for event in run_events:
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") not in {"step_ok", "step_fail", "assertion_fail", "case_error"}:
+            continue
+        data = event.get("data") if isinstance(event.get("data"), dict) else {}
+        step_id = str(data.get("step_id") or data.get("id") or "")
+        text = json.dumps(data.get("response", data), ensure_ascii=False, default=str)
+        for code, phrase, suggestion in success_patterns + failure_patterns:
+            if phrase not in text:
+                continue
+            key = (step_id, code, phrase)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append({
+                "step_id": step_id,
+                "anchor_code": code,
+                "anchor_phrase": phrase,
+                "polarity": "success" if (code, phrase, suggestion) in success_patterns else "failure",
+                "suggested_assertion": suggestion,
+                "confidence": "medium",
+            })
+            if len(candidates) >= 40:
+                return candidates
+    return candidates
+
+
+def _warnings(
+    case: dict[str, Any],
+    steps: list[dict[str, Any]],
+    pageid_trace: dict[str, Any],
+    dynamic_value_flow: dict[str, Any],
+) -> list[dict[str, Any]]:
     warnings: list[dict[str, Any]] = []
     if not case.get("steps"):
         warnings.append({"code": "steps_missing", "message": "YAML 未包含可分析步骤。"})
@@ -160,6 +216,11 @@ def _warnings(case: dict[str, Any], steps: list[dict[str, Any]], pageid_trace: d
         warnings.append({
             "code": "steps_truncated",
             "message": f"证据包仅展示前 {len(steps)} 个步骤，完整 YAML 仍在 case_artifacts.yaml。",
+        })
+    if (dynamic_value_flow.get("summary") or {}).get("warning_count"):
+        warnings.append({
+            "code": "dynamic_value_flow_warnings",
+            "message": "运行时动态值生产/消费链存在风险，需查看 dynamic_value_flow.warnings。",
         })
     return warnings
 

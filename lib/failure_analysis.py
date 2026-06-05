@@ -117,6 +117,14 @@ _READBACK_ASSERTION_PATTERNS = (
     "响应未包含 grid 行或业务键文本",
 )
 
+_WORKFLOW_TASK_WAIT_PATTERNS = (
+    "grid_row_exists",
+    "runtime_billno_wait_timeout",
+    "wait_runtime_billno",
+    "待办",
+    "wf_task",
+)
+
 _DUPLICATE_PATTERNS = (
     "已存在",
     "重复",
@@ -144,6 +152,14 @@ _INVALID_REQUEST_PATTERNS = (
     "signature",
     "未登录",
     "登录超时",
+)
+
+_RECORDED_TEMP_ATTACHMENT_PATTERNS = (
+    "临时附件已超时",
+    "重新上传以下文件",
+    "附件上传中",
+    "tempfile.mock",
+    "tempfile/download.do",
 )
 
 
@@ -273,6 +289,40 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
                 "检查当前环境登录是否拿到 kd-csrf-token；UAT 可能比 SIT 更严格。",
                 "核对 menuId/appId/cloudId 是否来自当前环境；不要直接复用 SIT HAR 的导航字面值。",
                 "确认当前账号在目标环境有菜单和主表单访问权限。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if _contains(text, _RECORDED_TEMP_ATTACHMENT_PATTERNS):
+        return _result(
+            "recorded_temp_attachment_stale",
+            "medium",
+            False,
+            "HAR 录制期的临时附件句柄已过期，回放时不能复用该 upload 结果。",
+            text,
+            [
+                "重新导入 HAR，使 upload/tempfile.mock 步骤标记为 skip_replay。",
+                "若业务强制要求附件，需要提供真实本地文件并实现运行期重新上传。",
+                "不要复用 HAR 中的 tempfile/download.do 临时 URL，也不要硬补保存请求体。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
+    if "真实附件上传缺少" in text or "upload_file.extra_data/data" in text:
+        return _result(
+            "upload_file_configuration_missing",
+            "medium",
+            False,
+            "真实附件上传配置不完整，运行时无法从用户本地文件重新生成目标环境附件句柄。",
+            text,
+            [
+                "在 YAML 或变量面板为附件步骤补充 file_path，指向本机真实文件。",
+                "从 HAR 的真实上传请求或目标环境接口补充 upload_endpoint/upload_url；不要使用 tempfile/download.do 临时 URL。",
+                "确认上传成功响应中的 id/url 会被后续附件字段或确认步骤消费，必要时查看 dynamic_value_flow.upload_url。",
             ],
             step_id=step_id,
             form_id=form_id,
@@ -520,6 +570,24 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if _is_workflow_task_wait_timeout(text, form_id):
+        return _result(
+            "workflow_task_wait_timeout",
+            "high",
+            True,
+            "提交后未等到运行时单号对应的审批待办行，通常是目标环境流程未生成待办、账号无待办权限，或消息中心/流程配置异常。",
+            text,
+            [
+                "先在目标环境用运行时单号确认是否生成审批待办，以及当前账号是否有处理权限。",
+                "检查提交响应是否成功返回新 billno；后续 wf_task/commonSearch 必须按运行时 billno 查询。",
+                "若业务环境里待办稍后才出现，可适当延长 wait_until(grid_row_exists) 超时；不要点击 HAR 录制旧任务行。",
+                "若待办一直不生成，优先排查流程配置/审批人/消息中心服务，而不是硬补保存或审核请求体。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _MISSING_PATTERNS):
         field = _extract_field_caption(text)
         return _result(
@@ -664,6 +732,16 @@ def _is_readback_assertion_gap(text: str) -> bool:
     return _contains(text, _READBACK_ASSERTION_PATTERNS)
 
 
+def _is_workflow_task_wait_timeout(text: str, form_id: str = "") -> bool:
+    if "wait_until" not in text and "runtime_billno_wait_timeout" not in text:
+        return False
+    if "grid_row_exists" not in text and "待办" not in text:
+        return False
+    if form_id == "wf_task" or "wf_task" in text or "billno" in text:
+        return True
+    return _contains(text, _WORKFLOW_TASK_WAIT_PATTERNS)
+
+
 def _matches_expected_notification(text: str, step: dict) -> bool:
     specs = step.get("expected_notifications") or step.get("expected_errors") or []
     for spec in specs:
@@ -737,6 +815,11 @@ def _diagnosis_priority_for(category: str) -> list[str]:
             "先确认保存响应是否已经成功",
             "再确认 commonSearch 回查是否适配该表单",
             "必要时移除通用硬回查断言或补表单专用回查",
+        ],
+        "workflow_task_wait_timeout": [
+            "先在目标环境按运行时单号确认审批待办是否生成",
+            "再检查当前账号、审批人和消息中心/流程配置",
+            "确认 wait_until 使用运行时 billno，不点击录制旧任务行",
         ],
         "component_rule_group_filter_missing": [
             "先确认 pageId 链路无异常",

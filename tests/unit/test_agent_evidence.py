@@ -51,12 +51,14 @@ def test_agent_evidence_package_contains_guardrails_and_artifacts(tmp_path):
     assert package["run_artifacts"]["pageid_trace"]["summary"]["total_steps"] == 0
     assert package["run_artifacts"]["ir_summary"]["status"] == "ready"
     assert package["run_artifacts"]["ir_summary"]["raw_har_included"] is False
+    assert package["run_artifacts"]["dynamic_value_flow"]["status"] == "ready"
     assert package["skills_to_use"]
     assert package["write_verification"]["readback_plan"]["status"] == "ready"
     assert package["write_verification"]["readback_plan"]["plans"][0]["preferred_filter"]["value_ref"] == "${vars.test_number}"
     assert any("不得删除 menuItemClick" in rule for rule in package["guardrails"])
     assert any("先比对 HAR 原始 pageId 链路" in rule for rule in package["guardrails"])
     assert any("run_artifacts.ir_summary" in rule for rule in package["guardrails"])
+    assert any("run_artifacts.dynamic_value_flow" in rule for rule in package["guardrails"])
     assert any("readback_plan" in rule for rule in package["guardrails"])
     assert package["experience_matches"]["status"] == "catalog_unavailable"
 
@@ -123,7 +125,24 @@ def test_agent_evidence_ir_summary_is_value_safe_and_pageid_aware(tmp_path):
                     "runtime_pageid_type": "L2",
                     "runtime_pageid_fragment": "root012345...",
                 },
-            }
+            },
+            {
+                "type": "step_ok",
+                "data": {
+                    "step_id": "click_save",
+                    "response": [
+                        {"a": "u", "p": [{"k": "billno", "v": "BILL_SHOULD_NOT_APPEAR"}]},
+                        {"a": "showMessage", "p": [{"msg": "保存成功"}]},
+                        {
+                            "a": "showConfirm",
+                            "p": [{
+                                "id": "lockedConfirm",
+                                "callbackValue": '{"pkvalue":"PK_SHOULD_NOT_APPEAR"}',
+                            }],
+                        },
+                    ],
+                },
+            },
         ],
         skill_root=tmp_path,
     )
@@ -136,7 +155,12 @@ def test_agent_evidence_ir_summary_is_value_safe_and_pageid_aware(tmp_path):
     assert ir_summary["steps"][0]["expected_pageid_role"] == "L2"
     assert ir_summary["steps"][1]["role"] == "write"
     assert ir_summary["environment_fields"][0]["value_shape"] == "code_like_len_6"
+    assert ir_summary["dynamic_value_flow"]["summary"]["value_kinds"]["billno"] >= 1
+    assert ir_summary["response_anchor_candidates"][0]["anchor_code"] == "save_success"
+    assert package["run_artifacts"]["dynamic_value_flow"] == ir_summary["dynamic_value_flow"]
     assert "SHOULD_NOT_APPEAR_IN_IR_SUMMARY" not in payload
+    assert "BILL_SHOULD_NOT_APPEAR" not in payload
+    assert "PK_SHOULD_NOT_APPEAR" not in payload
     assert "0123456789abcdef0123456789abcdef" not in payload
 
 

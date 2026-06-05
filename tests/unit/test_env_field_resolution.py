@@ -528,6 +528,41 @@ def test_workflow_approval_decision_override_normalizes_display_value():
     assert case["steps"][0]["fields"]["decision_radio_group"] == "Reject"
 
 
+def test_workflow_combo_decision_override_respects_source_step_scope():
+    case = {
+        "pick_fields": {
+            "pick_combo_decision_id": {
+                "field_key": "combo_decision",
+                "value_id": "审批不通过_and_Disapproved_and_terminate",
+                "value_name": "审批不通过_and_Disapproved_and_terminate",
+                "form_id": "wf_approvalpage_bac",
+                "source_step_id": "fill_combo_decision_2",
+                "user_overridden": True,
+                "resolve_status": "manual",
+            },
+        },
+        "steps": [
+            {
+                "id": "fill_combo_decision",
+                "type": "update_fields",
+                "form_id": "wf_approvalpage_bac",
+                "fields": {"combo_decision": "同意_and_Consent_and_approve"},
+            },
+            {
+                "id": "fill_combo_decision_2",
+                "type": "update_fields",
+                "form_id": "wf_approvalpage_bac",
+                "fields": {"combo_decision": "同意_and_Consent_and_approve"},
+            },
+        ],
+    }
+
+    _apply_pick_fields(case)
+
+    assert case["steps"][0]["fields"]["combo_decision"] == "同意_and_Consent_and_approve"
+    assert case["steps"][1]["fields"]["combo_decision"] == "审批不通过_and_Disapproved_and_terminate"
+
+
 def test_manual_har_pick_field_override_disables_auto_resolve():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
 
