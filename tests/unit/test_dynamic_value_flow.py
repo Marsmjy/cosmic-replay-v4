@@ -294,3 +294,99 @@ def test_dynamic_value_flow_links_wait_until_grid_row_to_runtime_billno():
         (edge["kind"], edge["producer_step_id"], edge["consumer_step_id"])
         for edge in flow["edges"]
     }
+
+
+def test_dynamic_value_flow_links_pageid_by_form_scope_without_leaking_values():
+    runtime_pid = "a" * 32
+    case = {
+        "steps": [
+            {
+                "id": "open_child",
+                "type": "invoke",
+                "form_id": "parent_form",
+                "app_id": "demo",
+                "ac": "addnew",
+                "method": "addnew",
+            },
+            {
+                "id": "fill_child",
+                "type": "update_fields",
+                "form_id": "child_form",
+                "app_id": "demo",
+                "fields": {"name": "自动化"},
+            },
+        ],
+    }
+    run_events = [
+        {
+            "type": "step_ok",
+            "data": {
+                "step_id": "open_child",
+                "response": [{
+                    "a": "showForm",
+                    "p": [{
+                        "formId": "child_shell",
+                        "billFormId": "child_form",
+                        "pageId": runtime_pid,
+                    }],
+                }],
+            },
+        },
+        {
+            "type": "pageid_trace",
+            "data": {
+                "step_id": "fill_child",
+                "form_id": "child_form",
+                "app_id": "demo",
+                "expected_pageid_role": "L3",
+                "runtime_pageid_type": "L1_or_L3",
+                "phase": "after_handler",
+                "status": "ok",
+            },
+        },
+    ]
+
+    flow = build_dynamic_value_flow(case, run_events=run_events)
+    payload = json.dumps(flow, ensure_ascii=False)
+
+    page_edges = [edge for edge in flow["edges"] if edge["kind"] == "page_id"]
+    assert page_edges
+    assert page_edges[0]["producer_step_id"] == "open_child"
+    assert page_edges[0]["consumer_step_id"] == "fill_child"
+    assert page_edges[0]["match_detail"]["form_scope_match"] is True
+    assert "L1_or_L3" in page_edges[0]["match_detail"]["producer_pageid_types"]
+    assert runtime_pid not in payload
+
+
+def test_dynamic_value_flow_warns_pageid_role_mismatch_after_handler():
+    case = {
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "ac": "save",
+            "method": "save",
+            "key": "bar_save",
+        }]
+    }
+    run_events = [{
+        "type": "pageid_trace",
+        "data": {
+            "step_id": "save_bill",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "expected_pageid_role": "L3",
+            "runtime_pageid_type": "L2",
+            "phase": "after_handler",
+            "status": "fail",
+        },
+    }]
+
+    flow = build_dynamic_value_flow(case, run_events=run_events)
+
+    assert any(
+        warning["code"] == "pageid_role_mismatch"
+        and warning["consumer_step_id"] == "save_bill"
+        for warning in flow["warnings"]
+    )

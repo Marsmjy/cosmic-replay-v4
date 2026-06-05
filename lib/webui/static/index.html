@@ -1743,6 +1743,35 @@
         </div>
       </div>
 
+      <div x-show="harAdvancedOpen && (harPreview?.business_flow || []).length"
+           class="bg-slate-950 border border-cyan-900/50 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-sm font-medium text-cyan-200">业务链路识别</div>
+            <div class="text-xs text-slate-500">按 HAR 录制顺序归并请求链路，辅助判断字段维护、写入动作和 pageId 角色是否连贯。</div>
+          </div>
+          <div class="text-xs text-slate-500" x-text="(harPreview?.business_flow || []).length + ' 段链路'"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <template x-for="block in (harPreview?.business_flow || []).slice(0, 8)" :key="block.key">
+            <div class="bg-slate-900 rounded px-3 py-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-xs text-cyan-200 truncate" x-text="block.label"></div>
+                <div class="text-[11px] text-slate-500 shrink-0" x-text="'步骤 ' + (block.step_count || 0)"></div>
+              </div>
+              <div class="text-[11px] text-slate-500 truncate mt-0.5" x-show="block.form_id" x-text="block.form_id"></div>
+              <div class="flex flex-wrap gap-2 mt-1 text-[11px]">
+                <span class="text-sky-300" x-text="'录入 ' + (block.smart_var_count || 0)"></span>
+                <span class="text-orange-300" x-text="'选择 ' + (block.env_field_count || 0)"></span>
+                <span class="text-emerald-300" x-text="'写入 ' + (block.write_step_count || 0)"></span>
+                <span class="text-slate-400" x-text="'L2 ' + ((block.pageid_roles || {}).L2 || 0)"></span>
+                <span class="text-slate-400" x-text="'L3 ' + ((block.pageid_roles || {}).L3 || 0)"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
       <div x-show="harAdvancedOpen && (harPreview?.business_blocks || []).length"
            class="bg-slate-950 border border-indigo-900/50 rounded-lg p-4">
         <div class="flex items-center justify-between mb-3">
@@ -2065,6 +2094,9 @@
                         'bg-rose-900/40 text-rose-300': s.component_support === 'unsupported',
                       }"
                       x-text="s.component"></span>
+                <span x-show="s.response_signature?.label"
+                      class="text-[10px] px-1 py-0.5 rounded ml-2 bg-violet-900/40 text-violet-300"
+                      x-text="s.response_signature?.label"></span>
               </div>
               <div class="text-xs text-slate-500 mono truncate" x-text="s.brief"></div>
             </div>

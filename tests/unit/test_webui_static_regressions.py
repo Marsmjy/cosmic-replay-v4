@@ -71,6 +71,22 @@ def test_har_preview_maintenance_panel_hides_technical_fields():
     assert "if (!this.harMaintenanceBusinessItem(v, 'var')) continue;" in html
 
 
+def test_har_preview_advanced_diagnostics_show_business_flow_groups():
+    html = _index_html()
+
+    assert "业务链路识别" in html
+    assert "harPreview?.business_flow" in html
+    assert "block.pageid_roles" in html
+    assert "字段维护、写入动作和 pageId 角色" in html
+
+
+def test_har_preview_step_list_shows_response_signature_summary():
+    html = _index_html()
+
+    assert "s.response_signature?.label" in html
+    assert "bg-violet-900/40 text-violet-300" in html
+
+
 def test_case_variable_panel_reuses_unified_maintainable_business_fields():
     html = _index_html()
 

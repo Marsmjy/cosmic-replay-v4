@@ -35,7 +35,9 @@ from lib.response_signature import (
     build_response_signature_from_text,
     is_meaningful_response_signature,
     is_meaningful_response_text,
+    summarize_response_signature,
 )
+from lib.pageid_trace import expected_pageid_role
 
 
 # ---------- 常量 ----------
@@ -5084,6 +5086,80 @@ def _build_preview_business_blocks(
     return list(blocks.values())
 
 
+def _build_preview_business_flow(
+    steps: list[dict[str, Any]],
+    var_items: list[dict[str, Any]],
+    pick_fields: list[dict[str, Any]],
+    main_form: str = "",
+) -> list[dict[str, Any]]:
+    """Build SAZ-like business flow groups for HAR preview diagnostics.
+
+    Unlike ``business_blocks`` which is field-centric, this structure is
+    step-centric.  It helps users and repair agents see which recorded requests
+    belong to one business operation, what pageId roles that operation expects,
+    and how many maintainable fields are attached to it.
+    """
+    field_counts: dict[str, dict[str, int]] = {}
+    for item in var_items or []:
+        group_key = str(item.get("group_key") or "")
+        if not group_key:
+            continue
+        field_counts.setdefault(group_key, {"smart_var_count": 0, "env_field_count": 0})
+        field_counts[group_key]["smart_var_count"] += 1
+    for item in pick_fields or []:
+        group_key = str(item.get("group_key") or "")
+        if not group_key:
+            continue
+        field_counts.setdefault(group_key, {"smart_var_count": 0, "env_field_count": 0})
+        field_counts[group_key]["env_field_count"] += 1
+
+    groups: OrderedDict[str, dict[str, Any]] = OrderedDict()
+
+    def ensure(scope: dict[str, str], idx: int) -> dict[str, Any]:
+        group_key = scope.get("group_key") or "default:unscoped"
+        if group_key not in groups:
+            counts = field_counts.get(group_key, {})
+            groups[group_key] = {
+                "key": group_key,
+                "label": scope.get("group_label") or "业务链路",
+                "form_id": scope.get("form_id") or "",
+                "form_label": scope.get("form_label") or "",
+                "write_step_id": scope.get("write_step_id") or "",
+                "first_step_index": idx,
+                "last_step_index": idx,
+                "step_count": 0,
+                "input_step_count": 0,
+                "write_step_count": 0,
+                "control_step_count": 0,
+                "smart_var_count": counts.get("smart_var_count", 0),
+                "env_field_count": counts.get("env_field_count", 0),
+                "pageid_roles": {},
+                "step_ids": [],
+            }
+        return groups[group_key]
+
+    for idx, step in enumerate(steps or []):
+        if not isinstance(step, dict):
+            continue
+        scope = _step_scope_for_index(steps, idx, main_form)
+        group = ensure(scope, idx)
+        group["last_step_index"] = idx
+        group["step_count"] += 1
+        role = expected_pageid_role(step)
+        group["pageid_roles"][role] = group["pageid_roles"].get(role, 0) + 1
+        sid = str(step.get("id") or "")
+        if sid and len(group["step_ids"]) < 12:
+            group["step_ids"].append(sid)
+        if step.get("type") in {"update_fields", "pick_basedata", "select_f7_list_row"}:
+            group["input_step_count"] += 1
+        elif _is_write_anchor_step(step):
+            group["write_step_count"] += 1
+        elif step.get("type") == "invoke":
+            group["control_step_count"] += 1
+
+    return list(groups.values())
+
+
 def _has_expected_notification(step: dict) -> bool:
     return bool(step.get("expected_notifications") or step.get("expected_errors"))
 
@@ -7280,6 +7356,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "pick_fields": pick_fields,
         "field_catalog": field_catalog,
         "business_blocks": _build_preview_business_blocks(var_items, pick_fields),
+        "business_flow": _build_preview_business_flow(preview_copy, var_items, pick_fields, main_form),
         "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,
         "pageid_alignment": pageid_alignment,
@@ -7297,6 +7374,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "component_handler": (component_steps[i] or {}).get("handler_id", "") if i < len(component_steps) else "",
                 "component_support": (component_steps[i] or {}).get("support_level", "") if i < len(component_steps) else "",
                 "brief": _step_brief(s),
+                "response_signature": summarize_response_signature(s.get("expected_response_signature")),
             }
             for i, s in enumerate(preview_steps)
         ],

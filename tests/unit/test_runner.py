@@ -33,7 +33,7 @@ from lib.runner import (
     _build_resolved_request,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
-from lib.response_signature import build_response_signature, compare_response_signature
+from lib.response_signature import build_response_signature, compare_response_signature, summarize_response_signature
 
 
 def test_env_fields_display_business_code_and_keep_har_order():
@@ -357,6 +357,32 @@ class TestReplayErrorDetection:
 
         assert signature["required_field_effects"][0]["field"] == "fieldconfig"
         assert any("fieldconfig row=32" in err for err in errors)
+
+    def test_response_signature_summary_is_value_safe_for_preview(self):
+        recorded = [{
+            "a": "showForm",
+            "p": [{"formId": "demo_child", "pageId": "a" * 32}],
+        }, {
+            "a": "u",
+            "p": [{
+                "k": "entryentity",
+                "fieldstates": [{
+                    "r": 1,
+                    "k": "fieldconfig",
+                    "v": "{\"caption\":{\"zh_CN\":\"敏感业务字段\"}}",
+                }],
+            }],
+        }]
+
+        summary = summarize_response_signature(build_response_signature(recorded))
+        payload = json.dumps(summary, ensure_ascii=False)
+
+        assert summary["required_action_count"] == 1
+        assert summary["required_field_effect_count"] == 1
+        assert "showForm" in summary["required_actions"]
+        assert "fieldconfig" in summary["required_field_keys"]
+        assert "敏感业务字段" not in payload
+        assert "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" not in payload
 
     def test_expected_notification_assertion_accepts_recorded_business_validation(self):
         resp = [{

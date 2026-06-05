@@ -16,6 +16,7 @@ from lib.har_extractor import (
     _attach_pick_field_scopes,
     _build_preview_readback_plan,
     _build_preview_business_blocks,
+    _build_preview_business_flow,
     _build_default_assertions,
     _clean_display_label,
     collapse_repeated_polling_steps,
@@ -325,6 +326,68 @@ def test_preview_business_blocks_group_vars_and_env_fields_by_form_action():
     assert [block["key"] for block in blocks] == ["form_a:save", "form_b:save"]
     assert blocks[0]["smart_var_count"] == 1
     assert blocks[1]["env_field_count"] == 1
+
+
+def test_preview_business_flow_groups_steps_and_pageid_roles_by_business_anchor():
+    steps = [
+        {
+            "id": "menu",
+            "type": "invoke",
+            "form_id": "bos_portal",
+            "app_id": "bos",
+            "ac": "menuItemClick",
+            "method": "menuItemClick",
+        },
+        {
+            "id": "load",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "ac": "loadData",
+            "method": "loadData",
+            "preserve_l2_page": True,
+        },
+        {
+            "id": "fill",
+            "type": "update_fields",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "fields": {"name": "${vars.test_name}"},
+        },
+        {
+            "id": "save",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "ac": "save",
+            "method": "save",
+            "key": "bar_save",
+            "description": "保存【demo bill】",
+        },
+    ]
+    vars_meta = [{
+        "name": "test_name",
+        "group_key": "demo_bill:save",
+        "group_label": "演示单据 / 保存",
+    }]
+    pick_fields = [{
+        "id": "pick_org_id",
+        "group_key": "demo_bill:save",
+        "group_label": "演示单据 / 保存",
+    }]
+
+    flow = _build_preview_business_flow(steps, vars_meta, pick_fields, "demo_bill")
+    by_key = {item["key"]: item for item in flow}
+
+    assert "demo_bill:save" in by_key
+    block = by_key["demo_bill:save"]
+    assert block["step_count"] == 3
+    assert block["input_step_count"] == 1
+    assert block["write_step_count"] == 1
+    assert block["smart_var_count"] == 1
+    assert block["env_field_count"] == 1
+    assert block["pageid_roles"]["L2"] == 1
+    assert block["pageid_roles"]["L3"] == 2
 
 
 def test_clean_display_label_hides_deprecated_suffix_for_user_facing_labels():

@@ -254,6 +254,39 @@ def is_meaningful_response_text(text: str) -> bool:
     return is_meaningful_response_signature(build_response_signature_from_text(text))
 
 
+def summarize_response_signature(signature: Any) -> dict[str, Any]:
+    """Return a compact value-safe summary for UI and evidence packages."""
+    if not is_meaningful_response_signature(signature):
+        return {}
+    outcome = str(signature.get("outcome") or "neutral")
+    required_actions = [str(action) for action in (signature.get("required_actions") or []) if action]
+    field_effects = [
+        effect for effect in (signature.get("required_field_effects") or [])
+        if isinstance(effect, dict)
+    ]
+    parts: list[str] = []
+    if outcome == "success":
+        parts.append("期望成功响应")
+    elif outcome == "failure":
+        parts.append("期望业务校验")
+    if required_actions:
+        parts.append("期望动作 " + "/".join(required_actions[:3]))
+    if field_effects:
+        parts.append(f"期望字段回填 {len(field_effects)} 项")
+    return {
+        "outcome": outcome,
+        "required_action_count": len(required_actions),
+        "required_actions": required_actions[:8],
+        "required_field_effect_count": len(field_effects),
+        "required_field_keys": [
+            str(effect.get("field") or "")
+            for effect in field_effects[:8]
+            if effect.get("field")
+        ],
+        "label": "；".join(parts) or "响应语义锚点",
+    }
+
+
 def _find_matching_field_effect(
     expected: dict[str, Any],
     actual_effects: list[dict[str, Any]],

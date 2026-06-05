@@ -53,11 +53,15 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 处理原则：
 
 1. 若 `dynamic_consumer_without_prior_producer` 命中 `billno/confirm_callback/task_row/upload_url`，先查是否仍在消费 HAR 录制旧值。
+1. 若 pageId 动态链路出现 `pageid_consumer_without_matching_producer` 或 `pageid_role_mismatch`，先按 form/app 作用域和 L2/L3 类型确认“响应产生的 pageId”是否真的供后续步骤消费；不要只看时间顺序最近的 pageId。L3 字段维护/保存仍用 L2，通常是 `showForm/addVirtualTab/pending L3` 没接上；列表/树/工具栏被替换成 L3，则可能丢失菜单 L2 服务端模型。
 2. 审批链路必须从运行时保存/提交响应提取新 `billno`，再用只读 `wait_until(grid_row_exists: billno)` 搜索待办并重建 `entryRowClick.selDatas`。
 3. 确认弹窗必须用最新 `showConfirm.callbackValue` 覆盖后续 `afterConfirm/doConfirm`，不能复用录制时的 pkvalue。
 4. 真实上传必须是“用户文件 → 上传接口 → 提取 URL/id → 后续附件请求回填”。当前导入会识别 `requires_user_file/upload_replay_strategy/recorded_file_names/recorded_tempfile_reference`，没有真实文件时只允许跳过 HAR 临时附件并提示用户提供文件。
 5. 连续 `getpercent/status` 轮询不要保留成几十条等价步骤，导入阶段会折叠为 `wait_until` 语义步骤并设置超时；提交后待办异步生成也应抽象为 `wait_until(grid_row_exists)`，不要用固定 sleep。
 6. 保存/提交/审批响应中的中文提示可作为断言候选，但只能补充 `no_save_failure/readback`，不能替代入库验证。
+7. HAR 预览中的 `business_flow` 是 SAZ 事务分组思想的 Cosmic 版本：按录制顺序展示每段业务链路的步骤数、输入/写入步骤、L2/L3 角色和可维护字段数量。若用户看不懂长 HAR，先用 `business_flow` 判断哪段链路负责字段维护、哪段负责保存/提交/审批，再回到字段面板维护值。
+8. `response_signature` 摘要表示录制时关键响应的语义锚点，例如“期望成功响应 / 期望 showForm / 期望字段回填 N 项”。运行时若报 `[ResponseSemantic]`，优先比较录制语义与运行语义差异，不要只看 HTTP 200 或最终 PASS。
+9. `scripts/har_regression_report.py compare --fail-on-diff` 的 baseline 已纳入可维护字段数、业务链路数、响应语义锚点、pageId 对齐风险和 IR 风险。批量导入优化后必须跑该报告；若新增字段/链路是有意改进，先更新 baseline，再确认 diff 为 0。
 
 ## 一、整体防护架构
 

@@ -9,6 +9,8 @@ import json
 from collections import Counter, defaultdict
 from typing import Any
 
+from lib.pageid_trace import classify_pageid
+
 
 CRITICAL_KINDS = {"billno", "confirm_callback", "task_row", "upload_url"}
 MAX_ITEMS = 80
@@ -73,7 +75,18 @@ def build_dynamic_value_flow(
                 order=order,
                 source="runtime_pageid_trace",
                 confidence="high",
-                extra={"pageid_role": data.get("runtime_pageid_type") or data.get("expected_pageid_role") or ""},
+                extra={
+                    "form_id": data.get("form_id") or "",
+                    "app_id": data.get("app_id") or "",
+                    "ac": data.get("ac") or "",
+                    "method": data.get("method") or "",
+                    "expected_pageid_role": data.get("expected_pageid_role") or "",
+                    "runtime_pageid_type": data.get("runtime_pageid_type") or "",
+                    "pending_pageid_type": data.get("pending_pageid_type") or "",
+                    "har_pageid_type": data.get("har_pageid_type") or "",
+                    "phase": data.get("phase") or "",
+                    "status": data.get("status") or "",
+                },
             )
 
         request_payload = data.get("resolved_request")
@@ -88,7 +101,7 @@ def build_dynamic_value_flow(
                     order=order,
                     source="runtime_request",
                     confidence="high",
-                    extra={"payload_shape": _value_shape(request_payload)},
+                    extra=_payload_node_extra(request_payload, data=data),
                 )
 
         response_payload = data.get("response")
@@ -103,7 +116,7 @@ def build_dynamic_value_flow(
                     order=order,
                     source="runtime_response",
                     confidence="high",
-                    extra={"payload_shape": _value_shape(response_payload)},
+                    extra=_payload_node_extra(response_payload, data=data),
                 )
 
         # Some runner events store useful context directly on data.  Avoid
@@ -125,13 +138,13 @@ def build_dynamic_value_flow(
                     order=order,
                     source=f"runtime_event:{event_type}",
                     confidence="medium",
-                    extra={"payload_shape": _value_shape(data)},
+                    extra=_payload_node_extra(data, data=data),
                 )
 
     producers.sort(key=lambda item: (item["order"], item["step_id"], item["kind"]))
     consumers.sort(key=lambda item: (item["order"], item["step_id"], item["kind"]))
     edges, edge_warnings = _pair_edges(producers, consumers)
-    warnings = edge_warnings + _polling_warnings(case, producers, consumers)
+    warnings = edge_warnings + _pageid_warnings(producers, consumers) + _polling_warnings(case, producers, consumers)
 
     kind_counts = Counter(item["kind"] for item in producers + consumers)
     return {
@@ -207,6 +220,21 @@ def _append_node(
     target.append(node)
 
 
+def _payload_node_extra(payload: Any, *, data: dict[str, Any] | None = None) -> dict[str, Any]:
+    extra: dict[str, Any] = {"payload_shape": _value_shape(payload)}
+    pageid_types = _pageid_type_counts(payload)
+    if pageid_types:
+        extra["pageid_types"] = pageid_types
+    pageid_forms = _pageid_forms(payload)
+    if pageid_forms:
+        extra["pageid_forms"] = pageid_forms[:12]
+    if data:
+        for key in ("form_id", "app_id", "ac", "method"):
+            if data.get(key):
+                extra[key] = data.get(key)
+    return extra
+
+
 def _public_node(node: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in node.items() if k != "order"}
 
@@ -258,7 +286,13 @@ def _kinds_from_payload(payload: Any, *, role: str, event_type: str) -> set[str]
     keys = _collect_keys(payload)
     kinds: set[str] = set()
 
-    if "pageid" in keys or "page_id" in keys or '"pageid"' in lowered or '"page_id"' in lowered:
+    if (
+        "pageid" in keys
+        or "page_id" in keys
+        or "pageidtype" in keys
+        or '"pageid"' in lowered
+        or '"page_id"' in lowered
+    ):
         kinds.add("page_id")
     if "billno" in keys or '"billno"' in lowered or '"billNo"' in text:
         kinds.add("billno")
@@ -301,6 +335,19 @@ def _pair_edges(
     for consumer in consumers:
         kind = consumer["kind"]
         candidates = [item for item in by_kind.get(kind, []) if item["order"] <= consumer["order"]]
+        if kind == "page_id":
+            edge = _pageid_edge(candidates, consumer)
+            if edge:
+                edges.append(edge)
+                continue
+            if _pageid_consumer_needs_prior_producer(consumer):
+                warnings.append({
+                    "code": "pageid_consumer_without_matching_producer",
+                    "kind": kind,
+                    "consumer_step_id": consumer["step_id"],
+                    "message": "page_id 运行时消费步骤没有匹配到更早的响应 pageId 生产者，需检查 showForm/addVirtualTab/menu L2 是否丢失或使用了录制旧 pageId。",
+                })
+            continue
         if candidates:
             producer = candidates[-1]
             edges.append({
@@ -320,6 +367,108 @@ def _pair_edges(
                 "message": f"{kind} 有消费步骤但在当前证据中未看到更早的运行时生产者，需确认是否仍在使用 HAR 录制旧值。",
             })
     return edges, warnings
+
+
+def _pageid_edge(candidates: list[dict[str, Any]], consumer: dict[str, Any]) -> dict[str, Any] | None:
+    if not candidates:
+        return None
+    scored: list[tuple[int, int, dict[str, Any]]] = []
+    for idx, producer in enumerate(candidates):
+        score = _pageid_match_score(producer, consumer)
+        if score > 0:
+            scored.append((score, idx, producer))
+    if not scored:
+        return None
+    scored.sort(key=lambda item: (item[0], item[1]))
+    score, _idx, producer = scored[-1]
+    return {
+        "kind": "page_id",
+        "producer_step_id": producer["step_id"],
+        "consumer_step_id": consumer["step_id"],
+        "producer_source": producer["source"],
+        "consumer_source": consumer["source"],
+        "confidence": "high" if score >= 7 else "medium",
+        "match_detail": _pageid_match_detail(producer, consumer),
+    }
+
+
+def _pageid_match_score(producer: dict[str, Any], consumer: dict[str, Any]) -> int:
+    score = 0
+    consumer_type = str(consumer.get("runtime_pageid_type") or "")
+    expected_role = str(consumer.get("expected_pageid_role") or "")
+    producer_types = producer.get("pageid_types") if isinstance(producer.get("pageid_types"), dict) else {}
+    if consumer_type and consumer_type in producer_types:
+        score += 4
+    elif expected_role == "L2" and "L2" in producer_types:
+        score += 3
+    elif expected_role == "L3" and "L1_or_L3" in producer_types:
+        score += 3
+    elif producer_types:
+        score += 1
+
+    consumer_form = str(consumer.get("form_id") or "")
+    producer_forms = set(str(x) for x in (producer.get("pageid_forms") or []) if x)
+    if consumer_form and consumer_form in producer_forms:
+        score += 5
+    elif consumer_form and str(producer.get("form_id") or "") == consumer_form:
+        score += 3
+    elif producer_forms:
+        score -= 2
+
+    consumer_app = str(consumer.get("app_id") or "")
+    producer_app = str(producer.get("app_id") or "")
+    if consumer_app and producer_app and consumer_app == producer_app:
+        score += 1
+    return score
+
+
+def _pageid_match_detail(producer: dict[str, Any], consumer: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "consumer_expected_role": consumer.get("expected_pageid_role", ""),
+        "consumer_runtime_type": consumer.get("runtime_pageid_type", ""),
+        "producer_pageid_types": producer.get("pageid_types", {}),
+        "form_scope_match": bool(
+            consumer.get("form_id")
+            and consumer.get("form_id") in set(producer.get("pageid_forms") or [])
+        ),
+    }
+
+
+def _pageid_consumer_needs_prior_producer(consumer: dict[str, Any]) -> bool:
+    if consumer.get("source") != "runtime_pageid_trace":
+        return False
+    if consumer.get("phase") == "before_handler":
+        return False
+    return str(consumer.get("runtime_pageid_type") or "") not in {"", "missing", "unknown"}
+
+
+def _pageid_warnings(
+    producers: list[dict[str, Any]],
+    consumers: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    warnings: list[dict[str, Any]] = []
+    for consumer in consumers:
+        if consumer.get("kind") != "page_id" or consumer.get("source") != "runtime_pageid_trace":
+            continue
+        if consumer.get("phase") != "after_handler":
+            continue
+        expected = str(consumer.get("expected_pageid_role") or "")
+        runtime_type = str(consumer.get("runtime_pageid_type") or "")
+        if expected == "L3" and runtime_type == "L2":
+            warnings.append({
+                "code": "pageid_role_mismatch",
+                "kind": "page_id",
+                "consumer_step_id": consumer["step_id"],
+                "message": "运行后仍用 L2 pageId 执行需要 L3 的字段维护/保存步骤，优先检查 pending L3、showForm 或预验证降级。",
+            })
+        elif expected == "L2" and runtime_type == "L1_or_L3":
+            warnings.append({
+                "code": "pageid_role_mismatch",
+                "kind": "page_id",
+                "consumer_step_id": consumer["step_id"],
+                "message": "运行时把列表/树/工具栏 L2 上下文替换成 L3，可能丢失服务端列表模型或默认上下文。",
+            })
+    return warnings
 
 
 def _polling_warnings(
@@ -389,6 +538,57 @@ def _collect_keys(node: Any) -> set[str]:
         elif isinstance(current, list):
             stack.extend(current)
     return keys
+
+
+def _pageid_type_counts(node: Any) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+
+    def walk(current: Any, parent_key: str = "") -> None:
+        key_l = parent_key.lower()
+        if isinstance(current, dict):
+            for key, value in current.items():
+                walk(value, str(key))
+            return
+        if isinstance(current, list):
+            for item in current:
+                walk(item, parent_key)
+            return
+        if key_l in {"pageid", "page_id"}:
+            pid_type = classify_pageid(current)
+            if pid_type not in {"missing", "unknown"}:
+                counts[pid_type] += 1
+        elif key_l == "pageidtype":
+            text = str(current or "").strip()
+            if text:
+                counts[text] += 1
+
+    walk(node)
+    return dict(sorted(counts.items()))
+
+
+def _pageid_forms(node: Any) -> list[str]:
+    forms: list[str] = []
+    seen: set[str] = set()
+
+    def remember(value: Any) -> None:
+        text = str(value or "").strip()
+        if text and text not in seen:
+            seen.add(text)
+            forms.append(text)
+
+    def walk(current: Any) -> None:
+        if isinstance(current, dict):
+            if current.get("pageId") or current.get("page_id") or current.get("pageIdType"):
+                remember(current.get("formId") or current.get("form_id"))
+                remember(current.get("billFormId") or current.get("bill_form_id"))
+            for value in current.values():
+                walk(value)
+        elif isinstance(current, list):
+            for item in current:
+                walk(item)
+
+    walk(node)
+    return forms
 
 
 def _value_shape(value: Any) -> str:

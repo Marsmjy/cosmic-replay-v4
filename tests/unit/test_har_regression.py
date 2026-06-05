@@ -11,6 +11,7 @@ from lib.har_regression import (
     generate_snapshot,
     load_manifest,
     summarize_case,
+    summarize_preview,
 )
 
 
@@ -102,6 +103,44 @@ def test_compare_snapshots_classifies_added_variable_as_review():
     assert report["changed"] is True
     assert report["impact_level"] == "review"
     assert any(diff["path"] == "case.vars[test_description]" for diff in report["diffs"])
+
+
+def test_summarize_preview_tracks_quality_metrics_without_values():
+    preview = {
+        "main_form_id": "demo_form",
+        "quality": {"score": 90, "grade": "A", "blocking": False, "issues": []},
+        "components": {"summary": {"total_steps": 3, "unsupported_steps": 0}},
+        "detected_vars": [{"name": "test_name", "template": "敏感${rand:4}"}],
+        "pick_fields": [
+            {"field_key": "org", "auto_resolve": True, "env_sensitive": "high", "value_name": "敏感组织"},
+        ],
+        "business_flow": [{"step_count": 3}],
+        "steps": [{"response_signature": {"label": "期望成功响应"}}],
+        "pageid_alignment": {
+            "grade": "A",
+            "risk_level": "low",
+            "issues": [{"code": "missing_preserve_l2_page"}],
+            "checks": {"preview_l2_preserve_count": 1},
+        },
+        "ir_alignment": {
+            "grade": "B",
+            "risk_level": "medium",
+            "issues": [{"code": "write_coverage_gap"}],
+        },
+        "ir_preview": {"warnings": [{"code": "dynamic_value_flow_warnings"}]},
+    }
+
+    summary = summarize_preview(preview)
+    payload = json.dumps(summary, ensure_ascii=False)
+
+    assert summary["maintainability"]["detected_var_count"] == 1
+    assert summary["maintainability"]["pick_field_count"] == 1
+    assert summary["maintainability"]["business_flow_count"] == 1
+    assert summary["maintainability"]["response_signature_step_count"] == 1
+    assert summary["pageid_alignment"]["issue_codes"] == ["missing_preserve_l2_page"]
+    assert summary["ir_alignment"]["warning_codes"] == ["dynamic_value_flow_warnings"]
+    assert "敏感组织" not in payload
+    assert "敏感${rand:4}" not in payload
 
 
 def test_manifest_baselines_match_local_hars_when_available():

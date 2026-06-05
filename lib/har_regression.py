@@ -121,8 +121,16 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
     quality = preview.get("quality") or {}
     components = preview.get("components") or {}
     component_summary = components.get("summary") or {}
+    pageid_alignment = preview.get("pageid_alignment") or {}
+    ir_alignment = preview.get("ir_alignment") or {}
+    ir_preview = preview.get("ir_preview") or {}
     detected_vars = preview.get("detected_vars") or []
     pick_fields = preview.get("pick_fields") or []
+    business_flow = preview.get("business_flow") or []
+    response_signature_steps = [
+        step for step in (preview.get("steps") or [])
+        if (step.get("response_signature") or {}).get("label")
+    ]
 
     return {
         "main_form_id": preview.get("main_form_id", ""),
@@ -158,6 +166,41 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
             for item in pick_fields
             if item.get("field_key")
         ),
+        "maintainability": {
+            "detected_var_count": len(detected_vars),
+            "pick_field_count": len(pick_fields),
+            "business_flow_count": len(business_flow),
+            "business_flow_step_count": sum(int(item.get("step_count") or 0) for item in business_flow),
+            "response_signature_step_count": len(response_signature_steps),
+            "auto_resolve_pick_count": sum(1 for item in pick_fields if item.get("auto_resolve")),
+            "high_env_sensitive_count": sum(1 for item in pick_fields if item.get("env_sensitive") == "high"),
+        },
+        "pageid_alignment": {
+            "grade": pageid_alignment.get("grade", ""),
+            "risk_level": pageid_alignment.get("risk_level", ""),
+            "issue_codes": sorted({
+                str(issue.get("code") or "")
+                for issue in pageid_alignment.get("issues", [])
+                if issue.get("code")
+            }),
+            "preserve_l2_count": (
+                pageid_alignment.get("checks") or {}
+            ).get("preview_l2_preserve_count", 0),
+        },
+        "ir_alignment": {
+            "grade": ir_alignment.get("grade", ""),
+            "risk_level": ir_alignment.get("risk_level", ""),
+            "issue_codes": sorted({
+                str(issue.get("code") or "")
+                for issue in ir_alignment.get("issues", [])
+                if issue.get("code")
+            }),
+            "warning_codes": sorted({
+                str(item.get("code") or "")
+                for item in ir_preview.get("warnings", [])
+                if item.get("code")
+            }),
+        },
     }
 
 
@@ -303,6 +346,14 @@ def classify_diff_severity(diff: dict[str, Any]) -> str:
         return "breaking"
     if path.startswith("preview.quality.blocking"):
         return "breaking"
+    if path.startswith("preview.pageid_alignment.risk_level"):
+        return "review"
+    if path.startswith("preview.pageid_alignment.issue_codes"):
+        return "review"
+    if path.startswith("preview.ir_alignment.issue_codes"):
+        return "review"
+    if path.startswith("preview.maintainability"):
+        return "review"
     if path.startswith("case.vars") or path.startswith("preview.detected_vars"):
         return "review"
     if path.startswith("source_sha256"):
