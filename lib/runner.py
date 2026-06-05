@@ -67,6 +67,7 @@ from .pageid_trace import (
     build_runtime_pageid_trace,
     step_allows_l2_pageid as _trace_step_allows_l2_pageid,
 )
+from .response_signature import compare_response_signature
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -745,6 +746,18 @@ def _h_update_fields(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
 @step_handler("pick_basedata")
 def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     _auto_resolve_pick_basedata_step(step, replay, ctx)
+    value_id = str(step.get("value_id") or "").strip()
+    if not value_id or value_id.startswith("${UNRESOLVED") or value_id.startswith("${vars."):
+        fallback = (
+            step.get("value_code")
+            or step.get("value_number")
+            or step.get("recorded_value_id")
+            or step.get("value_name")
+            or ""
+        )
+        if fallback:
+            value_id = str(fallback).strip()
+            step["value_id"] = value_id
     if step.get("prefetch_lookup"):
         lookup_args = step.get("prefetch_lookup_args")
         if not isinstance(lookup_args, list) or not lookup_args:
@@ -1693,6 +1706,42 @@ def _pick_field_targets_step(pf_meta: dict, step: dict) -> bool:
     return True
 
 
+def _pick_field_reference_targets_step(pf_id: str, pf_meta: dict, step: dict) -> bool:
+    """Return true when a repeated pick step explicitly references this pick var.
+
+    Long HARs often open the same small configuration dialog several times.
+    The preview panel deduplicates the field into one ``pick_*`` entry, while
+    each generated ``pick_basedata`` step keeps ``value_id: ${vars.<pick_id>}``.
+    In that shape source_step_id points at the first occurrence only, so a
+    strict source match would leave later occurrences unresolved.
+    """
+    if step.get("type") != "pick_basedata":
+        return False
+    default_field_key = pf_id[5:] if pf_id.startswith("pick_") else ""
+    field_key = str(pf_meta.get("field_key") or default_field_key).lower()
+    step_field_key = str(step.get("field_key") or "").lower()
+    if field_key and step_field_key and field_key != step_field_key:
+        return False
+    form_id = str(pf_meta.get("form_id") or "")
+    step_form_id = str(step.get("form_id") or "")
+    if form_id and step_form_id and form_id != step_form_id:
+        return False
+    value_id = str(step.get("value_id") or "")
+    if f"vars.{pf_id}" in value_id or f"UNRESOLVED:vars.{pf_id}" in value_id:
+        return True
+    meta_values = {
+        str(pf_meta.get(key) or "")
+        for key in ("value_id", "value_code", "value_number")
+        if pf_meta.get(key) not in (None, "")
+    }
+    step_values = {
+        str(step.get(key) or "")
+        for key in ("value_id", "value_code", "value_number")
+        if step.get(key) not in (None, "")
+    }
+    return bool(meta_values & step_values)
+
+
 def _pick_field_targets_update_step(pf_meta: dict, step: dict) -> bool:
     """Return whether a user-maintained field should override an update_fields step.
 
@@ -1854,7 +1903,10 @@ def _apply_pick_fields(case: dict):
             if inject_vid or inject_vname or inject_vcode:
                 applied = False
                 for step in steps:
-                    if not _pick_field_targets_step(pf_meta, step):
+                    if (
+                        not _pick_field_targets_step(pf_meta, step)
+                        and not _pick_field_reference_targets_step(str(pf_id), pf_meta, step)
+                    ):
                         continue
                     if step.get("type") == "pick_basedata" and step.get("field_key") == field_key:
                         if inject_value_id:
@@ -1907,6 +1959,35 @@ def _apply_pick_fields(case: dict):
                     if new_value:
                         fields[field_key] = str(new_value)
                         log.debug(f"[pick inject->update_fields] {pf_id} → step[{step.get('id', '')}].fields[{field_key}]={new_value}")
+                        applied = True
+                for step in steps:
+                    if not _pick_field_targets_update_step(pf_meta, step):
+                        continue
+                    if step.get("type") != "invoke":
+                        continue
+                    if pf_meta.get("context_only") and not (
+                        pf_meta.get("manual_override") or pf_meta.get("user_overridden")
+                    ):
+                        continue
+                    post_data = step.get("post_data")
+                    if not (isinstance(post_data, list) and len(post_data) >= 2 and isinstance(post_data[1], list)):
+                        continue
+                    new_value = _model_context_value(
+                        pf_meta,
+                        fallback_id=inject_vid,
+                        fallback_name=inject_vname,
+                    )
+                    if field_key == _WORKFLOW_DECISION_FIELD_KEY:
+                        new_value = _normalize_workflow_decision_value(new_value, pf_meta)
+                    if not new_value:
+                        continue
+                    for entry in post_data[1]:
+                        if not isinstance(entry, dict):
+                            continue
+                        if str(entry.get("k") or "").lower() != str(field_key).lower():
+                            continue
+                        entry["v"] = str(new_value)
+                        log.debug(f"[pick inject->invoke_post_data] {pf_id} → step[{step.get('id', '')}].post_data[{field_key}]={new_value}")
                         applied = True
                 if not applied:
                     log.debug(f"[pick inject] {pf_id} 未找到匹配 step，field_key={field_key}")
@@ -3561,6 +3642,14 @@ def run_case(case: dict, on_event=None) -> RunResult:
             if resp is not None:
                 ctx["response_history"].append(resp)
                 _remember_runtime_response_values(resp, ctx)
+                semantic_errs = compare_response_signature(
+                    step.get("expected_response_signature"),
+                    resp,
+                )
+                if semantic_errs:
+                    errs = (errs or []) + semantic_errs
+            elif step.get("expected_response_signature"):
+                errs = (errs or []) + ["[ResponseSemantic] missing runtime response for recorded anchor"]
 
             if errs and not optional:
                 # 进一步尝试从 bos_operationresult 拉详情

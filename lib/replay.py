@@ -871,6 +871,11 @@ def has_error_action(resp: Any) -> list[str]:
     """扫响应错误消息（含嵌套 action），返回错误文本列表。"""
     errors = []
     seen = set()
+    success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "已完成", "操作成功")
+    error_kw = (
+        "失败", "错误", "不能", "必填", "缺失", "为空", "不能为空", "请填写",
+        "请选择", "不允许", "必须", "不合法", "无效", "异常",
+    )
 
     def add_error(text: str) -> None:
         text = str(text or "")[:150]
@@ -880,15 +885,15 @@ def has_error_action(resp: Any) -> list[str]:
 
     if isinstance(resp, dict):
         # 空 dict 是苍穹常见的正常空响应，不判错。只处理非空错误摘要。
-        success_kw = ("成功", "已保存", "已提交", "已生效", "已审核", "已完成", "操作成功")
-        for key in ("msg", "message", "error", "errorMsg", "errMsg"):
+        for key in ("msg", "message", "detail", "error", "errorMsg", "errMsg"):
             val = resp.get(key)
             if not val:
                 continue
             text = str(val)
             if any(kw in text for kw in success_kw):
                 continue
-            add_error(f"[Protocol] {text}")
+            if key in {"error", "errorMsg", "errMsg"} or any(kw in text for kw in error_kw):
+                add_error(f"[Protocol] {text}")
         if resp.get("success") is False:
             add_error("[Protocol] success=false")
         if resp.get("status") is False:
@@ -953,7 +958,13 @@ def has_error_action(resp: Any) -> list[str]:
         if a == "showMessage":
             for p in cmd.get("p", []):
                 if isinstance(p, dict):
-                    msg = p.get("msg") or p.get("message")
-                    if msg and ("失败" in str(msg) or "错误" in str(msg) or "不能" in str(msg)):
-                        add_error(str(msg))
+                    msg = str(p.get("msg") or p.get("message") or "").strip()
+                    detail = str(p.get("detail") or "").strip()
+                    text = "\n".join(part for part in (msg, detail) if part)
+                    if not text or any(kw in text for kw in success_kw):
+                        continue
+                    message_type = p.get("messageType")
+                    is_negative_type = isinstance(message_type, (int, float)) and message_type < 0
+                    if is_negative_type or any(kw in text for kw in error_kw):
+                        add_error(f"[Message] {text[:150]}")
     return errors

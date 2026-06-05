@@ -502,6 +502,156 @@ def test_recorded_default_pick_steps_skip_choice_form_org_without_direct_templat
     )
 
 
+def _batch_invoke_har_entry(
+    *,
+    form_id: str,
+    app_id: str,
+    ac: str,
+    actions: list[dict],
+    page_id: str = "",
+    response: list | dict | None = None,
+) -> dict:
+    return {
+        "request": {
+            "method": "POST",
+            "url": (
+                "http://example.test/form/batchInvokeAction.do"
+                f"?appId={app_id}&f={form_id}&ac={ac}"
+            ),
+            "postData": {
+                "text": urllib.parse.urlencode({
+                    "params": json.dumps(actions, ensure_ascii=False),
+                    "pageId": page_id,
+                })
+            },
+        },
+        "response": {
+            "content": {
+                "text": json.dumps(response or [], ensure_ascii=False)
+            }
+        },
+    }
+
+
+def test_custom_event_showform_is_core_navigation_producer():
+    har = {
+        "log": {
+            "entries": [
+                _batch_invoke_har_entry(
+                    form_id="hrbm_bmmanagement",
+                    app_id="hrbm",
+                    ac="customEvent",
+                    page_id="1855928977336805376rootaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    actions=[{
+                        "key": "",
+                        "methodName": "customEvent",
+                        "args": ["modelcustomcontrolap", "clickCardHandle", "{}"],
+                        "postData": [],
+                    }],
+                    response=[{
+                        "a": "showForm",
+                        "p": [{
+                            "formId": "hrbm_schedule_quest",
+                            "pageId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        }],
+                    }],
+                )
+            ]
+        }
+    }
+
+    steps = extract_steps(har)
+
+    assert steps[0]["ac"] == "customEvent"
+    assert steps[0]["_tier"] == "core"
+    assert steps[0]["preserve_l2_page"] is True
+
+
+def test_business_model_schedule_quest_har_keeps_wizard_context_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780638489_业务模型-添加一个全字段类型人员附表.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    yaml_text = build_yaml_case(har_path, case_name="business_model_person_appendix")
+    case = yaml.safe_load(yaml_text)
+    steps_by_id = {step["id"]: step for step in case["steps"]}
+    step_order = {step["id"]: idx for idx, step in enumerate(case["steps"])}
+
+    assert "customEvent_8" in steps_by_id
+    assert step_order["customEvent_8"] < step_order["load_schedule_quest"]
+    assert step_order["click_10"] < step_order["fill_number"]
+
+    defaults = steps_by_id["fill_hrbm_schedule_quest_recorded_defaults"]
+    assert defaults["form_id"] == "hrbm_schedule_quest"
+    assert set(defaults["fields"]) == {
+        "infotype",
+        "timeline",
+        "timeconstraintmode",
+        "mulline",
+    }
+
+    pick_fields = case["pick_fields"]
+    expected_labels = {
+        "pick_infotype_id": "请选择需要添加的信息类型",
+        "pick_timeline_id": "请选择添加信息集是否需要按照时间轴记录数据",
+        "pick_timeconstraintmode_id": "请选择时间轴的约束信息集",
+        "pick_mulline_id": "默认样式是否多行",
+    }
+    for field_id, label in expected_labels.items():
+        assert pick_fields[field_id]["label"] == label
+        assert pick_fields[field_id]["form_id"] == "hrbm_schedule_quest"
+        assert pick_fields[field_id]["resolve_status"] == "context"
+        assert pick_fields[field_id]["context_only"] is True
+
+
+def test_schedule_quest_pick_override_updates_button_post_data_when_local_har_exists():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780638489_业务模型-添加一个全字段类型人员附表.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="business_model_person_appendix_override",
+        pick_field_overrides={
+            "pick_timeconstraintmode_id": {
+                "value_id": "1",
+                "value_code": "1",
+                "user_overridden": True,
+                "resolve_status": "manual",
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    steps_by_id = {step["id"]: step for step in case["steps"]}
+    defaults = steps_by_id["fill_hrbm_schedule_quest_recorded_defaults"]
+    click_ok = steps_by_id["click_10"]
+
+    assert str(defaults["fields"]["timeconstraintmode"]) == "1"
+    assert str(click_ok["post_data"][1][0]["v"]) == "1"
+
+
+def test_business_model_har_records_response_semantics_for_field_callbacks():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1780641444_业务模型-添加一个全字段类型人员附表.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="business_model_person_appendix"))
+    required_rows = set()
+    success_anchors = 0
+    for step in case["steps"]:
+        signature = step.get("expected_response_signature") or {}
+        if signature.get("outcome") == "success":
+            success_anchors += 1
+        for effect in signature.get("required_field_effects") or []:
+            if effect.get("field") == "fieldconfig" and effect.get("non_empty"):
+                required_rows.add(effect.get("row"))
+
+    assert 7 in required_rows
+    assert 32 in required_rows
+    assert 33 in required_rows
+    assert success_anchors >= 1
+
+
 def test_ua_newentry_detail_flow_is_core_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1779437599_UA提报保存.har"
     if not har_path.exists():

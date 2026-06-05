@@ -31,6 +31,11 @@ log = logging.getLogger(__name__)
 
 from lib.kb_loader import field_meta as _kb_field_meta
 from lib.kb_loader import get_field_label as _kb_get_field_label
+from lib.response_signature import (
+    build_response_signature_from_text,
+    is_meaningful_response_signature,
+    is_meaningful_response_text,
+)
 
 
 # ---------- 常量 ----------
@@ -451,6 +456,12 @@ _RECORDED_DEFAULT_SCALAR_FIELDS_BY_FORM = {
         "createorg",
         "ctrlstrategy",
     ),
+    "hrbm_schedule_quest": (
+        "infotype",
+        "timeline",
+        "timeconstraintmode",
+        "mulline",
+    ),
 }
 
 _FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
@@ -464,6 +475,12 @@ _FORM_SCALAR_ENUM_FIELDS_BY_FORM = {
     },
     "wf_approvalpage_bac": {
         "combo_decision": "审批决策",
+    },
+    "hrbm_schedule_quest": {
+        "infotype": "请选择需要添加的信息类型",
+        "timeline": "请选择添加信息集是否需要按照时间轴记录数据",
+        "timeconstraintmode": "请选择时间轴的约束信息集",
+        "mulline": "默认样式是否多行",
     },
 }
 
@@ -554,6 +571,32 @@ def _scalar_enum_field_label(
         if field_type in ("ComboProp", "MulComboProp", "BooleanProp"):
             return _resolve_field_label(key, entity_id=form_key, meta_resolver=meta_resolver)
     return ""
+
+
+def _response_opens_form_or_tab(resp_text: str) -> bool:
+    """Return true when a response is a dynamic navigation producer."""
+    if not resp_text:
+        return False
+    if "showForm" not in resp_text and "addVirtualTab" not in resp_text:
+        return False
+    try:
+        payload = json.loads(resp_text)
+    except Exception:
+        return '"showForm"' in resp_text or "addVirtualTab" in resp_text
+
+    def walk(obj: Any) -> bool:
+        if isinstance(obj, dict):
+            if obj.get("a") == "showForm":
+                return True
+            method = str(obj.get("methodname") or obj.get("methodName") or "")
+            if method == "addVirtualTab":
+                return True
+            return any(walk(value) for value in obj.values())
+        if isinstance(obj, list):
+            return any(walk(item) for item in obj)
+        return False
+
+    return walk(payload)
 
 
 def _extract_value_prefix(val: str) -> str:
@@ -1874,6 +1917,30 @@ def _apply_user_pick_field_values_to_update_steps(
             else:
                 fields[matched_key] = new_value
 
+        for step in steps:
+            if step.get("type") != "invoke":
+                continue
+            if form_id and str(step.get("form_id") or "") != form_id:
+                continue
+            if (
+                source_step_id
+                and (
+                    not form_id
+                    or field_key.lower() in {_WORKFLOW_DECISION_FIELD_KEY, _WORKFLOW_COMBO_DECISION_FIELD_KEY}
+                )
+                and str(step.get("id") or "") != source_step_id
+            ):
+                continue
+            post_data = step.get("post_data")
+            if not (isinstance(post_data, list) and len(post_data) >= 2 and isinstance(post_data[1], list)):
+                continue
+            for entry in post_data[1]:
+                if not isinstance(entry, dict):
+                    continue
+                if str(entry.get("k") or "").lower() != field_key.lower():
+                    continue
+                entry["v"] = new_value
+
 
 def _extract_row_index(post_data: list) -> int:
     """从 updateValue 的 postData 中提取 entry row_index。
@@ -2549,6 +2616,8 @@ def extract_steps(har: dict) -> list[dict]:
                 tier = AC_TIER.get(ac, "ui_reaction")
                 # ⭐ 规则6补充：toolbar 按钮点击一律视为 core
                 ctrl_key = action.get("key", "")
+                if ac == "customEvent" and _response_opens_form_or_tab(_resp_text):
+                    tier = "core"
                 # ⭐ 规则6补充：btnsave 类按钮 → 视为 core（HAR 可能把保存录成 click）
                 if ac == "click" and ctrl_key in (_SAVE_BUTTON_KEYS | _CORE_CLICK_KEYS):
                     tier = "core"
@@ -2601,13 +2670,15 @@ def extract_steps(har: dict) -> list[dict]:
                         step_dict["_prefetch_lookup_args"] = lookup.get("args") or [["%", "", "%", 0, 20, 0]]
                 if _is_l2_page_id(req_page_id):
                     step_dict["preserve_l2_page"] = True
-                # 保留有限响应体：setItem 用于提取 value_name；通知用于识别录制期业务校验点。
+                # 保留有限响应体：setItem 用于提取 value_name；通知用于识别录制期业务校验点；
+                # 语义签名用于校验关键接口返回是否仍符合录制效果。
                 # 响应体不输出到 YAML，仅在本次解析内消费。
                 if _resp_text and (
                     action.get("methodName") == "setItemByIdFromClient"
                     or "ShowNotificationMsg" in _resp_text
                     or "showMessage" in _resp_text
                     or "showErrMsg" in _resp_text
+                    or is_meaningful_response_text(_resp_text)
                 ):
                     step_dict["_resp_text"] = _resp_text
                 steps.append(step_dict)
@@ -2935,6 +3006,8 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "_har_index": s.get("_har_index"),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
+                if s.get("_resp_text"):
+                    pick_step["_resp_text"] = s.get("_resp_text")
                 lookup = pending_lookup.get((
                     str(s.get("form_id") or ""),
                     str(s.get("app_id") or ""),
@@ -5039,6 +5112,43 @@ def _mark_recorded_business_validations(steps: list[dict]) -> None:
         step["continue_on_expected_error"] = True
 
 
+def _response_signature_anchor_step(step: dict, signature: dict[str, Any]) -> bool:
+    """Whether this step should carry recorded response semantics into YAML."""
+    if not is_meaningful_response_signature(signature):
+        return False
+    if _is_write_anchor_step(step):
+        return True
+    ac = str(step.get("ac") or "").lower()
+    key = str(step.get("key") or "").lower()
+    method = str(step.get("method") or "").lower()
+    if signature.get("required_field_effects"):
+        return True
+    if signature.get("required_actions"):
+        return ac in {
+            "click", "itemclick", "customevent", "afterconfirm",
+            "doconfirm", "loaddata", "addnew",
+        }
+    if method in {"setitembyidfromclient", "setitemvaluebyidfromclient"}:
+        return True
+    if ac in {"save", "submit", "saveandeffect", "submitandeffect", "audit", "unaudit"}:
+        return True
+    if key in {"btnok", "ok", "btn_confirm", "btnsave", "bar_save", "bar_submit"}:
+        return True
+    return False
+
+
+def _attach_expected_response_signatures(steps: list[dict]) -> None:
+    """Attach value-safe recorded response semantics to key replay steps."""
+    for step in steps:
+        resp_text = str(step.get("_resp_text") or "")
+        if not resp_text:
+            continue
+        signature = build_response_signature_from_text(resp_text)
+        if not _response_signature_anchor_step(step, signature):
+            continue
+        step["expected_response_signature"] = signature
+
+
 def _build_default_assertions(yaml_steps: list[dict]) -> list:
     """根据 step 列表智能生成默认断言。
 
@@ -5860,6 +5970,7 @@ def build_yaml_case(
     _dedupe_step_ids(cleaned)
 
     _mark_recorded_business_validations(cleaned)
+    _attach_expected_response_signatures(cleaned)
     cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
 
     # 抽 vars
@@ -6380,6 +6491,7 @@ def build_yaml_case(
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
                   "navigation_form_id", "expected_notifications",
+                  "expected_response_signature",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
                   "prefetch_lookup", "prefetch_lookup_args",
                   "skip_replay", "skip_reason",
@@ -6612,6 +6724,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     )
     _mark_recorded_business_validations(preview_steps)
     _dedupe_step_ids(preview_steps)
+    _attach_expected_response_signatures(preview_steps)
     preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置

@@ -33,6 +33,7 @@ from lib.runner import (
     _build_resolved_request,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
+from lib.response_signature import build_response_signature, compare_response_signature
 
 
 def test_env_fields_display_business_code_and_keep_har_order():
@@ -280,9 +281,82 @@ class TestReplayErrorDetection:
     def test_has_error_action_detects_invalid_request_dict(self):
         assert has_error_action({"msg": "无效请求"}) == ["[Protocol] 无效请求"]
 
+    def test_has_error_action_detects_negative_show_message_detail(self):
+        resp = [{
+            "a": "showMessage",
+            "p": [{
+                "msg": "必填项缺失",
+                "messageType": -1,
+                "detail": "属性名“测试_多选基础资料”对应的属性类型值为空。",
+            }],
+        }]
+
+        errors = has_error_action(resp)
+
+        assert len(errors) == 1
+        assert "测试_多选基础资料" in errors[0]
+
     def test_has_error_action_allows_empty_dict_and_list(self):
         assert has_error_action({}) == []
         assert has_error_action([]) == []
+
+    def test_response_signature_flags_recorded_success_runtime_failure(self):
+        recorded = [{
+            "a": "ShowNotificationMsg",
+            "p": [{"type": 0, "content": "保存并生效成功"}],
+        }]
+        runtime = [{
+            "a": "showMessage",
+            "p": [{
+                "msg": "必填项缺失",
+                "messageType": -1,
+                "detail": "属性名“测试_多选基础资料”对应的属性类型值为空。",
+            }],
+        }]
+
+        signature = build_response_signature(recorded)
+        errors = compare_response_signature(signature, runtime)
+
+        assert signature["outcome"] == "success"
+        assert any("recorded success" in err for err in errors)
+
+    def test_response_signature_flags_missing_required_field_callback(self):
+        recorded = [{
+            "a": "sendDynamicFormAction",
+            "p": [{
+                "pageId": "root123",
+                "actions": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "entryentity",
+                        "fieldstates": [{
+                            "r": 32,
+                            "k": "fieldconfig",
+                            "v": "{\"caption\":{\"zh_CN\":\"职位序列\"}}",
+                        }],
+                    }],
+                }],
+            }],
+        }]
+        runtime = [{
+            "a": "sendDynamicFormAction",
+            "p": [{
+                "pageId": "root456",
+                "actions": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "entryentity",
+                        "fieldstates": [{"r": 32, "k": "fieldconfig", "v": "{}"}],
+                    }],
+                }],
+            }],
+        }]
+
+        signature = build_response_signature(recorded)
+        errors = compare_response_signature(signature, runtime)
+
+        assert signature["required_field_effects"][0]["field"] == "fieldconfig"
+        assert any("fieldconfig row=32" in err for err in errors)
 
     def test_expected_notification_assertion_accepts_recorded_business_validation(self):
         resp = [{
@@ -387,6 +461,41 @@ class TestReplayErrorDetection:
         _auto_resolve_pick_basedata_step(step, object(), {"env_id": "uat"})
 
         assert step["value_id"] == "00002"
+
+    def test_pick_override_updates_invoke_post_data_dirty_field(self):
+        update_step = {
+            "id": "fill_hrbm_schedule_quest_recorded_defaults",
+            "type": "update_fields",
+            "form_id": "hrbm_schedule_quest",
+            "fields": {"timeconstraintmode": "0"},
+        }
+        click_step = {
+            "id": "click_10",
+            "type": "invoke",
+            "form_id": "hrbm_schedule_quest",
+            "app_id": "hrbm",
+            "ac": "click",
+            "post_data": [{}, [{"k": "timeconstraintmode", "v": "0", "r": -1}]],
+        }
+        case = {
+            "steps": [update_step, click_step],
+            "pick_fields": {
+                "pick_timeconstraintmode_id": {
+                    "field_key": "timeconstraintmode",
+                    "form_id": "hrbm_schedule_quest",
+                    "value_id": "1",
+                    "value_code": "1",
+                    "context_only": True,
+                    "user_overridden": True,
+                    "resolve_status": "manual",
+                }
+            },
+        }
+
+        _apply_pick_fields(case)
+
+        assert update_step["fields"]["timeconstraintmode"] == "1"
+        assert click_step["post_data"][1][0]["v"] == "1"
 
     def test_selector_env_field_uses_user_code_and_resolves_internal_id(self, monkeypatch):
         row = ["2381390967690242048", "", "", "012890005"]
@@ -1547,6 +1656,72 @@ class TestStepHandlers:
             ("khr_hcdm_fapplybill", "hcdm", "khr_upperson", "2381416156917661696", 1)
         ]
 
+    def test_pick_basedata_handler_uses_value_code_when_var_unresolved(self):
+        calls = []
+
+        class FakeReplay:
+            def pick_basedata(self, form_id, app_id, field_key, value_id, row_index=0):
+                calls.append((form_id, app_id, field_key, value_id, row_index))
+                return {"ok": True}
+
+        step = {
+            "id": "pick_basedatafield_3",
+            "type": "pick_basedata",
+            "form_id": "hrbm_database_page",
+            "app_id": "hrbm",
+            "field_key": "basedatafield",
+            "value_id": "${UNRESOLVED:vars.pick_basedatafield_id}",
+            "value_code": "hbjm_jobseqhr",
+            "row_index": 0,
+        }
+
+        result = STEP_HANDLERS["pick_basedata"](step, FakeReplay(), {})
+
+        assert result == {"ok": True}
+        assert calls == [
+            ("hrbm_database_page", "hrbm", "basedatafield", "hbjm_jobseqhr", 0)
+        ]
+        assert step["value_id"] == "hbjm_jobseqhr"
+
+    def test_pick_fields_apply_to_repeated_pick_steps_that_reference_same_var(self):
+        case = {
+            "pick_fields": {
+                "pick_basedatafield_id": {
+                    "field_key": "basedatafield",
+                    "form_id": "hrbm_database_page",
+                    "value_id": "hbjm_jobseqhr",
+                    "value_code": "hbjm_jobseqhr",
+                    "value_name": "职位序列",
+                    "source_step_id": "pick_basedatafield",
+                    "auto_resolve": True,
+                    "resolve_by": "value_code",
+                }
+            },
+            "steps": [
+                {
+                    "id": "pick_basedatafield",
+                    "type": "pick_basedata",
+                    "form_id": "hrbm_database_page",
+                    "field_key": "basedatafield",
+                    "value_id": "${vars.pick_basedatafield_id}",
+                },
+                {
+                    "id": "pick_basedatafield_3",
+                    "type": "pick_basedata",
+                    "form_id": "hrbm_database_page",
+                    "field_key": "basedatafield",
+                    "value_id": "${vars.pick_basedatafield_id}",
+                },
+            ],
+        }
+
+        _apply_pick_fields(case)
+
+        for step in case["steps"]:
+            assert step["value_id"] == "hbjm_jobseqhr"
+            assert step["value_code"] == "hbjm_jobseqhr"
+            assert step["auto_resolve"] is True
+
     def test_resolved_request_includes_pick_basedata_row_index(self):
         req = _build_resolved_request({
             "type": "pick_basedata",
@@ -2222,6 +2397,28 @@ class TestAssertionHandlers:
         )
         assert passed is False
         assert "无效请求" in msg
+
+    def test_no_save_failure_fails_on_negative_show_message_detail(self):
+        resp = [{
+            "a": "showMessage",
+            "p": [{
+                "msg": "必填项缺失",
+                "messageType": -1,
+                "detail": "属性名“测试_多选基础资料”对应的属性类型值为空。",
+            }],
+        }]
+        ctx = {
+            "replay": object(),
+            "step_responses": {"save": resp},
+            "step_descriptions": {"save": "保存并生效"},
+        }
+
+        passed, msg = ASSERTION_HANDLERS["no_save_failure"](
+            {"step": "save"}, ctx
+        )
+
+        assert passed is False
+        assert "测试_多选基础资料" in msg
     
     def test_response_contains_found(self):
         """响应包含指定内容"""
