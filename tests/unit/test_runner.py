@@ -2348,6 +2348,11 @@ class TestAssertionHandlers:
     def test_runtime_upload_consumed_handler_registered(self):
         assert "runtime_upload_consumed" in ASSERTION_HANDLERS
         assert callable(ASSERTION_HANDLERS["runtime_upload_consumed"])
+
+    def test_readback_runtime_upload_handler_registered(self):
+        assert "readback_runtime_upload" in ASSERTION_HANDLERS
+        assert "readback_uploaded_attachment" in ASSERTION_HANDLERS
+        assert callable(ASSERTION_HANDLERS["readback_runtime_upload"])
     
     def test_no_error_actions_pass_on_empty(self):
         """无错误时通过"""
@@ -2470,6 +2475,8 @@ class TestAssertionHandlers:
 
         assert passed is True
         assert "入库回查通过" in msg
+        assert ctx["last_readback_response"] is ctx["step_responses"]["search_after_save"]
+        assert ctx["readback_responses"][0]["source"] == "步骤 search_after_save"
 
     def test_runtime_upload_consumed_assertion_passes_after_replacement(self):
         record = {
@@ -2499,6 +2506,48 @@ class TestAssertionHandlers:
 
         assert passed is False
         assert "未消费运行时上传结果" in msg
+
+    def test_readback_runtime_upload_passes_with_stored_readback_response(self):
+        record = {
+            "upload_id": "upload_1",
+            "field_key": "attachmentpanel",
+            "file_name": "offer.pdf",
+            "response": {"id": "runtime-file-id"},
+        }
+        ctx = {
+            "runtime_uploads": {"upload_1": record, "attachmentpanel": record},
+            "readback_responses": [{
+                "source": "只读 commonSearch",
+                "response": {
+                    "rows": [{
+                        "billno": "AUTO001",
+                        "attachmentpanel": [{"name": "offer.pdf", "id": "runtime-file-id"}],
+                    }],
+                },
+            }],
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_runtime_upload"]({}, ctx)
+
+        assert passed is True
+        assert "附件入库回查通过" in msg
+
+    def test_readback_runtime_upload_requires_readback_response_by_default(self):
+        record = {
+            "upload_id": "upload_1",
+            "field_key": "attachmentpanel",
+            "file_name": "offer.pdf",
+            "response": {"id": "runtime-file-id"},
+        }
+        ctx = {
+            "runtime_uploads": {"upload_1": record},
+            "response_history": [{"file_name": "offer.pdf", "id": "runtime-file-id"}],
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_runtime_upload"]({}, ctx)
+
+        assert passed is False
+        assert "缺少只读回查响应" in msg
 
     def test_readback_by_business_key_executes_common_search_when_no_step(self):
         calls = []

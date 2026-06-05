@@ -409,6 +409,9 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
         return "failed", evidence
     if _has_runtime_upload_consumption_assertion(result):
         evidence["signals"].append("assertion:runtime_upload_consumed")
+    if _has_verified_attachment_readback_assertion(result):
+        evidence["signals"].append("assertion:readback_runtime_upload")
+        return "verified", evidence
     if _has_verified_readback_assertion(result):
         evidence["signals"].append("assertion:readback_by_business_key")
         return "verified", evidence
@@ -530,6 +533,14 @@ def _has_runtime_upload_consumption_assertion(result: CaseResult) -> bool:
     for assertion in result.assertions or []:
         if assertion.get("type") == "runtime_upload_consumed" and assertion.get("ok"):
             return True
+    return False
+
+
+def _has_verified_attachment_readback_assertion(result: CaseResult) -> bool:
+    for assertion in result.assertions or []:
+        if assertion.get("type") in {"readback_runtime_upload", "readback_uploaded_attachment"}:
+            if assertion.get("ok") and not assertion.get("advisory"):
+                return True
     return False
 
 

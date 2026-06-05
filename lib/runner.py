@@ -1426,6 +1426,47 @@ def _runtime_upload_records(ctx: dict) -> list[dict[str, Any]]:
     return records
 
 
+def _runtime_upload_readback_tokens(record: dict[str, Any]) -> list[str]:
+    tokens: list[str] = []
+    for value in (
+        record.get("file_name"),
+        Path(str(record.get("file_path") or "")).name if record.get("file_path") else "",
+    ):
+        text = str(value or "").strip()
+        if len(text) >= 3:
+            tokens.append(text)
+    response_values = _runtime_upload_response_values(record.get("response"))
+    for key in ("url", "id"):
+        text = str(response_values.get(key) or "").strip()
+        if len(text) >= 6:
+            tokens.append(text)
+    seen: set[str] = set()
+    return [token for token in tokens if not (token in seen or seen.add(token))]
+
+
+def _readback_response_entries(assert_spec: dict, ctx: dict) -> list[dict[str, Any]]:
+    source_step = str(assert_spec.get("step") or assert_spec.get("search_step") or "").strip()
+    if source_step:
+        resp = (ctx.get("step_responses") or {}).get(source_step)
+        if resp is None:
+            return []
+        return [{"source": f"步骤 {source_step}", "response": resp}]
+    entries = [
+        entry for entry in (ctx.get("readback_responses") or [])
+        if isinstance(entry, dict) and "response" in entry
+    ]
+    if entries:
+        return entries
+    if "last_readback_response" in ctx:
+        return [{"source": "最近只读回查", "response": ctx.get("last_readback_response")}]
+    if assert_spec.get("allow_response_history"):
+        return [
+            {"source": f"历史响应#{idx + 1}", "response": resp}
+            for idx, resp in enumerate(ctx.get("response_history") or [])
+        ]
+    return []
+
+
 def _is_recorded_upload_action_step(step: dict) -> bool:
     method = str(step.get("method") or step.get("methodName") or "").strip().lower()
     ac = str(step.get("ac") or "").strip().lower()
@@ -1493,6 +1534,55 @@ def _a_runtime_upload_consumed(assert_spec: dict, ctx: dict) -> tuple[bool, str]
     )
 
 
+@assertion_handler("readback_uploaded_attachment")
+@assertion_handler("readback_runtime_upload")
+def _a_readback_runtime_upload(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
+    upload_id = str(assert_spec.get("upload_id") or "").strip()
+    field_key = str(assert_spec.get("field_key") or "").strip()
+    records = _runtime_upload_records(ctx)
+    if upload_id:
+        records = [r for r in records if str(r.get("upload_id") or "") == upload_id]
+    if field_key:
+        records = [r for r in records if str(r.get("field_key") or "") == field_key]
+    if not records:
+        target = upload_id or field_key or "任意附件"
+        return False, f"附件入库回查未找到真实上传记录：{target}"
+
+    response_entries = _readback_response_entries(assert_spec, ctx)
+    if not response_entries:
+        return False, (
+            "附件入库回查缺少只读回查响应；请先配置/执行 readback_by_business_key，"
+            "或指定 search_step 指向保存后的只读查询步骤。"
+        )
+
+    expected_tokens: list[tuple[dict[str, Any], str]] = []
+    for record in records:
+        expected_tokens.extend((record, token) for token in _runtime_upload_readback_tokens(record))
+    if not expected_tokens:
+        uploaded = ", ".join(str(r.get("file_name") or r.get("upload_id") or "") for r in records)
+        return False, f"附件入库回查缺少可比对的运行时文件名/id/url：{uploaded}"
+
+    checked_sources: list[str] = []
+    for entry in response_entries:
+        source = str(entry.get("source") or "只读回查")
+        checked_sources.append(source)
+        text = json.dumps(entry.get("response"), ensure_ascii=False, default=str)
+        for record, token in expected_tokens:
+            if token and token in text:
+                file_name = str(record.get("file_name") or record.get("upload_id") or token)
+                return True, f"✅ 附件入库回查通过：{file_name} 已出现在{source}响应中"
+
+    files = ", ".join(sorted({
+        str(record.get("file_name") or record.get("upload_id") or "")
+        for record in records
+        if record.get("file_name") or record.get("upload_id")
+    })[:5])
+    return False, (
+        "附件已上传并可参与链路，但只读回查响应未出现运行时文件名/id/url；"
+        f"上传记录={files or '未知'}，检查来源={', '.join(checked_sources[:3]) or '无'}。"
+    )
+
+
 @assertion_handler("readback_by_business_key")
 def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     """Read-only post-save verification by a stable business key.
@@ -1535,6 +1625,16 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
         expected=value,
         grid_key=str(assert_spec.get("grid_key") or "billlistap"),
     )
+    readback_entry = {
+        "form_id": form_id,
+        "app_id": app_id,
+        "field_key": field_key,
+        "value": value,
+        "source": source_desc,
+        "response": resp,
+    }
+    ctx["last_readback_response"] = resp
+    ctx.setdefault("readback_responses", []).append(readback_entry)
     ctx.setdefault("readback_results", []).append({
         "form_id": form_id,
         "app_id": app_id,
@@ -3805,6 +3905,49 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 "type": atype, "msg": f"异常: {e}",
                 "step": _asrt_step, "step_label": _asrt_step_label,
                 "advisory": advisory,
+            })
+
+    explicit_upload_readback = any(
+        isinstance(item, dict)
+        and item.get("type") in {"readback_runtime_upload", "readback_uploaded_attachment"}
+        for item in assertions_to_run
+    )
+    if (
+        not preflight_blocked
+        and not explicit_upload_readback
+        and _runtime_upload_records(ctx)
+        and ctx.get("readback_responses")
+    ):
+        a = {"type": "readback_runtime_upload", "mode": "advisory", "implicit": True}
+        handler = ASSERTION_HANDLERS["readback_runtime_upload"]
+        try:
+            ok, msg = handler(a, ctx)
+            result.assertions.append({
+                "type": "readback_runtime_upload",
+                "ok": ok,
+                "advisory": True,
+                "implicit": True,
+                "msg": msg,
+            })
+            emit("assertion_ok" if ok else "assertion_advisory", {
+                "type": "readback_runtime_upload",
+                "msg": msg,
+                "advisory": True,
+                "implicit": True,
+            })
+        except Exception as e:
+            result.assertions.append({
+                "type": "readback_runtime_upload",
+                "ok": False,
+                "advisory": True,
+                "implicit": True,
+                "msg": f"断言执行异常: {e}",
+            })
+            emit("assertion_advisory", {
+                "type": "readback_runtime_upload",
+                "msg": f"异常: {e}",
+                "advisory": True,
+                "implicit": True,
             })
 
     # 7. 失败时生成修复建议

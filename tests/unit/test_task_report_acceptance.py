@@ -129,6 +129,62 @@ def test_runtime_upload_consumption_is_evidence_but_not_full_write_verification(
     assert "assertion:runtime_upload_consumed" in result.write_evidence["signals"]
 
 
+def test_strict_attachment_readback_marks_write_as_verified():
+    result = CaseResult(
+        name="case_attachment_readback_verified",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+        assertions=[
+            {
+                "type": "readback_runtime_upload",
+                "ok": True,
+                "msg": "附件入库回查通过",
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+
+    assert result.write_status == "verified"
+    assert result.next_action == "none"
+    assert "assertion:readback_runtime_upload" in result.write_evidence["signals"]
+
+
+def test_advisory_attachment_readback_does_not_mark_write_verified():
+    result = CaseResult(
+        name="case_attachment_readback_advisory",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+        assertions=[
+            {
+                "type": "readback_runtime_upload",
+                "ok": True,
+                "advisory": True,
+                "msg": "附件入库回查通过",
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+
+    assert result.write_status == "unverified"
+    assert result.next_action == "ai_agent"
+
+
 def test_advisory_readback_failure_does_not_mark_write_verified():
     result = CaseResult(
         name="case_advisory_readback",
