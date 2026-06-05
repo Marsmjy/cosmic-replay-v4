@@ -1877,6 +1877,10 @@ class TestStepHandlers:
         assert "expired" not in resolved_payload
         assert "runtime-upload" in resolved_payload
         assert attach_start["resolved_request"]["runtime_upload_applied"]["replacement_count"] >= 2
+        assert any(
+            item.get("type") == "runtime_upload_consumed" and item.get("ok")
+            for item in result.assertions
+        )
 
     def test_runtime_upload_id_only_preserves_recorded_download_url_shape(self):
         old_url = "http://example.test/ierp/tempfile/download.do?configKey=tempfile.mock&id=expired"
@@ -1903,6 +1907,43 @@ class TestStepHandlers:
             "?configKey=tempfile.mock&id=runtime-only-id"
         )
         assert step["_runtime_upload_applied"]["replacement_count"] == 1
+
+    def test_upload_file_pick_field_value_is_injected_before_runtime(self, tmp_path):
+        uploaded = tmp_path / "image.png"
+        uploaded.write_bytes(b"png")
+        case = {
+            "pick_fields": {
+                "upload_upload_1_file_path": {
+                    "source_type": "upload_file",
+                    "source_step_id": "upload_1",
+                    "field_key": "attachmentpanel",
+                    "value_id": str(uploaded),
+                    "value_name": "image.png",
+                    "upload_endpoint": "/tempfile/upload.do",
+                    "file_field": "file",
+                    "recorded_file_names": ["image.png"],
+                }
+            },
+            "steps": [
+                {
+                    "id": "upload_1",
+                    "type": "invoke",
+                    "app_id": "hcdm",
+                    "ac": "upload",
+                    "method": "upload",
+                    "skip_replay": True,
+                    "requires_user_file": True,
+                    "upload_replay_strategy": "user_file_required",
+                }
+            ],
+        }
+
+        _apply_pick_fields(case)
+
+        step = case["steps"][0]
+        assert step["file_path"] == str(uploaded)
+        assert step["upload_endpoint"] == "/tempfile/upload.do"
+        assert step["file_field"] == "file"
 
     def test_wait_until_repeats_until_condition_is_met(self, monkeypatch):
         calls = []
@@ -2128,6 +2169,10 @@ class TestAssertionHandlers:
     def test_readback_by_business_key_handler_registered(self):
         assert "readback_by_business_key" in ASSERTION_HANDLERS
         assert callable(ASSERTION_HANDLERS["readback_by_business_key"])
+
+    def test_runtime_upload_consumed_handler_registered(self):
+        assert "runtime_upload_consumed" in ASSERTION_HANDLERS
+        assert callable(ASSERTION_HANDLERS["runtime_upload_consumed"])
     
     def test_no_error_actions_pass_on_empty(self):
         """无错误时通过"""
@@ -2228,6 +2273,35 @@ class TestAssertionHandlers:
 
         assert passed is True
         assert "入库回查通过" in msg
+
+    def test_runtime_upload_consumed_assertion_passes_after_replacement(self):
+        record = {
+            "upload_id": "upload_1",
+            "field_key": "attachmentpanel",
+            "file_name": "image.png",
+            "response": {"id": "runtime-upload"},
+            "consumed_by": [{"step_id": "attach_commit", "replacement_count": 2}],
+        }
+        ctx = {"runtime_uploads": {"upload_1": record, "attachmentpanel": record, "_latest": record}}
+
+        passed, msg = ASSERTION_HANDLERS["runtime_upload_consumed"]({}, ctx)
+
+        assert passed is True
+        assert "附件链路回查通过" in msg
+
+    def test_runtime_upload_consumed_assertion_fails_without_consumer(self):
+        record = {
+            "upload_id": "upload_1",
+            "field_key": "attachmentpanel",
+            "file_name": "image.png",
+            "response": {"id": "runtime-upload"},
+        }
+        ctx = {"runtime_uploads": {"upload_1": record}}
+
+        passed, msg = ASSERTION_HANDLERS["runtime_upload_consumed"]({}, ctx)
+
+        assert passed is False
+        assert "未消费运行时上传结果" in msg
 
     def test_readback_by_business_key_executes_common_search_when_no_step(self):
         calls = []

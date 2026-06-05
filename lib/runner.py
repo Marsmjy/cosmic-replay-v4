@@ -1396,6 +1396,90 @@ def _a_response_contains(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     return False, f"响应里没找到 '{needle}'"
 
 
+def _runtime_upload_records(ctx: dict) -> list[dict[str, Any]]:
+    uploads = ctx.get("runtime_uploads") or {}
+    if not isinstance(uploads, dict):
+        return []
+    records: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for key, record in uploads.items():
+        if key == "_latest" or not isinstance(record, dict):
+            continue
+        marker = id(record)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        records.append(record)
+    return records
+
+
+def _is_recorded_upload_action_step(step: dict) -> bool:
+    method = str(step.get("method") or step.get("methodName") or "").strip().lower()
+    ac = str(step.get("ac") or "").strip().lower()
+    if method:
+        return method == "upload"
+    return ac == "upload"
+
+
+def _case_expects_runtime_upload_consumption(case: dict) -> bool:
+    for step in case.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        if _is_recorded_upload_action_step(step) and (
+            step.get("requires_user_file")
+            or step.get("upload_replay_strategy") == "user_file_required"
+            or step.get("type") == "upload_file"
+        ):
+            continue
+        try:
+            text = json.dumps(step, ensure_ascii=False, default=str).lower()
+        except Exception:
+            text = str(step).lower()
+        if "tempfile" in text and "download.do" in text:
+            return True
+    return False
+
+
+@assertion_handler("runtime_upload_consumed")
+def _a_runtime_upload_consumed(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
+    upload_id = str(assert_spec.get("upload_id") or "").strip()
+    field_key = str(assert_spec.get("field_key") or "").strip()
+    min_consumptions = max(int(assert_spec.get("min_consumptions") or 1), 1)
+    records = _runtime_upload_records(ctx)
+    if upload_id:
+        records = [r for r in records if str(r.get("upload_id") or "") == upload_id]
+    if field_key:
+        records = [r for r in records if str(r.get("field_key") or "") == field_key]
+    if not records:
+        target = upload_id or field_key or "任意附件"
+        return False, f"附件回查未找到真实上传记录：{target}"
+    consumed = [
+        (record, item)
+        for record in records
+        for item in (record.get("consumed_by") or [])
+        if isinstance(item, dict)
+    ]
+    if len(consumed) >= min_consumptions:
+        file_names = sorted({
+            str(record.get("file_name") or "")
+            for record, _item in consumed
+            if record.get("file_name")
+        })
+        targets = sorted({
+            str(item.get("step_id") or "")
+            for _record, item in consumed
+            if item.get("step_id")
+        })
+        name_hint = f" 文件={', '.join(file_names[:3])}" if file_names else ""
+        target_hint = f" 消费步骤={', '.join(targets[:3])}" if targets else ""
+        return True, f"✅ 附件链路回查通过：真实上传结果已被后续业务请求消费 {len(consumed)} 次。{name_hint}{target_hint}"
+    uploaded = ", ".join(str(r.get("file_name") or r.get("upload_id") or "") for r in records)
+    return False, (
+        "附件已真实上传，但后续业务请求未消费运行时上传结果；"
+        f"请检查是否仍在使用 HAR 录制期 tempfile/download.do 临时句柄。上传记录={uploaded}"
+    )
+
+
 @assertion_handler("readback_by_business_key")
 def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     """Read-only post-save verification by a stable business key.
@@ -1664,6 +1748,38 @@ def _apply_pick_fields(case: dict):
 
     for pf_id, pf_meta in pick_fields.items():
         if not isinstance(pf_meta, dict):
+            continue
+
+        if pf_meta.get("source_type") == "upload_file":
+            source_step_id = str(pf_meta.get("source_step_id") or "")
+            field_key = str(pf_meta.get("field_key") or "")
+            file_path = str(pf_meta.get("value_id") or "").strip()
+            recorded_names = {
+                str(name or "").strip()
+                for name in (pf_meta.get("recorded_file_names") or [])
+                if str(name or "").strip()
+            }
+            if file_path in recorded_names:
+                file_path = ""
+            for step in steps:
+                if source_step_id and str(step.get("id") or "") != source_step_id:
+                    continue
+                if not source_step_id:
+                    method = str(step.get("method") or step.get("methodName") or "").strip().lower()
+                    if method != "upload" and str(step.get("ac") or "").strip().lower() != "upload":
+                        continue
+                if file_path:
+                    step["file_path"] = file_path
+                endpoint = str(pf_meta.get("upload_endpoint") or "").strip()
+                if endpoint:
+                    step["upload_endpoint"] = endpoint
+                file_field = str(pf_meta.get("file_field") or "").strip()
+                if file_field:
+                    step["file_field"] = file_field
+                if field_key:
+                    step.setdefault("field_key", field_key)
+                step.setdefault("requires_user_file", True)
+                step.setdefault("upload_replay_strategy", "user_file_required")
             continue
 
         # date_* -> 替换 update_fields 步骤中的日期字段
@@ -2162,6 +2278,14 @@ def _apply_runtime_uploads_to_step(step: dict, ctx: dict) -> None:
             changed += count
     if not changed:
         return
+    consumption = {
+        "step_id": step.get("id") or "",
+        "upload_id": upload_record.get("upload_id") or "",
+        "field_key": upload_record.get("field_key") or "",
+        "replacement_count": changed,
+    }
+    upload_record.setdefault("consumed_by", []).append(consumption)
+    ctx.setdefault("runtime_upload_consumptions", []).append(consumption)
     step["_runtime_upload_applied"] = {
         "upload_id": upload_record.get("upload_id") or "",
         "field_key": upload_record.get("field_key") or "",
@@ -3551,7 +3675,15 @@ def run_case(case: dict, on_event=None) -> RunResult:
             if not optional: break
 
     # 6. 断言（先把 ${vars.xxx} 解析掉）
-    for a_raw in ([] if preflight_blocked else (case.get("assertions") or [])):
+    assertions_to_run = [] if preflight_blocked else list(case.get("assertions") or [])
+    if (
+        not preflight_blocked
+        and _runtime_upload_records(ctx)
+        and _case_expects_runtime_upload_consumption(case)
+        and not any((item or {}).get("type") == "runtime_upload_consumed" for item in assertions_to_run if isinstance(item, dict))
+    ):
+        assertions_to_run.append({"type": "runtime_upload_consumed", "implicit": True})
+    for a_raw in assertions_to_run:
         a = resolve_vars(a_raw, vars_ns)
         atype = a.get("type")
         advisory = _assertion_is_advisory(a)

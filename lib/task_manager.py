@@ -407,6 +407,8 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
     if not result.passed:
         evidence["signals"].append("case_failed")
         return "failed", evidence
+    if _has_runtime_upload_consumption_assertion(result):
+        evidence["signals"].append("assertion:runtime_upload_consumed")
     if _has_verified_readback_assertion(result):
         evidence["signals"].append("assertion:readback_by_business_key")
         return "verified", evidence
@@ -520,6 +522,13 @@ def _is_write_phase(phase: dict) -> bool:
 def _has_verified_readback_assertion(result: CaseResult) -> bool:
     for assertion in result.assertions or []:
         if assertion.get("type") == "readback_by_business_key" and assertion.get("ok"):
+            return True
+    return False
+
+
+def _has_runtime_upload_consumption_assertion(result: CaseResult) -> bool:
+    for assertion in result.assertions or []:
+        if assertion.get("type") == "runtime_upload_consumed" and assertion.get("ok"):
             return True
     return False
 

@@ -101,6 +101,34 @@ def test_readback_assertion_marks_passed_write_as_verified():
     assert summary["write_verified"] == 1
 
 
+def test_runtime_upload_consumption_is_evidence_but_not_full_write_verification():
+    result = CaseResult(
+        name="case_attachment_consumed",
+        passed=True,
+        phases=[
+            {
+                "id": "step:save_main",
+                "label": "保存",
+                "status": "ok",
+                "response": [],
+            }
+        ],
+        assertions=[
+            {
+                "type": "runtime_upload_consumed",
+                "ok": True,
+                "msg": "附件链路回查通过",
+            }
+        ],
+    )
+
+    enrich_case_result(result)
+
+    assert result.write_status == "unverified"
+    assert result.next_action == "ai_agent"
+    assert "assertion:runtime_upload_consumed" in result.write_evidence["signals"]
+
+
 def test_advisory_readback_failure_does_not_mark_write_verified():
     result = CaseResult(
         name="case_advisory_readback",
