@@ -102,6 +102,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- 样本数：{report.get('sample_count')}",
         f"- 导入：{report.get('parse_ok')}/{report.get('sample_count')} 成功",
         f"- 执行：{report.get('exec_pass')}/{report.get('exec_total')} 通过",
+        f"- 执行耗时合计：{report.get('execution_duration_s', 0)}s",
         f"- baseline：`{report.get('baseline_path')}`",
         "",
         "## 单样本结果",
@@ -461,6 +462,10 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": 1,
         "generated_at": finished.isoformat(timespec="seconds"),
         "duration_s": round((finished - started).total_seconds(), 3),
+        "execution_duration_s": round(
+            sum(float((item.get("execution") or {}).get("duration_s") or 0) for item in results),
+            3,
+        ),
         "env": args.env,
         "har_dir": str(har_dir),
         "output_dir": str(output_dir),
