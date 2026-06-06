@@ -160,6 +160,8 @@ def _is_l2_pageid(pid: str) -> bool:
 - `_pending_by_app`: addVirtualTab 响应中按 app_id 缓存待消费 pageId
 - L2 不是错误本身。列表、树、工具栏和 `addnew` 前置桥接步骤依赖 L2 上下文；进入真实编辑页后才应切换到 L3。
 - 很多保存字段保存在 pageId 对应的服务端模型里。排障时先比对 HAR 原始 pageId 链路，再看字段解析和补偿；不要一上来硬补 `save` 请求体。
+- 首页卡片/导航兄弟表单的 `loadData` 不能因为 `loadData` 通常允许 L2 就盲目复用业务 L2。若 HAR 原请求使用纯 32hex L3，但创建该卡片的浏览器 `clientCallBack` 已被过滤，导入应标记 `requires_harvested_l3_page`；运行时只有同表单真实收获到 L3 才执行，否则跳过该 optional 导航步骤。典型证据是回放中的卡片 `loadData` 使用 L2，响应却重新 `showForm` 主业务表单，随后业务 toolbar 在 pageId 正确但服务端模型已被兄弟表单污染的情况下抛 `NullPointerException`。
+- 某字段曾在 UAT/其他环境返回“无法修改锁定字段”，不能据此在导入阶段全局删除 HAR 明确录制的 `updateValue/setItemByIdFromClient`。原录制环境可能仍要求该字段必填。应保留录制动作并标记 `skip_if_locked_fields/skip_if_locked`，运行时逐字段执行；仅当目标环境明确返回“无法修改锁定字段”时跳过该字段，其他业务错误仍必须失败。
 - 深链路样本经验见 `tests/fixtures/deep_chain_factory/catalog.json`。例如 `薪资核算 / 薪酬项目类别` 的正确闭环是 `menuItemClick` 绑定 L2、`new` 保留 L2、`showForm/loadData` 切 L3、再执行 `update_fields`、`pick_basedata(taglevel)` 和弹窗 `btnsave`。Playwright UI 填框没有触发 `updateValue/save` 时，应改用协议 YAML 验证，不要误判为 parser 失败。
 - 如果 `showForm` 返回的是 `bos_list` 但带 `billFormId`（如 `hsas_retroreason`），诊断时要确认 L2 已绑定到业务表单别名；否则列表 load/new 可能拿不到正确 pageId。
 - `薪资核算 / 薪酬项目` 已验证闭环：`salaryitemtype` 是必填 lookup，应通过 `getLookUpList` 预热并按名称自动解析；`ispayoutitem` 是 ComboField，应作为 enum 环境字段写入 `update_fields`；保存使用标准 `ac=save/key=tbmain/args=[bar_save, save]`。`createorg/datatype/dataprecision/dataround` 等 loadData 默认值属于 pageId 上下文，不要硬补 save。
@@ -180,6 +182,7 @@ def _is_l2_pageid(pid: str) -> bool:
 - 深链路样本排障完成后，运行 `scripts/deep_chain_pipeline.py scenario-report` 生成脱敏闭环报告，把 HAR 链路画像、YAML smoke、失败分类、入库验证策略和 `experience_candidate` 沉淀为经验库候选。也可单独运行 `scripts/deep_chain_pipeline.py experience-candidate --scenario-id <id> --case <yaml> --smoke-evidence <json>` 输出可审查的 catalog patch；只有 `status=ready` 且脱敏通过时，才允许人工合入经验库。若执行 PASS 但只有“保存成功”提示，应先运行 `scripts/deep_chain_pipeline.py readback-plan --case <yaml>` 生成推荐查询表单和业务键，再把 `suggested_assertion` 补为 `readback_by_business_key` 只读断言；不能把 PASS 直接当作入库已验证。
 - 新 HAR 或失败证据包若包含 `experience_matches`，先看命中的已闭环样本和 `reusable_lessons`。也可运行 `scripts/deep_chain_pipeline.py match-experience --case <yaml> --har <har>`，按结构特征匹配成功经验。匹配结果只用于排障优先级，仍必须回到 HAR 原始 pageId 与回放 pageId 比对，不能因为命中样本就硬补 save 字段。
 - 若需要把新 HAR 从导入到执行串起来，优先用 `scripts/deep_chain_pipeline.py run-scenario`。默认模式只生成 HAR 画像、YAML、经验匹配、入库回查计划和报告；只有明确带 `--run-smoke --confirm-write YES_GENERATE_TEST_DATA` 才允许写入测试数据。AI 修复时应检查 `pipeline.status`、`baseline_candidate` 和 `next_actions`，不要绕过该流水线直接改已通过样本。
+- 批量真实环境回归默认使用 `scripts/har_execute_regression.py --env auto`：按 HAR 请求 URL 的 host、port 和首段 base path 匹配 `config/envs/*.yaml`，并在报告/baseline 中同时记录 `recorded_env` 与 `execution_env`。不要把 SIT 录制的 HAR 统一跑到 UAT 后再把跨环境必填、锁定字段或菜单差异误判为解析回归。
 - 若新 HAR 在 Web UI 生成时已勾选“附加入库回查断言”，优先检查 `assertions` 中的 `readback_by_business_key` 是否使用正确 `form_id/app_id/field_key/value`。若断言失败，不要改 save 包体；先确认业务键是否被用户修改、列表查询是否需要额外组织/状态过滤、pageId 是否仍在正确 L2/L3 链路。
 - 需要补录复杂 UI 组件 HAR 时，用 Playwright 深层动作计划；`click_selector/press/select_option` 默认视为写操作，必须带 `YES_GENERATE_TEST_DATA`，填写值可用 `${timestamp}`、`${today}`、`${rand:N}`，原始 HAR 仍只能放在 ignored 目录。
 

@@ -65,6 +65,7 @@ from .repair_planner import build_repair_plan
 from .field_resolver import FieldResolver, ResolveResult, _looks_like_internal_id
 from .pageid_trace import (
     build_runtime_pageid_trace,
+    classify_pageid,
     step_allows_l2_pageid as _trace_step_allows_l2_pageid,
 )
 from .response_signature import compare_response_signature
@@ -660,6 +661,29 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     for fid in step.get("invalidate_pages", []):
         replay.page_ids.pop(fid, None)
 
+    if step.get("requires_harvested_l3_page"):
+        form_id = str(step.get("form_id") or "")
+        runtime_page_id = replay.page_ids.get(form_id, "")
+        if classify_pageid(runtime_page_id) != "L1_or_L3":
+            ctx.setdefault("pageid_guard_skips", []).append({
+                "step_id": step.get("id", ""),
+                "form_id": form_id,
+                "runtime_pageid_type": classify_pageid(runtime_page_id),
+            })
+            log.info(
+                "[pageid-guard] skip optional %s loadData: harvested L3 is unavailable (%s)",
+                form_id,
+                classify_pageid(runtime_page_id),
+            )
+            return [{
+                "a": "syntheticSkip",
+                "p": [{
+                    "reason": "harvested_l3_unavailable",
+                    "formId": form_id,
+                    "runtimePageIdType": classify_pageid(runtime_page_id),
+                }],
+            }]
+
     if step.get("bind_l2_only"):
         args = step.get("args", [])
         menu_id = str(
@@ -740,6 +764,41 @@ def _h_invoke(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
 def _h_update_fields(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
     fields = step.get("fields", {}) or {}
     row = step.get("row_index", -1)
+    tolerant_fields = {
+        str(field_key)
+        for field_key in (step.get("skip_if_locked_fields") or [])
+    }
+    if tolerant_fields:
+        responses: list[Any] = []
+        for field_key, value in fields.items():
+            resp = replay.update_fields(
+                step["form_id"],
+                step["app_id"],
+                {field_key: value},
+                row_index=row,
+            )
+            errors = has_error_action(resp)
+            if (
+                field_key in tolerant_fields
+                and errors
+                and all("无法修改锁定字段" in error for error in errors)
+            ):
+                ctx.setdefault("locked_field_skips", []).append({
+                    "step_id": step.get("id", ""),
+                    "form_id": step.get("form_id", ""),
+                    "field_key": field_key,
+                })
+                log.info(
+                    "[locked-field-fallback] %s.%s is target-managed; skipped recorded update",
+                    step.get("form_id", ""),
+                    field_key,
+                )
+                continue
+            if isinstance(resp, list):
+                responses.extend(resp)
+            elif resp is not None:
+                responses.append(resp)
+        return responses
     return replay.update_fields(step["form_id"], step["app_id"], fields, row_index=row)
 
 
@@ -771,11 +830,29 @@ def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
                 "postData": [{}, []],
             }],
         )
-    return replay.pick_basedata(
+    resp = replay.pick_basedata(
         step["form_id"], step["app_id"],
         step["field_key"], str(step["value_id"]),
         row_index=int(step.get("row_index", 0) or 0),
     )
+    errors = has_error_action(resp)
+    if (
+        step.get("skip_if_locked")
+        and errors
+        and all("无法修改锁定字段" in error for error in errors)
+    ):
+        ctx.setdefault("locked_field_skips", []).append({
+            "step_id": step.get("id", ""),
+            "form_id": step.get("form_id", ""),
+            "field_key": step.get("field_key", ""),
+        })
+        log.info(
+            "[locked-field-fallback] %s.%s is target-managed; skipped recorded pick",
+            step.get("form_id", ""),
+            step.get("field_key", ""),
+        )
+        return []
+    return resp
 
 
 def _extract_grid_payload(resp: Any, grid_key: str = "billlistap") -> tuple[dict[str, int], list[list[Any]]]:

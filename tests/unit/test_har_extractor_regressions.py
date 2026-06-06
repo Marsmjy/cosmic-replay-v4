@@ -1816,6 +1816,31 @@ def test_build_yaml_case_marks_onboard_activity_overview_optional():
     assert all(step.get("optional") is True for step in overview_steps)
 
 
+def test_onboard_navigation_card_loads_require_harvested_l3_page():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835319_新增入职0512测试.har"
+    if not har_path.exists():
+        pytest.skip("local ignored HAR fixture is not present")
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="onboard_pageid_guard"))
+    guarded_forms = {
+        step.get("form_id")
+        for step in case["steps"]
+        if step.get("requires_harvested_l3_page")
+    }
+
+    assert {
+        "hom_wbcalendar",
+        "hom_wbwaitin",
+        "bos_card_quicklaunch",
+        "hom_wbwarning",
+    } <= guarded_forms
+    assert not any(
+        step.get("requires_harvested_l3_page")
+        for step in case["steps"]
+        if step.get("form_id") in {"hom_onbrdinfo", "hom_persononbrdhandlebody"}
+    )
+
+
 def test_build_yaml_case_marks_revision_log_page_optional():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1779169429_新增一条行政组织.har"
 
@@ -2070,7 +2095,7 @@ def test_pick_field_code_override_keeps_code_resolve_editable():
     assert "manual_override" not in orgloc
 
 
-def test_system_locked_fields_are_not_replayed_for_org_and_position_hars():
+def test_cross_env_locked_fields_keep_recorded_writes_with_runtime_fallback():
     samples = [
         (
             PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har",
@@ -2078,41 +2103,31 @@ def test_system_locked_fields_are_not_replayed_for_org_and_position_hars():
         ),
         (
             PROJECT_ROOT / "har_uploads" / "preview_1778835351_岗位信息维护-新增一个岗位.har",
-            {
-                "city",
-                "countryregion",
-                "diplomareq",
-                "job",
-                "jobgradescm",
-                "joblevelscm",
-                "name",
-                "number",
-                "positiontype",
-                "workplace",
-            },
+            {"name", "number"},
         ),
     ]
     missing = [path for path, _ in samples if not path.exists()]
     if missing:
         pytest.skip("local ignored HAR fixtures are not present")
 
-    for har_path, locked_fields in samples:
+    for har_path, recorded_fields in samples:
         yaml_text = build_yaml_case(har_path, case_name=f"locked_number_{har_path.stem}")
         case = yaml.safe_load(yaml_text)
-        update_fields = [
+        tolerant_update_fields = {
             str(field_key).lower()
             for step in case["steps"]
             if step.get("type") == "update_fields"
-            for field_key in (step.get("fields") or {})
-        ]
+            for field_key in (step.get("skip_if_locked_fields") or [])
+        }
+        assert recorded_fields <= tolerant_update_fields
 
-        assert not locked_fields.intersection(update_fields)
-        pick_fields = {
+        tolerant_picks = {
             str(step.get("field_key") or "").lower()
             for step in case["steps"]
-            if step.get("type") == "pick_basedata"
+            if step.get("type") == "pick_basedata" and step.get("skip_if_locked")
         }
-        assert not locked_fields.intersection(pick_fields)
+        if har_path.stem.startswith("岗位"):
+            assert {"positiontype", "workplace", "job", "diplomareq"} <= tolerant_picks
 
 
 def test_position_har_exposes_soft_required_template_context_fields():

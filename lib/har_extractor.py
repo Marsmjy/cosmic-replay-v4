@@ -191,8 +191,9 @@ _SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM = {
 }
 
 # ⭐ 跨环境系统托管字段：
-# 这些字段在部分录制环境可写，但 UAT/目标环境由系统编码规则托管，回放写入会被
-# “无法修改锁定字段...”拦截。导入时保留相关变量给其他字段复用，但不回放字段写入。
+# 这些字段在部分录制环境可写，但其他目标环境可能由系统编码规则托管。HAR 明确
+# 录制的写入/选择必须保留，并标记为运行时“锁定则跳过”；不能在导入阶段直接删除，
+# 否则回到原录制环境执行时会丢失必填字段。
 _SYSTEM_LOCKED_FIELDS_BY_FORM = {
     "haos_adminorgdetail": {"number"},
     "hbpm_positionhr": {
@@ -1648,7 +1649,7 @@ def _observed_field_label(observations: dict[str, Any], form_id: Any, field_key:
 
 
 def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) -> list[dict]:
-    """移除当前 HAR/目标环境已标记锁定的字段写入或选择。"""
+    """Drop HAR-observed locked writes and mark cross-env candidates as tolerant."""
     if not observations:
         return steps
     change_year_unlocks: set[tuple[int, str]] = set()
@@ -1681,23 +1682,26 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
         if step.get("type") == "pick_basedata":
             field_key_s = str(step.get("field_key") or "").strip().lower()
             form_id_s = str(step.get("form_id") or "").strip()
+            is_cross_env_candidate = field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
             has_recorded_pick_value = bool(
                 str(step.get("value_id") or step.get("value_code") or step.get("value_number") or "").strip()
             )
             if (
-                field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
-                or (
-                    not has_recorded_pick_value
-                    and _is_locked_before(
-                        observations,
-                        field_key_s,
-                        step.get("_har_index"),
-                        form_id=form_id_s,
-                    )
+                not has_recorded_pick_value
+                and _is_locked_before(
+                    observations,
+                    field_key_s,
+                    step.get("_har_index"),
+                    form_id=form_id_s,
                 )
             ):
                 continue
-            out.append(step)
+            if is_cross_env_candidate and has_recorded_pick_value:
+                new_step = dict(step)
+                new_step["skip_if_locked"] = True
+                out.append(new_step)
+            else:
+                out.append(step)
             continue
         if step.get("type") != "update_fields":
             out.append(step)
@@ -1708,30 +1712,39 @@ def _drop_locked_update_fields(steps: list[dict], observations: dict[str, Any]) 
             continue
         kept = OrderedDict()
         dropped: list[str] = []
+        skip_if_locked_fields: list[str] = []
         for field_key, value in fields.items():
             field_key_s = str(field_key or "").strip().lower()
             form_id_s = str(step.get("form_id") or "").strip()
+            is_cross_env_candidate = field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
+            is_observed_locked = _is_locked_before(
+                observations,
+                field_key,
+                step.get("_har_index"),
+                form_id=form_id_s,
+            )
             if (
-                (
-                    field_key_s in _SYSTEM_LOCKED_FIELDS_BY_FORM.get(form_id_s, set())
-                    or _is_locked_before(
-                        observations,
-                        field_key,
-                        step.get("_har_index"),
-                        form_id=form_id_s,
-                    )
-                )
+                is_observed_locked
                 and not _has_recent_change_year(field_key_s, step.get("_har_index"))
             ):
                 dropped.append(str(field_key))
                 continue
             kept[field_key] = value
+            if is_cross_env_candidate:
+                skip_if_locked_fields.append(str(field_key))
         if not dropped:
-            out.append(step)
+            if skip_if_locked_fields:
+                new_step = dict(step)
+                new_step["skip_if_locked_fields"] = skip_if_locked_fields
+                out.append(new_step)
+            else:
+                out.append(step)
         elif kept:
             new_step = dict(step)
             new_step["fields"] = kept
             new_step["_dropped_locked_fields"] = dropped
+            if skip_if_locked_fields:
+                new_step["skip_if_locked_fields"] = skip_if_locked_fields
             out.append(new_step)
     return out
 
@@ -3494,6 +3507,20 @@ def _mark_navigation_steps_optional(steps: list[dict], main_form: str) -> None:
     for step in steps:
         if _is_navigation_form(str(step.get("form_id") or ""), main_form):
             step["optional"] = True
+            har_page_id = str(step.get("_har_page_id") or "")
+            if (
+                step.get("type") == "invoke"
+                and step.get("ac") == "loadData"
+                and har_page_id
+                and not _is_l2_page_id(har_page_id)
+            ):
+                # Portal cards and decorative sibling forms are often created by
+                # browser-only clientCallBack batches that are intentionally
+                # filtered from replay. Their recorded L3 pageId is therefore
+                # usable only if an earlier retained response harvests a fresh
+                # L3 for the same form. Falling back to the business L2 can
+                # reopen sibling forms and corrupt the active form context.
+                step["requires_harvested_l3_page"] = True
 
 
 def _inject_workflow_message_center_bootstrap(steps: list[dict]) -> list[dict]:
@@ -6569,7 +6596,9 @@ def build_yaml_case(
                   "navigation_form_id", "expected_notifications",
                   "expected_response_signature",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
+                  "requires_harvested_l3_page",
                   "prefetch_lookup", "prefetch_lookup_args",
+                  "skip_if_locked", "skip_if_locked_fields",
                   "skip_replay", "skip_reason",
                   "condition", "interval_seconds", "timeout_seconds",
                   "max_attempts", "source_step_count", "wait_source",

@@ -42,6 +42,18 @@
         },
         {
           "ac": "loadData",
+          "app_id": "homs",
+          "expected_pageid_role": "L3",
+          "form_id": "homs_apphome",
+          "har_pageid_type": "compound_root",
+          "method": "loadData",
+          "preserve_l2_page": false,
+          "risk_codes": [],
+          "step_id": "load_apphome",
+          "step_type": "invoke"
+        },
+        {
+          "ac": "loadData",
           "app_id": "haos",
           "expected_pageid_role": "L2",
           "form_id": "haos_adminorgdetail",
@@ -50,6 +62,18 @@
           "preserve_l2_page": true,
           "risk_codes": [],
           "step_id": "load_adminorg",
+          "step_type": "invoke"
+        },
+        {
+          "ac": "loadData",
+          "app_id": "homs",
+          "expected_pageid_role": "L3",
+          "form_id": "bos_card_quicklaunch",
+          "har_pageid_type": "L1_or_L3",
+          "method": "loadData",
+          "preserve_l2_page": false,
+          "risk_codes": [],
+          "step_id": "load_card_quicklaunch",
           "step_type": "invoke"
         },
         {
@@ -123,6 +147,18 @@
           "risk_codes": [],
           "step_id": "open_reviselogpage",
           "step_type": "open_form"
+        },
+        {
+          "ac": "loadData",
+          "app_id": "hbp",
+          "expected_pageid_role": "L3",
+          "form_id": "hbp_reviselogpage",
+          "har_pageid_type": "L1_or_L3",
+          "method": "loadData",
+          "preserve_l2_page": false,
+          "risk_codes": [],
+          "step_id": "load_reviselogpage",
+          "step_type": "invoke"
         },
         {
           "ac": "",
@@ -345,8 +381,8 @@
         "expected_roles": {
           "L1": 1,
           "L2": 8,
-          "L2_or_L3": 8,
-          "L3": 19
+          "L2_or_L3": 5,
+          "L3": 22
         },
         "preserve_l2_steps": 7,
         "risk_counts": {},
@@ -728,6 +764,15 @@
                 ]
               }
             }
+          },
+          {
+            "field_key": "number",
+            "value_shape": {
+              "kind": "template",
+              "tokens": [
+                "${vars.*}"
+              ]
+            }
           }
         ],
         "form_id": "haos_adminorgdetail",
@@ -954,6 +999,16 @@
         "value_shape": {
           "kind": "template",
           "tokens": [
+            "${vars.*}"
+          ]
+        }
+      },
+      {
+        "label": "编号",
+        "name": "test_number",
+        "value_shape": {
+          "kind": "template",
+          "tokens": [
             "${rand:*}"
           ]
         }
@@ -985,7 +1040,8 @@
       "unsupported_steps": 0
     },
     "detected_vars": [
-      "test_name"
+      "test_name",
+      "test_number"
     ],
     "ir_alignment": {
       "grade": "A",
@@ -998,7 +1054,7 @@
       "auto_resolve_pick_count": 5,
       "business_flow_count": 21,
       "business_flow_step_count": 78,
-      "detected_var_count": 1,
+      "detected_var_count": 2,
       "high_env_sensitive_count": 1,
       "pick_field_count": 7,
       "response_signature_step_count": 4
@@ -1033,6 +1089,6 @@
   "schema_version": 1,
   "source_har": "preview_1778835311_新增一条行政组织.har",
   "source_sha256": "70c9ed909e82ebc0c1911fd86a17b3edc0d5eea76894209067603e28cc3826c3",
-  "summary_hash": "0e4afc31d9a51056e0bec41d4c4f13e4cac068c387653d868eb52a783b7ba9de",
+  "summary_hash": "a61d950c845f77a1a66933f741e8299be4353c2b8e81bff88ea7cc0213ef2437",
   "title": "新增一条行政组织"
 }

@@ -84,6 +84,8 @@ def pageid_fragment(value: Any) -> str:
 
 def step_allows_l2_pageid(step: dict[str, Any]) -> bool:
     """Whether this step should keep a menu/list L2 pageId."""
+    if step.get("requires_harvested_l3_page"):
+        return False
     if _is_write_like_step(step):
         return False
     if step.get("preserve_l2_page") is True:
@@ -105,6 +107,8 @@ def expected_pageid_role(step: dict[str, Any]) -> str:
     if stype in _EDIT_STEP_TYPES:
         return "L3"
     if stype == "invoke":
+        if step.get("requires_harvested_l3_page"):
+            return "L3"
         if ac == "loadData" and not step.get("preserve_l2_page"):
             return "L2_or_L3"
         if _is_write_like_step(step):

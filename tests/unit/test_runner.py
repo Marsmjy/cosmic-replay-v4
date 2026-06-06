@@ -1646,11 +1646,82 @@ class TestStepHandlers:
         """invoke处理器已注册"""
         assert "invoke" in STEP_HANDLERS
         assert callable(STEP_HANDLERS["invoke"])
+
+    def test_optional_navigation_load_skips_when_harvested_l3_is_unavailable(self):
+        class FakeReplay:
+            def __init__(self):
+                self.page_ids = {
+                    "hom_wbcalendar": (
+                        "1406359228100269056root"
+                        "8d89f84395564ba5b36513ed7e180167"
+                    ),
+                }
+                self._pending_by_app = {}
+
+            def invoke(self, *args, **kwargs):
+                raise AssertionError("guarded loadData must not use the business L2")
+
+        step = {
+            "id": "load_wbcalendar",
+            "type": "invoke",
+            "form_id": "hom_wbcalendar",
+            "app_id": "hom",
+            "ac": "loadData",
+            "method": "loadData",
+            "requires_harvested_l3_page": True,
+        }
+        ctx = {}
+
+        result = STEP_HANDLERS["invoke"](step, FakeReplay(), ctx)
+
+        assert result[0]["a"] == "syntheticSkip"
+        assert result[0]["p"][0]["runtimePageIdType"] == "L2"
+        assert ctx["pageid_guard_skips"][0]["form_id"] == "hom_wbcalendar"
     
     def test_update_fields_handler_registered(self):
         """update_fields处理器已注册"""
         assert "update_fields" in STEP_HANDLERS
         assert callable(STEP_HANDLERS["update_fields"])
+
+    def test_update_fields_tolerates_only_explicit_locked_field_errors(self):
+        calls = []
+
+        class FakeReplay:
+            def update_fields(self, form_id, app_id, fields, row_index=-1):
+                calls.append((form_id, app_id, fields, row_index))
+                field_key = next(iter(fields))
+                if field_key == "number":
+                    return [{
+                        "a": "ShowNotificationMsg",
+                        "p": [{
+                            "type": 1,
+                            "content": "无法修改锁定字段行政组织编码的值。",
+                        }],
+                    }]
+                return [{"a": "u", "p": [{"k": field_key, "v": fields[field_key]}]}]
+
+        step = {
+            "id": "fill_org_identity",
+            "type": "update_fields",
+            "form_id": "haos_adminorgdetail",
+            "app_id": "haos",
+            "fields": {"number": "AUTO-001", "name": "自动化组织"},
+            "skip_if_locked_fields": ["number"],
+        }
+        ctx = {}
+
+        result = STEP_HANDLERS["update_fields"](step, FakeReplay(), ctx)
+
+        assert calls == [
+            ("haos_adminorgdetail", "haos", {"number": "AUTO-001"}, -1),
+            ("haos_adminorgdetail", "haos", {"name": "自动化组织"}, -1),
+        ]
+        assert result == [{"a": "u", "p": [{"k": "name", "v": "自动化组织"}]}]
+        assert ctx["locked_field_skips"] == [{
+            "step_id": "fill_org_identity",
+            "form_id": "haos_adminorgdetail",
+            "field_key": "number",
+        }]
     
     def test_pick_basedata_handler_registered(self):
         """pick_basedata处理器已注册"""
@@ -1681,6 +1752,37 @@ class TestStepHandlers:
         assert calls == [
             ("khr_hcdm_fapplybill", "hcdm", "khr_upperson", "2381416156917661696", 1)
         ]
+
+    def test_pick_basedata_tolerates_recorded_value_when_target_locks_field(self):
+        class FakeReplay:
+            def pick_basedata(self, form_id, app_id, field_key, value_id, row_index=0):
+                return [{
+                    "a": "ShowNotificationMsg",
+                    "p": [{
+                        "type": 1,
+                        "content": "无法修改锁定字段岗位类型的值。",
+                    }],
+                }]
+
+        step = {
+            "id": "pick_positiontype",
+            "type": "pick_basedata",
+            "form_id": "hbpm_positionhr",
+            "app_id": "hbpm",
+            "field_key": "positiontype",
+            "value_id": "1010",
+            "skip_if_locked": True,
+        }
+        ctx = {}
+
+        result = STEP_HANDLERS["pick_basedata"](step, FakeReplay(), ctx)
+
+        assert result == []
+        assert ctx["locked_field_skips"] == [{
+            "step_id": "pick_positiontype",
+            "form_id": "hbpm_positionhr",
+            "field_key": "positiontype",
+        }]
 
     def test_pick_basedata_handler_uses_value_code_when_var_unresolved(self):
         calls = []

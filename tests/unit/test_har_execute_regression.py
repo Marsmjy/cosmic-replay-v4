@@ -1,4 +1,12 @@
-from scripts.har_execute_regression import _baseline_view, _classify_failure, _compare_baseline
+import json
+from types import SimpleNamespace
+
+from scripts.har_execute_regression import (
+    _baseline_view,
+    _classify_failure,
+    _compare_baseline,
+    _detect_recorded_env,
+)
 
 
 def test_classify_failure_uses_runtime_trace_and_business_validation():
@@ -79,3 +87,56 @@ def test_compare_baseline_flags_execution_regression():
 
     assert diff["status"] == "changed"
     assert {item["path"] for item in diff["diffs"]} >= {"passed", "failure_kind"}
+
+
+def test_detect_recorded_env_uses_har_host_and_base_path(tmp_path):
+    har_path = tmp_path / "sample.har"
+    har_path.write_text(
+        json.dumps({
+            "log": {
+                "entries": [
+                    {
+                        "request": {
+                            "url": (
+                                "https://feature.kingdee.com:1026/"
+                                "feature_sit_hrpro/form/batchInvokeAction.do"
+                            ),
+                        },
+                    },
+                    {
+                        "request": {
+                            "url": (
+                                "https://feature.kingdee.com:1026/"
+                                "feature_sit_hrpro/form/batchInvokeAction.do"
+                            ),
+                        },
+                    },
+                    {
+                        "request": {
+                            "url": "https://cdn.example.test/static/app.js",
+                        },
+                    },
+                ],
+            },
+        }),
+        encoding="utf-8",
+    )
+    envs = [
+        SimpleNamespace(
+            id="sit",
+            name="SIT",
+            base_url="https://feature.kingdee.com:1026/feature_sit_hrpro",
+        ),
+        SimpleNamespace(
+            id="uat",
+            name="UAT",
+            base_url="http://kdhruat.kingdee.com:8022/ierp",
+        ),
+    ]
+
+    detected = _detect_recorded_env(har_path, envs)
+
+    assert detected["status"] == "matched"
+    assert detected["env_id"] == "sit"
+    assert detected["recorded_host"] == "feature.kingdee.com:1026"
+    assert detected["recorded_base_path"] == "feature_sit_hrpro"

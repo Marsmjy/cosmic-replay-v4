@@ -20,16 +20,82 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from lib.config import Config
 from lib.har_extractor import build_yaml_case, preview_har
 
 CONFIRM_TOKEN = "YES_GENERATE_TEST_DATA"
 DEFAULT_HAR_DIR = Path("/Users/mars/Desktop/项目归档/回归专用HAR")
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "tmp" / "har_execute_regression"
 DEFAULT_BASELINE = DEFAULT_OUTPUT_ROOT / "baseline.json"
+
+
+def _normalized_origin(url: str) -> tuple[str, str]:
+    parsed = urlparse(str(url or ""))
+    host = (parsed.hostname or "").lower()
+    port = parsed.port
+    netloc = f"{host}:{port}" if host and port else host
+    first_path = next((part for part in parsed.path.split("/") if part), "")
+    return netloc, first_path.lower()
+
+
+def _recorded_origins(har_path: Path) -> list[dict[str, Any]]:
+    raw = _load_json(har_path)
+    counts: dict[tuple[str, str], int] = {}
+    for entry in ((raw.get("log") or {}).get("entries") or []):
+        url = ((entry.get("request") or {}).get("url") or "")
+        origin = _normalized_origin(url)
+        if origin[0]:
+            counts[origin] = counts.get(origin, 0) + 1
+    return [
+        {"host": host, "base_path": base_path, "request_count": count}
+        for (host, base_path), count in sorted(
+            counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
+    ]
+
+
+def _detect_recorded_env(
+    har_path: Path,
+    envs: list[Any],
+) -> dict[str, Any]:
+    origins = _recorded_origins(har_path)
+    matches: list[tuple[int, str, Any, dict[str, Any]]] = []
+    for origin in origins:
+        for env in envs:
+            env_host, env_path = _normalized_origin(env.base_url)
+            if origin["host"] != env_host:
+                continue
+            score = int(origin["request_count"]) * 10
+            if origin["base_path"] and origin["base_path"] == env_path:
+                score += 5
+            matches.append((score, env.id, env, origin))
+    if not matches:
+        primary = origins[0] if origins else {"host": "", "base_path": "", "request_count": 0}
+        return {
+            "env_id": "",
+            "env_name": "",
+            "base_url": "",
+            "recorded_host": primary["host"],
+            "recorded_base_path": primary["base_path"],
+            "request_count": primary["request_count"],
+            "status": "unmatched",
+        }
+    _, _, env, origin = max(matches, key=lambda item: (item[0], item[1]))
+    return {
+        "env_id": env.id,
+        "env_name": env.name,
+        "base_url": env.base_url,
+        "recorded_host": origin["host"],
+        "recorded_base_path": origin["base_path"],
+        "request_count": origin["request_count"],
+        "status": "matched",
+    }
 
 
 def _safe_filename(value: str, *, max_len: int = 80) -> str:
@@ -97,7 +163,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         "# HAR 执行回归报告",
         "",
         f"- 生成时间：{report.get('generated_at')}",
-        f"- 环境：{report.get('env')}",
+        f"- 环境策略：{report.get('env')}",
         f"- HAR 目录：`{report.get('har_dir')}`",
         f"- 样本数：{report.get('sample_count')}",
         f"- 导入：{report.get('parse_ok')}/{report.get('sample_count')} 成功",
@@ -117,6 +183,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         lines.extend(
             [
                 f"### {item.get('id')} · {item.get('title')}",
+                f"- 录制环境：`{item.get('recorded_env', '')}`（`{item.get('recorded_host', '')}`），执行环境：`{item.get('execution_env', '')}`",
                 f"- 导入：{parse_status}，主表单 `{(item.get('parse') or {}).get('main_form_id', '')}`，步骤 {(item.get('parse') or {}).get('step_count', 0)}",
                 f"- 维护项：vars={(item.get('parse') or {}).get('vars_count', 0)}，pick_fields={(item.get('parse') or {}).get('pick_fields_count', 0)}，field_catalog={(item.get('parse') or {}).get('field_catalog_count', 0)}，unknown={(item.get('parse') or {}).get('unknown_catalog_count', 0)}",
                 f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s",
@@ -299,6 +366,10 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "id": item.get("id", ""),
                 "title": item.get("title", ""),
                 "har_sha256": item.get("har_sha256", ""),
+                "recorded_env": item.get("recorded_env", ""),
+                "recorded_host": item.get("recorded_host", ""),
+                "recorded_base_path": item.get("recorded_base_path", ""),
+                "execution_env": item.get("execution_env", ""),
                 "parse_status": parse.get("status", ""),
                 "main_form_id": parse.get("main_form_id", ""),
                 "step_count": parse.get("step_count", 0),
@@ -349,6 +420,10 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "unknown_catalog_count",
         "business_flow_count",
         "response_signature_step_count",
+        "recorded_env",
+        "recorded_host",
+        "recorded_base_path",
+        "execution_env",
         "execution_status",
         "passed",
         "failure_kind",
@@ -398,6 +473,7 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
     markdown_path = output_dir / "summary.md"
 
     results: list[dict[str, Any]] = []
+    configured_envs = Config().envs
     started = datetime.now()
     for index, har_path in enumerate(har_files, start=1):
         sample_id = _sample_id(index, har_path)
@@ -412,6 +488,32 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
             "case_path": str(case_path),
             "run_path": str(evidence_path),
         }
+        recorded_env = _detect_recorded_env(har_path, configured_envs)
+        execution_env = args.env
+        if args.env == "auto":
+            execution_env = recorded_env["env_id"]
+        result.update({
+            "recorded_env": recorded_env["env_id"],
+            "recorded_env_name": recorded_env["env_name"],
+            "recorded_host": recorded_env["recorded_host"],
+            "recorded_base_path": recorded_env["recorded_base_path"],
+            "recorded_env_status": recorded_env["status"],
+            "execution_env": execution_env,
+        })
+        if not execution_env:
+            result["parse"] = {
+                "status": "error",
+                "error": (
+                    "Unable to map HAR origin "
+                    f"{recorded_env['recorded_host']}/{recorded_env['recorded_base_path']} "
+                    "to a configured environment"
+                ),
+            }
+            result["execution"] = {"status": "import_failed", "passed": False}
+            result["failure_kind"] = "import_failed"
+            results.append(result)
+            print(f"  -> IMPORT FAIL {result['parse']['error']}")
+            continue
         print(f"[{index}/{len(har_files)}] import {title}")
         try:
             preview = preview_har(har_path)
@@ -449,7 +551,7 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
             result["execution"] = _run_smoke(
                 case_path,
                 evidence_path,
-                env_id=args.env,
+                env_id=execution_env,
                 timeout_s=args.timeout,
             )
         result["failure_kind"] = _classify_failure(result)
@@ -504,7 +606,11 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--har-dir", type=Path, default=DEFAULT_HAR_DIR)
-    parser.add_argument("--env", default="uat")
+    parser.add_argument(
+        "--env",
+        default="auto",
+        help="Execution environment id, or 'auto' to match each HAR's recorded origin.",
+    )
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--run-id", default="")
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
