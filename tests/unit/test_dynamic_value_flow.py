@@ -180,6 +180,39 @@ def test_dynamic_value_flow_warns_when_confirm_callback_has_no_runtime_producer(
     )
 
 
+def test_dynamic_value_flow_uses_recorded_exact_pageid_source_without_raw_value():
+    case = {
+        "steps": [
+            {
+                "id": "open_detail",
+                "type": "invoke",
+                "form_id": "list_form",
+                "app_id": "demo",
+                "ac": "entryRowClick",
+            },
+            {
+                "id": "load_detail",
+                "type": "invoke",
+                "form_id": "detail_form",
+                "app_id": "demo",
+                "ac": "loadData",
+                "recorded_pageid_type": "L1_or_L3",
+                "recorded_pageid_source_step_id": "open_detail",
+                "recorded_pageid_source_kind": "showForm",
+                "recorded_pageid_source_retained": True,
+            },
+        ]
+    }
+
+    flow = build_dynamic_value_flow(case)
+
+    assert {
+        (edge["kind"], edge["producer_step_id"], edge["consumer_step_id"])
+        for edge in flow["edges"]
+    } >= {("page_id", "open_detail", "load_detail")}
+    assert flow["raw_values_included"] is False
+
+
 def test_dynamic_value_flow_links_upload_file_event_to_runtime_upload_consumer():
     case = {
         "steps": [

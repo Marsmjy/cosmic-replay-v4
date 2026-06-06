@@ -132,6 +132,9 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         for step in preview.get("steps") or []
         if isinstance(step, dict) and step.get("response_signature")
     )
+    recorded_pageid_summary = (
+        (preview.get("recorded_pageid_flow") or {}).get("summary") or {}
+    )
     return {
         "status": "ok",
         "main_form_id": preview.get("main_form_id", ""),
@@ -144,6 +147,10 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "panel_counts": _count_by(fields, "panel"),
         "business_flow_count": len(preview.get("business_flow") or []),
         "response_signature_step_count": response_signature_steps,
+        "recorded_pageid_exact_link_count": recorded_pageid_summary.get("exact_link_count", 0),
+        "recorded_pageid_external_root_count": recorded_pageid_summary.get("external_root_count", 0),
+        "recorded_pageid_filtered_source_count": recorded_pageid_summary.get("filtered_source_count", 0),
+        "recorded_pageid_cross_form_count": recorded_pageid_summary.get("cross_form_count", 0),
         "pageid_risk_level": ((preview.get("pageid_alignment") or {}).get("risk_level") or ""),
         "ir_risk_level": ((preview.get("ir_alignment") or {}).get("risk_level") or ""),
     }
@@ -186,6 +193,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- 录制环境：`{item.get('recorded_env', '')}`（`{item.get('recorded_host', '')}`），执行环境：`{item.get('execution_env', '')}`",
                 f"- 导入：{parse_status}，主表单 `{(item.get('parse') or {}).get('main_form_id', '')}`，步骤 {(item.get('parse') or {}).get('step_count', 0)}",
                 f"- 维护项：vars={(item.get('parse') or {}).get('vars_count', 0)}，pick_fields={(item.get('parse') or {}).get('pick_fields_count', 0)}，field_catalog={(item.get('parse') or {}).get('field_catalog_count', 0)}，unknown={(item.get('parse') or {}).get('unknown_catalog_count', 0)}",
+                f"- pageId 精确链路：links={(item.get('parse') or {}).get('recorded_pageid_exact_link_count', 0)}，external={(item.get('parse') or {}).get('recorded_pageid_external_root_count', 0)}，filtered={(item.get('parse') or {}).get('recorded_pageid_filtered_source_count', 0)}，cross_form={(item.get('parse') or {}).get('recorded_pageid_cross_form_count', 0)}",
                 f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s",
             ]
         )
@@ -379,6 +387,10 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "unknown_catalog_count": parse.get("unknown_catalog_count", 0),
                 "business_flow_count": parse.get("business_flow_count", 0),
                 "response_signature_step_count": parse.get("response_signature_step_count", 0),
+                "recorded_pageid_exact_link_count": parse.get("recorded_pageid_exact_link_count", 0),
+                "recorded_pageid_external_root_count": parse.get("recorded_pageid_external_root_count", 0),
+                "recorded_pageid_filtered_source_count": parse.get("recorded_pageid_filtered_source_count", 0),
+                "recorded_pageid_cross_form_count": parse.get("recorded_pageid_cross_form_count", 0),
                 "execution_status": execution.get("status", ""),
                 "passed": bool(execution.get("passed")),
                 "failure_kind": item.get("failure_kind", ""),
@@ -420,6 +432,10 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "unknown_catalog_count",
         "business_flow_count",
         "response_signature_step_count",
+        "recorded_pageid_exact_link_count",
+        "recorded_pageid_external_root_count",
+        "recorded_pageid_filtered_source_count",
+        "recorded_pageid_cross_form_count",
         "recorded_env",
         "recorded_host",
         "recorded_base_path",

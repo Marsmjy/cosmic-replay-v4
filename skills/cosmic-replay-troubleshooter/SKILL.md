@@ -62,6 +62,8 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 7. HAR 预览中的 `business_flow` 是 SAZ 事务分组思想的 Cosmic 版本：按录制顺序展示每段业务链路的步骤数、输入/写入步骤、L2/L3 角色和可维护字段数量。若用户看不懂长 HAR，先用 `business_flow` 判断哪段链路负责字段维护、哪段负责保存/提交/审批，再回到字段面板维护值。
 8. `response_signature` 摘要表示录制时关键响应的语义锚点，例如“期望成功响应 / 期望 showForm / 期望字段回填 N 项”。运行时若报 `[ResponseSemantic]`，优先比较录制语义与运行语义差异，不要只看 HTTP 200 或最终 PASS。
 9. `scripts/har_regression_report.py compare --fail-on-diff` 的 baseline 已纳入可维护字段数、业务链路数、响应语义锚点、pageId 对齐风险和 IR 风险。批量导入优化后必须跑该报告；若新增字段/链路是有意改进，先更新 baseline，再确认 diff 为 0。
+10. 导入阶段会按 SAZ 的精确关联思想，把 HAR 请求中的 pageId 与更早响应里的同值 pageId 匹配。生成 YAML 使用 `recorded_pageid_source_step_id`、`recorded_pageid_source_kind`、`recorded_pageid_source_retained` 保存脱敏来源；预览使用 `recorded_pageid_flow` 展示精确边、外部根、关闭后复用和跨表单计数。这里绝不能保存真实 pageId。
+11. `recorded_pageid_source_retained=false` 只是“原生产者在清理后未保留”的诊断信号，不可直接判失败。浏览器 `clientCallBack` 可能无法协议回放：可选卡片应使用 `requires_harvested_l3_page`，核心表单则结合 `open_form/showForm/pending L3` 和真实执行 trace 判断。只有跨表单精确关联、关闭后继续复用旧窗口，或真实编辑/保存最终仍用 L2 时才升级为修复项。
 
 ## 一、整体防护架构
 

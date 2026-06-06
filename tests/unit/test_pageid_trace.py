@@ -1,8 +1,10 @@
 from lib.pageid_trace import (
+    annotate_recorded_pageid_sources,
     build_pageid_trace,
     classify_pageid,
     compact_pageid_trace,
     expected_pageid_role,
+    finalize_recorded_pageid_source_retention,
     step_allows_l2_pageid,
 )
 
@@ -95,3 +97,78 @@ def test_build_pageid_trace_merges_runtime_events_and_compacts_fragments():
     assert trace["steps"][0]["runtime_pageid_type"] == "L2"
     assert "runtime_l2_used_for_l3_step" in trace["steps"][0]["risk_codes"]
     assert "runtime_pageid_fragment" not in compact["steps"][0]
+
+
+def test_recorded_pageid_source_annotation_is_exact_and_value_safe():
+    page_id = "c" * 32
+    steps = [
+        {
+            "id": "open_detail",
+            "type": "invoke",
+            "form_id": "list_form",
+            "app_id": "demo",
+            "ac": "entryRowClick",
+            "_har_index": 10,
+            "_resp_text": (
+                '[{"a":"showForm","p":[{"formId":"detail_form",'
+                f'"pageId":"{page_id}"'
+                "}]}]"
+            ),
+        },
+        {
+            "id": "load_detail",
+            "type": "invoke",
+            "form_id": "detail_form",
+            "app_id": "demo",
+            "ac": "loadData",
+            "_har_index": 11,
+            "_har_page_id": page_id,
+        },
+    ]
+
+    annotate_recorded_pageid_sources(steps)
+    finalize_recorded_pageid_source_retention(steps)
+    trace = build_pageid_trace({"steps": steps})
+    compact = compact_pageid_trace(trace)
+
+    assert steps[1]["recorded_pageid_source_step_id"] == "open_detail"
+    assert steps[1]["recorded_pageid_source_kind"] == "showForm"
+    assert steps[1]["recorded_pageid_source_form_match"] is True
+    assert steps[1]["recorded_pageid_source_retained"] is True
+    assert trace["steps"][1]["recorded_pageid_source_step_id"] == "open_detail"
+    assert page_id not in str(compact)
+
+
+def test_recorded_pageid_source_marks_filtered_producer():
+    page_id = "d" * 32
+    steps = [
+        {
+            "id": "client_callback",
+            "type": "invoke",
+            "form_id": "home",
+            "app_id": "demo",
+            "ac": "clientCallBack",
+            "_tier": "noise",
+            "_har_index": 20,
+            "_resp_text": (
+                '[{"a":"showForm","p":[{"formId":"card_form",'
+                f'"pageId":"{page_id}"'
+                "}]}]"
+            ),
+        },
+        {
+            "id": "load_card",
+            "type": "invoke",
+            "form_id": "card_form",
+            "app_id": "demo",
+            "ac": "loadData",
+            "_tier": "core",
+            "_har_index": 21,
+            "_har_page_id": page_id,
+        },
+    ]
+
+    annotate_recorded_pageid_sources(steps)
+    finalize_recorded_pageid_source_retention(steps, excluded_tiers={"noise"})
+
+    assert steps[1]["recorded_pageid_source_retained"] is False

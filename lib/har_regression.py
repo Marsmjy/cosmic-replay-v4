@@ -122,6 +122,8 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
     components = preview.get("components") or {}
     component_summary = components.get("summary") or {}
     pageid_alignment = preview.get("pageid_alignment") or {}
+    recorded_pageid_flow = preview.get("recorded_pageid_flow") or {}
+    recorded_pageid_summary = recorded_pageid_flow.get("summary") or {}
     ir_alignment = preview.get("ir_alignment") or {}
     ir_preview = preview.get("ir_preview") or {}
     detected_vars = preview.get("detected_vars") or []
@@ -186,6 +188,11 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
             "preserve_l2_count": (
                 pageid_alignment.get("checks") or {}
             ).get("preview_l2_preserve_count", 0),
+            "recorded_exact_link_count": recorded_pageid_summary.get("exact_link_count", 0),
+            "recorded_external_root_count": recorded_pageid_summary.get("external_root_count", 0),
+            "recorded_reuse_after_close_count": recorded_pageid_summary.get("reuse_after_close_count", 0),
+            "recorded_cross_form_count": recorded_pageid_summary.get("cross_form_count", 0),
+            "recorded_filtered_source_count": recorded_pageid_summary.get("filtered_source_count", 0),
         },
         "ir_alignment": {
             "grade": ir_alignment.get("grade", ""),

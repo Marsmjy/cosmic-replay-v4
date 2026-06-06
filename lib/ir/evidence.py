@@ -51,6 +51,9 @@ def build_case_ir_summary(
             "har_pageid_type": trace.get("har_pageid_type", ""),
             "runtime_pageid_type": trace.get("runtime_pageid_type", ""),
             "preserve_l2_page": bool(step.get("preserve_l2_page")),
+            "recorded_pageid_source_step_id": step.get("recorded_pageid_source_step_id", ""),
+            "recorded_pageid_source_kind": step.get("recorded_pageid_source_kind", ""),
+            "recorded_pageid_source_retained": step.get("recorded_pageid_source_retained"),
             "target_forms": list(step.get("target_forms") or [])[:12],
             "risk_codes": trace.get("risk_codes", []),
         })

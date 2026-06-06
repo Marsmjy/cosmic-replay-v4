@@ -27,6 +27,10 @@ _PAGEID_RISK_PENALTIES = {
     "pending_l2_for_l3_step": 12,
     "write_anchor_uses_l2_pageid": 24,
     "showform_billformid_not_followed": 10,
+    "recorded_pageid_producer_filtered": 20,
+    "recorded_pageid_source_form_mismatch": 20,
+    "pageid_producer_consumer_form_mismatch": 20,
+    "pageid_reused_after_close": 24,
 }
 
 _PERSISTENCE_ACS = {
@@ -189,7 +193,14 @@ def _pageid_issues(
             "suggestion": "确认 HAR 是否包含 batchInvokeAction/pageId；若只录到静态资源，需要重新录制。",
         })
     for code, count in sorted(risks.items()):
-        severity = "high" if code in {"har_l2_on_l3_step", "write_anchor_uses_l2_pageid"} else "medium"
+        severity = "high" if code in {
+            "har_l2_on_l3_step",
+            "write_anchor_uses_l2_pageid",
+            "recorded_pageid_producer_filtered",
+            "recorded_pageid_source_form_mismatch",
+            "pageid_producer_consumer_form_mismatch",
+            "pageid_reused_after_close",
+        } else "medium"
         issues.append({
             "severity": severity,
             "code": code,
@@ -385,6 +396,10 @@ def _pageid_issue_message(code: str, count: int) -> str:
         "write_anchor_uses_l2_pageid": "HAR 链路中写入锚点疑似使用 L2 pageId。",
         "showform_billformid_not_followed": "showForm 的 billFormId 后续未被请求跟随。",
         "runtime_l3_used_for_l2_step": "列表/树/工具栏步骤可能过早切到 L3。",
+        "recorded_pageid_producer_filtered": "HAR 中产生该 pageId 的前置请求在生成 YAML 时被过滤。",
+        "recorded_pageid_source_form_mismatch": "HAR 中 pageId 生产者与消费者的表单作用域不一致。",
+        "pageid_producer_consumer_form_mismatch": "HAR 原始 pageId 精确关联跨越了不匹配的表单作用域。",
+        "pageid_reused_after_close": "HAR 在关闭窗口后仍继续使用同一个 pageId。",
     }
     return f"{messages.get(code, '发现 pageId 链路风险。')}（{count} 处）"
 
@@ -396,6 +411,10 @@ def _pageid_issue_suggestion(code: str) -> str:
         "write_anchor_uses_l2_pageid": "优先比对原始 HAR 与回放 trace，不要通过硬补 save.post_data 绕过。",
         "showform_billformid_not_followed": "检查 showForm/billFormId 别名绑定和 target_forms 是否完整。",
         "runtime_l3_used_for_l2_step": "列表/树/工具栏动作应继续保留 L2，避免影响 addnew 前置上下文。",
+        "recorded_pageid_producer_filtered": "保留产生 L3 的 showForm/addVirtualTab/clientCallBack 前置步骤，或为可选导航步骤设置 harvested L3 守卫。",
+        "recorded_pageid_source_form_mismatch": "按 showForm 的 formId/billFormId 重新绑定消费者，避免跨表单复用 L3。",
+        "pageid_producer_consumer_form_mismatch": "检查 showForm/formId/billFormId 别名和 target_forms，确保 pageId 只进入对应表单。",
+        "pageid_reused_after_close": "关闭弹窗后必须等待新的 showForm pageId，不能复用已关闭窗口的旧值。",
     }
     return suggestions.get(code, "优先检查 pageId 链路，再看字段解析和断言。")
 

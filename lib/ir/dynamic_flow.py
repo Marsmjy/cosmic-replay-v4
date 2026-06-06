@@ -9,7 +9,7 @@ import json
 from collections import Counter, defaultdict
 from typing import Any
 
-from lib.pageid_trace import classify_pageid
+from lib.pageid_trace import classify_pageid, expected_pageid_role
 
 
 CRITICAL_KINDS = {"billno", "confirm_callback", "task_row", "upload_url"}
@@ -34,6 +34,11 @@ def build_dynamic_value_flow(
         case = {}
     run_events = run_events or []
     step_order = _step_order(case)
+    steps_by_id = {
+        _step_id(step, index): step
+        for index, step in enumerate(case.get("steps") or [])
+        if isinstance(step, dict)
+    }
 
     producers: list[dict[str, Any]] = []
     consumers: list[dict[str, Any]] = []
@@ -44,6 +49,46 @@ def build_dynamic_value_flow(
             continue
         sid = _step_id(step, index)
         order = step_order.get(sid, index * 100)
+        recorded_source = str(step.get("recorded_pageid_source_step_id") or "")
+        if recorded_source:
+            source_step = steps_by_id.get(recorded_source) or {}
+            har_type = classify_pageid(step.get("_har_page_id"))
+            if har_type == "missing":
+                har_type = str(step.get("recorded_pageid_type") or "missing")
+            _append_node(
+                producers,
+                seen,
+                role="producer",
+                kind="page_id",
+                step_id=recorded_source,
+                order=step_order.get(recorded_source, max(0, order - 1)),
+                source="recorded_har_response",
+                confidence="high",
+                step=source_step,
+                extra={
+                    "pageid_types": {har_type: 1},
+                    "recorded_source_step_id": recorded_source,
+                    "producer_kind": step.get("recorded_pageid_source_kind", ""),
+                    "source_retained": step.get("recorded_pageid_source_retained"),
+                },
+            )
+            _append_node(
+                consumers,
+                seen,
+                role="consumer",
+                kind="page_id",
+                step_id=sid,
+                order=order,
+                source="recorded_har_request",
+                confidence="high",
+                step=step,
+                extra={
+                    "runtime_pageid_type": har_type,
+                    "expected_pageid_role": expected_pageid_role(step),
+                    "recorded_source_step_id": recorded_source,
+                    "source_retained": step.get("recorded_pageid_source_retained"),
+                },
+            )
         for kind in _kinds_from_step(step):
             _append_node(
                 consumers,
@@ -394,6 +439,11 @@ def _pageid_edge(candidates: list[dict[str, Any]], consumer: dict[str, Any]) -> 
 
 def _pageid_match_score(producer: dict[str, Any], consumer: dict[str, Any]) -> int:
     score = 0
+    if (
+        consumer.get("recorded_source_step_id")
+        and consumer.get("recorded_source_step_id") == producer.get("step_id")
+    ):
+        score += 10
     consumer_type = str(consumer.get("runtime_pageid_type") or "")
     expected_role = str(consumer.get("expected_pageid_role") or "")
     producer_types = producer.get("pageid_types") if isinstance(producer.get("pageid_types"), dict) else {}

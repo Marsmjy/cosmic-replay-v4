@@ -37,7 +37,11 @@ from lib.response_signature import (
     is_meaningful_response_text,
     summarize_response_signature,
 )
-from lib.pageid_trace import expected_pageid_role
+from lib.pageid_trace import (
+    annotate_recorded_pageid_sources,
+    expected_pageid_role,
+    finalize_recorded_pageid_source_retention,
+)
 
 
 # ---------- 常量 ----------
@@ -5720,6 +5724,7 @@ def build_yaml_case(
     raw_steps = collapse_repeated_polling_steps(raw_steps)
     raw_steps = insert_workflow_task_wait_steps(raw_steps)
     raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
+    raw_steps = annotate_recorded_pageid_sources(raw_steps)
 
     # ⭐ 规则2：session pageId 动态化（selectTab args 中的 root{32hex} → ${session.root_base_id}）
     raw_steps = dynamize_session_pageids(raw_steps)
@@ -6075,6 +6080,8 @@ def build_yaml_case(
     _mark_recorded_business_validations(cleaned)
     _attach_expected_response_signatures(cleaned)
     cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
+    cleaned = annotate_recorded_pageid_sources(cleaned)
+    cleaned = finalize_recorded_pageid_source_retention(cleaned)
 
     # 抽 vars
     _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
@@ -6597,6 +6604,11 @@ def build_yaml_case(
                   "expected_response_signature",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
                   "requires_harvested_l3_page",
+                  "recorded_pageid_source_step_id",
+                  "recorded_pageid_type",
+                  "recorded_pageid_source_kind",
+                  "recorded_pageid_source_form_match",
+                  "recorded_pageid_source_retained",
                   "prefetch_lookup", "prefetch_lookup_args",
                   "skip_if_locked", "skip_if_locked_fields",
                   "skip_replay", "skip_reason",
@@ -6801,6 +6813,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     raw_steps = collapse_repeated_polling_steps(raw_steps)
     raw_steps = insert_workflow_task_wait_steps(raw_steps)
     raw_steps = _drop_locked_update_fields(raw_steps, field_observations)
+    raw_steps = annotate_recorded_pageid_sources(raw_steps)
 
     by_tier = {"core": 0, "ui_reaction": 0, "noise": 0}
     for s in raw_steps:
@@ -6831,6 +6844,11 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     _dedupe_step_ids(preview_steps)
     _attach_expected_response_signatures(preview_steps)
     preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)
+    preview_steps = annotate_recorded_pageid_sources(preview_steps)
+    preview_steps = finalize_recorded_pageid_source_retention(
+        preview_steps,
+        excluded_tiers={"noise"},
+    )
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)
@@ -7331,6 +7349,25 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     except Exception as e:
         log.warning("HAR 链路画像失败（非致命）: %s", e)
         har_probe = {}
+    recorded_pageid_flow = {
+        "summary": {
+            "exact_link_count": int((har_probe.get("summary") or {}).get("pageid_exact_link_count") or 0),
+            "external_root_count": int((har_probe.get("summary") or {}).get("pageid_external_root_count") or 0),
+            "reuse_after_close_count": int((har_probe.get("summary") or {}).get("pageid_reuse_after_close_count") or 0),
+            "cross_form_count": int((har_probe.get("summary") or {}).get("pageid_cross_form_count") or 0),
+            "filtered_source_count": sum(
+                1
+                for step in preview_steps
+                if step.get("recorded_pageid_source_retained") is False
+            ),
+        },
+        "links": list(((har_probe.get("links") or {}).get("pageid_flows") or [])[:80]),
+        "risks": [
+            item
+            for item in (har_probe.get("risks") or [])
+            if str(item.get("code") or "").startswith("pageid_")
+        ][:80],
+    }
     try:
         from lib.har_preflight import assess_pageid_alignment
         pageid_alignment = assess_pageid_alignment(preview_copy, har_probe=har_probe)
@@ -7389,6 +7426,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "readback_plan": _build_preview_readback_plan(main_form, var_items),
         "components": component_report,
         "pageid_alignment": pageid_alignment,
+        "recorded_pageid_flow": recorded_pageid_flow,
         "ir_preview": ir_preview,
         "ir_alignment": ir_alignment,
         "steps": [

@@ -14,7 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from lib.har_extractor import is_business_request, load_har
-from lib.pageid_trace import classify_pageid, expected_pageid_role, pageid_fragment
+from lib.pageid_trace import (
+    classify_pageid,
+    expected_pageid_role,
+    extract_response_pageid_closures,
+    extract_response_pageid_producers,
+    pageid_fragment,
+)
 
 SCHEMA_VERSION = 1
 _WRITE_ACS = {"save", "submit", "saveandeffect", "submitandeffect", "saveandaudit"}
@@ -37,7 +43,7 @@ def probe_har_chain(path: Path | str, *, include_fragments: bool = False) -> dic
         "links": links,
         "risks": risks,
         "lessons": lessons,
-        "events": events,
+        "events": [_public_event(event) for event in events],
         "value_safety": {
             "stores_pageid_fragments": include_fragments,
             "stores_request_values": False,
@@ -121,6 +127,7 @@ def _extract_events(har: dict[str, Any], *, include_fragments: bool) -> list[dic
                     "method": method,
                     "key": key,
                     "pageid_type": classify_pageid(page_id),
+                    "_request_page_id": page_id,
                     "pageid_fragment": pageid_fragment(page_id) if include_fragments else "",
                     "expected_pageid_role": expected_pageid_role(step),
                     "response": _extract_response_features(entry),
@@ -145,6 +152,7 @@ def _extract_events(har: dict[str, Any], *, include_fragments: bool) -> list[dic
                 "method": "getConfig",
                 "key": "",
                 "pageid_type": "missing",
+                "_request_page_id": "",
                 "pageid_fragment": "",
                 "expected_pageid_role": "L3",
                 "response": response_features,
@@ -172,6 +180,8 @@ def _extract_response_features(entry: dict[str, Any]) -> dict[str, Any]:
         return _finalize_features(_empty_features())
     features = _empty_features()
     _walk_response(data, features)
+    features["_pageid_producers"] = extract_response_pageid_producers(data)
+    features["_pageid_closures"] = extract_response_pageid_closures(data)
     return _finalize_features(features)
 
 
@@ -184,6 +194,8 @@ def _empty_features() -> dict[str, Any]:
         "default_context_fields": [],
         "updated_keys": set(),
         "notifications": [],
+        "_pageid_producers": [],
+        "_pageid_closures": [],
     }
 
 
@@ -283,8 +295,55 @@ def _build_links(events: list[dict[str, Any]]) -> dict[str, Any]:
     showform_aliases = []
     write_anchors = []
     default_contexts = []
+    pageid_flows = []
+    pageid_external_roots = []
+    pageid_reuse_after_close = []
+    pageid_cross_form = []
+    pageid_producers: dict[str, dict[str, Any]] = {}
+    closed_pageids: dict[str, dict[str, Any]] = {}
+    external_pageids: set[str] = set()
 
     for idx, event in enumerate(events):
+        request_page_id = str(event.get("_request_page_id") or "")
+        if request_page_id:
+            producer = pageid_producers.get(request_page_id)
+            if producer and producer.get("har_index") != event.get("har_index"):
+                producer_forms = list(producer.get("form_ids") or [])
+                consumer_form = str(event.get("form_id") or "")
+                form_scope_match = not producer_forms or consumer_form in set(producer_forms)
+                flow = {
+                    "producer_event": producer.get("event_id", ""),
+                    "consumer_event": event.get("event_id", ""),
+                    "producer_kind": producer.get("producer_kind", ""),
+                    "pageid_type": event.get("pageid_type", ""),
+                    "producer_forms": producer_forms,
+                    "consumer_form": consumer_form,
+                    "form_scope_match": form_scope_match,
+                    "consumer_har_index": event.get("har_index"),
+                    "consumer_action_index": event.get("action_index"),
+                }
+                pageid_flows.append(flow)
+                if not form_scope_match:
+                    pageid_cross_form.append(flow)
+            elif producer is None and request_page_id not in external_pageids:
+                external_pageids.add(request_page_id)
+                pageid_external_roots.append({
+                    "consumer_event": event.get("event_id", ""),
+                    "pageid_type": event.get("pageid_type", ""),
+                    "consumer_form": event.get("form_id", ""),
+                    "consumer_har_index": event.get("har_index"),
+                })
+
+            closed_by = closed_pageids.get(request_page_id)
+            if closed_by and closed_by.get("har_index") != event.get("har_index"):
+                pageid_reuse_after_close.append({
+                    "closed_by_event": closed_by.get("event_id", ""),
+                    "consumer_event": event.get("event_id", ""),
+                    "pageid_type": event.get("pageid_type", ""),
+                    "consumer_form": event.get("form_id", ""),
+                    "consumer_har_index": event.get("har_index"),
+                })
+
         if event["method"] == "setItemByIdFromClient":
             prefetch = _find_previous_lookup(events, idx, event)
             if prefetch:
@@ -339,12 +398,32 @@ def _build_links(events: list[dict[str, Any]]) -> dict[str, Any]:
                     "future_request_event": (future_use or {}).get("event_id", ""),
                 })
 
+        response = event.get("response") or {}
+        for producer in response.get("_pageid_producers") or []:
+            pageid = str(producer.get("page_id") or "")
+            if pageid:
+                pageid_producers[pageid] = {
+                    **producer,
+                    "event_id": event.get("event_id", ""),
+                    "har_index": event.get("har_index"),
+                }
+                closed_pageids.pop(pageid, None)
+        for pageid in response.get("_pageid_closures") or []:
+            closed_pageids[str(pageid)] = {
+                "event_id": str(event.get("event_id") or ""),
+                "har_index": event.get("har_index"),
+            }
+
     return {
         "lookup_prefetches": lookup_prefetches,
         "set_items_without_prefetch": set_items_without_prefetch,
         "showform_aliases": showform_aliases,
         "write_anchors": write_anchors,
         "default_contexts": default_contexts,
+        "pageid_flows": pageid_flows,
+        "pageid_external_roots": pageid_external_roots,
+        "pageid_reuse_after_close": pageid_reuse_after_close,
+        "pageid_cross_form": pageid_cross_form,
     }
 
 
@@ -401,6 +480,14 @@ def _build_risks(events: list[dict[str, Any]], links: dict[str, Any]) -> list[di
                 "form_id": event.get("form_id", ""),
                 "field_key": event.get("key", ""),
             })
+    for item in links["pageid_cross_form"]:
+        risks.append({
+            "code": "pageid_producer_consumer_form_mismatch",
+            "severity": "high",
+            "event_id": item.get("consumer_event", ""),
+            "form_id": item.get("consumer_form", ""),
+            "field_key": item.get("producer_event", ""),
+        })
     return risks
 
 
@@ -426,6 +513,11 @@ def _build_lessons(events: list[dict[str, Any]], links: dict[str, Any], risks: l
             "code": "write_anchor_present",
             "detail": "HAR has save/submit/confirm anchors; write smoke can reuse generated YAML with explicit confirmation.",
         })
+    if links["pageid_flows"]:
+        lessons.append({
+            "code": "exact_pageid_producer_consumer_flow",
+            "detail": "Recorded request pageIds are linked to the exact earlier response that produced them; generated YAML should preserve that producer before its consumers.",
+        })
     if any(risk.get("code") == "write_anchor_uses_l2_pageid" for risk in risks):
         lessons.append({
             "code": "write_l2_mismatch",
@@ -446,5 +538,25 @@ def _build_summary(events: list[dict[str, Any]], links: dict[str, Any], risks: l
         "showform_alias_count": len(links["showform_aliases"]),
         "write_anchor_count": len(links["write_anchors"]),
         "default_context_count": len(links["default_contexts"]),
+        "pageid_exact_link_count": len(links["pageid_flows"]),
+        "pageid_external_root_count": len(links["pageid_external_roots"]),
+        "pageid_reuse_after_close_count": len(links["pageid_reuse_after_close"]),
+        "pageid_cross_form_count": len(links["pageid_cross_form"]),
         "risk_counts": dict(Counter(item.get("code", "") for item in risks)),
     }
+
+
+def _public_event(event: dict[str, Any]) -> dict[str, Any]:
+    public = {
+        key: value
+        for key, value in event.items()
+        if not str(key).startswith("_")
+    }
+    response = public.get("response")
+    if isinstance(response, dict):
+        public["response"] = {
+            key: value
+            for key, value in response.items()
+            if not str(key).startswith("_")
+        }
+    return public

@@ -7,6 +7,7 @@ session identifiers.
 """
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -82,6 +83,213 @@ def pageid_fragment(value: Any) -> str:
     return f"{pid[:14]}...{pid[-8:]}"
 
 
+def extract_response_pageid_producers(response: Any) -> list[dict[str, Any]]:
+    """Extract exact recorded pageId producers for in-memory correlation.
+
+    Returned ``page_id`` values are internal-only. Callers must strip them
+    before writing reports, YAML, baselines, or evidence packages.
+    """
+    if isinstance(response, str):
+        try:
+            response = json.loads(response)
+        except Exception:
+            return []
+
+    producers: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, tuple[str, ...], str]] = set()
+
+    def append(page_id: Any, *, kind: str, forms: list[Any] | None = None, app_id: Any = "") -> None:
+        pid = str(page_id or "").strip()
+        if classify_pageid(pid) in {"missing", "unknown"}:
+            return
+        form_ids = tuple(sorted({
+            str(form or "").strip()
+            for form in (forms or [])
+            if str(form or "").strip()
+        }))
+        app = str(app_id or "").strip()
+        key = (pid, kind, form_ids, app)
+        if key in seen:
+            return
+        seen.add(key)
+        producers.append({
+            "page_id": pid,
+            "pageid_type": classify_pageid(pid),
+            "producer_kind": kind,
+            "form_ids": list(form_ids),
+            "app_id": app,
+        })
+
+    def walk(obj: Any) -> None:
+        if isinstance(obj, list):
+            for item in obj:
+                walk(item)
+            return
+        if not isinstance(obj, dict):
+            return
+
+        action = str(obj.get("a") or "")
+        if action == "showForm":
+            for item in obj.get("p") or []:
+                if not isinstance(item, dict):
+                    continue
+                append(
+                    item.get("pageId"),
+                    kind="showForm",
+                    forms=[item.get("formId"), item.get("billFormId")],
+                    app_id=item.get("appId"),
+                )
+
+        method = str(obj.get("methodname") or obj.get("methodName") or "")
+        if method == "addVirtualTab":
+            for item in obj.get("args") or []:
+                if not isinstance(item, dict):
+                    continue
+                append(
+                    item.get("pageId"),
+                    kind="addVirtualTab",
+                    forms=[item.get("formId"), item.get("billFormId")],
+                    app_id=item.get("appId"),
+                )
+
+        if "pageId" in obj and action != "showForm" and method != "addVirtualTab":
+            append(
+                obj.get("pageId"),
+                kind="responsePageId",
+                forms=[obj.get("formId"), obj.get("billFormId")],
+                app_id=obj.get("appId"),
+            )
+
+        for value in obj.values():
+            if isinstance(value, (dict, list)):
+                walk(value)
+
+    walk(response)
+    priority = {"showForm": 3, "addVirtualTab": 2, "responsePageId": 1}
+    best_by_pageid: dict[str, dict[str, Any]] = {}
+    for producer in producers:
+        page_id = producer["page_id"]
+        current = best_by_pageid.get(page_id)
+        if (
+            current is None
+            or priority.get(producer["producer_kind"], 0)
+            > priority.get(current["producer_kind"], 0)
+        ):
+            best_by_pageid[page_id] = producer
+    return list(best_by_pageid.values())
+
+
+def extract_response_pageid_closures(response: Any) -> list[str]:
+    """Return exact pageIds explicitly closed by a recorded response."""
+    if isinstance(response, str):
+        try:
+            response = json.loads(response)
+        except Exception:
+            return []
+    closed: list[str] = []
+
+    def walk(obj: Any) -> None:
+        if isinstance(obj, list):
+            for item in obj:
+                walk(item)
+            return
+        if not isinstance(obj, dict):
+            return
+        if obj.get("a") == "closeWindow":
+            for item in obj.get("p") or []:
+                if not isinstance(item, dict):
+                    continue
+                pid = str(item.get("pageId") or "").strip()
+                if classify_pageid(pid) not in {"missing", "unknown"} and pid not in closed:
+                    closed.append(pid)
+        for value in obj.values():
+            if isinstance(value, (dict, list)):
+                walk(value)
+
+    walk(response)
+    return closed
+
+
+def annotate_recorded_pageid_sources(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach value-safe exact HAR pageId producer metadata to generated steps."""
+    producers: dict[str, dict[str, Any]] = {}
+    index = 0
+    while index < len(steps):
+        har_index = steps[index].get("_har_index")
+        group_end = index + 1
+        while (
+            group_end < len(steps)
+            and har_index is not None
+            and steps[group_end].get("_har_index") == har_index
+        ):
+            group_end += 1
+        group = steps[index:group_end]
+
+        for step in group:
+            pid = str(step.get("_har_page_id") or "").strip()
+            source = producers.get(pid)
+            if not source:
+                continue
+            step["recorded_pageid_type"] = classify_pageid(pid)
+            step["recorded_pageid_source_step_id"] = source["step_id"]
+            step["recorded_pageid_source_har_index"] = source.get("har_index")
+            step["recorded_pageid_source_kind"] = source["producer_kind"]
+            source_forms = source.get("form_ids") or []
+            if source_forms:
+                step["recorded_pageid_source_form_match"] = (
+                    str(step.get("form_id") or "") in set(source_forms)
+                )
+
+        response_text = next(
+            (
+                str(step.get("_resp_text") or "")
+                for step in group
+                if step.get("_resp_text")
+            ),
+            "",
+        )
+        source_step_id = str((group[0] if group else {}).get("id") or "")
+        for producer in extract_response_pageid_producers(response_text):
+            producers[producer["page_id"]] = {
+                **producer,
+                "step_id": source_step_id,
+                "har_index": har_index,
+            }
+        index = group_end
+    return steps
+
+
+def finalize_recorded_pageid_source_retention(
+    steps: list[dict[str, Any]],
+    *,
+    excluded_tiers: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Mark whether each exact recorded pageId producer survives generation."""
+    excluded_tiers = excluded_tiers or set()
+    retained_har_indices = {
+        step.get("_har_index")
+        for step in steps
+        if step.get("_har_index") is not None
+        and str(step.get("_tier") or "") not in excluded_tiers
+    }
+    retained_step_ids = {
+        str(step.get("id") or "")
+        for step in steps
+        if str(step.get("_tier") or "") not in excluded_tiers
+    }
+    for step in steps:
+        source_har_index = step.get("recorded_pageid_source_har_index")
+        source_step_id = str(step.get("recorded_pageid_source_step_id") or "")
+        if source_har_index is None and not source_step_id:
+            continue
+        step["recorded_pageid_source_retained"] = (
+            source_har_index in retained_har_indices
+            if source_har_index is not None
+            else source_step_id in retained_step_ids
+        )
+    return steps
+
+
 def step_allows_l2_pageid(step: dict[str, Any]) -> bool:
     """Whether this step should keep a menu/list L2 pageId."""
     if step.get("requires_harvested_l3_page"):
@@ -140,12 +348,20 @@ def build_runtime_pageid_trace(
         "status": status,
         "expected_pageid_role": expected_pageid_role(step),
         "preserve_l2_page": bool(step.get("preserve_l2_page")),
-        "har_pageid_type": classify_pageid(har_page_id),
+        "har_pageid_type": (
+            classify_pageid(har_page_id)
+            if classify_pageid(har_page_id) != "missing"
+            else str(step.get("recorded_pageid_type") or "missing")
+        ),
         "har_pageid_fragment": pageid_fragment(har_page_id),
         "runtime_pageid_type": classify_pageid(current_page_id),
         "runtime_pageid_fragment": pageid_fragment(current_page_id),
         "pending_pageid_type": classify_pageid(pending_page_id),
         "pending_pageid_fragment": pageid_fragment(pending_page_id),
+        "recorded_pageid_source_step_id": step.get("recorded_pageid_source_step_id", ""),
+        "recorded_pageid_source_retained": step.get("recorded_pageid_source_retained"),
+        "recorded_pageid_source_kind": step.get("recorded_pageid_source_kind", ""),
+        "recorded_pageid_source_form_match": step.get("recorded_pageid_source_form_match"),
         "risk_codes": pageid_risks(
             step,
             har_page_id=har_page_id,
@@ -176,6 +392,13 @@ def build_pageid_trace(
         sid = str(step.get("id") or f"step_{index + 1}")
         har_step = har_by_id.get(sid) or {}
         har_page_id = step.get("_har_page_id") or har_step.get("_har_page_id", "")
+        har_pageid_type = classify_pageid(har_page_id)
+        if har_pageid_type == "missing":
+            har_pageid_type = str(
+                step.get("recorded_pageid_type")
+                or har_step.get("recorded_pageid_type")
+                or "missing"
+            )
         runtime = runtime_by_id.get(sid, {})
         row = {
             "index": index,
@@ -187,9 +410,13 @@ def build_pageid_trace(
             "method": step.get("method", ""),
             "expected_pageid_role": expected_pageid_role(step),
             "preserve_l2_page": bool(step.get("preserve_l2_page")),
-            "har_pageid_type": classify_pageid(har_page_id),
+            "har_pageid_type": har_pageid_type,
             "runtime_pageid_type": runtime.get("runtime_pageid_type", ""),
             "pending_pageid_type": runtime.get("pending_pageid_type", ""),
+            "recorded_pageid_source_step_id": step.get("recorded_pageid_source_step_id", ""),
+            "recorded_pageid_source_retained": step.get("recorded_pageid_source_retained"),
+            "recorded_pageid_source_kind": step.get("recorded_pageid_source_kind", ""),
+            "recorded_pageid_source_form_match": step.get("recorded_pageid_source_form_match"),
         }
         if include_fragments:
             row["har_pageid_fragment"] = pageid_fragment(har_page_id)
@@ -225,6 +452,10 @@ def compact_pageid_trace(trace: dict[str, Any]) -> dict[str, Any]:
                 "expected_pageid_role": row.get("expected_pageid_role", ""),
                 "preserve_l2_page": bool(row.get("preserve_l2_page")),
                 "har_pageid_type": row.get("har_pageid_type", ""),
+                "recorded_pageid_source_step_id": row.get("recorded_pageid_source_step_id", ""),
+                "recorded_pageid_source_retained": row.get("recorded_pageid_source_retained"),
+                "recorded_pageid_source_kind": row.get("recorded_pageid_source_kind", ""),
+                "recorded_pageid_source_form_match": row.get("recorded_pageid_source_form_match"),
                 "risk_codes": row.get("risk_codes", []),
             }
             for row in trace.get("steps", [])
@@ -264,6 +495,8 @@ def pageid_risks(
 ) -> list[str]:
     expected = expected_pageid_role(step)
     har_type = classify_pageid(har_page_id)
+    if har_type == "missing":
+        har_type = str(step.get("recorded_pageid_type") or "missing")
     runtime_type = runtime_pageid_type or classify_pageid(runtime_page_id)
     risks: list[str] = []
 
@@ -280,6 +513,8 @@ def pageid_risks(
         risks.append("har_l2_on_l3_step")
     if classify_pageid(pending_page_id) == "L2" and expected == "L3":
         risks.append("pending_l2_for_l3_step")
+    if step.get("recorded_pageid_source_form_match") is False:
+        risks.append("recorded_pageid_source_form_mismatch")
     return risks
 
 

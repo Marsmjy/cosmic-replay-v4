@@ -107,13 +107,18 @@ def test_har_chain_probe_detects_lookup_alias_and_write_anchor(tmp_path):
     assert probe["summary"]["lookup_prefetch_count"] == 1
     assert probe["summary"]["showform_alias_count"] == 1
     assert probe["summary"]["write_anchor_count"] == 1
+    assert probe["summary"]["pageid_exact_link_count"] == 1
     assert probe["links"]["lookup_prefetches"][0]["prefetch_endpoint"] == "invokeAction.do"
     assert probe["links"]["showform_aliases"][0]["future_request_event"] == "e0003"
+    assert probe["links"]["pageid_flows"][0]["producer_event"] == "e0002"
+    assert probe["links"]["pageid_flows"][0]["consumer_event"] == "e0003"
+    assert probe["links"]["pageid_flows"][0]["form_scope_match"] is True
     assert "lookup_prefetch_before_pick" in [item["code"] for item in probe["lessons"]]
     raw = json.dumps(probe, ensure_ascii=False)
     assert "internal" not in raw
     assert "CODE" not in raw
     assert "Name" not in raw
+    assert "11111111111111111111111111111111" not in raw
 
 
 def test_har_chain_experience_catalog_is_compact(tmp_path):
@@ -131,5 +136,68 @@ def test_har_chain_experience_catalog_is_compact(tmp_path):
         "showform_billformid_alias",
         "load_data_default_context",
         "write_anchor_present",
+        "exact_pageid_producer_consumer_flow",
     ]
 
+
+def test_har_chain_probe_flags_pageid_reuse_after_close(tmp_path):
+    page_id = "3" * 32
+    har = {
+        "log": {
+            "entries": [
+                {
+                    "request": {
+                        "method": "POST",
+                        "url": "https://example.test/ierp/form/invokeAction.do?appId=demo&f=list_form&ac=entryRowClick",
+                        "postData": {
+                            "text": 'pageId=root' + "a" * 32 + '&params=[{"methodName":"entryRowClick"}]'
+                        },
+                    },
+                    "response": {
+                        "status": 200,
+                        "content": {
+                            "text": json.dumps([{
+                                "a": "showForm",
+                                "p": [{"formId": "detail_form", "pageId": page_id}],
+                            }])
+                        },
+                    },
+                },
+                {
+                    "request": {
+                        "method": "POST",
+                        "url": "https://example.test/ierp/form/invokeAction.do?appId=demo&f=detail_form&ac=close",
+                        "postData": {
+                            "text": f'pageId={page_id}&params=[{{"methodName":"close"}}]'
+                        },
+                    },
+                    "response": {
+                        "status": 200,
+                        "content": {
+                            "text": json.dumps([{
+                                "a": "closeWindow",
+                                "p": [{"pageId": page_id}],
+                            }])
+                        },
+                    },
+                },
+                {
+                    "request": {
+                        "method": "POST",
+                        "url": "https://example.test/ierp/form/invokeAction.do?appId=demo&f=detail_form&ac=loadData",
+                        "postData": {
+                            "text": f'pageId={page_id}&params=[{{"methodName":"loadData"}}]'
+                        },
+                    },
+                    "response": {"status": 200, "content": {"text": "[]"}},
+                },
+            ]
+        }
+    }
+    path = tmp_path / "reuse.har"
+    path.write_text(json.dumps(har), encoding="utf-8")
+
+    probe = probe_har_chain(path)
+
+    assert probe["summary"]["pageid_reuse_after_close_count"] == 1
+    assert page_id not in json.dumps(probe)
