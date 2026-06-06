@@ -35,10 +35,12 @@ from lib.response_signature import (
     build_response_signature_from_text,
     is_meaningful_response_signature,
     is_meaningful_response_text,
+    specialize_response_signature,
     summarize_response_signature,
 )
 from lib.pageid_trace import (
     annotate_recorded_pageid_sources,
+    annotate_pageid_recovery_strategies,
     expected_pageid_role,
     finalize_recorded_pageid_source_retention,
 )
@@ -5244,16 +5246,103 @@ def _response_signature_anchor_step(step: dict, signature: dict[str, Any]) -> bo
     return False
 
 
+def _response_contract_level(
+    step: dict,
+    signature: dict[str, Any],
+    *,
+    pageid_producer_ids: set[str],
+    later_grid_consumers: set[tuple[str, str]],
+) -> tuple[str, str]:
+    if _is_write_anchor_step(step):
+        return "critical", "write_anchor"
+
+    method = str(step.get("method") or "").lower()
+    if signature.get("_field_effect_candidates") and (
+        step.get("type") in {"update_fields", "pick_basedata"}
+        or method in {
+            "updatevalue",
+            "setitembyidfromclient",
+            "setitemvaluebyidfromclient",
+        }
+    ):
+        return "business", "field_callback"
+
+    form_id = str(step.get("form_id") or "")
+    ac = str(step.get("ac") or "").lower()
+    if ac in {"loaddata", "commonsearch", "query", "getlookuplist"} or method in {
+        "loaddata",
+        "commonsearch",
+        "query",
+        "getlookuplist",
+    }:
+        for schema in signature.get("grid_schemas") or []:
+            if not isinstance(schema, dict):
+                continue
+            control = str(schema.get("control") or "")
+            if (form_id, control) in later_grid_consumers:
+                return "business", "selector_data_source"
+
+    step_id = str(step.get("id") or "")
+    if step_id in pageid_producer_ids:
+        # showForm can move between adjacent callbacks at runtime. Exact pageId
+        # source metadata plus the consumer's L2/L3 trace is the reliable guard.
+        return "", ""
+
+    if _response_signature_anchor_step(step, signature):
+        return "advisory", "ui_response_anchor"
+    return "", ""
+
+
 def _attach_expected_response_signatures(steps: list[dict]) -> None:
-    """Attach value-safe recorded response semantics to key replay steps."""
-    for step in steps:
+    """Attach compact, tiered recorded response contracts to replay steps."""
+    pageid_producer_ids = {
+        str(step.get("recorded_pageid_source_step_id") or "")
+        for step in steps
+        if step.get("recorded_pageid_source_step_id")
+    }
+    for index, step in enumerate(steps):
+        step.pop("expected_response_signature", None)
         resp_text = str(step.get("_resp_text") or "")
         if not resp_text:
             continue
-        signature = build_response_signature_from_text(resp_text)
-        if not _response_signature_anchor_step(step, signature):
+        signature = build_response_signature_from_text(
+            resp_text,
+            include_candidates=True,
+        )
+        if not is_meaningful_response_signature(signature):
             continue
-        step["expected_response_signature"] = signature
+        later_grid_consumers: set[tuple[str, str]] = set()
+        source_form = str(step.get("form_id") or "")
+        for candidate in steps[index + 1:index + 7]:
+            candidate_form = str(candidate.get("form_id") or "")
+            candidate_ac = str(candidate.get("ac") or "")
+            if _is_write_anchor_step(candidate):
+                break
+            if candidate_form == source_form and candidate_ac in {"addnew", "new"}:
+                break
+            if (
+                candidate_form == source_form
+                and candidate_ac in {"entryRowClick", "rowDblClick", "selectRow"}
+            ):
+                later_grid_consumers.add((
+                    candidate_form,
+                    str(candidate.get("key") or "billlistap"),
+                ))
+                break
+        contract_level, anchor_reason = _response_contract_level(
+            step,
+            signature,
+            pageid_producer_ids=pageid_producer_ids,
+            later_grid_consumers=later_grid_consumers,
+        )
+        if not contract_level:
+            continue
+        step["expected_response_signature"] = specialize_response_signature(
+            signature,
+            step,
+            contract_level=contract_level,
+            anchor_reason=anchor_reason,
+        )
 
 
 def _build_default_assertions(yaml_steps: list[dict]) -> list:
@@ -6078,10 +6167,11 @@ def build_yaml_case(
     _dedupe_step_ids(cleaned)
 
     _mark_recorded_business_validations(cleaned)
-    _attach_expected_response_signatures(cleaned)
     cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
     cleaned = annotate_recorded_pageid_sources(cleaned)
     cleaned = finalize_recorded_pageid_source_retention(cleaned)
+    cleaned = annotate_pageid_recovery_strategies(cleaned)
+    _attach_expected_response_signatures(cleaned)
 
     # 抽 vars
     _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
@@ -6609,6 +6699,7 @@ def build_yaml_case(
                   "recorded_pageid_source_kind",
                   "recorded_pageid_source_form_match",
                   "recorded_pageid_source_retained",
+                  "pageid_recovery_strategy", "force_pageid_validation",
                   "prefetch_lookup", "prefetch_lookup_args",
                   "skip_if_locked", "skip_if_locked_fields",
                   "skip_replay", "skip_reason",
@@ -6842,13 +6933,14 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     )
     _mark_recorded_business_validations(preview_steps)
     _dedupe_step_ids(preview_steps)
-    _attach_expected_response_signatures(preview_steps)
     preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)
     preview_steps = annotate_recorded_pageid_sources(preview_steps)
     preview_steps = finalize_recorded_pageid_source_retention(
         preview_steps,
         excluded_tiers={"noise"},
     )
+    preview_steps = annotate_pageid_recovery_strategies(preview_steps)
+    _attach_expected_response_signatures(preview_steps)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)

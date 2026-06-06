@@ -29,6 +29,7 @@ _PAGEID_RISK_PENALTIES = {
     "showform_billformid_not_followed": 10,
     "recorded_pageid_producer_filtered": 20,
     "recorded_pageid_source_form_mismatch": 20,
+    "recorded_pageid_recovery_missing": 24,
     "pageid_producer_consumer_form_mismatch": 20,
     "pageid_reused_after_close": 24,
 }
@@ -198,6 +199,7 @@ def _pageid_issues(
             "write_anchor_uses_l2_pageid",
             "recorded_pageid_producer_filtered",
             "recorded_pageid_source_form_mismatch",
+            "recorded_pageid_recovery_missing",
             "pageid_producer_consumer_form_mismatch",
             "pageid_reused_after_close",
         } else "medium"
@@ -398,6 +400,7 @@ def _pageid_issue_message(code: str, count: int) -> str:
         "runtime_l3_used_for_l2_step": "列表/树/工具栏步骤可能过早切到 L3。",
         "recorded_pageid_producer_filtered": "HAR 中产生该 pageId 的前置请求在生成 YAML 时被过滤。",
         "recorded_pageid_source_form_mismatch": "HAR 中 pageId 生产者与消费者的表单作用域不一致。",
+        "recorded_pageid_recovery_missing": "HAR 中 L3 pageId 生产者被过滤，且未生成安全恢复策略。",
         "pageid_producer_consumer_form_mismatch": "HAR 原始 pageId 精确关联跨越了不匹配的表单作用域。",
         "pageid_reused_after_close": "HAR 在关闭窗口后仍继续使用同一个 pageId。",
     }
@@ -413,6 +416,7 @@ def _pageid_issue_suggestion(code: str) -> str:
         "runtime_l3_used_for_l2_step": "列表/树/工具栏动作应继续保留 L2，避免影响 addnew 前置上下文。",
         "recorded_pageid_producer_filtered": "保留产生 L3 的 showForm/addVirtualTab/clientCallBack 前置步骤，或为可选导航步骤设置 harvested L3 守卫。",
         "recorded_pageid_source_form_mismatch": "按 showForm 的 formId/billFormId 重新绑定消费者，避免跨表单复用 L3。",
+        "recorded_pageid_recovery_missing": "保留对应 showForm/addVirtualTab，或为该核心步骤生成同表单 L3 复核策略。",
         "pageid_producer_consumer_form_mismatch": "检查 showForm/formId/billFormId 别名和 target_forms，确保 pageId 只进入对应表单。",
         "pageid_reused_after_close": "关闭弹窗后必须等待新的 showForm pageId，不能复用已关闭窗口的旧值。",
     }

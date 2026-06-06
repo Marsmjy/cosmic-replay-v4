@@ -15,7 +15,7 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 2. 用户在预览页或变量面板维护的值，必须进入最终 YAML 和运行时回放；执行不能继续使用 HAR 旧值。
 3. 下拉、F7、基础资料和 selector 字段要用用户维护的编码/名称调用目标环境接口解析真实 id、候选行和 selDatas，再回填模型上下文。
 4. 换环境后会话、CSRF、签名、账号权限、菜单入口、组织、人员、模板、业务上下文和系统托管字段都要动态适配。
-5. 执行结果不能只看无异常或最终 PASS，必须校验保存/提交响应、错误提示、无效请求和必要的只读入库回查。
+5. 执行结果不能只看无异常或最终 PASS，必须校验关键接口响应与录制 HAR 的稳定业务语义基本一致，并继续检查保存/提交、错误提示、无效请求和必要的只读入库回查。
 6. 修复经验要沉淀为通用解析/执行规则、字段类型知识库、经验库和测试，而不是只硬补当前 YAML。
 7. 原始 HAR 批量导入后要比较优化前后解析质量、维护易用性、执行结果和入库证据，并输出可行动报告。
 
@@ -64,6 +64,13 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 9. `scripts/har_regression_report.py compare --fail-on-diff` 的 baseline 已纳入可维护字段数、业务链路数、响应语义锚点、pageId 对齐风险和 IR 风险。批量导入优化后必须跑该报告；若新增字段/链路是有意改进，先更新 baseline，再确认 diff 为 0。
 10. 导入阶段会按 SAZ 的精确关联思想，把 HAR 请求中的 pageId 与更早响应里的同值 pageId 匹配。生成 YAML 使用 `recorded_pageid_source_step_id`、`recorded_pageid_source_kind`、`recorded_pageid_source_retained` 保存脱敏来源；预览使用 `recorded_pageid_flow` 展示精确边、外部根、关闭后复用和跨表单计数。这里绝不能保存真实 pageId。
 11. `recorded_pageid_source_retained=false` 只是“原生产者在清理后未保留”的诊断信号，不可直接判失败。浏览器 `clientCallBack` 可能无法协议回放：可选卡片应使用 `requires_harvested_l3_page`，核心表单则结合 `open_form/showForm/pending L3` 和真实执行 trace 判断。只有跨表单精确关联、关闭后继续复用旧窗口，或真实编辑/保存最终仍用 L2 时才升级为修复项。
+12. 响应契约使用 `critical/business/advisory` 三级语义，不能做完整 JSON 相等：
+    - `critical`：保存、提交、审核、确认、子弹窗确定等写入锚点。录制成功而运行失败/中性、录制业务校验未复现、必要目标表单或关键动作缺失时必须失败。
+    - `business`：真正被紧邻 F7/下拉/列表选择消费的查询结果，以及稳定字段回填。只比较目标表单、稳定字段、`id/number/name/billno/status` 等必要列和是否存在候选行。
+    - `advisory`：optional 导航或 UI 回调，只告警不阻断。
+    - 必须忽略 pageId、内部 id、单号、时间戳、随机测试值、动态行号和未被后续步骤消费的扩展列；`closeWindow/closeBrowserPage` 等同义动作按动作族比较。
+    - pageId 的正确性由精确 producer→consumer 图、L2/L3 角色和运行 trace 校验，不要再用 `showForm` 恰好出现在哪个相邻 callback 作为硬响应契约。
+13. `recorded_pageid_source_retained=false` 且消费者需要 L3 时，生成 YAML 应标记 `pageid_recovery_strategy=runtime_form_revalidate` 和 `force_pageid_validation=true`；运行器必须绕过“同一表单只校验一次”的缓存，再次确认当前表单拥有可用 L3。L2 列表步骤使用 `recorded_l2_context`，可选浏览器卡片使用 `harvested_l3_guard`。
 
 ## 一、整体防护架构
 

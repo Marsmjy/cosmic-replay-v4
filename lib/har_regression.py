@@ -133,6 +133,14 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
         step for step in (preview.get("steps") or [])
         if (step.get("response_signature") or {}).get("label")
     ]
+    response_contract_counts = {
+        level: sum(
+            1
+            for step in response_signature_steps
+            if (step.get("response_signature") or {}).get("contract_level") == level
+        )
+        for level in ("critical", "business", "advisory")
+    }
 
     return {
         "main_form_id": preview.get("main_form_id", ""),
@@ -174,6 +182,7 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
             "business_flow_count": len(business_flow),
             "business_flow_step_count": sum(int(item.get("step_count") or 0) for item in business_flow),
             "response_signature_step_count": len(response_signature_steps),
+            "response_contract_counts": response_contract_counts,
             "auto_resolve_pick_count": sum(1 for item in pick_fields if item.get("auto_resolve")),
             "high_env_sensitive_count": sum(1 for item in pick_fields if item.get("env_sensitive") == "high"),
         },

@@ -1,4 +1,5 @@
 from lib.pageid_trace import (
+    annotate_pageid_recovery_strategies,
     annotate_recorded_pageid_sources,
     build_pageid_trace,
     classify_pageid,
@@ -172,3 +173,32 @@ def test_recorded_pageid_source_marks_filtered_producer():
     finalize_recorded_pageid_source_retention(steps, excluded_tiers={"noise"})
 
     assert steps[1]["recorded_pageid_source_retained"] is False
+
+
+def test_filtered_l3_producer_enables_runtime_form_revalidation():
+    steps = [
+        {
+            "id": "fill_name",
+            "type": "update_fields",
+            "form_id": "detail_form",
+            "app_id": "demo",
+            "recorded_pageid_source_retained": False,
+            "recorded_pageid_type": "L1_or_L3",
+        },
+        {
+            "id": "click_new",
+            "type": "invoke",
+            "form_id": "list_form",
+            "app_id": "demo",
+            "ac": "addnew",
+            "recorded_pageid_source_retained": False,
+            "recorded_pageid_type": "L2",
+        },
+    ]
+
+    annotate_pageid_recovery_strategies(steps)
+
+    assert steps[0]["pageid_recovery_strategy"] == "runtime_form_revalidate"
+    assert steps[0]["force_pageid_validation"] is True
+    assert steps[1]["pageid_recovery_strategy"] == "recorded_l2_context"
+    assert not steps[1].get("force_pageid_validation")

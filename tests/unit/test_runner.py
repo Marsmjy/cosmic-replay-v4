@@ -33,7 +33,13 @@ from lib.runner import (
     _build_resolved_request,
 )
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
-from lib.response_signature import build_response_signature, compare_response_signature, summarize_response_signature
+from lib.response_signature import (
+    build_response_signature,
+    compare_response_signature,
+    evaluate_response_contract,
+    specialize_response_signature,
+    summarize_response_signature,
+)
 
 
 def test_env_fields_display_business_code_and_keep_har_order():
@@ -383,6 +389,122 @@ class TestReplayErrorDetection:
         assert "fieldconfig" in summary["required_field_keys"]
         assert "敏感业务字段" not in payload
         assert "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" not in payload
+
+    def test_critical_response_contract_checks_target_form_and_success_category(self):
+        recorded = [{
+            "a": "ShowNotificationMsg",
+            "p": [{"type": 0, "content": "提交成功"}],
+        }, {
+            "a": "showForm",
+            "p": [{"formId": "wf_approvalbill", "pageId": "a" * 32}],
+        }]
+        runtime = [{
+            "a": "ShowNotificationMsg",
+            "p": [{"type": 0, "content": "保存成功"}],
+        }, {
+            "a": "showForm",
+            "p": [{"formId": "wrong_form", "pageId": "b" * 32}],
+        }]
+        signature = specialize_response_signature(
+            build_response_signature(recorded, include_candidates=True),
+            {"id": "submit", "ac": "submit", "form_id": "demo"},
+            contract_level="critical",
+            anchor_reason="write_anchor",
+        )
+
+        result = evaluate_response_contract(signature, runtime)
+
+        assert result["contract_level"] == "critical"
+        assert any("success category submit" in err for err in result["errors"])
+        assert any("target form wf_approvalbill" in err for err in result["errors"])
+
+    def test_business_response_contract_checks_list_schema_without_row_values(self):
+        recorded = [{
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"id": 0, "number": 1, "name": 2},
+                    "rows": [["recorded-id", "001", "录制值"]],
+                },
+            }],
+        }]
+        runtime = [{
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"id": 0, "name": 1},
+                    "rows": [["runtime-id", "运行值"]],
+                },
+            }],
+        }]
+        signature = specialize_response_signature(
+            build_response_signature(recorded, include_candidates=True),
+            {"id": "load_list", "ac": "loadData", "form_id": "demo"},
+            contract_level="business",
+            anchor_reason="selector_data_source",
+        )
+
+        result = evaluate_response_contract(signature, runtime)
+
+        assert any("missing columns number" in err for err in result["errors"])
+        assert "recorded-id" not in json.dumps(signature, ensure_ascii=False)
+        assert "录制值" not in json.dumps(signature, ensure_ascii=False)
+
+    def test_advisory_response_contract_reports_warning_instead_of_error(self):
+        recorded = [{
+            "a": "showForm",
+            "p": [{"formId": "bos_card_quicklaunch", "pageId": "a" * 32}],
+        }]
+        signature = specialize_response_signature(
+            build_response_signature(recorded, include_candidates=True),
+            {"id": "load_card", "ac": "loadData", "form_id": "bos_card_quicklaunch"},
+            contract_level="advisory",
+            anchor_reason="ui_response_anchor",
+        )
+
+        result = evaluate_response_contract(signature, [])
+
+        assert result["errors"] == []
+        assert any("target form bos_card_quicklaunch" in warning for warning in result["warnings"])
+
+    def test_critical_contract_treats_close_actions_as_same_family_and_ignores_parent_grid(self):
+        recorded = [{
+            "a": "ShowNotificationMsg",
+            "p": [{"type": 0, "content": "保存成功"}],
+        }, {
+            "a": "closeWindow",
+            "p": [{"pageId": "a" * 32}],
+        }, {
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"id": 0, "number": 1},
+                    "rows": [["recorded-id", "001"]],
+                },
+            }],
+        }]
+        runtime = [{
+            "a": "ShowNotificationMsg",
+            "p": [{"type": 0, "content": "保存成功"}],
+        }, {
+            "a": "closeBrowserPage",
+            "p": [{"pageId": "b" * 32}],
+        }]
+        signature = specialize_response_signature(
+            build_response_signature(recorded, include_candidates=True),
+            {"id": "save", "ac": "save", "form_id": "demo"},
+            contract_level="critical",
+            anchor_reason="write_anchor",
+        )
+
+        result = evaluate_response_contract(signature, runtime)
+
+        assert signature["required_actions"] == ["ShowNotificationMsg", "closePage"]
+        assert "required_grid_schemas" not in signature
+        assert result["errors"] == []
 
     def test_expected_notification_assertion_accepts_recorded_business_validation(self):
         resp = [{

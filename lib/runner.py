@@ -68,7 +68,7 @@ from .pageid_trace import (
     classify_pageid,
     step_allows_l2_pageid as _trace_step_allows_l2_pageid,
 )
-from .response_signature import compare_response_signature
+from .response_signature import evaluate_response_contract
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -583,7 +583,8 @@ def _bind_l2_targets_from_navigation_step(
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
     """invoke 执行前的 pageId 有效性预验证
 
-    仅对首次使用的 form_id 执行验证，通过 ctx["_validated_forms"] 避免重复。
+    默认仅对首次使用的 form_id 执行验证；精确 HAR 来源提示 L3
+    生产者被过滤时，可用 force_pageid_validation 逐步复核。
     不对 loadData/open_form 步骤做预验证（避免递归）。
     """
     ac = step.get("ac", "")
@@ -598,11 +599,17 @@ def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict
 
     # 避免重复校验
     validated = ctx.setdefault("_validated_forms", set())
-    if form_id in validated:
+    force_validation = bool(step.get("force_pageid_validation"))
+    if form_id in validated and not force_validation:
         return
 
     # 标记已验证
     validated.add(form_id)
+    if force_validation:
+        log.info(
+            "[pre-validate] %s: exact recorded L3 producer was filtered; revalidating form context",
+            form_id,
+        )
 
     # 场景1：pageId 完全缺失 → 自动 open_form + loadData
     if form_id not in replay.page_ids:
@@ -3816,17 +3823,28 @@ def run_case(case: dict, on_event=None) -> RunResult:
             ctx["last_response"] = resp
             ctx["last_step_response"] = resp
             ctx["step_responses"][sid] = resp
+            contract_warnings: list[str] = []
             if resp is not None:
                 ctx["response_history"].append(resp)
                 _remember_runtime_response_values(resp, ctx)
-                semantic_errs = compare_response_signature(
+                contract_result = evaluate_response_contract(
                     step.get("expected_response_signature"),
                     resp,
                 )
-                if semantic_errs:
-                    errs = (errs or []) + semantic_errs
+                ctx.setdefault("response_contract_results", {})[sid] = contract_result
+                if contract_result.get("errors"):
+                    errs = (errs or []) + list(contract_result["errors"])
+                contract_warnings = list(contract_result.get("warnings") or [])
             elif step.get("expected_response_signature"):
-                errs = (errs or []) + ["[ResponseSemantic] missing runtime response for recorded anchor"]
+                level = str(
+                    (step.get("expected_response_signature") or {}).get("contract_level")
+                    or "critical"
+                )
+                message = "[ResponseSemantic] missing runtime response for recorded anchor"
+                if level == "advisory":
+                    contract_warnings.append(message)
+                else:
+                    errs = (errs or []) + [message]
 
             if errs and not optional:
                 # 进一步尝试从 bos_operationresult 拉详情
@@ -3866,11 +3884,15 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     step_record["wait_detail"] = wait_detail
                 if expected_errs:
                     step_record["expected_notifications"] = expected_errs
-                if errs and optional:
-                    step_record["warning"] = "; ".join(errs[:3])
+                warning_messages = [
+                    *(errs[:3] if errs and optional else []),
+                    *contract_warnings[:3],
+                ]
+                if warning_messages:
+                    step_record["warning"] = "; ".join(warning_messages)
                     emit("step_warning", {
                         "id": sid,
-                        "warnings": errs[:5],
+                        "warnings": warning_messages[:5],
                         "duration_ms": int((time.time() - step_start) * 1000),
                         "pageid_trace": _runtime_pageid_trace("after_handler", "warning"),
                     })

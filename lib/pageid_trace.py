@@ -290,6 +290,33 @@ def finalize_recorded_pageid_source_retention(
     return steps
 
 
+def annotate_pageid_recovery_strategies(
+    steps: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Describe how replay will recover when an exact HAR producer was filtered."""
+    for step in steps:
+        retained = step.get("recorded_pageid_source_retained")
+        if retained is True:
+            step["pageid_recovery_strategy"] = "recorded_source"
+            continue
+        if retained is not False:
+            continue
+
+        role = expected_pageid_role(step)
+        if step.get("requires_harvested_l3_page"):
+            step["pageid_recovery_strategy"] = "harvested_l3_guard"
+        elif role == "L2" or step_allows_l2_pageid(step):
+            step["pageid_recovery_strategy"] = "recorded_l2_context"
+        elif role == "L3" and step.get("form_id") and step.get("app_id"):
+            step["pageid_recovery_strategy"] = "runtime_form_revalidate"
+            step["force_pageid_validation"] = True
+        elif role == "L2_or_L3" and step.get("form_id") and step.get("app_id"):
+            step["pageid_recovery_strategy"] = "runtime_auto_open"
+        else:
+            step["pageid_recovery_strategy"] = "missing"
+    return steps
+
+
 def step_allows_l2_pageid(step: dict[str, Any]) -> bool:
     """Whether this step should keep a menu/list L2 pageId."""
     if step.get("requires_harvested_l3_page"):
@@ -362,6 +389,8 @@ def build_runtime_pageid_trace(
         "recorded_pageid_source_retained": step.get("recorded_pageid_source_retained"),
         "recorded_pageid_source_kind": step.get("recorded_pageid_source_kind", ""),
         "recorded_pageid_source_form_match": step.get("recorded_pageid_source_form_match"),
+        "pageid_recovery_strategy": step.get("pageid_recovery_strategy", ""),
+        "force_pageid_validation": bool(step.get("force_pageid_validation")),
         "risk_codes": pageid_risks(
             step,
             har_page_id=har_page_id,
@@ -417,6 +446,8 @@ def build_pageid_trace(
             "recorded_pageid_source_retained": step.get("recorded_pageid_source_retained"),
             "recorded_pageid_source_kind": step.get("recorded_pageid_source_kind", ""),
             "recorded_pageid_source_form_match": step.get("recorded_pageid_source_form_match"),
+            "pageid_recovery_strategy": step.get("pageid_recovery_strategy", ""),
+            "force_pageid_validation": bool(step.get("force_pageid_validation")),
         }
         if include_fragments:
             row["har_pageid_fragment"] = pageid_fragment(har_page_id)
@@ -456,6 +487,8 @@ def compact_pageid_trace(trace: dict[str, Any]) -> dict[str, Any]:
                 "recorded_pageid_source_retained": row.get("recorded_pageid_source_retained"),
                 "recorded_pageid_source_kind": row.get("recorded_pageid_source_kind", ""),
                 "recorded_pageid_source_form_match": row.get("recorded_pageid_source_form_match"),
+                "pageid_recovery_strategy": row.get("pageid_recovery_strategy", ""),
+                "force_pageid_validation": bool(row.get("force_pageid_validation")),
                 "risk_codes": row.get("risk_codes", []),
             }
             for row in trace.get("steps", [])
@@ -515,6 +548,12 @@ def pageid_risks(
         risks.append("pending_l2_for_l3_step")
     if step.get("recorded_pageid_source_form_match") is False:
         risks.append("recorded_pageid_source_form_mismatch")
+    if (
+        step.get("recorded_pageid_source_retained") is False
+        and expected == "L3"
+        and str(step.get("pageid_recovery_strategy") or "") in {"", "missing"}
+    ):
+        risks.append("recorded_pageid_recovery_missing")
     return risks
 
 

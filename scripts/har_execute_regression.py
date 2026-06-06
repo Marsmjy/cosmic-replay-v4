@@ -132,6 +132,15 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         for step in preview.get("steps") or []
         if isinstance(step, dict) and step.get("response_signature")
     )
+    response_contract_counts = {
+        level: sum(
+            1
+            for step in preview.get("steps") or []
+            if isinstance(step, dict)
+            and (step.get("response_signature") or {}).get("contract_level") == level
+        )
+        for level in ("critical", "business", "advisory")
+    }
     recorded_pageid_summary = (
         (preview.get("recorded_pageid_flow") or {}).get("summary") or {}
     )
@@ -147,6 +156,9 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "panel_counts": _count_by(fields, "panel"),
         "business_flow_count": len(preview.get("business_flow") or []),
         "response_signature_step_count": response_signature_steps,
+        "response_contract_critical_count": response_contract_counts["critical"],
+        "response_contract_business_count": response_contract_counts["business"],
+        "response_contract_advisory_count": response_contract_counts["advisory"],
         "recorded_pageid_exact_link_count": recorded_pageid_summary.get("exact_link_count", 0),
         "recorded_pageid_external_root_count": recorded_pageid_summary.get("external_root_count", 0),
         "recorded_pageid_filtered_source_count": recorded_pageid_summary.get("filtered_source_count", 0),
@@ -194,7 +206,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- 导入：{parse_status}，主表单 `{(item.get('parse') or {}).get('main_form_id', '')}`，步骤 {(item.get('parse') or {}).get('step_count', 0)}",
                 f"- 维护项：vars={(item.get('parse') or {}).get('vars_count', 0)}，pick_fields={(item.get('parse') or {}).get('pick_fields_count', 0)}，field_catalog={(item.get('parse') or {}).get('field_catalog_count', 0)}，unknown={(item.get('parse') or {}).get('unknown_catalog_count', 0)}",
                 f"- pageId 精确链路：links={(item.get('parse') or {}).get('recorded_pageid_exact_link_count', 0)}，external={(item.get('parse') or {}).get('recorded_pageid_external_root_count', 0)}，filtered={(item.get('parse') or {}).get('recorded_pageid_filtered_source_count', 0)}，cross_form={(item.get('parse') or {}).get('recorded_pageid_cross_form_count', 0)}",
-                f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s",
+                f"- 响应契约：critical={(item.get('parse') or {}).get('response_contract_critical_count', 0)}，business={(item.get('parse') or {}).get('response_contract_business_count', 0)}，advisory={(item.get('parse') or {}).get('response_contract_advisory_count', 0)}",
+                f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s，契约失败={execution.get('response_contract_failure_count', 0)}，契约告警={execution.get('response_contract_warning_count', 0)}",
             ]
         )
         failed_steps = execution.get("failed_steps") or []
@@ -260,6 +273,20 @@ def _summary_from_evidence(evidence_path: Path, *, returncode: int, duration_s: 
     assertion_failures = _assertion_failed_steps(events)
     if not failed_steps and assertion_failures:
         failed_steps = assertion_failures
+    response_contract_warning_count = sum(
+        1
+        for event in events
+        if event.get("event") == "step_warning"
+        and any(
+            "[ResponseSemantic]" in str(warning)
+            for warning in ((event.get("payload") or {}).get("warnings") or [])
+        )
+    )
+    response_contract_failure_count = sum(
+        1
+        for step in failed_steps
+        if "[ResponseSemantic]" in str((step or {}).get("error") or "")
+    )
     return {
         "status": status,
         "returncode": returncode,
@@ -272,6 +299,8 @@ def _summary_from_evidence(evidence_path: Path, *, returncode: int, duration_s: 
         "assertion_failures": assertion_failures,
         "write_events": summary.get("write_events", []),
         "pageid_trace_count": summary.get("pageid_trace_count", 0),
+        "response_contract_warning_count": response_contract_warning_count,
+        "response_contract_failure_count": response_contract_failure_count,
         "evidence_path": str(evidence_path),
     }
 
@@ -387,6 +416,9 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "unknown_catalog_count": parse.get("unknown_catalog_count", 0),
                 "business_flow_count": parse.get("business_flow_count", 0),
                 "response_signature_step_count": parse.get("response_signature_step_count", 0),
+                "response_contract_critical_count": parse.get("response_contract_critical_count", 0),
+                "response_contract_business_count": parse.get("response_contract_business_count", 0),
+                "response_contract_advisory_count": parse.get("response_contract_advisory_count", 0),
                 "recorded_pageid_exact_link_count": parse.get("recorded_pageid_exact_link_count", 0),
                 "recorded_pageid_external_root_count": parse.get("recorded_pageid_external_root_count", 0),
                 "recorded_pageid_filtered_source_count": parse.get("recorded_pageid_filtered_source_count", 0),
@@ -396,6 +428,8 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "failure_kind": item.get("failure_kind", ""),
                 "failed_step_ids": [str(step.get("id", "")) for step in failed_steps if isinstance(step, dict)],
                 "write_event_count": len(execution.get("write_events") or []),
+                "response_contract_warning_count": execution.get("response_contract_warning_count", 0),
+                "response_contract_failure_count": execution.get("response_contract_failure_count", 0),
                 "write_event_tokens": sorted(
                     {
                         str(token)
@@ -432,6 +466,9 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "unknown_catalog_count",
         "business_flow_count",
         "response_signature_step_count",
+        "response_contract_critical_count",
+        "response_contract_business_count",
+        "response_contract_advisory_count",
         "recorded_pageid_exact_link_count",
         "recorded_pageid_external_root_count",
         "recorded_pageid_filtered_source_count",
@@ -446,6 +483,8 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "failed_step_ids",
         "write_event_count",
         "write_event_tokens",
+        "response_contract_warning_count",
+        "response_contract_failure_count",
     ]
     for sample_id in keys:
         before = baseline_samples.get(sample_id)
