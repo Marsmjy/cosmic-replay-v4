@@ -170,19 +170,26 @@ def classify_run_failure(
 ) -> dict[str, Any]:
     """归因一次执行失败。"""
     case = case or {}
+    case_steps = {
+        str(item.get("id") or ""): item
+        for item in (case.get("steps") or [])
+        if isinstance(item, dict) and item.get("id")
+    }
     failures = []
     for step in steps or []:
         if step.get("ok"):
             continue
         if step.get("optional"):
             continue
+        case_step = case_steps.get(str(step.get("id") or ""), {})
+        raw_step = {**case_step, **step}
         failures.append({
             "source": "step",
             "step_id": step.get("id", ""),
             "step_type": step.get("type", ""),
-            "form_id": step.get("form_id", ""),
+            "form_id": step.get("form_id") or case_step.get("form_id", ""),
             "error": step.get("error") or "; ".join(step.get("_errors") or []),
-            "raw": step,
+            "raw": raw_step,
         })
 
     for assertion in assertions or []:
@@ -588,6 +595,24 @@ def classify_error(error: str, step: dict | None = None, case: dict | None = Non
             confidence="high",
         )
 
+    if _is_async_business_sync_timeout(text, form_id):
+        return _result(
+            "environment_async_business_sync_timeout",
+            "high",
+            True,
+            "前置业务操作已经成功，但目标环境未在等待时间内生成后续业务记录，属于异步同步/投影链路异常。",
+            text,
+            [
+                "先按本次运行时姓名或编号在目标环境查询后续业务记录，确认不是列表状态过滤造成的遗漏。",
+                "核对前置响应是否包含“操作成功/同步中”，并确认回放查询已使用本次运行值而不是 HAR 录制旧值。",
+                "若跨状态、按姓名和编号均查不到，排查目标环境异步任务、消息队列和业务投影服务；环境恢复后重跑。",
+                "不要删除后续列表点击或入库回查断言，也不要改用 HAR 旧行来伪造通过。",
+            ],
+            step_id=step_id,
+            form_id=form_id,
+            confidence="high",
+        )
+
     if _contains(text, _MISSING_PATTERNS):
         field = _extract_field_caption(text)
         return _result(
@@ -742,6 +767,14 @@ def _is_workflow_task_wait_timeout(text: str, form_id: str = "") -> bool:
     return _contains(text, _WORKFLOW_TASK_WAIT_PATTERNS)
 
 
+def _is_async_business_sync_timeout(text: str, form_id: str = "") -> bool:
+    if "dynamic list row not found after" not in text:
+        return False
+    if form_id == "wf_task" or "wf_task" in text or "billno" in text:
+        return False
+    return form_id in {"hspm_assignmentlist"} or "assignmentlist" in text
+
+
 def _matches_expected_notification(text: str, step: dict) -> bool:
     specs = step.get("expected_notifications") or step.get("expected_errors") or []
     for spec in specs:
@@ -820,6 +853,11 @@ def _diagnosis_priority_for(category: str) -> list[str]:
             "先在目标环境按运行时单号确认审批待办是否生成",
             "再检查当前账号、审批人和消息中心/流程配置",
             "确认 wait_until 使用运行时 billno，不点击录制旧任务行",
+        ],
+        "environment_async_business_sync_timeout": [
+            "确认前置业务操作响应成功并已进入异步同步",
+            "按本次运行时姓名/编号跨状态查询后续业务记录",
+            "仍无记录时排查目标环境异步任务、消息队列和投影服务",
         ],
         "component_rule_group_filter_missing": [
             "先确认 pageId 链路无异常",

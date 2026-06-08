@@ -38,10 +38,12 @@ from lib.response_signature import (
     specialize_response_signature,
     summarize_response_signature,
 )
+from lib.request_signature import build_request_signature
 from lib.pageid_trace import (
     annotate_recorded_pageid_sources,
     annotate_pageid_recovery_strategies,
     expected_pageid_role,
+    extract_response_pageid_producers,
     finalize_recorded_pageid_source_retention,
 )
 
@@ -618,6 +620,32 @@ def _extract_value_prefix(val: str) -> str:
     if m2:
         return m2.group(1)
     return "QA"
+
+
+def _recorded_shape_random_template(
+    value: str,
+    *,
+    fallback_prefix: str,
+    fallback_digits: int,
+    max_length: int = 20,
+    minimum_random_digits: int = 0,
+) -> str:
+    """Keep the recorded identifier shape while randomizing its numeric suffix."""
+    text = str(value or "")
+    match = _RX_TRAILING_DIGITS.match(text)
+    if match:
+        prefix = match.group(1)
+        digit_count = max(len(text) - len(prefix), int(minimum_random_digits))
+        target_length = min(len(text), max_length) if max_length > 0 else len(text)
+        if target_length > 0 and len(prefix) + digit_count > target_length:
+            prefix = prefix[:max(target_length - digit_count, 0)]
+        return f"{prefix}${{rand:{digit_count}}}"
+
+    prefix = _extract_value_prefix(text) or fallback_prefix
+    digit_count = max(int(fallback_digits), 1)
+    if max_length > 0:
+        prefix = prefix[:max(max_length - digit_count, 0)]
+    return f"{prefix}${{rand:{digit_count}}}"
 
 
 # ---------- HAR 解析 ----------
@@ -2056,6 +2084,7 @@ _DATE_FIELD_KEYWORDS = (
     "effectdate",
     "effectivedate",
     "loseeffectdate",
+    "validuntil",
     "bsed",
     "bsled",
     "startdate",
@@ -2235,11 +2264,12 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             if key_class == "number":
                 vname = "test_number"
                 if vname not in vars_map:
-                    prefix = _extract_value_prefix(val)
-                    rand_digits = max(4, min(6, 20 - len(prefix) - 1))
-                    if len(prefix) + rand_digits > 20:
-                        prefix = prefix[:20 - rand_digits]
-                    vars_map[vname] = f"{prefix}${{rand:{rand_digits}}}"
+                    vars_map[vname] = _recorded_shape_random_template(
+                        val,
+                        fallback_prefix="QA",
+                        fallback_digits=6,
+                        minimum_random_digits=6 if "empnumber" in key_lower else 0,
+                    )
                 round_number_assigned[save_round] = vname
                 seen_values[dedup_key] = vname
                 return f"${{vars.{vname}}}"
@@ -2272,7 +2302,12 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
             elif key_class == "cert":
                 vname = "test_cert_no"
                 if vname not in vars_map:
-                    vars_map[vname] = f"CERT${{rand:10}}"
+                    vars_map[vname] = _recorded_shape_random_template(
+                        val,
+                        fallback_prefix="CERT",
+                        fallback_digits=10,
+                        minimum_random_digits=6,
+                    )
                 seen_values[val] = vname
                 return f"${{vars.{vname}}}"
 
@@ -2519,6 +2554,53 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                         )
                     action_wrap["value_id"] = f"${{vars.{vname}}}"
 
+    # A recorded save is often followed by a list commonSearch using the same
+    # literal number/name.  Once the write field is variableized, keeping that
+    # old literal makes the replay query the recorded row instead of the row
+    # created by this run.  Propagate only exact values into readonly query
+    # arguments; never rewrite ids, context defaults or save payloads here.
+    recorded_value_refs: dict[str, str] = {}
+    for raw_key, var_name in seen_values.items():
+        raw_value = raw_key[0] if isinstance(raw_key, tuple) and raw_key else raw_key
+        if not isinstance(raw_value, str) or not raw_value:
+            continue
+        ref = str(var_name or "")
+        if not ref:
+            continue
+        if not ref.startswith("${"):
+            ref = f"${{vars.{ref}}}"
+        recorded_value_refs.setdefault(raw_value, ref)
+    variable_prefix_refs: list[tuple[str, str]] = []
+    for var_name, template in vars_map.items():
+        if var_name.startswith("_") or not isinstance(template, str):
+            continue
+        prefix = template.split("${", 1)[0]
+        if len(prefix) >= 3:
+            variable_prefix_refs.append((prefix, f"${{vars.{var_name}}}"))
+
+    def rewrite_query_value(value: Any) -> Any:
+        if isinstance(value, str):
+            exact = recorded_value_refs.get(value)
+            if exact:
+                return exact
+            for prefix, ref in variable_prefix_refs:
+                if value == prefix or (len(value) >= 3 and prefix.startswith(value)):
+                    return ref
+            return value
+        if isinstance(value, list):
+            return [rewrite_query_value(item) for item in value]
+        if isinstance(value, dict):
+            return {key: rewrite_query_value(item) for key, item in value.items()}
+        return value
+
+    for action_wrap in actions_seq:
+        ac = str(action_wrap.get("ac") or "").lower()
+        method = str(action_wrap.get("method") or "").lower()
+        if ac not in {"commonsearch", "query"} and method not in {"commonsearch", "query"}:
+            continue
+        if "args" in action_wrap:
+            action_wrap["args"] = rewrite_query_value(action_wrap.get("args"))
+
 
     # 生成变量标签（基于字段名和变量类型）
     def _generate_var_label(vname: str, key_hint: str) -> str:
@@ -2699,6 +2781,8 @@ def extract_steps(har: dict) -> list[dict]:
                     or "ShowNotificationMsg" in _resp_text
                     or "showMessage" in _resp_text
                     or "showErrMsg" in _resp_text
+                    or _response_opens_form_or_tab(_resp_text)
+                    or bool(extract_response_pageid_producers(_resp_text))
                     or is_meaningful_response_text(_resp_text)
                 ):
                     step_dict["_resp_text"] = _resp_text
@@ -3286,6 +3370,115 @@ def _entry_row_selected_rows(step: dict) -> list:
     return rows if isinstance(rows, list) else []
 
 
+def _response_grid_payload(resp_text: str, grid_key: str) -> tuple[dict[str, int], list[list[Any]]]:
+    try:
+        payload = json.loads(resp_text)
+    except Exception:
+        return {}, []
+
+    def walk(node: Any) -> tuple[dict[str, int], list[list[Any]]] | None:
+        if isinstance(node, dict):
+            data = node.get("data")
+            if node.get("k") == grid_key and isinstance(data, dict):
+                dataindex = data.get("dataindex")
+                rows = data.get("rows")
+                if isinstance(dataindex, dict) and isinstance(rows, list):
+                    return dataindex, rows
+            for value in node.values():
+                found = walk(value)
+                if found:
+                    return found
+        elif isinstance(node, list):
+            for item in node:
+                found = walk(item)
+                if found:
+                    return found
+        return None
+
+    found = walk(payload)
+    if not found:
+        return {}, []
+    dataindex, rows = found
+    return (
+        {str(key): int(index) for key, index in dataindex.items() if isinstance(index, int)},
+        [row for row in rows if isinstance(row, list)],
+    )
+
+
+def _annotate_dynamic_query_row_selections(steps: list[dict]) -> None:
+    """Link a recorded list query to the following row click.
+
+    The runtime must rebuild selDatas from the current query result. Otherwise a
+    changed business key can return no rows while entryRowClick still opens the
+    stale row captured in the HAR.
+    """
+    for index, step in enumerate(steps):
+        if (
+            step.get("type") != "invoke"
+            or step.get("ac") != "entryRowClick"
+            or str(step.get("form_id") or "") == "wf_task"
+        ):
+            continue
+        control_key, payload = _entry_row_payload(step)
+        selected_rows = payload.get("selDatas") if isinstance(payload, dict) else None
+        if not (
+            control_key
+            and isinstance(selected_rows, list)
+            and selected_rows
+            and isinstance(selected_rows[0], list)
+        ):
+            continue
+
+        source = next(
+            (
+                candidate
+                for candidate in reversed(steps[:index])
+                if candidate.get("type") == "invoke"
+                and candidate.get("ac") == "commonSearch"
+                and str(candidate.get("form_id") or "") == str(step.get("form_id") or "")
+                and str(candidate.get("_resp_text") or "")
+            ),
+            None,
+        )
+        if not source:
+            continue
+        dataindex, rows = _response_grid_payload(str(source.get("_resp_text") or ""), control_key)
+        if not dataindex or not rows:
+            continue
+
+        template_row = selected_rows[0]
+        recorded_row = max(
+            rows,
+            key=lambda row: sum(
+                1
+                for value in template_row
+                if value not in ("", None)
+                and any(str(value) == str(cell) for cell in row)
+            ),
+        )
+        field_map: list[str] = []
+        used_fields: set[str] = set()
+        for value in template_row:
+            candidates = [
+                field
+                for field, position in dataindex.items()
+                if position < len(recorded_row)
+                and str(recorded_row[position]) == str(value)
+                and field not in used_fields
+            ]
+            chosen = candidates[0] if len(candidates) == 1 else ""
+            field_map.append(chosen)
+            if chosen:
+                used_fields.add(chosen)
+
+        step["dynamic_row_source_step_id"] = str(source.get("id") or "")
+        step["dynamic_row_grid_key"] = control_key
+        step["dynamic_row_field_map"] = field_map
+        step["dynamic_row_retry_until_found"] = True
+        step["dynamic_row_max_attempts"] = 40
+        step["dynamic_row_interval_seconds"] = 1
+
+
 def _is_workflow_task_entry_row(step: dict) -> bool:
     """Return true for workflow task list row clicks.
 
@@ -3527,6 +3720,37 @@ def _mark_navigation_steps_optional(steps: list[dict], main_form: str) -> None:
                 # L3 for the same form. Falling back to the business L2 can
                 # reopen sibling forms and corrupt the active form context.
                 step["requires_harvested_l3_page"] = True
+
+
+def _annotate_repeated_menu_targets(steps: list[dict], main_form: str) -> None:
+    """Bind later menu reopens to the L2 forms that immediately consume them."""
+    for menu_idx, step in enumerate(steps):
+        if step.get("ac") != "menuItemClick" or step.get("target_form"):
+            continue
+        args = step.get("args") or []
+        menu_arg = args[0] if args and isinstance(args[0], dict) else {}
+        menu_id = str(menu_arg.get("menuId") or "")
+        if not menu_id:
+            continue
+        l2_prefix = f"{menu_id}root"
+        consumed_forms: list[str] = []
+        for candidate in steps[menu_idx + 1:]:
+            if candidate.get("ac") in {"menuItemClick", "appItemClick"}:
+                break
+            har_page_id = str(candidate.get("_har_page_id") or "")
+            form_id = str(candidate.get("form_id") or "")
+            if har_page_id.startswith(l2_prefix) and form_id and form_id not in consumed_forms:
+                consumed_forms.append(form_id)
+        if not consumed_forms:
+            continue
+        target_form = main_form if main_form in consumed_forms else consumed_forms[0]
+        step["target_form"] = target_form
+        remaining = [form_id for form_id in consumed_forms if form_id != target_form]
+        if remaining:
+            step["target_forms"] = remaining
+        step["env_sensitive"] = "high"
+        step["resolve_by"] = "menu_path_or_form"
+        step["navigation_form_id"] = target_form
 
 
 def _inject_workflow_message_center_bootstrap(steps: list[dict]) -> list[dict]:
@@ -5312,6 +5536,7 @@ def _attach_expected_response_signatures(steps: list[dict]) -> None:
         if not is_meaningful_response_signature(signature):
             continue
         later_grid_consumers: set[tuple[str, str]] = set()
+        has_followup_wait = False
         source_form = str(step.get("form_id") or "")
         for candidate in steps[index + 1:index + 7]:
             candidate_form = str(candidate.get("form_id") or "")
@@ -5329,6 +5554,12 @@ def _attach_expected_response_signatures(steps: list[dict]) -> None:
                     str(candidate.get("key") or "billlistap"),
                 ))
                 break
+            if (
+                candidate.get("type") == "wait_until"
+                and candidate_form == source_form
+                and candidate_ac == str(step.get("ac") or "")
+            ):
+                has_followup_wait = True
         contract_level, anchor_reason = _response_contract_level(
             step,
             signature,
@@ -5337,11 +5568,40 @@ def _attach_expected_response_signatures(steps: list[dict]) -> None:
         )
         if not contract_level:
             continue
-        step["expected_response_signature"] = specialize_response_signature(
+        specialized = specialize_response_signature(
             signature,
             step,
             contract_level=contract_level,
             anchor_reason=anchor_reason,
+        )
+        if has_followup_wait and specialized.get("required_grid_schemas"):
+            specialized["allow_transient_empty"] = True
+        step["expected_response_signature"] = specialized
+
+
+def _attach_expected_request_signatures(steps: list[dict]) -> None:
+    """Attach value-safe request contracts before YAML serialization."""
+    for step in steps:
+        step.pop("expected_request_signature", None)
+        response_contract = step.get("expected_response_signature") or {}
+        level = str(response_contract.get("contract_level") or "")
+        reason = str(response_contract.get("anchor_reason") or "")
+        if _is_write_anchor_step(step):
+            level = "critical"
+            reason = "write_anchor"
+        elif step.get("type") in {
+            "update_fields",
+            "pick_basedata",
+            "select_f7_list_row",
+        }:
+            level = "business"
+            reason = "maintainable_field"
+        elif level not in {"critical", "business", "advisory"}:
+            continue
+        step["expected_request_signature"] = build_request_signature(
+            step,
+            contract_level=level,
+            anchor_reason=reason or "recorded_request",
         )
 
 
@@ -5482,9 +5742,35 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
     }
     for item in plan.get("plans") or []:
         policy = item.get("assertion_policy") or {}
+        suggested = item.get("suggested_assertion") or {}
+        if suggested.get("strategy") == "fresh_recorded_context":
+            query_step_id = str(suggested.get("query_step") or "")
+            for step in case.get("steps") or []:
+                if str(step.get("id") or "") != query_step_id:
+                    continue
+                response_contract = step.get("expected_response_signature")
+                if isinstance(response_contract, dict):
+                    response_contract["contract_level"] = "advisory"
+                    response_contract["anchor_reason"] = "readback_context_not_reproducible"
+                break
+        elif suggested.get("retry_until_found") and suggested.get("step"):
+            query_step_id = str(suggested.get("step") or "")
+            for step in case.get("steps") or []:
+                if str(step.get("id") or "") != query_step_id:
+                    continue
+                response_contract = step.get("expected_response_signature")
+                if isinstance(response_contract, dict):
+                    response_contract["contract_level"] = "advisory"
+                    response_contract["anchor_reason"] = "eventual_readback"
+                break
+        if suggested.get("value_from_runtime") and suggested.get("step"):
+            target_step_id = str(suggested.get("step") or "")
+            for step in case.get("steps") or []:
+                if str(step.get("id") or "") == target_step_id:
+                    step["refresh_recorded_l2_context"] = True
+                    break
         if policy.get("auto_append") is False:
             continue
-        suggested = item.get("suggested_assertion") or {}
         field_key = str(suggested.get("field_key") or "")
         value = str(suggested.get("value") or suggested.get("value_ref") or "")
         if not (field_key and value):
@@ -5500,8 +5786,24 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
         assertions.append(OrderedDict([
             ("type", "readback_by_business_key"),
             *(
+                [("step", suggested.get("step"))]
+                if suggested.get("step") else []
+            ),
+            *(
                 [("strategy", suggested.get("strategy"))]
                 if suggested.get("strategy") else []
+            ),
+            *(
+                [("query_step", suggested.get("query_step"))]
+                if suggested.get("query_step") else []
+            ),
+            *(
+                [("value_from_runtime", suggested.get("value_from_runtime"))]
+                if suggested.get("value_from_runtime") else []
+            ),
+            *(
+                [("retry_until_found", True)]
+                if suggested.get("retry_until_found") else []
             ),
             *(
                 [("menu_id", suggested.get("menu_id"))]
@@ -5511,6 +5813,10 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
             ("app_id", suggested.get("app_id", "")),
             ("field_key", field_key),
             ("value", value),
+            *(
+                [("grid_key", suggested.get("grid_key"))]
+                if suggested.get("grid_key") else []
+            ),
         ]))
         seen.add(sig)
     return plan
@@ -5985,6 +6291,7 @@ def build_yaml_case(
                 if cleaned[i].get("type") == "open_form" and cleaned[i].get("form_id") == main_form:
                     cleaned.pop(i)
                     break
+    _annotate_repeated_menu_targets(cleaned, main_form)
 
     # Some HARs start after the portal/menu click but their first business
     # request still carries the recorded menu L2 pageId. Reconstruct that L2
@@ -6168,10 +6475,12 @@ def build_yaml_case(
 
     _mark_recorded_business_validations(cleaned)
     cleaned = _ensure_workflow_approval_update_steps(cleaned, field_observations)
+    _annotate_dynamic_query_row_selections(cleaned)
     cleaned = annotate_recorded_pageid_sources(cleaned)
     cleaned = finalize_recorded_pageid_source_retention(cleaned)
     cleaned = annotate_pageid_recovery_strategies(cleaned)
     _attach_expected_response_signatures(cleaned)
+    _attach_expected_request_signatures(cleaned)
 
     # 抽 vars
     _, vars_map, vars_labels = detect_var_placeholders(cleaned, meta_resolver=meta_resolver)
@@ -6204,7 +6513,7 @@ def build_yaml_case(
         "type": "类型",
     }
     _PF_ENV_SENSITIVE_KEYWORDS = (
-        "effectdate", "effectdatebak", "loseeffectdate",
+        "effectdate", "effectdatebak", "loseeffectdate", "validuntil",
         "bsed", "bsled", "startdate", "enddate",
     )
     pick_fields_map = OrderedDict()
@@ -6691,6 +7000,7 @@ def build_yaml_case(
                   "row_index", "lazy", "keep_page", "invalidate_pages", "optional",
                   "target_form", "target_forms", "env_sensitive", "resolve_by",
                   "navigation_form_id", "expected_notifications",
+                  "expected_request_signature",
                   "expected_response_signature",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
                   "requires_harvested_l3_page",
@@ -6705,6 +7015,9 @@ def build_yaml_case(
                   "skip_replay", "skip_reason",
                   "condition", "interval_seconds", "timeout_seconds",
                   "max_attempts", "source_step_count", "wait_source",
+                  "dynamic_row_source_step_id", "dynamic_row_grid_key",
+                  "dynamic_row_field_map", "dynamic_row_retry_until_found",
+                  "dynamic_row_max_attempts", "dynamic_row_interval_seconds",
                   "requires_user_file", "upload_replay_strategy",
                   "recorded_file_names", "recorded_tempfile_reference",
                   "file_path", "upload_endpoint", "upload_url", "endpoint",
@@ -6941,6 +7254,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     )
     preview_steps = annotate_pageid_recovery_strategies(preview_steps)
     _attach_expected_response_signatures(preview_steps)
+    _attach_expected_request_signatures(preview_steps)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
     preview_copy = copy.deepcopy(preview_steps)
@@ -6999,7 +7313,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     }
     # 环境敏感关键字（日期类字段）
     _ENV_SENSITIVE_KEYWORDS = (
-        "effectdate", "effectdatebak", "loseeffectdate",
+        "effectdate", "effectdatebak", "loseeffectdate", "validuntil",
         "bsed", "bsled", "startdate", "enddate",
     )
 
@@ -7533,6 +7847,11 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "component_handler": (component_steps[i] or {}).get("handler_id", "") if i < len(component_steps) else "",
                 "component_support": (component_steps[i] or {}).get("support_level", "") if i < len(component_steps) else "",
                 "brief": _step_brief(s),
+                "request_signature": {
+                    "contract_level": (s.get("expected_request_signature") or {}).get("contract_level", ""),
+                    "anchor_reason": (s.get("expected_request_signature") or {}).get("anchor_reason", ""),
+                    "action_family": (s.get("expected_request_signature") or {}).get("action_family", ""),
+                } if s.get("expected_request_signature") else {},
                 "response_signature": summarize_response_signature(s.get("expected_response_signature")),
             }
             for i, s in enumerate(preview_steps)

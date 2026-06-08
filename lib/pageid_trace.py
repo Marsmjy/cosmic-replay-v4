@@ -98,6 +98,50 @@ def extract_response_pageid_producers(response: Any) -> list[dict[str, Any]]:
     producers: list[dict[str, Any]] = []
     seen: set[tuple[str, str, tuple[str, ...], str]] = set()
 
+    def scoped_descendant_metadata(node: Any, owner_page_id: str) -> tuple[list[str], str]:
+        forms: list[str] = []
+        app_id = ""
+
+        def collect(value: Any, *, root: bool = False) -> None:
+            nonlocal app_id
+            if isinstance(value, list):
+                for item in value:
+                    collect(item)
+                return
+            if not isinstance(value, dict):
+                return
+            nested_page_id = str(value.get("pageId") or "").strip()
+            if not root and nested_page_id and nested_page_id != owner_page_id:
+                return
+            for key in ("formId", "billFormId"):
+                form_id = str(value.get(key) or "").strip()
+                if form_id and form_id not in forms:
+                    forms.append(form_id)
+            if not app_id:
+                app_id = str(value.get("appId") or "").strip()
+            for child in value.values():
+                if isinstance(child, (dict, list)):
+                    collect(child)
+
+        def visit(value: Any) -> None:
+            if isinstance(value, list):
+                for item in value:
+                    visit(item)
+                return
+            if not isinstance(value, dict):
+                return
+            nested_page_id = str(value.get("pageId") or "").strip()
+            if nested_page_id and nested_page_id != owner_page_id:
+                return
+            if str(value.get("a") or "") in {"activate", "showForm"}:
+                collect(value, root=True)
+            for child in value.values():
+                if isinstance(child, (dict, list)):
+                    visit(child)
+
+        visit(node)
+        return forms, app_id
+
     def append(page_id: Any, *, kind: str, forms: list[Any] | None = None, app_id: Any = "") -> None:
         pid = str(page_id or "").strip()
         if classify_pageid(pid) in {"missing", "unknown"}:
@@ -153,11 +197,18 @@ def extract_response_pageid_producers(response: Any) -> list[dict[str, Any]]:
                 )
 
         if "pageId" in obj and action != "showForm" and method != "addVirtualTab":
+            page_id = str(obj.get("pageId") or "").strip()
+            forms = [obj.get("formId"), obj.get("billFormId")]
+            app_id = obj.get("appId")
+            if page_id and not any(forms):
+                descendant_forms, descendant_app = scoped_descendant_metadata(obj, page_id)
+                forms = descendant_forms
+                app_id = app_id or descendant_app
             append(
-                obj.get("pageId"),
+                page_id,
                 kind="responsePageId",
-                forms=[obj.get("formId"), obj.get("billFormId")],
-                app_id=obj.get("appId"),
+                forms=forms,
+                app_id=app_id,
             )
 
         for value in obj.values():

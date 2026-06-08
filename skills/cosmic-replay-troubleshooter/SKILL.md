@@ -71,6 +71,11 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
     - 必须忽略 pageId、内部 id、单号、时间戳、随机测试值、动态行号和未被后续步骤消费的扩展列；`closeWindow/closeBrowserPage` 等同义动作按动作族比较。
     - pageId 的正确性由精确 producer→consumer 图、L2/L3 角色和运行 trace 校验，不要再用 `showForm` 恰好出现在哪个相邻 callback 作为硬响应契约。
 13. `recorded_pageid_source_retained=false` 且消费者需要 L3 时，生成 YAML 应标记 `pageid_recovery_strategy=runtime_form_revalidate` 和 `force_pageid_validation=true`；运行器必须绕过“同一表单只校验一次”的缓存，再次确认当前表单拥有可用 L3。L2 列表步骤使用 `recorded_l2_context`，可选浏览器卡片使用 `harvested_l3_guard`。
+14. 同一个 L2 pageId 字符串可能在同一 HAR 中被菜单多次重新激活。消费者必须关联录制顺序上最近一次生产响应，不能因为 pageId 值相同就永远绑定第一次菜单；菜单响应即使没有 `showForm`，只要生产了 pageId 也必须保留。
+15. `activate/showForm` 响应可能把父级 pageId 与后代节点的 `formId/billFormId` 分开放置。解析和运行 harvest 都要把父 pageId 绑定到后代业务表单别名，否则晚期列表会恢复到错误窗口。
+16. 保存/提交后的晚期列表只读检查若遇到原会话过期，可在新登录会话中只重放最近的只读菜单窗口，再按运行时业务键查询并重建 `selDatas`。禁止在新会话中重放写步骤，也禁止回退点击 HAR 旧行。
+17. 录制查询后紧跟 `wait_until(grid_row_exists)` 时，首次查询暂时为空可以作为瞬态告警；等待结束后的最终查询仍必须满足非空、列结构和业务键契约。不能把所有空列表都降级。
+18. 业务接口返回“操作成功，数据同步中”只证明前置操作被接受，不证明后续业务投影已生成。若按本次运行姓名/编号跨状态查询仍无记录，应归类为 `environment_async_business_sync_timeout`，提示排查异步任务、消息队列和投影服务；不得删除后置点击或入库回查来制造 PASS。
 
 ## 一、整体防护架构
 

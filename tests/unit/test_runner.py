@@ -30,8 +30,11 @@ from lib.runner import (
     _build_env_fields, _build_env_resolution_plan, _resolve_selector_row_from_recent_grid,
     _build_selector_selected_row, _apply_runtime_billno_to_step,
     _apply_latest_afterconfirm_callback, _apply_runtime_uploads_to_step,
-    _build_resolved_request,
+    _build_resolved_request, _maintenance_expectations,
+    _record_maintenance_value_trace,
+    _resolve_dynamic_query_entry_row,
 )
+from lib.request_signature import build_request_signature, evaluate_request_contract
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
 from lib.response_signature import (
     build_response_signature,
@@ -40,6 +43,244 @@ from lib.response_signature import (
     specialize_response_signature,
     summarize_response_signature,
 )
+
+
+def test_request_contract_ignores_values_but_requires_recorded_fields():
+    recorded = {
+        "type": "update_fields",
+        "form_id": "demo_form",
+        "app_id": "demo",
+        "fields": {
+            "amount": 100,
+            "effective_date": "2026-06-01",
+        },
+    }
+    expected = build_request_signature(recorded, contract_level="business")
+
+    changed_values = {
+        **recorded,
+        "fields": {
+            "amount": 999,
+            "effective_date": "2026-07-01",
+        },
+    }
+    assert evaluate_request_contract(expected, changed_values)["errors"] == []
+
+    missing_field = {
+        **recorded,
+        "fields": {"amount": 999},
+    }
+    errors = evaluate_request_contract(expected, missing_field)["errors"]
+    assert any("missing recorded field effective_date" in error for error in errors)
+
+
+def test_dynamic_query_entry_row_rebuilds_recorded_selection(monkeypatch):
+    monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+    source_step = {
+        "id": "search_employee",
+        "type": "invoke",
+        "form_id": "hspm_assignmentlist",
+        "app_id": "hspm",
+        "ac": "commonSearch",
+        "key": "filtercontainerap",
+        "method": "commonSearch",
+        "args": [[{
+            "FieldName": ["hrpi_employee.empnumber"],
+            "Value": ["${vars.test_number}"],
+        }]],
+        "post_data": [{}, []],
+    }
+    click_step = {
+        "id": "click_employee",
+        "type": "invoke",
+        "form_id": "hspm_assignmentlist",
+        "app_id": "hspm",
+        "ac": "entryRowClick",
+        "key": "billlistap",
+        "args": [0, "hrpi_employee_name"],
+        "post_data": [{
+            "billlistap": {
+                "row": 0,
+                "selRows": [0],
+                "selDatas": [["OLD-A", "OLD-E", "OLD-ORG"]],
+            },
+        }, []],
+        "dynamic_row_source_step_id": "search_employee",
+        "dynamic_row_grid_key": "billlistap",
+        "dynamic_row_field_map": [
+            "hspm_assignmentquery_id",
+            "hrpi_employee_id",
+            "org_id",
+        ],
+        "dynamic_row_retry_until_found": True,
+        "dynamic_row_max_attempts": 2,
+        "dynamic_row_interval_seconds": 1,
+    }
+    response = [{
+        "a": "u",
+        "p": [{
+            "k": "billlistap",
+            "data": {
+                "dataindex": {
+                    "hrpi_employee_empnumber": 0,
+                    "hspm_assignmentquery_id": 1,
+                    "hrpi_employee_id": 2,
+                    "org_id": 3,
+                },
+                "rows": [["EMP999", "NEW-A", "NEW-E", "NEW-ORG"]],
+            },
+        }],
+    }]
+
+    class FakeReplay:
+        def invoke(self, *_args, **_kwargs):
+            return response
+
+    ctx = {
+        "case": {"steps": [source_step, click_step]},
+        "vars": {"test_number": "EMP999"},
+        "step_responses": {"search_employee": []},
+        "response_history": [],
+    }
+
+    _resolve_dynamic_query_entry_row(click_step, FakeReplay(), ctx)
+
+    payload = click_step["post_data"][0]["billlistap"]
+    assert payload["selDatas"] == [["NEW-A", "NEW-E", "NEW-ORG"]]
+    assert payload["selRows"] == [0]
+    assert click_step["_dynamic_row_resolved"]["source_step_id"] == "search_employee"
+
+
+def test_dynamic_query_entry_row_uses_runtime_billno(monkeypatch):
+    monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+    source_step = {
+        "id": "search_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "commonSearch",
+        "key": "filtercontainerap",
+        "method": "commonSearch",
+        "args": [[{"FieldName": ["billno"], "Value": ["OLD-BILL"]}]],
+        "post_data": [{}, []],
+    }
+    click_step = {
+        "id": "click_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "entryRowClick",
+        "key": "billlistap",
+        "args": [0, "billno"],
+        "post_data": [{
+            "billlistap": {
+                "row": 0,
+                "selRows": [0],
+                "selDatas": [["OLD-ID", "OLD-BILL"]],
+            },
+        }, []],
+        "dynamic_row_source_step_id": "search_bill",
+        "dynamic_row_grid_key": "billlistap",
+        "dynamic_row_field_map": ["id", "billno"],
+        "dynamic_row_max_attempts": 1,
+    }
+    response = [{
+        "a": "u",
+        "p": [{
+            "k": "billlistap",
+            "data": {
+                "dataindex": {"id": 0, "billno": 1},
+                "rows": [["NEW-ID", "NEW-BILL"]],
+            },
+        }],
+    }]
+    ctx = {
+        "case": {"steps": [source_step, click_step]},
+        "vars": {},
+        "runtime_fields": {"billno": "NEW-BILL"},
+        "step_responses": {"search_bill": response},
+        "response_history": [],
+    }
+
+    _resolve_dynamic_query_entry_row(click_step, object(), ctx)
+
+    assert click_step["post_data"][0]["billlistap"]["selDatas"] == [["NEW-ID", "NEW-BILL"]]
+
+
+def test_maintenance_value_trace_accepts_resolved_basedata_code():
+    case = {
+        "steps": [{
+            "id": "pick_employee",
+            "type": "pick_basedata",
+            "form_id": "demo_form",
+            "field_key": "employee",
+        }],
+        "pick_fields": {
+            "selector_employee": {
+                "source_step_id": "pick_employee",
+                "field_key": "employee",
+                "resolve_by": "value_code",
+                "value_code": "04041-0001",
+                "user_overridden": True,
+            }
+        },
+    }
+    ctx = {
+        "maintenance_expectations": _maintenance_expectations(case, {}),
+        "maintenance_value_trace": [],
+        "env_resolution": {
+            "selector_employee": {
+                "query": "04041-0001",
+                "resolved_value_id": "2366111555608643584",
+                "status": "resolved",
+                "interface": "getLookUpList",
+            }
+        },
+    }
+
+    errors = _record_maintenance_value_trace(
+        case["steps"][0],
+        {"value_id": "2366111555608643584"},
+        ctx,
+    )
+
+    assert errors == []
+    assert ctx["maintenance_value_trace"][0]["matched"] is True
+
+
+def test_maintenance_value_trace_uses_manual_pick_value_id():
+    case = {
+        "steps": [{
+            "id": "pick_enum",
+            "type": "pick_basedata",
+            "form_id": "demo_form",
+            "field_key": "enum_field",
+        }],
+        "pick_fields": {
+            "pick_enum_id": {
+                "source_step_id": "pick_enum",
+                "field_key": "enum_field",
+                "value_id": "1010",
+                "value_code": "1010_S",
+                "value_name": "测试枚举",
+                "resolve_by": "",
+            }
+        },
+    }
+    ctx = {
+        "maintenance_expectations": _maintenance_expectations(case, {}),
+        "maintenance_value_trace": [],
+        "env_resolution": {},
+    }
+
+    errors = _record_maintenance_value_trace(
+        case["steps"][0],
+        {"value_id": "1010", "value_code": "1010_S"},
+        ctx,
+    )
+
+    assert errors == []
+    assert ctx["maintenance_value_trace"][0]["matched"] is True
 
 
 def test_env_fields_display_business_code_and_keep_har_order():
@@ -451,6 +692,31 @@ class TestReplayErrorDetection:
         assert any("missing columns number" in err for err in result["errors"])
         assert "recorded-id" not in json.dumps(signature, ensure_ascii=False)
         assert "录制值" not in json.dumps(signature, ensure_ascii=False)
+
+    def test_response_contract_allows_transient_empty_list_before_wait(self):
+        expected = {
+            "contract_level": "business",
+            "allow_transient_empty": True,
+            "required_grid_schemas": [{
+                "control": "billlistap",
+                "required_columns": ["billno", "id"],
+                "non_empty": True,
+            }],
+        }
+        runtime = [{
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"billno": 0, "id": 1},
+                    "rows": [],
+                },
+            }],
+        }]
+
+        result = evaluate_response_contract(expected, runtime)
+
+        assert result["errors"] == []
 
     def test_advisory_response_contract_reports_warning_instead_of_error(self):
         recorded = [{
@@ -1542,6 +1808,37 @@ class TestReplayErrorDetection:
         }])
 
         assert replay.page_ids["hcdm_adjfileinfof7"] == "11119cbf5035422581622d93b880ebb8"
+
+
+    def test_activate_response_updates_parent_pageid_for_descendant_form(self):
+        sess = CosmicSession(
+            base_url="http://example.test",
+            cookie="",
+            user_id="",
+            account_id="",
+            csrf_token="",
+            diff_time=0,
+            root_base_id="",
+            root_page_id="rootabcdef0123456789abcdef0123456789",
+        )
+        replay = CosmicFormReplay(sess)
+        replay.page_ids["hcdm_apphome"] = "hcdmroot" + "a" * 32
+        new_page_id = "hcdmroot" + "b" * 32
+
+        replay._harvest_page_ids([{
+            "p": [{
+                "pageId": new_page_id,
+                "actions": [{
+                    "a": "activate",
+                    "p": [{
+                        "formId": "hcdm_apphome",
+                        "appId": "hcdm",
+                    }],
+                }],
+            }],
+        }])
+
+        assert replay.page_ids["hcdm_apphome"] == new_page_id
 
 
 class TestYAMLLightParsing:
@@ -2728,6 +3025,164 @@ class TestAssertionHandlers:
         assert ctx["last_readback_response"] is ctx["step_responses"]["search_after_save"]
         assert ctx["readback_responses"][0]["source"] == "步骤 search_after_save"
 
+    def test_readback_by_business_key_checks_all_same_control_grid_blocks(self):
+        ctx = {
+            "step_responses": {
+                "search_after_save": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"billno": 0},
+                            "rows": [["OLD-BILL"]],
+                        },
+                    }, {
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"billno": 0},
+                            "rows": [["NEW-BILL"]],
+                        },
+                    }],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "billno",
+            "value": "NEW-BILL",
+        }, ctx)
+
+        assert passed is True
+        assert "入库回查通过" in msg
+
+    def test_response_contract_aggregates_duplicate_grid_blocks(self):
+        recorded = [{
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"billno": 0},
+                    "rows": [["RECORDED"]],
+                },
+            }],
+        }]
+        runtime = [{
+            "a": "u",
+            "p": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"billno": 0},
+                    "rows": [],
+                },
+            }, {
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"billno": 0},
+                    "rows": [["RUNTIME"]],
+                },
+            }],
+        }]
+        signature = specialize_response_signature(
+            build_response_signature(recorded, include_candidates=True),
+            {"id": "search", "ac": "commonSearch", "form_id": "demo_list"},
+            contract_level="business",
+            anchor_reason="selector_data_source",
+        )
+
+        result = evaluate_response_contract(signature, runtime)
+
+        assert result["errors"] == []
+
+    def test_readback_by_business_key_uses_runtime_billno(self):
+        ctx = {
+            "runtime_fields": {"billno": "AUTO-BILL-001"},
+            "step_responses": {
+                "search_after_submit": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"billno": 0},
+                            "rows": [["AUTO-BILL-001"]],
+                        },
+                    }],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_submit",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "billno",
+            "value": "${runtime.billno}",
+            "value_from_runtime": "billno",
+        }, ctx)
+
+        assert passed is True
+        assert "AUTO-BILL-001" in msg
+
+    def test_readback_by_business_key_retries_recorded_query(self):
+        class FakeReplay:
+            def __init__(self):
+                self.calls = 0
+
+            def invoke(self, form_id, app_id, ac, actions):
+                self.calls += 1
+                return [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"name": 0},
+                            "rows": [["自动化员工"]],
+                        },
+                    }],
+                }]
+
+        replay = FakeReplay()
+        ctx = {
+            "replay": replay,
+            "vars": {"test_name": "自动化员工"},
+            "case": {
+                "steps": [{
+                    "id": "search_after_save",
+                    "type": "invoke",
+                    "form_id": "demo_bill",
+                    "app_id": "demo",
+                    "ac": "commonSearch",
+                    "key": "filtercontainerap",
+                    "method": "commonSearch",
+                    "args": [[{
+                        "FieldName": ["name"],
+                        "Value": ["${vars.test_name}"],
+                    }]],
+                }]
+            },
+            "runtime_fields": {},
+            "step_responses": {"search_after_save": []},
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "name",
+            "value": "自动化员工",
+            "retry_until_found": True,
+            "max_attempts": 1,
+        }, ctx)
+
+        assert passed is True
+        assert replay.calls == 1
+        assert "异步重试" in msg
+
     def test_runtime_upload_consumed_assertion_passes_after_replacement(self):
         record = {
             "upload_id": "upload_1",
@@ -2905,6 +3360,19 @@ class TestAssertionHandlers:
         assert passed is True
         assert "新会话菜单刷新" in msg
         assert any(call[2] == "refresh" for call in calls if len(call) > 2)
+
+    def test_fresh_dynamic_navigation_stops_before_first_write_step(self):
+        steps = [
+            {"id": "menu", "type": "invoke", "ac": "menuItemClick"},
+            {"id": "load", "type": "invoke", "ac": "loadData"},
+            {"id": "new", "type": "invoke", "ac": "new"},
+            {"id": "save", "type": "invoke", "ac": "save"},
+            {"id": "query", "type": "invoke", "ac": "commonSearch"},
+        ]
+
+        safe = runner_mod._fresh_readonly_navigation_steps(steps, 0, 4)
+
+        assert [step["id"] for step in safe] == ["menu", "load"]
 
     def test_advisory_assertion_failure_does_not_fail_run_result(self):
         result = runner_mod.RunResult()

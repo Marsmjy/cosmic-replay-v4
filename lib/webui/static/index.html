@@ -5588,9 +5588,9 @@ function app() {
 
     writeStatusHelp(row) {
       const status = row?.write_status || 'not_checked';
-      if (status === 'verified') return '已验证：保存/提交响应包含主键、成功 token，或已有后置查询回读证据。';
+      if (status === 'verified') return '已验证：已通过业务键或附件字段的后置只读回查确认真实入库。';
       if (status === 'manual_verified') return '人工确认：用户已确认该用例真实入库；后续同用例 PASS 时不再提示 AI 诊断。';
-      if (status === 'unverified') return '未验证：用例执行 PASS，但缺少明确写入证据。补入库断言或修复 pageId 链路后重新运行，系统会自动变为已验证。';
+      if (status === 'unverified') return '待回查：用例可能已有保存/提交成功响应，但尚未通过独立业务键回查。补入库断言后重新运行，系统会自动变为已验证。';
       if (status === 'failed') return '失败：保存/提交阶段失败，不能视为入库成功。';
       if (status === 'not_applicable') return '不适用：本用例未识别到保存/提交类写库步骤。';
       return '未检查：当前报告没有足够执行证据。';
@@ -5721,6 +5721,7 @@ function app() {
         'environment_service_unavailable',
         'environment_schema_mismatch',
         'environment_server_exception',
+        'environment_async_business_sync_timeout',
       ]);
       const aiCategories = new Set([
         'pageid_context',
@@ -5757,6 +5758,16 @@ function app() {
           confidence: this.failureAnalysis?.confidence || '高',
           title: '先确认审批待办',
           message: '提交链路已经走到审批前置等待，但目标环境没有查到当前单号对应的待办。先去业务环境确认待办、审批人、权限和流程配置；环境恢复后重跑。',
+        };
+      }
+      if (category === 'environment_async_business_sync_timeout') {
+        return {
+          action: 'environment',
+          tone: 'amber',
+          badge: '同步未完成',
+          confidence: this.failureAnalysis?.confidence || '高',
+          title: '先检查环境异步同步',
+          message: '前置业务操作已经成功，但目标环境没有生成后续业务记录。先排查异步任务、消息队列或业务投影服务；环境恢复后重跑。',
         };
       }
       if (
@@ -5842,6 +5853,8 @@ function app() {
       if (decision.action === 'environment') {
         if (category === 'workflow_task_wait_timeout') {
           items.push('已按运行时单号等待审批待办，但目标环境未返回对应列表行。');
+        } else if (category === 'environment_async_business_sync_timeout') {
+          items.push('前置操作已成功，系统已按本次运行值等待后续业务记录，但目标环境未生成。');
         } else {
           items.push('目标环境或接口响应异常优先级高，本次失败暂不建议直接判为用例问题。');
         }

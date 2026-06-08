@@ -190,6 +190,179 @@ def test_readback_plan_uses_fresh_menu_refresh_for_hcdm_salary_apply():
     assert item["suggested_assertion"]["field_key"] == "khr_name"
 
 
+def test_readback_plan_prefers_recorded_post_write_query_using_runtime_var():
+    case = {
+        "main_form_id": "hbss_nationality",
+        "vars": {"test_number": "AUTO${rand:4}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "write_step_id": "save_record",
+            }
+        },
+        "steps": [
+            {
+                "id": "save_record",
+                "type": "invoke",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "ac": "save",
+            },
+            {
+                "id": "search_after_save",
+                "type": "invoke",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "ac": "commonSearch",
+                "args": [[{
+                    "FieldName": ["number"],
+                    "Value": ["${vars.test_number}"],
+                }]],
+                "expected_response_signature": {
+                    "grid": {
+                        "controls": ["billlistap"],
+                        "stable_fields": ["number"],
+                    }
+                },
+            },
+        ],
+    }
+
+    plan = build_readback_plan(case)
+    item = plan["plans"][0]
+
+    assert item["strategy"]["source"] == "recorded_har_query"
+    assert item["strategy"]["recorded_step"] == "search_after_save"
+    assert item["suggested_assertion"]["step"] == "search_after_save"
+    assert item["suggested_assertion"]["field_key"] == "number"
+    assert item["assertion_policy"]["auto_append"] is True
+
+
+def test_readback_plan_matches_name_variable_to_name_query_field():
+    case = {
+        "main_form_id": "hspm_assignmentlist",
+        "vars": {"test_name": "自动化${rand:4}"},
+        "vars_meta": {
+            "test_name": {
+                "field_key": "ba_em_name",
+                "form_id": "hspm_assignmentlist",
+                "app_id": "hspm",
+                "write_step_id": "confirm_onboard",
+            }
+        },
+        "steps": [
+            {"id": "confirm_onboard", "type": "invoke", "ac": "save"},
+            {
+                "id": "search_assignment",
+                "type": "invoke",
+                "form_id": "hspm_assignmentlist",
+                "app_id": "hspm",
+                "ac": "commonSearch",
+                "args": [[{
+                    "FieldName": [
+                        "hrpi_employee.empnumber",
+                        "hrpi_employee.name",
+                    ],
+                    "Value": ["${vars.test_name}"],
+                }]],
+                "expected_response_signature": {
+                    "required_grid_schemas": [{
+                        "control": "billlistap",
+                        "required_columns": ["hrpi_employee.name"],
+                    }]
+                },
+            },
+        ],
+    }
+
+    item = build_readback_plan(case)["plans"][0]
+
+    assert item["suggested_assertion"]["field_key"] == "hrpi_employee.name"
+    assert item["suggested_assertion"]["retry_until_found"] is True
+
+
+def test_readback_plan_rebuilds_context_for_response_pageid_query():
+    case = {
+        "main_form_id": "hbss_nationality",
+        "vars": {"test_number": "AUTO${rand:4}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "write_step_id": "save_record",
+            }
+        },
+        "steps": [
+            {"id": "save_record", "type": "invoke", "ac": "save"},
+            {
+                "id": "search_after_save",
+                "type": "invoke",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "ac": "commonSearch",
+                "args": [[{
+                    "FieldName": ["number"],
+                    "Value": ["${vars.test_number}"],
+                }]],
+                "recorded_pageid_source_kind": "responsePageId",
+            },
+        ],
+    }
+
+    item = build_readback_plan(case)["plans"][0]
+
+    assert item["strategy"]["method"] == "fresh_recorded_navigation_query"
+    assert item["suggested_assertion"]["strategy"] == "fresh_recorded_context"
+    assert item["suggested_assertion"]["query_step"] == "search_after_save"
+    assert "step" not in item["suggested_assertion"]
+    assert item["assertion_policy"]["auto_append"] is False
+    assert item["assertion_policy"]["mode"] == "advisory"
+
+
+def test_readback_plan_prefers_final_runtime_billno_query():
+    case = {
+        "main_form_id": "khr_hcdm_fapplybill",
+        "steps": [
+            {
+                "id": "submit_bill",
+                "type": "invoke",
+                "form_id": "khr_hcdm_fapplybill",
+                "app_id": "hcdm",
+                "ac": "submit",
+            },
+            {
+                "id": "search_final_bill",
+                "type": "invoke",
+                "form_id": "khr_hcdm_fapplybill",
+                "app_id": "hcdm",
+                "ac": "commonSearch",
+                "args": [[{
+                    "FieldName": ["billno"],
+                    "Value": ["RECORDED-BILLNO"],
+                }]],
+                "expected_response_signature": {
+                    "required_grid_schemas": [{
+                        "control": "billlistap",
+                        "required_columns": ["billno"],
+                    }]
+                },
+            },
+        ],
+    }
+
+    plan = build_readback_plan(case)
+    item = plan["plans"][0]
+
+    assert plan["method"] == "runtime_billno_query"
+    assert item["strategy"]["source"] == "recorded_runtime_query"
+    assert item["suggested_assertion"]["step"] == "search_final_bill"
+    assert item["suggested_assertion"]["value_from_runtime"] == "billno"
+    assert item["assertion_policy"]["auto_append"] is True
+
+
 def test_pipeline_failure_classification_uses_existing_failure_analysis_rules():
     case = {"main_form_id": "demo_form"}
     smoke_summary = {

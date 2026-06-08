@@ -69,6 +69,7 @@ from .pageid_trace import (
     step_allows_l2_pageid as _trace_step_allows_l2_pageid,
 )
 from .response_signature import evaluate_response_contract
+from .request_signature import evaluate_request_contract
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -580,6 +581,74 @@ def _bind_l2_targets_from_navigation_step(
     return l2_pid
 
 
+def _restore_recorded_l2_context(step: dict, replay, ctx: dict) -> None:
+    """Rebuild the recorded menu/list model before a late L2 query."""
+    source_id = str(step.get("recorded_pageid_source_step_id") or "")
+    case = ctx.get("case") or {}
+    steps = case.get("steps") or []
+    source_index = next(
+        (
+            index for index, candidate in enumerate(steps)
+            if str(candidate.get("id") or "") == source_id
+        ),
+        -1,
+    )
+    if source_index < 0:
+        raise ValueError(f"找不到 L2 上下文来源步骤 {source_id}")
+    source = steps[source_index]
+    if str(source.get("ac") or "") != "menuItemClick":
+        raise ValueError(f"L2 上下文来源 {source_id} 不是 menuItemClick")
+
+    targets = set(source.get("target_forms") or [])
+    if source.get("target_form"):
+        targets.add(str(source.get("target_form")))
+    targets.add(str(step.get("form_id") or ""))
+    for form_id in targets:
+        if not form_id:
+            continue
+        replay.page_ids.pop(form_id, None)
+        replay._loaded_forms.discard(form_id)
+
+    vars_ns = ctx.get("vars") or {}
+    replayed: list[str] = []
+    for raw_candidate in steps[source_index:]:
+        if str(raw_candidate.get("id") or "") == str(step.get("id") or ""):
+            break
+        if raw_candidate is not source and _readback_navigation_is_mutating(raw_candidate):
+            break
+        candidate = resolve_vars(copy.deepcopy(raw_candidate), vars_ns)
+        stype = str(candidate.get("type") or "")
+        handler = STEP_HANDLERS.get(stype)
+        if handler is None or stype == "sleep":
+            continue
+        form_id = str(candidate.get("form_id") or "")
+        app_id = str(candidate.get("app_id") or "")
+        if stype == "invoke" and form_id and app_id and form_id not in replay.page_ids:
+            if form_id.startswith("bos_portal"):
+                replay.open_portal(form_id, app_id, lazy=False)
+            else:
+                replay.open_form(form_id, app_id, lazy=False)
+        response = handler(candidate, replay, ctx)
+        replayed.append(str(candidate.get("id") or ""))
+        if response is not None:
+            ctx.setdefault("response_history", []).append(response)
+
+    target_form = str(step.get("form_id") or "")
+    target_pid = replay.page_ids.get(target_form, "")
+    if classify_pageid(target_pid) != "L2":
+        raise ValueError(
+            f"重建后 {target_form} 未获得 L2 pageId，当前={classify_pageid(target_pid)}"
+        )
+    run_event = ctx.get("run_event")
+    if callable(run_event):
+        run_event("l2_context_restored", {
+            "step_id": str(step.get("id") or ""),
+            "source_step_id": source_id,
+            "replayed_steps": replayed,
+            "target_form": target_form,
+        })
+
+
 def _validate_pageid_before_invoke(form_id: str, app_id: str, replay, step: dict, ctx: dict) -> None:
     """invoke 执行前的 pageId 有效性预验证
 
@@ -891,6 +960,33 @@ def _extract_grid_payload(resp: Any, grid_key: str = "billlistap") -> tuple[dict
     return {str(k): int(v) for k, v in dataindex.items() if isinstance(v, int)}, clean_rows
 
 
+def _extract_grid_payloads(
+    resp: Any,
+    grid_key: str = "billlistap",
+) -> list[tuple[dict[str, int], list[list[Any]]]]:
+    payloads: list[tuple[dict[str, int], list[list[Any]]]] = []
+
+    def walk(obj: Any) -> None:
+        if isinstance(obj, dict):
+            if obj.get("k") == grid_key and isinstance(obj.get("data"), dict):
+                data = obj["data"]
+                dataindex = data.get("dataindex")
+                rows = data.get("rows")
+                if isinstance(dataindex, dict) and isinstance(rows, list):
+                    payloads.append((
+                        {str(k): int(v) for k, v in dataindex.items() if isinstance(v, int)},
+                        [row for row in rows if isinstance(row, list)],
+                    ))
+            for value in obj.values():
+                walk(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(resp)
+    return payloads
+
+
 def _extract_grid_payload_with_field(
     resp: Any,
     preferred_grid_key: str,
@@ -960,6 +1056,345 @@ def _find_grid_row(
                 return row_idx, row
             return pos, row
     raise ProtocolError(f"select_f7_list_row found no row for {needles!r} in fields {fields!r}")
+
+
+def _query_match_fields_and_values(step: dict) -> tuple[list[str], list[str]]:
+    fields: list[str] = []
+    values: list[str] = []
+    for criteria_group in step.get("args") or []:
+        if not isinstance(criteria_group, list):
+            continue
+        for criteria in criteria_group:
+            if not isinstance(criteria, dict):
+                continue
+            raw_fields = criteria.get("FieldName")
+            raw_values = criteria.get("Value")
+            if not isinstance(raw_fields, list) or not isinstance(raw_values, list):
+                continue
+            normalized_fields = [
+                str(field).replace(".", "_").strip()
+                for field in raw_fields
+                if str(field or "").strip()
+            ]
+            normalized_values = [
+                str(value).strip()
+                for value in raw_values
+                if str(value or "").strip()
+            ]
+            if normalized_fields and normalized_values:
+                fields.extend(normalized_fields)
+                values.extend(normalized_values)
+                return fields, values
+    return fields, values
+
+
+def _apply_dynamic_row_selection(
+    step: dict,
+    *,
+    control_key: str,
+    row_index: int,
+    row: list[Any],
+    dataindex: dict[str, int],
+) -> None:
+    post_data = step.get("post_data")
+    if not (isinstance(post_data, list) and post_data and isinstance(post_data[0], dict)):
+        raise ProtocolError("dynamic entryRowClick missing post_data")
+    payload = post_data[0].get(control_key)
+    if not isinstance(payload, dict):
+        raise ProtocolError(f"dynamic entryRowClick missing control payload: {control_key}")
+    selected_rows = payload.get("selDatas")
+    template_row = (
+        selected_rows[0]
+        if isinstance(selected_rows, list) and selected_rows and isinstance(selected_rows[0], list)
+        else []
+    )
+    field_map = step.get("dynamic_row_field_map") or []
+    selected_row = copy.deepcopy(template_row)
+    for position, field in enumerate(field_map):
+        if position >= len(selected_row) or not field:
+            continue
+        current = _grid_cell(row, dataindex, str(field))
+        if current is not None:
+            selected_row[position] = current
+    payload["row"] = row_index
+    payload["selRows"] = [row_index]
+    payload["selDatas"] = [selected_row]
+    args = step.get("args")
+    if isinstance(args, list) and args:
+        args[0] = row_index
+
+
+def _response_has_page_timeout(response: Any) -> bool:
+    try:
+        text = json.dumps(response, ensure_ascii=False)
+    except Exception:
+        text = str(response)
+    return "pagetimeout" in text or "当前表单会话超时" in text
+
+
+def _fresh_readonly_navigation_steps(
+    steps: list[dict],
+    source_index: int,
+    query_index: int,
+) -> list[dict]:
+    """Return the safe navigation prefix needed to rebuild a late list page."""
+    safe_steps: list[dict] = []
+    for candidate in steps[source_index:query_index]:
+        if _readback_navigation_is_mutating(candidate):
+            break
+        safe_steps.append(candidate)
+    return safe_steps
+
+
+def _run_fresh_dynamic_row_context(
+    step: dict,
+    source_step: dict,
+    ctx: dict,
+    *,
+    control_key: str,
+    match_fields: list[str],
+    match_values: list[str],
+) -> tuple[Any, Any]:
+    """Replay a late read-only list inspection in a fresh authenticated session."""
+    case = ctx.get("case") or {}
+    env = ctx.get("env") or case.get("env") or {}
+    base_url = env.get("base_url")
+    username = env.get("username")
+    password = env.get("password")
+    datacenter_id = env.get("datacenter_id")
+    if not (base_url and username and password):
+        raise ProtocolError("fresh dynamic row context missing environment credentials")
+
+    steps = case.get("steps") or []
+    source_id = str(source_step.get("recorded_pageid_source_step_id") or "")
+    source_index = next(
+        (index for index, candidate in enumerate(steps) if str(candidate.get("id") or "") == source_id),
+        -1,
+    )
+    query_index = next(
+        (
+            index for index, candidate in enumerate(steps)
+            if str(candidate.get("id") or "") == str(source_step.get("id") or "")
+        ),
+        -1,
+    )
+    if source_index < 0 or query_index <= source_index:
+        raise ProtocolError(
+            f"fresh dynamic row context cannot locate navigation window: {source_id}"
+        )
+
+    fresh_sess = login(
+        str(base_url),
+        str(username),
+        str(password),
+        datacenter_id=str(datacenter_id) if datacenter_id else None,
+    )
+    fresh = CosmicFormReplay(fresh_sess, sign_required=bool(case.get("sign_required", True)))
+    fresh_ctx: dict[str, Any] = {
+        "replay": fresh,
+        "vars": ctx.get("vars") or {},
+        "case": case,
+        "main_form_id": case.get("main_form_id"),
+        "response_history": [],
+        "step_responses": {},
+        "env_resolution": {},
+    }
+    try:
+        fresh.init_root()
+        replayed_steps: list[str] = []
+        navigation_steps = _fresh_readonly_navigation_steps(
+            steps,
+            source_index,
+            query_index,
+        )
+        if not navigation_steps:
+            raise ProtocolError(
+                f"fresh dynamic row context has no safe navigation steps after {source_id}"
+            )
+        for raw_candidate in navigation_steps:
+            candidate = resolve_vars(copy.deepcopy(raw_candidate), fresh_ctx["vars"])
+            stype = str(candidate.get("type") or "")
+            if stype == "sleep":
+                continue
+            handler = STEP_HANDLERS.get(stype)
+            if handler is None:
+                continue
+            form_id = str(candidate.get("form_id") or "")
+            app_id = str(candidate.get("app_id") or "")
+            if stype == "invoke" and form_id and app_id and form_id not in fresh.page_ids:
+                if form_id.startswith("bos_portal"):
+                    fresh.open_portal(form_id, app_id, lazy=False)
+                else:
+                    fresh.open_form(form_id, app_id, lazy=False)
+            response = handler(candidate, fresh, fresh_ctx)
+            replayed_steps.append(str(candidate.get("id") or ""))
+            fresh_ctx["step_responses"][str(candidate.get("id") or "")] = response
+            fresh_ctx["response_history"].append(response)
+
+        runtime_query = resolve_vars(copy.deepcopy(source_step), fresh_ctx["vars"])
+        _apply_runtime_billno_to_step(runtime_query, ctx, fresh)
+        query_response = fresh.invoke(
+            str(runtime_query.get("form_id") or ""),
+            str(runtime_query.get("app_id") or ""),
+            str(runtime_query.get("ac") or "commonSearch"),
+            [{
+                "key": str(runtime_query.get("key") or "filtercontainerap"),
+                "methodName": str(runtime_query.get("method") or "commonSearch"),
+                "args": runtime_query.get("args") or [],
+                "postData": runtime_query.get("post_data") or [{}, []],
+            }],
+        )
+        dataindex, rows = _extract_grid_payload(query_response, control_key)
+        available_fields = [field for field in match_fields if field in dataindex]
+        if not rows or not available_fields:
+            raise ProtocolError("fresh dynamic row context returned no matching grid data")
+        row_index, row = _find_grid_row(
+            rows,
+            dataindex,
+            value_code=match_values[0],
+            value_name=match_values[0],
+            match_fields=available_fields,
+        )
+        _apply_dynamic_row_selection(
+            step,
+            control_key=control_key,
+            row_index=row_index,
+            row=row,
+            dataindex=dataindex,
+        )
+        click_response = fresh.invoke(
+            str(step.get("form_id") or ""),
+            str(step.get("app_id") or ""),
+            str(step.get("ac") or "entryRowClick"),
+            [{
+                "key": str(step.get("key") or control_key),
+                "methodName": str(step.get("method") or "entryRowClick"),
+                "args": step.get("args") or [],
+                "postData": step.get("post_data") or [{}, []],
+            }],
+        )
+        run_event = ctx.get("run_event")
+        if callable(run_event):
+            run_event("dynamic_row_fresh_context", {
+                "step_id": str(step.get("id") or ""),
+                "source_step_id": str(source_step.get("id") or ""),
+                "navigation_source_step_id": source_id,
+                "replayed_steps": replayed_steps,
+                "stopped_before_step_id": str(
+                    (steps[source_index + len(navigation_steps)] or {}).get("id") or ""
+                ) if source_index + len(navigation_steps) < query_index else "",
+                "matched": True,
+            })
+        return query_response, click_response
+    finally:
+        fresh.close()
+
+
+def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
+    source_step_id = str(step.get("dynamic_row_source_step_id") or "")
+    if not source_step_id or step.get("ac") != "entryRowClick":
+        return
+    source_step = next(
+        (
+            candidate
+            for candidate in (ctx.get("case") or {}).get("steps") or []
+            if str(candidate.get("id") or "") == source_step_id
+        ),
+        None,
+    )
+    if not isinstance(source_step, dict):
+        raise ProtocolError(f"dynamic row source step not found: {source_step_id}")
+    runtime_query = resolve_vars(copy.deepcopy(source_step), ctx.get("vars") or {})
+    _apply_runtime_billno_to_step(runtime_query, ctx, replay)
+    match_fields, match_values = _query_match_fields_and_values(runtime_query)
+    if not match_fields or not match_values:
+        raise ProtocolError(f"dynamic row query has no stable match value: {source_step_id}")
+
+    control_key = str(step.get("dynamic_row_grid_key") or step.get("key") or "billlistap")
+    response = ctx.get("step_responses", {}).get(source_step_id)
+    attempts = max(int(step.get("dynamic_row_max_attempts") or 1), 1)
+    interval_seconds = max(float(step.get("dynamic_row_interval_seconds") or 1), 0.1)
+    resolved: tuple[int, list[Any], dict[str, int]] | None = None
+
+    for attempt in range(1, attempts + 1):
+        dataindex, rows = _extract_grid_payload(response, control_key)
+        available_fields = [field for field in match_fields if field in dataindex]
+        if rows and available_fields:
+            try:
+                row_index, row = _find_grid_row(
+                    rows,
+                    dataindex,
+                    value_code=match_values[0],
+                    value_name=match_values[0],
+                    match_fields=available_fields,
+                )
+                resolved = row_index, row, dataindex
+                break
+            except ProtocolError:
+                pass
+        if attempt >= attempts or not step.get("dynamic_row_retry_until_found"):
+            break
+        if _response_has_page_timeout(response):
+            break
+        time.sleep(interval_seconds)
+        response = replay.invoke(
+            str(runtime_query.get("form_id") or step.get("form_id") or ""),
+            str(runtime_query.get("app_id") or step.get("app_id") or ""),
+            str(runtime_query.get("ac") or "commonSearch"),
+            [{
+                "key": str(runtime_query.get("key") or "filtercontainerap"),
+                "methodName": str(runtime_query.get("method") or "commonSearch"),
+                "args": runtime_query.get("args") or [],
+                "postData": runtime_query.get("post_data") or [{}, []],
+            }],
+        )
+        ctx["step_responses"][source_step_id] = response
+        ctx.setdefault("response_history", []).append(response)
+
+    if (
+        resolved is None
+        and step.get("optional")
+        and source_step.get("refresh_recorded_l2_context")
+    ):
+        query_response, click_response = _run_fresh_dynamic_row_context(
+            step,
+            source_step,
+            ctx,
+            control_key=control_key,
+            match_fields=match_fields,
+            match_values=match_values,
+        )
+        ctx["step_responses"][source_step_id] = query_response
+        ctx.setdefault("response_history", []).append(query_response)
+        ctx.setdefault("response_contract_results", {})[source_step_id] = (
+            evaluate_response_contract(
+                source_step.get("expected_response_signature"),
+                query_response,
+            )
+        )
+        step["skip_replay"] = True
+        step["skip_reason"] = "已在新只读会话中按运行时业务键完成列表查询和行点击"
+        step["_fresh_context_response"] = click_response
+        return
+    if resolved is None:
+        raise ProtocolError(
+            f"dynamic list row not found after {attempts} attempts: "
+            f"{source_step_id} values={match_values!r}"
+        )
+
+    row_index, row, dataindex = resolved
+    _apply_dynamic_row_selection(
+        step,
+        control_key=control_key,
+        row_index=row_index,
+        row=row,
+        dataindex=dataindex,
+    )
+    step["_dynamic_row_resolved"] = {
+        "source_step_id": source_step_id,
+        "row": row_index,
+        "match_fields": match_fields,
+    }
 
 
 @step_handler("select_f7_list_row")
@@ -1678,7 +2113,13 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
     form_id = str(assert_spec.get("form_id") or ctx.get("main_form_id") or "")
     app_id = str(assert_spec.get("app_id") or _guess_app_id(form_id, ctx.get("case") or {}) or "")
     field_key = str(assert_spec.get("field_key") or "").strip()
-    value = str(assert_spec.get("value") or assert_spec.get("value_ref") or "").strip()
+    runtime_field = str(assert_spec.get("value_from_runtime") or "").strip()
+    if runtime_field:
+        value = str((ctx.get("runtime_fields") or {}).get(runtime_field) or "").strip()
+        if not value:
+            return False, f"readback_by_business_key 缺少运行时字段 {runtime_field}"
+    else:
+        value = str(assert_spec.get("value") or assert_spec.get("value_ref") or "").strip()
     if not (form_id and app_id and field_key and value):
         return False, "readback_by_business_key 缺少 form_id/app_id/field_key/value"
 
@@ -1695,6 +2136,9 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
     }:
         resp = _run_fresh_menu_refresh_readback_query(assert_spec, ctx, form_id, app_id)
         source_desc = "新会话菜单刷新"
+    elif str(assert_spec.get("strategy") or "").strip() == "fresh_recorded_context":
+        resp = _run_fresh_recorded_context_readback_query(assert_spec, ctx, form_id, app_id)
+        source_desc = "新会话录制导航回查"
     else:
         replay = ctx["replay"]
         if form_id not in replay.page_ids and assert_spec.get("open_if_missing", True):
@@ -1709,6 +2153,43 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
         expected=value,
         grid_key=str(assert_spec.get("grid_key") or "billlistap"),
     )
+    if not matched and assert_spec.get("retry_until_found") and source_step:
+        query_step = next(
+            (
+                step for step in (ctx.get("case") or {}).get("steps") or []
+                if str(step.get("id") or "") == source_step
+            ),
+            None,
+        )
+        if isinstance(query_step, dict):
+            replay = ctx["replay"]
+            attempts = max(int(assert_spec.get("max_attempts") or 10), 1)
+            interval_seconds = max(float(assert_spec.get("interval_seconds") or 1), 0.1)
+            for attempt in range(1, attempts + 1):
+                if attempt > 1:
+                    time.sleep(interval_seconds)
+                runtime_query = resolve_vars(copy.deepcopy(query_step), ctx.get("vars") or {})
+                _apply_runtime_billno_to_step(runtime_query, ctx, replay)
+                resp = replay.invoke(
+                    str(runtime_query.get("form_id") or form_id),
+                    str(runtime_query.get("app_id") or app_id),
+                    str(runtime_query.get("ac") or "commonSearch"),
+                    [{
+                        "key": str(runtime_query.get("key") or "filtercontainerap"),
+                        "methodName": str(runtime_query.get("method") or "commonSearch"),
+                        "args": runtime_query.get("args") or [],
+                        "postData": runtime_query.get("post_data") or [{}, []],
+                    }],
+                )
+                matched, detail = _response_contains_business_key(
+                    resp,
+                    field_key=field_key,
+                    expected=value,
+                    grid_key=str(assert_spec.get("grid_key") or "billlistap"),
+                )
+                if matched:
+                    source_desc = f"步骤 {source_step} 异步重试#{attempt}"
+                    break
     readback_entry = {
         "form_id": form_id,
         "app_id": app_id,
@@ -1812,6 +2293,127 @@ def _run_fresh_menu_refresh_readback_query(
         fresh.close()
 
 
+def _readback_navigation_is_mutating(step: dict[str, Any]) -> bool:
+    stype = str(step.get("type") or "")
+    if stype not in {"open_form", "invoke", "sleep"}:
+        return True
+    if stype != "invoke":
+        return False
+    ac = str(step.get("ac") or "").strip().lower()
+    method = str(step.get("method") or "").strip().lower()
+    key = str(step.get("key") or "").strip().lower()
+    if ac in _WRITE_ACS or ac in {"new", "addnew", "newentry", "deleteentry", "removeentry"}:
+        return True
+    if method in {
+        "updatevalue",
+        "setitembyidfromclient",
+        "setitemvaluebyidfromclient",
+        "upload",
+    }:
+        return True
+    if ac == "click" and any(
+        token in key
+        for token in ("save", "submit", "audit", "confirm", "ok", "new", "delete")
+    ):
+        return True
+    return False
+
+
+def _run_fresh_recorded_context_readback_query(
+    assert_spec: dict,
+    ctx: dict,
+    form_id: str,
+    app_id: str,
+) -> Any:
+    """Rebuild the recorded readonly list context in a fresh session.
+
+    Browser recordings often return to a parent list after closing an editor.
+    Protocol replay has no browser page stack, so the recorded post-save query
+    can otherwise fall back to the root pageId and return an empty response.
+    """
+    case = ctx.get("case") or {}
+    env = ctx.get("env") or case.get("env") or {}
+    base_url = env.get("base_url")
+    username = env.get("username")
+    password = env.get("password")
+    datacenter_id = env.get("datacenter_id")
+    if not (base_url and username and password):
+        raise ValueError("fresh_recorded_context 回查缺少 base_url/username/password")
+
+    query_step_id = str(assert_spec.get("query_step") or "").strip()
+    query_step = next(
+        (
+            step for step in case.get("steps") or []
+            if str(step.get("id") or "") == query_step_id
+        ),
+        None,
+    )
+    if not isinstance(query_step, dict):
+        raise ValueError(f"fresh_recorded_context 找不到查询步骤 {query_step_id}")
+
+    fresh_sess = login(
+        str(base_url),
+        str(username),
+        str(password),
+        datacenter_id=str(datacenter_id) if datacenter_id else None,
+    )
+    fresh = CosmicFormReplay(fresh_sess, sign_required=bool(case.get("sign_required", True)))
+    fresh_ctx: dict[str, Any] = {
+        "replay": fresh,
+        "vars": ctx.get("vars") or {},
+        "case": case,
+        "main_form_id": case.get("main_form_id"),
+        "response_history": [],
+        "step_responses": {},
+        "env_resolution": {},
+    }
+    try:
+        fresh.init_root()
+        for raw_step in case.get("steps") or []:
+            if str(raw_step.get("id") or "") == query_step_id:
+                break
+            if _readback_navigation_is_mutating(raw_step):
+                break
+            step = resolve_vars(copy.deepcopy(raw_step), fresh_ctx["vars"])
+            stype = str(step.get("type") or "")
+            if stype == "sleep":
+                continue
+            handler = STEP_HANDLERS.get(stype)
+            if handler is None:
+                continue
+            target_form = str(step.get("form_id") or "")
+            target_app = str(step.get("app_id") or "")
+            if (
+                stype == "invoke"
+                and target_form
+                and target_app
+                and target_form not in fresh.page_ids
+            ):
+                fresh.open_form(target_form, target_app, lazy=False)
+            try:
+                response = handler(step, fresh, fresh_ctx)
+            except Exception:
+                if step.get("optional"):
+                    continue
+                raise
+            fresh_ctx["step_responses"][str(step.get("id") or "")] = response
+            fresh_ctx["response_history"].append(response)
+
+        resolved_query = resolve_vars(copy.deepcopy(query_step), fresh_ctx["vars"])
+        if form_id not in fresh.page_ids:
+            raise ValueError(
+                f"fresh_recorded_context 未能通过录制导航建立 {form_id} 的列表 pageId"
+            )
+        return fresh.invoke(form_id, app_id, str(resolved_query.get("ac") or "commonSearch"), [{
+            "key": str(resolved_query.get("key") or "filtercontainerap"),
+            "methodName": str(resolved_query.get("method") or "commonSearch"),
+            "args": resolved_query.get("args") or [],
+            "postData": resolved_query.get("post_data") or [{}, []],
+        }])
+    finally:
+        fresh.close()
+
+
 def _run_business_key_readback_query(
     assert_spec: dict,
     replay: CosmicFormReplay,
@@ -1851,17 +2453,23 @@ def _response_contains_business_key(
     expected_s = str(expected or "").strip()
     if not expected_s:
         return False, "业务键为空"
-    dataindex, rows = _extract_grid_payload(resp, grid_key)
-    if dataindex and rows:
+    populated_payloads = [
+        (dataindex, rows)
+        for dataindex, rows in _extract_grid_payloads(resp, grid_key)
+        if dataindex and rows
+    ]
+    for dataindex, rows in populated_payloads:
         if field_key in dataindex:
             for row in rows:
                 if str(_grid_cell(row, dataindex, field_key) or "").strip() == expected_s:
                     return True, f"grid {grid_key} 命中字段 {field_key}"
-            return False, f"grid {grid_key} 有 {len(rows)} 行，但字段 {field_key} 未命中"
-        for row in rows:
-            if any(str(cell or "").strip() == expected_s for cell in row):
-                return True, f"grid {grid_key} 命中任意列"
-        return False, f"grid {grid_key} 有 {len(rows)} 行，但未命中业务键"
+        else:
+            for row in rows:
+                if any(str(cell or "").strip() == expected_s for cell in row):
+                    return True, f"grid {grid_key} 命中任意列"
+    if populated_payloads:
+        total_rows = sum(len(rows) for _, rows in populated_payloads)
+        return False, f"grid {grid_key} 有 {total_rows} 行，但字段 {field_key} 未命中"
     text = json.dumps(resp, ensure_ascii=False, default=str)
     if expected_s in text:
         return True, "响应文本包含业务键"
@@ -3227,6 +3835,7 @@ class RunResult:
         self.steps: list[dict] = []
         self.assertions: list[dict] = []
         self.fixes: list = []   # list[advisor.Fix]
+        self.runtime_evidence: dict[str, Any] = {}
         self.start_ts = time.time()
         self.end_ts: float | None = None
 
@@ -3285,15 +3894,16 @@ _WRITE_KEYS = {
 }
 
 
+def _is_write_step(step: dict) -> bool:
+    ac = str(step.get("ac") or "").lower()
+    key = str(step.get("key") or "").lower()
+    args = step.get("args") or []
+    arg_text = json.dumps(args, ensure_ascii=False).lower() if args else ""
+    return ac in _WRITE_ACS or key in _WRITE_KEYS or any(k in arg_text for k in _WRITE_KEYS)
+
+
 def _case_has_write_step(case: dict) -> bool:
-    for step in case.get("steps") or []:
-        ac = str(step.get("ac") or "").lower()
-        key = str(step.get("key") or "").lower()
-        args = step.get("args") or []
-        arg_text = json.dumps(args, ensure_ascii=False).lower() if args else ""
-        if ac in _WRITE_ACS or key in _WRITE_KEYS or any(k in arg_text for k in _WRITE_KEYS):
-            return True
-    return False
+    return any(_is_write_step(step) for step in case.get("steps") or [])
 
 
 def _clone_session(sess: CosmicSession) -> CosmicSession:
@@ -3307,6 +3917,116 @@ def _clone_session(sess: CosmicSession) -> CosmicSession:
         root_base_id="",
         root_page_id="",
     )
+
+
+def _contains_exact_runtime_value(node: Any, expected: Any) -> bool:
+    if isinstance(node, dict):
+        return any(_contains_exact_runtime_value(value, expected) for value in node.values())
+    if isinstance(node, list):
+        return any(_contains_exact_runtime_value(value, expected) for value in node)
+    if isinstance(expected, bool):
+        return node is expected
+    if isinstance(expected, (int, float)) and not isinstance(expected, bool):
+        return node == expected or str(node) == str(expected)
+    return str(node) == str(expected)
+
+
+def _maintenance_expectations(case: dict, vars_ns: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    by_step: dict[str, list[dict[str, Any]]] = {}
+    for var_name, meta in (case.get("vars_meta") or {}).items():
+        if not isinstance(meta, dict):
+            continue
+        source_step_id = str(meta.get("source_step_id") or "")
+        if not source_step_id or var_name not in vars_ns:
+            continue
+        by_step.setdefault(source_step_id, []).append({
+            "kind": "variable",
+            "id": str(var_name),
+            "field_key": str(meta.get("field_key") or ""),
+            "expected": vars_ns[var_name],
+            "user_overridden": True,
+        })
+    step_ids = {
+        str(step.get("id") or "")
+        for step in case.get("steps") or []
+        if step.get("id")
+    }
+    for pick_id, meta in (case.get("pick_fields") or {}).items():
+        if not isinstance(meta, dict):
+            continue
+        source_step_id = str(meta.get("source_step_id") or "")
+        if not source_step_id and str(pick_id) in step_ids:
+            source_step_id = str(pick_id)
+        if not source_step_id:
+            continue
+        resolve_by = str(meta.get("resolve_by") or "")
+        expected = (
+            meta.get("value_code")
+            if resolve_by == "value_code" and meta.get("value_code") not in (None, "")
+            else meta.get("value_name")
+            if resolve_by == "value_name" and meta.get("value_name") not in (None, "")
+            else meta.get("value_id")
+            if meta.get("value_id") not in (None, "")
+            else meta.get("value_name")
+            if meta.get("value_name") not in (None, "")
+            else meta.get("value_code")
+        )
+        if expected in (None, ""):
+            continue
+        by_step.setdefault(source_step_id, []).append({
+            "kind": "environment_field",
+            "id": str(pick_id),
+            "field_key": str(meta.get("field_key") or ""),
+            "expected": expected,
+            "resolve_by": resolve_by,
+            "user_overridden": bool(meta.get("user_overridden") or meta.get("manual_override")),
+        })
+    return by_step
+
+
+def _record_maintenance_value_trace(
+    step: dict,
+    resolved_request: dict[str, Any],
+    ctx: dict[str, Any],
+) -> list[str]:
+    """Prove that configured values reached their intended runtime request."""
+    sid = str(step.get("id") or "")
+    expectations = (ctx.get("maintenance_expectations") or {}).get(sid) or []
+    errors: list[str] = []
+    for expected in expectations:
+        expected_value = expected.get("expected")
+        matched = _contains_exact_runtime_value(resolved_request, expected_value)
+        resolver = (ctx.get("env_resolution") or {}).get(expected.get("id")) or {}
+        if expected.get("kind") == "environment_field" and not matched:
+            query = resolver.get("query")
+            effective_id = resolver.get("effective_value_id") or resolver.get("resolved_value_id")
+            matched = (
+                query not in (None, "")
+                and str(query) == str(expected_value)
+                and effective_id not in (None, "")
+            )
+        ctx.setdefault("maintenance_value_trace", []).append({
+            "kind": expected.get("kind"),
+            "id": expected.get("id"),
+            "field_key": expected.get("field_key"),
+            "source_step_id": sid,
+            "matched": bool(matched),
+            "resolve_by": expected.get("resolve_by", ""),
+            "resolver_status": str(resolver.get("status") or ""),
+            "resolver_interface": str(resolver.get("interface") or ""),
+            "user_overridden": bool(expected.get("user_overridden")),
+            "value_shape": (
+                "bool" if isinstance(expected_value, bool)
+                else "number" if isinstance(expected_value, (int, float))
+                else "string"
+            ),
+        })
+        if not matched:
+            errors.append(
+                f"[MaintainedValue] {expected.get('id')} did not reach "
+                f"{sid}.{expected.get('field_key') or '?'}"
+            )
+    return errors
 
 
 def _find_first_menu_step(case: dict, vars_ns: dict[str, Any]) -> dict | None:
@@ -3526,6 +4246,10 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "last_step_response": None,
         "response_history": [],   # advisor 用，累积所有响应
         "env_resolution": {},
+        "maintenance_expectations": _maintenance_expectations(case, vars_ns),
+        "maintenance_value_trace": [],
+        "request_contract_results": {},
+        "response_contract_results": {},
         "run_event": emit,
         "env": env,
         "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
@@ -3565,6 +4289,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
     for raw_step in steps_to_run:
         step = resolve_vars(raw_step, vars_ns)
+        preparation_errors: list[str] = []
 
         # ---- date pick_fields 后置注入：防止 resolve_vars 用 ${today} 覆盖用户自定义日期 ----
         if step.get("type") == "update_fields":
@@ -3606,6 +4331,15 @@ def run_case(case: dict, on_event=None) -> RunResult:
             _apply_runtime_uploads_to_step(step, ctx)
         if stype == "invoke":
             _apply_latest_afterconfirm_callback(step, ctx)
+            try:
+                _resolve_dynamic_query_entry_row(step, replay, ctx)
+            except Exception as exc:
+                preparation_errors.append(str(exc))
+            if step.get("refresh_recorded_l2_context"):
+                try:
+                    _restore_recorded_l2_context(step, replay, ctx)
+                except Exception as exc:
+                    preparation_errors.append(str(exc))
         print(f"\n[{sid}] {stype}", end="")
         detail = _step_detail(step)
         if detail:
@@ -3614,6 +4348,12 @@ def run_case(case: dict, on_event=None) -> RunResult:
 
         # ⭐ 构建解析后的请求摘要（供前端展示完整请求参数）
         resolved_request = _build_resolved_request(step)
+        request_contract_result = evaluate_request_contract(
+            step.get("expected_request_signature"),
+            step,
+        )
+        ctx["request_contract_results"][sid] = request_contract_result
+        request_contract_warnings = list(request_contract_result.get("warnings") or [])
 
         step_start = time.time()
         # 优先使用HAR提取的description（中文描述），否则使用_step_label推断
@@ -3622,6 +4362,31 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "id": sid, "type": stype, "label": label, "detail": detail, "optional": optional,
             "resolved_request": resolved_request,
         })
+
+        request_contract_errors = [
+            *preparation_errors,
+            *list(request_contract_result.get("errors") or []),
+        ]
+        if request_contract_errors:
+            step_record = {
+                "id": sid,
+                "type": stype,
+                "ok": False,
+                "optional": optional,
+                "detail": detail,
+                "error": "; ".join(request_contract_errors[:5]),
+                "_errors": request_contract_errors,
+            }
+            result.steps.append(step_record)
+            emit("step_fail", {
+                "id": sid,
+                "errors": request_contract_errors[:5],
+                "duration_ms": int((time.time() - step_start) * 1000),
+                "resolved_request": resolved_request,
+            })
+            if not optional:
+                break
+            continue
 
         if step.get("skip_replay"):
             reason = str(step.get("skip_reason") or "该步骤标记为不回放").strip()
@@ -3886,6 +4651,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
                     step_record["expected_notifications"] = expected_errs
                 warning_messages = [
                     *(errs[:3] if errs and optional else []),
+                    *request_contract_warnings[:3],
                     *contract_warnings[:3],
                 ]
                 if warning_messages:
@@ -3899,10 +4665,30 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 result.steps.append(step_record)
                 # ⭐ 推送完整响应数据供前端展示
                 resp_snapshot = _truncate_response(resp)
+                final_resolved_request = _build_resolved_request(step)
+                maintained_value_errors = _record_maintenance_value_trace(
+                    step,
+                    final_resolved_request,
+                    ctx,
+                )
+                if maintained_value_errors and not optional:
+                    step_record["ok"] = False
+                    step_record["error"] = "; ".join(maintained_value_errors[:5])
+                    step_record["_errors"] = maintained_value_errors
+                    emit("step_fail", {
+                        "id": sid,
+                        "errors": maintained_value_errors[:5],
+                        "duration_ms": int((time.time() - step_start) * 1000),
+                        "response": resp_snapshot,
+                        "resolved_request": final_resolved_request,
+                        "pageid_trace": _runtime_pageid_trace("after_handler", "fail"),
+                    })
+                    break
                 ok_payload = {
                     "id": sid,
                     "duration_ms": int((time.time() - step_start) * 1000),
                     "response": resp_snapshot,
+                    "resolved_request": final_resolved_request,
                     "pageid_trace": _runtime_pageid_trace("after_handler", "ok"),
                 }
                 if wait_detail:
@@ -4096,6 +4882,32 @@ def run_case(case: dict, on_event=None) -> RunResult:
         except Exception as e:
             log.warning(f"repair_planner 执行异常，跳过自动修复计划: {e}")
 
+    readback_results = [
+        {
+            "form_id": str(item.get("form_id") or ""),
+            "app_id": str(item.get("app_id") or ""),
+            "field_key": str(item.get("field_key") or ""),
+            "matched": bool(item.get("matched")),
+            "source": str(item.get("source") or ""),
+            "detail": str(item.get("detail") or ""),
+        }
+        for item in (ctx.get("readback_results") or [])
+        if isinstance(item, dict)
+    ]
+    maintenance_trace = list(ctx.get("maintenance_value_trace") or [])
+    result.runtime_evidence = {
+        "request_contract_results": dict(ctx.get("request_contract_results") or {}),
+        "response_contract_results": dict(ctx.get("response_contract_results") or {}),
+        "readback_results": readback_results,
+        "maintenance_value_trace": maintenance_trace,
+        "maintenance_expected_count": sum(
+            len(items)
+            for items in (ctx.get("maintenance_expectations") or {}).values()
+        ),
+        "maintenance_matched_count": sum(
+            1 for item in maintenance_trace if item.get("matched")
+        ),
+    }
     result.end_ts = time.time()
     env_fields = _build_env_fields(case, result, ctx.get("env_resolution", {}))
     if env_fields:
@@ -4109,6 +4921,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "assertion_ok": sum(1 for a in result.assertions if a.get("ok")),
         "assertion_fail": sum(1 for a in result.assertions if not a.get("ok") and not a.get("advisory")),
         "assertion_advisory": sum(1 for a in result.assertions if not a.get("ok") and a.get("advisory")),
+        "readback_verified": sum(1 for item in readback_results if item.get("matched")),
+        "maintenance_expected": result.runtime_evidence["maintenance_expected_count"],
+        "maintenance_matched": result.runtime_evidence["maintenance_matched_count"],
     })
     return result
 

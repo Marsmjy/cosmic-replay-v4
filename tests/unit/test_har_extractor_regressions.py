@@ -12,7 +12,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from lib.har_extractor import (
     _append_readback_assertions,
     _append_recorded_default_pick_steps,
+    _annotate_dynamic_query_row_selections,
     _annotate_env_field_sources,
+    _annotate_repeated_menu_targets,
     _attach_pick_field_scopes,
     _build_preview_readback_plan,
     _build_preview_business_blocks,
@@ -630,6 +632,81 @@ def test_custom_event_showform_is_core_navigation_producer():
     assert steps[0]["preserve_l2_page"] is True
 
 
+def test_menu_reopen_response_pageid_is_retained_without_showform():
+    page_id = "1443450410974114816root" + "a" * 32
+    har = {
+        "log": {
+            "entries": [
+                _batch_invoke_har_entry(
+                    form_id="bos_portal_myapp_new",
+                    app_id="bos",
+                    ac="menuItemClick",
+                    page_id="b" * 32,
+                    actions=[{
+                        "key": "appnavigationmenuap",
+                        "methodName": "menuItemClick",
+                        "args": [{"menuId": "1443450410974114816"}],
+                        "postData": [{}, []],
+                    }],
+                    response=[{
+                        "p": [{
+                            "pageId": page_id,
+                            "actions": [{
+                                "a": "sendDynamicFormAction",
+                                "p": [],
+                            }],
+                        }],
+                    }],
+                )
+            ]
+        }
+    }
+
+    steps = extract_steps(har)
+
+    assert steps[0]["id"].startswith("menuItemClick")
+    assert page_id in steps[0]["_resp_text"]
+
+
+def test_repeated_menu_target_uses_following_l2_consumer():
+    root = "a" * 32
+    steps = [
+        {
+            "id": "menu_first",
+            "type": "invoke",
+            "ac": "menuItemClick",
+            "args": [{"menuId": "100"}],
+            "target_form": "first_list",
+        },
+        {
+            "id": "menu_reopen",
+            "type": "invoke",
+            "ac": "menuItemClick",
+            "args": [{"menuId": "200"}],
+        },
+        {
+            "id": "select_tab",
+            "type": "invoke",
+            "ac": "selectTab",
+            "form_id": "home_page",
+            "_har_page_id": f"approot{root}",
+        },
+        {
+            "id": "search_list",
+            "type": "invoke",
+            "ac": "commonSearch",
+            "form_id": "target_list",
+            "_har_page_id": f"200root{root}",
+        },
+    ]
+
+    _annotate_repeated_menu_targets(steps, "detail_form")
+
+    assert steps[1]["target_form"] == "target_list"
+    assert steps[1]["navigation_form_id"] == "target_list"
+    assert steps[1]["resolve_by"] == "menu_path_or_form"
+
+
 def test_business_model_schedule_quest_har_keeps_wizard_context_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780638489_业务模型-添加一个全字段类型人员附表.har"
     if not har_path.exists():
@@ -1068,6 +1145,116 @@ def test_salary_detail_numeric_update_fields_become_smart_variables():
     assert labels["test_salary_after_fixed_monthly_income"] == "调薪后-固定月收入"
     assert updated[0]["fields"]["khr_hpostallowance"] == "${vars.test_salary_after_post_allowance}"
     assert updated[0]["fields"]["khr_hmonthlyincome"] == "${vars.test_salary_after_fixed_monthly_income}"
+
+
+def test_recorded_post_save_query_prefix_uses_runtime_variable():
+    steps = [
+        {
+            "type": "update_fields",
+            "id": "fill_number",
+            "form_id": "demo_form",
+            "app_id": "demo",
+            "fields": {"number": "mars123456"},
+        },
+        {
+            "type": "invoke",
+            "id": "save_record",
+            "form_id": "demo_form",
+            "app_id": "demo",
+            "ac": "save",
+        },
+        {
+            "type": "invoke",
+            "id": "search_after_save",
+            "form_id": "demo_form",
+            "app_id": "demo",
+            "ac": "commonSearch",
+            "args": [[{
+                "FieldName": ["number"],
+                "Value": ["mars"],
+            }]],
+        },
+    ]
+
+    updated, vars_map, _ = detect_var_placeholders(steps)
+
+    assert vars_map["test_number"].startswith("mars")
+    assert updated[2]["args"][0][0]["Value"] == ["${vars.test_number}"]
+
+
+def test_variable_templates_preserve_recorded_identifier_suffix_shape():
+    steps = [{
+        "type": "update_fields",
+        "id": "fill_employee",
+        "form_id": "hom_onbrdinfo",
+        "app_id": "hom",
+        "fields": {
+            "ba_em_empnumber": "zhangxiaojie001",
+            "certificatenumber": "zhangxiaojie001",
+        },
+    }]
+
+    updated, vars_map, _ = detect_var_placeholders(steps)
+
+    assert vars_map["test_number"] == "zhangxiao${rand:6}"
+    assert vars_map["test_cert_no"] == "zhangxiao${rand:6}"
+    assert updated[0]["fields"]["ba_em_empnumber"] == "${vars.test_number}"
+    assert updated[0]["fields"]["certificatenumber"] == "${vars.test_cert_no}"
+
+
+def test_dynamic_query_row_selection_records_grid_field_mapping():
+    query_response = [{
+        "a": "u",
+        "p": [{
+            "k": "billlistap",
+            "data": {
+                "dataindex": {
+                    "hrpi_employee_empnumber": 0,
+                    "hspm_assignmentquery_id": 1,
+                    "hrpi_employee_id": 2,
+                    "org_id": 3,
+                },
+                "rows": [["EMP001", "A1", "E1", "ORG1"]],
+            },
+        }],
+    }]
+    steps = [
+        {
+            "id": "search_employee",
+            "type": "invoke",
+            "form_id": "hspm_assignmentlist",
+            "app_id": "hspm",
+            "ac": "commonSearch",
+            "args": [[{
+                "FieldName": ["hrpi_employee.empnumber"],
+                "Value": ["EMP001"],
+            }]],
+            "_resp_text": json.dumps(query_response),
+        },
+        {
+            "id": "click_employee",
+            "type": "invoke",
+            "form_id": "hspm_assignmentlist",
+            "app_id": "hspm",
+            "ac": "entryRowClick",
+            "key": "billlistap",
+            "post_data": [{
+                "billlistap": {
+                    "selDatas": [["A1", "E1", "ORG1"]],
+                },
+            }, []],
+        },
+    ]
+
+    _annotate_dynamic_query_row_selections(steps)
+
+    click = steps[1]
+    assert click["dynamic_row_source_step_id"] == "search_employee"
+    assert click["dynamic_row_field_map"] == [
+        "hspm_assignmentquery_id",
+        "hrpi_employee_id",
+        "org_id",
+    ]
 
 
 def test_salary_adjust_preview_exposes_detail_amounts_when_local_har_exists():

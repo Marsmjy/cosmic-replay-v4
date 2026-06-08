@@ -566,6 +566,55 @@ def build_readback_plan(
     and business key should be used for post-save query assertions without
     embedding cookies, raw HAR, or resolved personal data.
     """
+    runtime_billno_step = _find_runtime_billno_readback_step(case)
+    if runtime_billno_step:
+        return {
+            "status": "ready",
+            "method": "runtime_billno_query",
+            "reason": "HAR 包含提交后按运行时单号查询最终业务列表的只读链路。",
+            "plans": [{
+                "form_id": runtime_billno_step["form_id"],
+                "app_id": runtime_billno_step["app_id"],
+                "query_method": "recorded_runtime_billno_query",
+                "preferred_filter": {
+                    "field_key": "billno",
+                    "value_ref": "${runtime.billno}",
+                    "value_template": "",
+                    "source": "runtime_submit_response",
+                },
+                "fallback_filters": [],
+                "strategy": {
+                    "strategy_id": "recorded_runtime_billno_query",
+                    "source": "recorded_runtime_query",
+                    "method": "recorded_step_response",
+                    "recorded_step": runtime_billno_step["step"],
+                    "assertion_field_key": "billno",
+                    "grid_key": runtime_billno_step["grid_key"],
+                    "preferred_fields": ["billno"],
+                    "available_fields": ["billno"],
+                    "uniqueness_hint": "提交响应产生的新单号必须出现在后续最终业务列表查询中。",
+                    "manual_fallback": "若未命中，检查提交响应单号提取、查询参数注入和最终列表 pageId。",
+                },
+                "assertion_policy": {
+                    "auto_append": True,
+                    "mode": "strict",
+                    "reason": "该查询由 HAR 录制且运行时单号由本次提交响应动态注入。",
+                },
+                "success_criteria": "最终业务列表按本次运行 billno 至少回查到 1 条记录。",
+                "suggested_assertion": {
+                    "type": "readback_by_business_key",
+                    "step": runtime_billno_step["step"],
+                    "form_id": runtime_billno_step["form_id"],
+                    "app_id": runtime_billno_step["app_id"],
+                    "field_key": "billno",
+                    "value": "${runtime.billno}",
+                    "value_from_runtime": "billno",
+                    "grid_key": runtime_billno_step["grid_key"],
+                },
+            }],
+            "guardrails": _readback_guardrails(),
+        }
+
     business_keys = list(business_keys if business_keys is not None else _case_business_keys(case))
     if not business_keys:
         return {
@@ -602,15 +651,67 @@ def build_readback_plan(
             })
         strongest = filters[0] if filters else {}
         readback_strategy = _readback_strategy_for_form(form_id, filters)
+        recorded_step = {}
+        for index, candidate_filter in enumerate(filters):
+            candidate_key = sorted_keys[index] if index < len(sorted_keys) else {}
+            candidate_step = _find_recorded_readback_step(
+                case,
+                value_ref=str(candidate_filter.get("value_ref") or ""),
+                write_step_id=str(candidate_key.get("write_step_id") or ""),
+                preferred_field_key=str(candidate_filter.get("field_key") or ""),
+            )
+            if candidate_step:
+                recorded_step = candidate_step
+                strongest = candidate_filter
+                break
+        if recorded_step:
+            assertion_strategy = (
+                "fresh_recorded_context"
+                if recorded_step.get("pageid_source_kind") == "responsePageId"
+                else "recorded_step"
+            )
+            readback_strategy = {
+                "strategy_id": "recorded_post_write_query",
+                "source": "recorded_har_query",
+                "method": (
+                    "fresh_recorded_navigation_query"
+                    if assertion_strategy == "fresh_recorded_context"
+                    else "recorded_step_response"
+                ),
+                "assertion_strategy": assertion_strategy,
+                "recorded_step": recorded_step["step"],
+                "recorded_form_id": recorded_step["form_id"],
+                "recorded_app_id": recorded_step["app_id"],
+                "assertion_field_key": recorded_step["field_key"],
+                "grid_key": recorded_step["grid_key"],
+                "retry_until_found": assertion_strategy == "recorded_step",
+                "preferred_fields": [recorded_step["field_key"]],
+                "available_fields": [recorded_step["field_key"]],
+                "uniqueness_hint": "复用 HAR 中保存后真实查询，并将查询值绑定到本次运行变量。",
+                "manual_fallback": "若录制查询未命中，检查变量是否传播到查询参数及目标环境列表字段。",
+            }
         if readback_strategy.get("app_id"):
             app_id = str(readback_strategy.get("app_id") or app_id)
+        assertion_form_id = str(readback_strategy.get("recorded_form_id") or form_id)
+        assertion_app_id = str(readback_strategy.get("recorded_app_id") or app_id)
         suggested_assertion = {
             "type": "readback_by_business_key",
-            "form_id": form_id,
-            "app_id": app_id,
+            "form_id": assertion_form_id,
+            "app_id": assertion_app_id,
             "field_key": readback_strategy.get("assertion_field_key") or strongest.get("field_key", ""),
             "value": strongest.get("value_ref", ""),
         }
+        if (
+            readback_strategy.get("recorded_step")
+            and readback_strategy.get("assertion_strategy") == "recorded_step"
+        ):
+            suggested_assertion["step"] = str(readback_strategy.get("recorded_step") or "")
+        elif readback_strategy.get("recorded_step"):
+            suggested_assertion["query_step"] = str(readback_strategy.get("recorded_step") or "")
+        if readback_strategy.get("grid_key"):
+            suggested_assertion["grid_key"] = str(readback_strategy.get("grid_key") or "")
+        if readback_strategy.get("retry_until_found"):
+            suggested_assertion["retry_until_found"] = True
         if readback_strategy.get("assertion_strategy"):
             suggested_assertion["strategy"] = str(readback_strategy.get("assertion_strategy") or "")
         if readback_strategy.get("menu_id"):
@@ -673,7 +774,19 @@ def _readback_assertion_policy(strategy: dict[str, Any]) -> dict[str, Any]:
     through commonSearch with the bill form id. Only strategy-library entries
     that we have explicitly modeled are auto-appended as hard assertions.
     """
-    if strategy.get("source") == "strategy_library":
+    if (
+        strategy.get("source") == "recorded_har_query"
+        and strategy.get("assertion_strategy") == "fresh_recorded_context"
+    ):
+        return {
+            "auto_append": False,
+            "mode": "advisory",
+            "reason": (
+                "录制查询依赖浏览器父页面 responsePageId；只有验证过可重建入口后"
+                "才能升级为硬回查。"
+            ),
+        }
+    if strategy.get("source") in {"strategy_library", "recorded_har_query"}:
         return {
             "auto_append": True,
             "mode": "strict",
@@ -716,6 +829,7 @@ def _case_business_keys(case: dict[str, Any]) -> list[dict[str, str]]:
                 "field_key": field_key,
                 "form_id": str(meta.get("form_id") or case.get("main_form_id") or ""),
                 "app_id": str(meta.get("app_id") or _guess_app_id_from_form(str(meta.get("form_id") or case.get("main_form_id") or ""))),
+                "write_step_id": str(meta.get("write_step_id") or ""),
             })
     if keys:
         return keys
@@ -728,8 +842,160 @@ def _case_business_keys(case: dict[str, Any]) -> list[dict[str, str]]:
                 "field_key": _field_from_var_name(key),
                 "form_id": str(case.get("main_form_id") or ""),
                 "app_id": _guess_app_id_from_form(str(case.get("main_form_id") or "")),
+                "write_step_id": "",
             })
     return keys
+
+
+def _find_recorded_readback_step(
+    case: dict[str, Any],
+    *,
+    value_ref: str,
+    write_step_id: str = "",
+    preferred_field_key: str = "",
+) -> dict[str, str]:
+    """Find a recorded readonly query that consumes the current run value."""
+    if not value_ref:
+        return {}
+    steps = case.get("steps") or []
+    write_index = -1
+    if write_step_id:
+        write_index = next(
+            (index for index, step in enumerate(steps) if step.get("id") == write_step_id),
+            -1,
+        )
+
+    def inspect_filters(node: Any) -> list[str]:
+        fields: list[str] = []
+        if isinstance(node, dict):
+            values = node.get("Value")
+            names = node.get("FieldName")
+            values_text = json.dumps(values, ensure_ascii=False, default=str)
+            if value_ref in values_text:
+                if isinstance(names, list):
+                    fields.extend(str(name) for name in names if name)
+                elif names:
+                    fields.append(str(names))
+            for child in node.values():
+                fields.extend(inspect_filters(child))
+        elif isinstance(node, list):
+            for child in node:
+                fields.extend(inspect_filters(child))
+        return fields
+
+    for index, step in enumerate(steps):
+        if index <= write_index:
+            continue
+        ac = str(step.get("ac") or "").lower()
+        method = str(step.get("method") or "").lower()
+        if ac not in {"commonsearch", "query"} and method not in {"commonsearch", "query"}:
+            continue
+        fields = inspect_filters(step.get("args"))
+        if not fields:
+            continue
+        preferred_lower = preferred_field_key.lower()
+        preferred_leaf = preferred_lower.rsplit(".", 1)[-1].rsplit("_", 1)[-1]
+        if preferred_leaf:
+            if preferred_leaf == "name":
+                preferred = next(
+                    (
+                        field for field in fields
+                        if field.lower().rsplit(".", 1)[-1].endswith("name")
+                        and not field.lower().rsplit(".", 1)[-1].endswith("number")
+                    ),
+                    "",
+                )
+            elif preferred_leaf in {"number", "code", "empnumber"}:
+                preferred = next(
+                    (
+                        field for field in fields
+                        if any(
+                            token in field.lower().rsplit(".", 1)[-1]
+                            for token in ("number", "code")
+                        )
+                    ),
+                    "",
+                )
+            else:
+                preferred = next(
+                    (field for field in fields if preferred_leaf in field.lower()),
+                    "",
+                )
+            if preferred:
+                fields = [preferred, *[field for field in fields if field != preferred]]
+        response_contract = step.get("expected_response_signature") or {}
+        grid_schemas = response_contract.get("required_grid_schemas") or []
+        grid_key = next(
+            (
+                str(schema.get("control") or "")
+                for schema in grid_schemas
+                if isinstance(schema, dict) and schema.get("control")
+            ),
+            "billlistap",
+        )
+        return {
+            "step": str(step.get("id") or ""),
+            "form_id": str(step.get("form_id") or case.get("main_form_id") or ""),
+            "app_id": str(step.get("app_id") or _guess_app_id_from_form(str(step.get("form_id") or ""))),
+            "field_key": fields[0],
+            "grid_key": grid_key,
+            "pageid_source_kind": str(step.get("recorded_pageid_source_kind") or ""),
+            "pageid_type": str(step.get("recorded_pageid_type") or ""),
+        }
+    return {}
+
+
+def _find_runtime_billno_readback_step(case: dict[str, Any]) -> dict[str, str]:
+    """Prefer a final recorded business-list query fed by runtime billno."""
+    has_prior_write = False
+    candidates: list[dict[str, str]] = []
+
+    def queries_billno(node: Any) -> bool:
+        if isinstance(node, dict):
+            names = node.get("FieldName")
+            if isinstance(names, list) and "billno" in names:
+                return True
+            if names == "billno":
+                return True
+            return any(queries_billno(value) for value in node.values())
+        if isinstance(node, list):
+            return any(queries_billno(value) for value in node)
+        return False
+
+    for step in case.get("steps") or []:
+        ac = str(step.get("ac") or "").lower()
+        key = str(step.get("key") or "").lower()
+        if ac in {"save", "submit", "saveandeffect", "submitandeffect"} or any(
+            token in key for token in ("save", "submit")
+        ):
+            has_prior_write = True
+        if not has_prior_write:
+            continue
+        method = str(step.get("method") or "").lower()
+        form_id = str(step.get("form_id") or "")
+        if form_id == "wf_task":
+            continue
+        if ac != "commonsearch" and method != "commonsearch":
+            continue
+        if not queries_billno(step.get("args")):
+            continue
+        response_contract = step.get("expected_response_signature") or {}
+        grid_schemas = response_contract.get("required_grid_schemas") or []
+        grid_key = next(
+            (
+                str(schema.get("control") or "")
+                for schema in grid_schemas
+                if isinstance(schema, dict) and schema.get("control")
+            ),
+            "billlistap",
+        )
+        candidates.append({
+            "step": str(step.get("id") or ""),
+            "form_id": form_id,
+            "app_id": str(step.get("app_id") or _guess_app_id_from_form(form_id)),
+            "grid_key": grid_key,
+        })
+    return candidates[-1] if candidates else {}
 
 
 def _guess_app_id_from_form(form_id: str) -> str:

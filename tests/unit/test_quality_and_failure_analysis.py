@@ -242,6 +242,48 @@ def test_failure_analysis_classifies_server_stack_exception():
     assert "TraceId" in analysis["recommended_actions"][0]
 
 
+def test_failure_analysis_classifies_assignment_projection_timeout_as_environment_sync():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "entryRowClick_80",
+            "type": "invoke",
+            "form_id": "hspm_assignmentlist",
+            "ok": False,
+            "error": "dynamic list row not found after 40 attempts: commonSearch_79 values=['自动化7317']",
+        }],
+        assertions=[],
+        case={"main_form_id": "hom_onbrdinfo"},
+    )
+
+    assert analysis["category"] == "environment_async_business_sync_timeout"
+    assert analysis["retryable"] is True
+    assert "异步同步" in analysis["root_cause"]
+    assert any("运行时姓名或编号" in action for action in analysis["recommended_actions"])
+
+
+def test_failure_analysis_recovers_form_scope_from_case_step():
+    analysis = classify_run_failure(
+        steps=[{
+            "id": "entryRowClick_80",
+            "type": "invoke",
+            "ok": False,
+            "error": "dynamic list row not found after 40 attempts: commonSearch_79 values=['自动化7317']",
+        }],
+        assertions=[],
+        case={
+            "main_form_id": "hom_onbrdinfo",
+            "steps": [{
+                "id": "entryRowClick_80",
+                "form_id": "hspm_assignmentlist",
+                "type": "invoke",
+            }],
+        },
+    )
+
+    assert analysis["category"] == "environment_async_business_sync_timeout"
+    assert analysis["form_id"] == "hspm_assignmentlist"
+
+
 def test_failure_analysis_marks_recorded_validation_as_expected():
     result = classify_error(
         "ShowNotificationMsg: 请选择所属L1流程：ITM下的L2流程",

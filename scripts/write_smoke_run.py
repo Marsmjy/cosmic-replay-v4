@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.config import Config
-from lib.runner import load_yaml, run_case, _case_has_write_step
+from lib.runner import load_yaml, run_case, _case_has_write_step, _is_write_step
 
 CONFIRM_TOKEN = "YES_GENERATE_TEST_DATA"
 
@@ -99,7 +99,14 @@ def apply_prefetch_pick_steps(case: dict[str, Any], step_ids: list[str]) -> None
             step.setdefault("write_smoke_note", "prefetch lookup only for controlled write smoke")
 
 
-def build_safe_summary(case: dict[str, Any], events: list[dict[str, Any]], passed: bool, duration_s: float) -> dict[str, Any]:
+def build_safe_summary(
+    case: dict[str, Any],
+    events: list[dict[str, Any]],
+    passed_or_result: Any,
+    duration_s: float,
+) -> dict[str, Any]:
+    run_result = passed_or_result if hasattr(passed_or_result, "passed") else None
+    passed = bool(run_result.passed) if run_result is not None else bool(passed_or_result)
     step_failures = [
         {
             "id": (event.get("payload") or {}).get("id", ""),
@@ -109,37 +116,91 @@ def build_safe_summary(case: dict[str, Any], events: list[dict[str, Any]], passe
         for event in events
         if event.get("event") == "step_fail"
     ]
+    step_map = {
+        str(step.get("id") or ""): step
+        for step in case.get("steps") or []
+        if step.get("id")
+    }
     write_events = []
     for event in events:
         payload = event.get("payload") or {}
         if event.get("event") != "step_ok":
             continue
         step_id = str(payload.get("id", ""))
+        if not _is_write_step(step_map.get(step_id) or {}):
+            continue
         response = payload.get("response")
         response_text = json.dumps(response, ensure_ascii=False, default=str).lower()
-        if any(token in step_id.lower() for token in ("save", "submit", "confirm")) or any(
-            token in response_text
-            for token in ("保存成功", "操作成功", "pkvalue", "billid", "saveresult", "bos_operationresult")
-        ):
-            write_events.append(
-                {
-                    "step_id": step_id,
-                    "has_response": response is not None,
-                    "response_tokens": sorted(
-                        {
-                            token
-                            for token in ("保存成功", "操作成功", "pkvalue", "billid", "saveresult", "bos_operationresult")
-                            if token in response_text
-                        }
-                    ),
-                }
-            )
+        write_events.append(
+            {
+                "step_id": step_id,
+                "has_response": response is not None,
+                "response_tokens": sorted(
+                    {
+                        token
+                        for token in ("保存成功", "操作成功", "pkvalue", "billid", "saveresult", "bos_operationresult")
+                        if token in response_text
+                    }
+                ),
+            }
+        )
     pageid_events = [
         (event.get("payload") or {}).get("pageid_trace")
         for event in events
         if event.get("event") in {"step_ok", "step_fail", "step_warning"}
         and (event.get("payload") or {}).get("pageid_trace")
     ]
+    assertions = list(getattr(run_result, "assertions", []) or [])
+    runtime_evidence = dict(getattr(run_result, "runtime_evidence", {}) or {})
+    request_contract_results = runtime_evidence.get("request_contract_results") or {}
+    response_contract_results = runtime_evidence.get("response_contract_results") or {}
+    request_contract_failure_count = sum(
+        len((item or {}).get("errors") or [])
+        for item in request_contract_results.values()
+    )
+    request_contract_warning_count = sum(
+        len((item or {}).get("warnings") or [])
+        for item in request_contract_results.values()
+    )
+    response_contract_failure_count = sum(
+        len((item or {}).get("errors") or [])
+        for item in response_contract_results.values()
+    )
+    response_contract_warning_count = sum(
+        len((item or {}).get("warnings") or [])
+        for item in response_contract_results.values()
+    )
+    readback_assertions = [
+        item
+        for item in assertions
+        if str(item.get("type") or "").startswith("readback")
+    ]
+    if any(item.get("ok") and not item.get("advisory") for item in readback_assertions):
+        readback_status = "verified"
+    elif any(not item.get("ok") and not item.get("advisory") for item in readback_assertions):
+        readback_status = "failed"
+    elif readback_assertions:
+        readback_status = "advisory_only"
+    else:
+        readback_status = "not_supported"
+    write_token_count = sum(len(item.get("response_tokens") or []) for item in write_events)
+    write_evidence_status = (
+        "verified_by_response"
+        if write_token_count
+        else "response_present"
+        if any(item.get("has_response") for item in write_events)
+        else "missing"
+    )
+    maintenance_expected = int(runtime_evidence.get("maintenance_expected_count") or 0)
+    maintenance_matched = int(runtime_evidence.get("maintenance_matched_count") or 0)
+    fully_verified = bool(
+        passed
+        and request_contract_failure_count == 0
+        and response_contract_failure_count == 0
+        and write_evidence_status != "missing"
+        and readback_status == "verified"
+        and maintenance_expected == maintenance_matched
+    )
     return {
         "case_name": case.get("name", ""),
         "main_form_id": case.get("main_form_id", ""),
@@ -148,6 +209,18 @@ def build_safe_summary(case: dict[str, Any], events: list[dict[str, Any]], passe
         "step_count": sum(1 for event in events if event.get("event") == "step_start"),
         "failed_steps": step_failures,
         "write_events": write_events,
+        "write_evidence_status": write_evidence_status,
+        "assertions": assertions,
+        "readback_results": runtime_evidence.get("readback_results") or [],
+        "readback_status": readback_status,
+        "request_contract_failure_count": request_contract_failure_count,
+        "request_contract_warning_count": request_contract_warning_count,
+        "response_contract_failure_count": response_contract_failure_count,
+        "response_contract_warning_count": response_contract_warning_count,
+        "maintenance_expected_count": maintenance_expected,
+        "maintenance_matched_count": maintenance_matched,
+        "maintenance_value_trace": runtime_evidence.get("maintenance_value_trace") or [],
+        "first_success_verified": fully_verified,
         "pageid_trace_count": len(pageid_events),
         "vars_used": {k: v for k, v in (case.get("vars") or {}).items() if not str(k).startswith("_")},
         "disabled_steps": case.get("write_smoke_disabled_steps", []),
@@ -265,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         result = run_case(case, on_event=capture)
     finished = datetime.now()
-    summary = build_safe_summary(case, events, result.passed, (finished - started).total_seconds())
+    summary = build_safe_summary(case, events, result, (finished - started).total_seconds())
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

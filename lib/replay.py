@@ -693,6 +693,34 @@ class CosmicFormReplay:
                     harvest_showform(v)
         harvest_showform(resp)
 
+        def scoped_descendant_forms(node, owner_page_id):
+            forms = []
+            has_activate = False
+
+            def visit(value, *, root=False):
+                nonlocal has_activate
+                if isinstance(value, list):
+                    for item in value:
+                        visit(item)
+                    return
+                if not isinstance(value, dict):
+                    return
+                nested_page_id = value.get("pageId")
+                if not root and isinstance(nested_page_id, str) and nested_page_id != owner_page_id:
+                    return
+                if value.get("a") == "activate":
+                    has_activate = True
+                for key in ("formId", "billFormId"):
+                    form_id = value.get(key)
+                    if isinstance(form_id, str) and form_id and form_id not in forms:
+                        forms.append(form_id)
+                for child in value.values():
+                    if isinstance(child, (dict, list)):
+                        visit(child)
+
+            visit(node, root=True)
+            return forms, has_activate
+
         # 再递归扫其余 formId/pageId（首次出现才登记）
         def walk(obj):
             if isinstance(obj, dict):
@@ -705,6 +733,16 @@ class CosmicFormReplay:
                         log.debug(f"[harvest/walk] SKIP L2 pageId for {fid}: {pid[:30]}")
                     else:
                         self.page_ids[fid] = pid
+                elif (
+                    isinstance(pid, str)
+                    and len(pid) >= 16
+                    and not fid
+                    and not _is_l2_pageid(pid)
+                ):
+                    scoped_forms, has_activate = scoped_descendant_forms(obj, pid)
+                    for scoped_form in scoped_forms:
+                        if has_activate or scoped_form not in self.page_ids:
+                            self.page_ids[scoped_form] = pid
                 for v in obj.values(): walk(v)
             elif isinstance(obj, list):
                 for x in obj: walk(x)

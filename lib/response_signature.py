@@ -207,7 +207,7 @@ def _collect_show_forms(resp: Any) -> list[str]:
 
 def _collect_grid_schemas(resp: Any) -> list[dict[str, Any]]:
     schemas: list[dict[str, Any]] = []
-    seen: set[tuple[str, tuple[str, ...]]] = set()
+    positions: dict[tuple[str, tuple[str, ...]], int] = {}
 
     def walk(node: Any, control: str = "") -> None:
         if isinstance(node, list):
@@ -224,13 +224,15 @@ def _collect_grid_schemas(resp: Any) -> list[dict[str, Any]]:
             if isinstance(dataindex, dict) and isinstance(rows, list):
                 columns = tuple(sorted(str(key) for key in dataindex if str(key)))
                 dedupe_key = (next_control, columns)
-                if columns and dedupe_key not in seen:
-                    seen.add(dedupe_key)
+                if columns and dedupe_key not in positions:
+                    positions[dedupe_key] = len(schemas)
                     schemas.append({
                         "control": next_control,
                         "columns": list(columns),
                         "non_empty": bool(rows),
                     })
+                elif columns and rows:
+                    schemas[positions[dedupe_key]]["non_empty"] = True
         for value in node.values():
             if isinstance(value, (dict, list)):
                 walk(value, next_control)
@@ -711,6 +713,11 @@ def evaluate_response_contract(expected: Any, actual_resp: Any) -> dict[str, Any
         return {"contract_level": "", "errors": [], "warnings": []}
     level = str(expected.get("contract_level") or "critical")
     mismatches = _response_contract_mismatches(expected, actual_resp)
+    if expected.get("allow_transient_empty"):
+        mismatches = [
+            message for message in mismatches
+            if not message.endswith(" became empty")
+        ]
     return {
         "contract_level": level,
         "errors": [] if level == "advisory" else mismatches,

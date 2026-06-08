@@ -132,6 +132,11 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         for step in preview.get("steps") or []
         if isinstance(step, dict) and step.get("response_signature")
     )
+    request_signature_steps = sum(
+        1
+        for step in preview.get("steps") or []
+        if isinstance(step, dict) and step.get("request_signature")
+    )
     response_contract_counts = {
         level: sum(
             1
@@ -155,6 +160,7 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "category_counts": _count_by(fields, "category"),
         "panel_counts": _count_by(fields, "panel"),
         "business_flow_count": len(preview.get("business_flow") or []),
+        "request_signature_step_count": request_signature_steps,
         "response_signature_step_count": response_signature_steps,
         "response_contract_critical_count": response_contract_counts["critical"],
         "response_contract_business_count": response_contract_counts["business"],
@@ -187,6 +193,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- 样本数：{report.get('sample_count')}",
         f"- 导入：{report.get('parse_ok')}/{report.get('sample_count')} 成功",
         f"- 执行：{report.get('exec_pass')}/{report.get('exec_total')} 通过",
+        f"- 首次成功验证：{report.get('first_success_verified', 0)}/{report.get('exec_total')} 完整闭环",
+        f"- 业务键回查：{report.get('readback_verified', 0)}/{report.get('exec_total')} 已验证",
         f"- 执行耗时合计：{report.get('execution_duration_s', 0)}s",
         f"- baseline：`{report.get('baseline_path')}`",
         "",
@@ -207,7 +215,9 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- 维护项：vars={(item.get('parse') or {}).get('vars_count', 0)}，pick_fields={(item.get('parse') or {}).get('pick_fields_count', 0)}，field_catalog={(item.get('parse') or {}).get('field_catalog_count', 0)}，unknown={(item.get('parse') or {}).get('unknown_catalog_count', 0)}",
                 f"- pageId 精确链路：links={(item.get('parse') or {}).get('recorded_pageid_exact_link_count', 0)}，external={(item.get('parse') or {}).get('recorded_pageid_external_root_count', 0)}，filtered={(item.get('parse') or {}).get('recorded_pageid_filtered_source_count', 0)}，cross_form={(item.get('parse') or {}).get('recorded_pageid_cross_form_count', 0)}",
                 f"- 响应契约：critical={(item.get('parse') or {}).get('response_contract_critical_count', 0)}，business={(item.get('parse') or {}).get('response_contract_business_count', 0)}，advisory={(item.get('parse') or {}).get('response_contract_advisory_count', 0)}",
-                f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s，契约失败={execution.get('response_contract_failure_count', 0)}，契约告警={execution.get('response_contract_warning_count', 0)}",
+                f"- 请求契约：步骤={(item.get('parse') or {}).get('request_signature_step_count', 0)}，失败={execution.get('request_contract_failure_count', 0)}，告警={execution.get('request_contract_warning_count', 0)}",
+                f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s，响应契约失败={execution.get('response_contract_failure_count', 0)}，响应契约告警={execution.get('response_contract_warning_count', 0)}",
+                f"- 维护值生效：{execution.get('maintenance_matched_count', 0)}/{execution.get('maintenance_expected_count', 0)}；写入证据 `{execution.get('write_evidence_status', 'missing')}`；入库回查 `{execution.get('readback_status', 'not_supported')}`；首次成功验证={'是' if execution.get('first_success_verified') else '否'}",
             ]
         )
         failed_steps = execution.get("failed_steps") or []
@@ -298,9 +308,18 @@ def _summary_from_evidence(evidence_path: Path, *, returncode: int, duration_s: 
         "failed_steps": failed_steps,
         "assertion_failures": assertion_failures,
         "write_events": summary.get("write_events", []),
+        "write_evidence_status": summary.get("write_evidence_status", "missing"),
+        "assertions": summary.get("assertions", []),
+        "readback_results": summary.get("readback_results", []),
+        "readback_status": summary.get("readback_status", "not_supported"),
         "pageid_trace_count": summary.get("pageid_trace_count", 0),
-        "response_contract_warning_count": response_contract_warning_count,
-        "response_contract_failure_count": response_contract_failure_count,
+        "request_contract_warning_count": summary.get("request_contract_warning_count", 0),
+        "request_contract_failure_count": summary.get("request_contract_failure_count", 0),
+        "response_contract_warning_count": summary.get("response_contract_warning_count", response_contract_warning_count),
+        "response_contract_failure_count": summary.get("response_contract_failure_count", response_contract_failure_count),
+        "maintenance_expected_count": summary.get("maintenance_expected_count", 0),
+        "maintenance_matched_count": summary.get("maintenance_matched_count", 0),
+        "first_success_verified": bool(summary.get("first_success_verified")),
         "evidence_path": str(evidence_path),
     }
 
@@ -415,6 +434,7 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "field_catalog_count": parse.get("field_catalog_count", 0),
                 "unknown_catalog_count": parse.get("unknown_catalog_count", 0),
                 "business_flow_count": parse.get("business_flow_count", 0),
+                "request_signature_step_count": parse.get("request_signature_step_count", 0),
                 "response_signature_step_count": parse.get("response_signature_step_count", 0),
                 "response_contract_critical_count": parse.get("response_contract_critical_count", 0),
                 "response_contract_business_count": parse.get("response_contract_business_count", 0),
@@ -428,8 +448,15 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "failure_kind": item.get("failure_kind", ""),
                 "failed_step_ids": [str(step.get("id", "")) for step in failed_steps if isinstance(step, dict)],
                 "write_event_count": len(execution.get("write_events") or []),
+                "request_contract_warning_count": execution.get("request_contract_warning_count", 0),
+                "request_contract_failure_count": execution.get("request_contract_failure_count", 0),
                 "response_contract_warning_count": execution.get("response_contract_warning_count", 0),
                 "response_contract_failure_count": execution.get("response_contract_failure_count", 0),
+                "maintenance_expected_count": execution.get("maintenance_expected_count", 0),
+                "maintenance_matched_count": execution.get("maintenance_matched_count", 0),
+                "write_evidence_status": execution.get("write_evidence_status", "missing"),
+                "readback_status": execution.get("readback_status", "not_supported"),
+                "first_success_verified": bool(execution.get("first_success_verified")),
                 "write_event_tokens": sorted(
                     {
                         str(token)
@@ -447,6 +474,8 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
         "parse_ok": report.get("parse_ok", 0),
         "exec_pass": report.get("exec_pass", 0),
         "exec_total": report.get("exec_total", 0),
+        "first_success_verified": report.get("first_success_verified", 0),
+        "readback_verified": report.get("readback_verified", 0),
         "samples": samples,
     }
 
@@ -465,6 +494,7 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "field_catalog_count",
         "unknown_catalog_count",
         "business_flow_count",
+        "request_signature_step_count",
         "response_signature_step_count",
         "response_contract_critical_count",
         "response_contract_business_count",
@@ -483,8 +513,15 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "failed_step_ids",
         "write_event_count",
         "write_event_tokens",
+        "request_contract_warning_count",
+        "request_contract_failure_count",
         "response_contract_warning_count",
         "response_contract_failure_count",
+        "maintenance_expected_count",
+        "maintenance_matched_count",
+        "write_evidence_status",
+        "readback_status",
+        "first_success_verified",
     ]
     for sample_id in keys:
         before = baseline_samples.get(sample_id)
@@ -637,6 +674,16 @@ def run_suite(args: argparse.Namespace) -> dict[str, Any]:
             for item in results
             if (item.get("parse") or {}).get("status") == "ok"
             and not (item.get("execution") or {}).get("passed")
+        ),
+        "first_success_verified": sum(
+            1
+            for item in results
+            if (item.get("execution") or {}).get("first_success_verified")
+        ),
+        "readback_verified": sum(
+            1
+            for item in results
+            if (item.get("execution") or {}).get("readback_status") == "verified"
         ),
         "results": results,
     }

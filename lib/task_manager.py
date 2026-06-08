@@ -38,7 +38,7 @@ class CaseResult:
     failure_analysis: dict = field(default_factory=dict)
     repair_plan: list[dict] = field(default_factory=list)
     env_fields: list[dict] = field(default_factory=list)
-    write_status: str = "not_checked"  # verified / unverified / failed / not_applicable / not_checked
+    write_status: str = "not_checked"  # verified(readback) / unverified / failed / not_applicable / not_checked
     write_evidence: dict = field(default_factory=dict)
     write_verification: dict = field(default_factory=dict)
     next_action: str = "none"  # none / auto_repair / manual_confirm / ai_agent
@@ -373,7 +373,10 @@ def enrich_case_result(result: CaseResult) -> None:
         return
     if result.passed and result.write_status == "unverified":
         result.next_action = "ai_agent"
-        result.ai_reason = "执行 PASS 但保存/提交响应缺少明确入库证据，需排查 pageId 链路或补入库断言。"
+        if (result.write_evidence or {}).get("response_verified"):
+            result.ai_reason = "保存/提交响应已有成功证据，但尚未通过业务键只读回查确认真实入库。"
+        else:
+            result.ai_reason = "执行 PASS 但保存/提交响应缺少明确写入和入库证据，需排查 pageId 链路或补入库断言。"
     elif not result.passed:
         safe_repairs = [r for r in result.repair_plan or [] if r.get("safe_to_apply")]
         needs_confirm = [r for r in result.repair_plan or [] if not r.get("safe_to_apply")]
@@ -416,6 +419,7 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
         evidence["signals"].append("assertion:readback_by_business_key")
         return "verified", evidence
 
+    response_evidence_found = False
     for phase in write_phases:
         response = phase.get("response")
         text = _response_text(response)
@@ -443,8 +447,9 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
                 "操作成功",
             ),
         ):
-            evidence["signals"].append(f"{phase.get('id', '')}:write_token")
-            return "verified", evidence
+            evidence["signals"].append(f"{phase.get('id', '')}:write_response_token")
+            response_evidence_found = True
+            continue
         if _contains_any(
             compact_text,
             ("bos_operationresult", "showfieldtips", '"success":false', "'success':false"),
@@ -452,6 +457,8 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
             evidence["signals"].append(f"{phase.get('id', '')}:failure_dialog")
             return "failed", evidence
         evidence["signals"].append(f"{phase.get('id', '')}:non_empty_response")
+    if response_evidence_found:
+        evidence["response_verified"] = True
     return "unverified", evidence
 
 

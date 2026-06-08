@@ -227,7 +227,18 @@ def test_write_smoke_helpers_are_safe_and_summary_focused():
     assert prefetch_case["steps"][0]["prefetch_lookup"] is True
     assert prefetch_case["steps"][0]["prefetch_lookup_args"] == [["%", "", "%", 0, 20, 0]]
     summary = build_safe_summary(
-        {"name": "demo", "main_form_id": "demo_form", "vars": {"test_description": "CRPLY"}},
+        {
+            "name": "demo",
+            "main_form_id": "demo_form",
+            "vars": {"test_description": "CRPLY"},
+            "steps": [{
+                "id": "click_bar_save",
+                "type": "invoke",
+                "ac": "save",
+                "key": "tbmain",
+                "args": ["bar_save", "save"],
+            }],
+        },
         [
             {"event": "step_start", "payload": {"id": "save"}},
             {"event": "step_ok", "payload": {"id": "click_bar_save", "response": {"msg": "保存成功"}}},

@@ -7,6 +7,7 @@ from lib.pageid_trace import (
     expected_pageid_role,
     finalize_recorded_pageid_source_retention,
     step_allows_l2_pageid,
+    extract_response_pageid_producers,
 )
 
 
@@ -138,6 +139,86 @@ def test_recorded_pageid_source_annotation_is_exact_and_value_safe():
     assert steps[1]["recorded_pageid_source_retained"] is True
     assert trace["steps"][1]["recorded_pageid_source_step_id"] == "open_detail"
     assert page_id not in str(compact)
+
+
+def test_recorded_pageid_source_uses_latest_reopen_of_same_pageid():
+    page_id = "1443450410974114816root" + "a" * 32
+    response = (
+        '[{"a":"showForm","p":[{"formId":"list_form",'
+        f'"pageId":"{page_id}"'
+        "}]}]"
+    )
+    steps = [
+        {
+            "id": "open_list_first",
+            "type": "invoke",
+            "form_id": "portal",
+            "app_id": "bos",
+            "_har_index": 10,
+            "_resp_text": response,
+        },
+        {
+            "id": "open_list_again",
+            "type": "invoke",
+            "form_id": "portal",
+            "app_id": "bos",
+            "_har_index": 20,
+            "_resp_text": response,
+        },
+        {
+            "id": "search_list",
+            "type": "invoke",
+            "form_id": "list_form",
+            "app_id": "demo",
+            "_har_index": 21,
+            "_har_page_id": page_id,
+        },
+    ]
+
+    annotate_recorded_pageid_sources(steps)
+
+    assert steps[2]["recorded_pageid_source_step_id"] == "open_list_again"
+    assert steps[2]["recorded_pageid_source_har_index"] == 20
+
+
+def test_response_pageid_producer_inherits_scoped_descendant_form_metadata():
+    page_id = "hcdmroot" + "a" * 32
+    producers = extract_response_pageid_producers([{
+        "p": [{
+            "pageId": page_id,
+            "actions": [{
+                "a": "activate",
+                "p": [{
+                    "formId": "hcdm_apphome",
+                    "appId": "hcdm",
+                }],
+            }],
+        }],
+    }])
+
+    producer = next(item for item in producers if item["page_id"] == page_id)
+
+    assert producer["form_ids"] == ["hcdm_apphome"]
+    assert producer["app_id"] == "hcdm"
+
+
+def test_response_pageid_producer_ignores_unrelated_slide_form_metadata():
+    page_id = "b" * 32
+    producers = extract_response_pageid_producers([{
+        "p": [{
+            "pageId": page_id,
+            "actions": [{
+                "a": "setSlideBillFormId",
+                "p": [{"formId": "hbp_reviselogpage"}],
+            }],
+        }],
+        "a": "sendDynamicFormAction",
+    }])
+
+    producer = next(item for item in producers if item["page_id"] == page_id)
+
+    assert producer["form_ids"] == []
+    assert producer["app_id"] == ""
 
 
 def test_recorded_pageid_source_marks_filtered_producer():
