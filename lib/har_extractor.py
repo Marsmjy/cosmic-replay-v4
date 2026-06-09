@@ -5712,6 +5712,249 @@ def _build_default_assertions(yaml_steps: list[dict]) -> list:
     return assertions
 
 
+def _assertion_signature(assertion: Mapping[str, Any]) -> tuple:
+    return (
+        str(assertion.get("type") or ""),
+        str(assertion.get("step") or ""),
+        str(assertion.get("last_step") or ""),
+        str(assertion.get("form_id") or ""),
+        str(assertion.get("field_key") or ""),
+        str(assertion.get("value") or assertion.get("value_ref") or ""),
+        str(assertion.get("target_id") or ""),
+        str(assertion.get("kind") or ""),
+    )
+
+
+def _validation_point_id(prefix: str, *parts: Any) -> str:
+    raw = "_".join(str(p or "") for p in parts if str(p or "").strip())
+    return _sanitize_id(f"{prefix}_{raw}")[:96]
+
+
+def _step_lookup(steps: list[dict]) -> dict[str, dict]:
+    return {
+        str(step.get("id") or ""): step
+        for step in steps or []
+        if step.get("id")
+    }
+
+
+def _validation_point_for_assertion(assertion: Mapping[str, Any], steps_by_id: Mapping[str, dict]) -> OrderedDict:
+    atype = str(assertion.get("type") or "")
+    step_id = str(assertion.get("step") or "")
+    step = steps_by_id.get(step_id, {}) if step_id else {}
+    step_desc = str(step.get("description") or "")
+    if atype == "no_save_failure":
+        label = f"{step_desc or step_id or '保存/提交'}：不能出现保存失败"
+        category = "system"
+        scope = "write"
+        required = True
+    elif atype == "no_error_actions":
+        label = f"{step_desc or step_id or '关键接口'}：不能返回无效请求/错误提示"
+        category = "system"
+        scope = "query" if assertion.get("last_step") else "write"
+        required = True
+    elif atype == "expected_notification":
+        label = f"{step_desc or step_id or '业务校验'}：应出现录制时的业务提示"
+        category = "system"
+        scope = "business_validation"
+        required = True
+    elif atype == "readback_by_business_key":
+        label = "保存/提交后按业务键只读回查到记录"
+        category = "readback"
+        scope = "database"
+        required = not _assertion_is_advisory_like(assertion)
+    else:
+        label = f"{atype or '断言'}"
+        category = "system"
+        scope = "runtime"
+        required = not _assertion_is_advisory_like(assertion)
+    return OrderedDict([
+        ("id", _validation_point_id("assert", atype, step_id or ("last" if assertion.get("last_step") else ""))),
+        ("label", label),
+        ("category", category),
+        ("scope", scope),
+        ("source", "assertion"),
+        ("enabled", True),
+        ("required", required),
+        ("severity", "advisory" if _assertion_is_advisory_like(assertion) else "strict"),
+        ("step_id", step_id),
+        ("form_id", step.get("form_id", "")),
+        ("form_label", ""),
+        ("group_key", step.get("form_id", "") or "runtime"),
+        ("group_label", step_desc or step.get("form_id", "") or "运行校验"),
+        ("order", 0),
+        ("assertion", OrderedDict(assertion)),
+        ("help", _validation_point_help(atype)),
+    ])
+
+
+def _assertion_is_advisory_like(assertion: Mapping[str, Any]) -> bool:
+    mode = str(assertion.get("mode") or assertion.get("severity") or "").strip().lower()
+    return bool(assertion.get("advisory")) or mode in {"advisory", "warn", "warning", "soft"}
+
+
+def _validation_point_help(kind: str) -> str:
+    return {
+        "no_save_failure": "用于判断保存/提交是否被业务规则拦截。",
+        "no_error_actions": "用于判断接口是否返回无效请求、权限、环境或脚本链路错误。",
+        "expected_notification": "用于判断录制时预期出现的业务校验提示是否仍然出现。",
+        "readback_by_business_key": "用于判断写入后是否能通过只读查询找到业务记录。",
+        "maintained_value_applied": "用于判断用户维护的字段值是否进入了本次运行的目标请求。",
+    }.get(kind, "系统运行校验点。")
+
+
+def _validation_point_order(value: Any) -> int:
+    try:
+        return int(float(value))
+    except Exception:
+        return 99999
+
+
+def _build_validation_points(
+    case: Mapping[str, Any],
+    validation_point_overrides: Mapping[str, Any] | None = None,
+) -> list[OrderedDict]:
+    """Build user-facing validation points from assertions and maintainable fields.
+
+    ``validation_points`` is intentionally metadata-first: it explains what can
+    be checked and whether it is enabled. Enabled field-level points are mirrored
+    into ``assertions`` by ``_apply_validation_points_to_assertions``.
+    """
+    overrides = validation_point_overrides or {}
+    steps = list(case.get("steps") or [])
+    steps_by_id = _step_lookup(steps)
+    points: list[OrderedDict] = []
+    seen_ids: set[str] = set()
+
+    for assertion in case.get("assertions") or []:
+        if not isinstance(assertion, Mapping):
+            continue
+        point = _validation_point_for_assertion(assertion, steps_by_id)
+        pid = str(point.get("id") or "")
+        override = overrides.get(pid) if isinstance(overrides, Mapping) else None
+        if isinstance(override, Mapping) and not point.get("required"):
+            point["enabled"] = bool(override.get("enabled", point.get("enabled", True)))
+        points.append(point)
+        seen_ids.add(pid)
+
+    def _field_override_enabled(pid: str, default: bool) -> bool:
+        override = overrides.get(pid) if isinstance(overrides, Mapping) else None
+        if isinstance(override, Mapping) and "enabled" in override:
+            return bool(override.get("enabled"))
+        return default
+
+    for var_name, meta in (case.get("vars_meta") or {}).items():
+        if not isinstance(meta, Mapping):
+            continue
+        source_step_id = str(meta.get("source_step_id") or "")
+        if not source_step_id:
+            continue
+        pid = _validation_point_id("field", "var", var_name)
+        if pid in seen_ids:
+            continue
+        label = str(meta.get("label") or meta.get("field_key") or var_name)
+        assertion = OrderedDict([
+            ("type", "maintained_value_applied"),
+            ("kind", "variable"),
+            ("target_id", str(var_name)),
+            ("step", source_step_id),
+        ])
+        points.append(OrderedDict([
+            ("id", pid),
+            ("label", f"{label}：维护值进入回放请求"),
+            ("category", "recommended"),
+            ("scope", "maintainable_field"),
+            ("source", "vars_meta"),
+            ("enabled", _field_override_enabled(pid, bool(meta.get("user_overridden")))),
+            ("required", False),
+            ("severity", "strict"),
+            ("kind", "variable"),
+            ("target_id", str(var_name)),
+            ("field_key", str(meta.get("field_key") or "")),
+            ("step_id", source_step_id),
+            ("form_id", str(meta.get("form_id") or "")),
+            ("form_label", str(meta.get("form_label") or "")),
+            ("group_key", str(meta.get("group_key") or meta.get("form_id") or "maintainable")),
+            ("group_label", str(meta.get("group_label") or meta.get("form_label") or "录入字段")),
+            ("order", _validation_point_order(meta.get("order"))),
+            ("assertion", assertion),
+            ("help", _validation_point_help("maintained_value_applied")),
+        ]))
+        seen_ids.add(pid)
+
+    for pick_id, meta in (case.get("pick_fields") or {}).items():
+        if not isinstance(meta, Mapping):
+            continue
+        source_step_id = str(meta.get("source_step_id") or "")
+        if not source_step_id:
+            source_step_id = str(pick_id)
+        if not source_step_id:
+            continue
+        pid = _validation_point_id("field", "pick", pick_id)
+        if pid in seen_ids:
+            continue
+        label = str(meta.get("label") or meta.get("field_key") or pick_id)
+        default_enabled = bool(meta.get("user_overridden") or meta.get("manual_override"))
+        assertion = OrderedDict([
+            ("type", "maintained_value_applied"),
+            ("kind", "environment_field"),
+            ("target_id", str(pick_id)),
+            ("step", source_step_id),
+        ])
+        points.append(OrderedDict([
+            ("id", pid),
+            ("label", f"{label}：维护值进入回放请求"),
+            ("category", "recommended"),
+            ("scope", "maintainable_field"),
+            ("source", "pick_fields"),
+            ("enabled", _field_override_enabled(pid, default_enabled)),
+            ("required", False),
+            ("severity", "strict"),
+            ("kind", "environment_field"),
+            ("target_id", str(pick_id)),
+            ("field_key", str(meta.get("field_key") or "")),
+            ("step_id", source_step_id),
+            ("form_id", str(meta.get("form_id") or "")),
+            ("form_label", str(meta.get("form_label") or "")),
+            ("group_key", str(meta.get("group_key") or meta.get("form_id") or "maintainable")),
+            ("group_label", str(meta.get("group_label") or meta.get("form_label") or "选择字段")),
+            ("order", _validation_point_order(meta.get("order"))),
+            ("assertion", assertion),
+            ("help", _validation_point_help("maintained_value_applied")),
+        ]))
+        seen_ids.add(pid)
+
+    return sorted(
+        points,
+        key=lambda p: (
+            0 if p.get("category") == "system" else 1 if p.get("category") == "recommended" else 2,
+            _validation_point_order(p.get("order")),
+            str(p.get("label") or p.get("id") or ""),
+        ),
+    )
+
+
+def _apply_validation_points_to_assertions(case: OrderedDict) -> None:
+    assertions = [
+        OrderedDict(a)
+        for a in (case.get("assertions") or [])
+        if isinstance(a, Mapping)
+    ]
+    seen = {_assertion_signature(a) for a in assertions}
+    for point in case.get("validation_points") or []:
+        if not isinstance(point, Mapping) or not point.get("enabled"):
+            continue
+        assertion = point.get("assertion")
+        if not isinstance(assertion, Mapping):
+            continue
+        sig = _assertion_signature(assertion)
+        if sig in seen:
+            continue
+        assertions.append(OrderedDict(assertion))
+        seen.add(sig)
+    case["assertions"] = assertions
+
+
 def _append_readback_assertions(case: OrderedDict) -> dict:
     """Append optional post-save readback assertions from case business keys.
 
@@ -6106,6 +6349,7 @@ def build_yaml_case(
     case_name: str | None = None,
     var_overrides: dict | None = None,
     pick_field_overrides: dict | None = None,
+    validation_point_overrides: dict | None = None,
     meta_resolver=None,
     include_readback_assertions: bool = False,
 ) -> str:
@@ -7049,6 +7293,15 @@ def build_yaml_case(
         for name in built_vars.keys()
         if name in vars_meta_all and not name.startswith("_")
     )
+    if var_overrides:
+        for vname, cfg in var_overrides.items():
+            if (
+                isinstance(cfg, Mapping)
+                and cfg.get("user_overridden")
+                and vname in built_vars_meta
+                and isinstance(built_vars_meta[vname], dict)
+            ):
+                built_vars_meta[vname]["user_overridden"] = True
 
     case = OrderedDict([
         ("name", case_name),
@@ -7072,6 +7325,11 @@ def build_yaml_case(
     ])
     if include_readback_assertions:
         _append_readback_assertions(case)
+    case["validation_points"] = _build_validation_points(
+        case,
+        validation_point_overrides=validation_point_overrides,
+    )
+    _apply_validation_points_to_assertions(case)
 
     trim_note = (f"# 已裁剪前 {trimmed_skipped} 条首页/门户步骤（与主流程无关）"
                  if trimmed_skipped else "")
@@ -7821,6 +8079,23 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "checks": {},
         }
 
+    readback_plan = _build_preview_readback_plan(main_form, var_items)
+    preview_validation_case = OrderedDict([
+        ("vars_meta", OrderedDict(
+            (item.get("name"), OrderedDict((k, v) for k, v in item.items() if k != "name"))
+            for item in var_items
+            if item.get("name")
+        )),
+        ("pick_fields", OrderedDict(
+            (item.get("id"), OrderedDict((k, v) for k, v in item.items() if k != "id"))
+            for item in pick_fields
+            if item.get("id")
+        )),
+        ("steps", preview_steps),
+        ("assertions", _build_default_assertions(preview_steps)),
+    ])
+    validation_points = _build_validation_points(preview_validation_case)
+
     preview = {
         "main_form_id": main_form,
         "tier_counts": by_tier,
@@ -7829,7 +8104,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "field_catalog": field_catalog,
         "business_blocks": _build_preview_business_blocks(var_items, pick_fields),
         "business_flow": _build_preview_business_flow(preview_copy, var_items, pick_fields, main_form),
-        "readback_plan": _build_preview_readback_plan(main_form, var_items),
+        "readback_plan": readback_plan,
+        "validation_points": validation_points,
         "components": component_report,
         "pageid_alignment": pageid_alignment,
         "recorded_pageid_flow": recorded_pageid_flow,

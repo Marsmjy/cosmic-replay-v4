@@ -3389,6 +3389,35 @@ class TestAssertionHandlers:
     def test_assertion_is_advisory_from_mode(self):
         assert runner_mod._assertion_is_advisory({"mode": "advisory"}) is True
         assert runner_mod._assertion_is_advisory({"mode": "strict"}) is False
+
+    def test_maintained_value_applied_assertion_checks_runtime_trace(self):
+        ctx = {
+            "maintenance_value_trace": [{
+                "kind": "variable",
+                "id": "test_name",
+                "source_step_id": "fill_name",
+                "matched": True,
+            }]
+        }
+
+        ok, msg = ASSERTION_HANDLERS["maintained_value_applied"]({
+            "kind": "variable",
+            "target_id": "test_name",
+            "step": "fill_name",
+        }, ctx)
+
+        assert ok is True
+        assert "已进入" in msg
+
+    def test_maintained_value_applied_assertion_fails_for_missing_trace(self):
+        ok, msg = ASSERTION_HANDLERS["maintained_value_applied"]({
+            "kind": "environment_field",
+            "target_id": "pick_employee_id",
+            "step": "pick_employee",
+        }, {"maintenance_value_trace": []})
+
+        assert ok is False
+        assert "没有记录" in msg
     
     def test_all_assertion_handlers_callable(self):
         """所有断言处理器可调用"""

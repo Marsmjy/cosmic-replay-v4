@@ -1928,6 +1928,32 @@ def _a_response_contains(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
     return False, f"响应里没找到 '{needle}'"
 
 
+@assertion_handler("maintained_value_applied")
+def _a_maintained_value_applied(assert_spec: dict, ctx: dict) -> tuple[bool, str]:
+    target_id = str(assert_spec.get("target_id") or assert_spec.get("id") or "").strip()
+    kind = str(assert_spec.get("kind") or "").strip()
+    step_id = str(assert_spec.get("step") or "").strip()
+    if not target_id:
+        return False, "maintained_value_applied 缺少 target_id"
+    matches = []
+    for item in ctx.get("maintenance_value_trace") or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("id") or "") != target_id:
+            continue
+        if kind and str(item.get("kind") or "") != kind:
+            continue
+        if step_id and str(item.get("source_step_id") or "") != step_id:
+            continue
+        matches.append(item)
+    if not matches:
+        return False, f"{target_id} 没有记录到维护值消费证据"
+    if any(item.get("matched") for item in matches):
+        return True, f"✅ {target_id} 的维护值已进入目标回放请求"
+    fields = [str(item.get("field_key") or "?") for item in matches[:3]]
+    return False, f"{target_id} 的维护值没有进入目标请求字段: {fields}"
+
+
 def _runtime_upload_records(ctx: dict) -> list[dict[str, Any]]:
     uploads = ctx.get("runtime_uploads") or {}
     if not isinstance(uploads, dict):
@@ -3881,6 +3907,51 @@ def _assertion_is_advisory(assert_spec: dict) -> bool:
     return bool(assert_spec.get("advisory")) or mode in {"advisory", "warn", "warning", "soft"}
 
 
+def _explain_assertion_result(assert_spec: dict, ok: bool, msg: str) -> dict[str, str]:
+    atype = str(assert_spec.get("type") or "")
+    if ok:
+        return {
+            "category": "ok",
+            "user_message": msg or "校验通过",
+            "next_action": "",
+        }
+    if atype == "maintained_value_applied":
+        return {
+            "category": "script_value_not_applied",
+            "user_message": "你维护的字段值没有进入本次回放请求，优先让 AI 修用例。",
+            "next_action": "检查变量面板/预览面板的字段是否同步到 YAML，并排查 F7/下拉解析链路。",
+        }
+    if atype == "no_save_failure":
+        return {
+            "category": "business_save_blocked",
+            "user_message": "保存或提交被业务规则拦截，通常需要先看缺失字段、权限或业务状态。",
+            "next_action": "先查看失败提示里的字段名；如果你改过字段值，优先检查该字段是否按目标环境解析。",
+        }
+    if atype == "no_error_actions":
+        return {
+            "category": "runtime_error_response",
+            "user_message": "接口返回了错误或无效请求，需要判断是环境异常还是回放链路失真。",
+            "next_action": "若环境页面也整体异常，先排查环境；若只有本用例异常，交给 AI 检查 pageId、动态值和字段解析。",
+        }
+    if atype == "readback_by_business_key":
+        return {
+            "category": "readback_not_verified",
+            "user_message": "执行结束后没有按业务键只读回查到记录，不能只按 PASS 判断已入库。",
+            "next_action": "检查业务键是否被用户修改、查询条件是否跨环境失效，必要时补表单专用回查。",
+        }
+    if atype == "expected_notification":
+        return {
+            "category": "business_validation_changed",
+            "user_message": "录制时出现的业务校验提示没有复现，关键接口语义可能已变化。",
+            "next_action": "对比录制响应和回放响应，确认是环境数据变化还是脚本参数变化。",
+        }
+    return {
+        "category": "assertion_failed",
+        "user_message": msg or "校验失败",
+        "next_action": "查看失败步骤和 YAML 中对应断言。",
+    }
+
+
 _WRITE_ACS = {
     "save", "submit", "saveandeffect", "submitandeffect", "saveandaudit",
     "doconfirm", "afterconfirm", "startupflow",
@@ -4766,30 +4837,38 @@ def run_case(case: dict, on_event=None) -> RunResult:
         _asrt_step_label = (ctx.get("step_descriptions") or {}).get(_asrt_step, "")
         handler = ASSERTION_HANDLERS.get(atype)
         if not handler:
+            explanation = _explain_assertion_result(a, False, f"未知断言: {atype}")
             result.assertions.append({
-                "type": atype, "ok": False, "advisory": advisory, "msg": f"未知断言: {atype}",
+                "type": atype, "ok": False, "advisory": advisory,
+                "msg": f"未知断言: {atype}", **explanation,
             })
             emit("assertion_advisory" if advisory else "assertion_fail", {
                 "type": atype, "msg": f"未知断言: {atype}",
                 "step": _asrt_step, "step_label": _asrt_step_label,
-                "advisory": advisory,
+                "advisory": advisory, **explanation,
             })
             continue
         try:
             ok, msg = handler(a, ctx)
-            result.assertions.append({"type": atype, "ok": ok, "advisory": advisory, "msg": msg})
+            explanation = _explain_assertion_result(a, ok, msg)
+            result.assertions.append({
+                "type": atype, "ok": ok, "advisory": advisory,
+                "msg": msg, **explanation,
+            })
             emit("assertion_ok" if ok else ("assertion_advisory" if advisory else "assertion_fail"),
                  {"type": atype, "msg": msg,
                   "step": _asrt_step, "step_label": _asrt_step_label,
-                  "advisory": advisory})
+                  "advisory": advisory, **explanation})
         except Exception as e:
+            explanation = _explain_assertion_result(a, False, f"断言执行异常: {e}")
             result.assertions.append({
-                "type": atype, "ok": False, "advisory": advisory, "msg": f"断言执行异常: {e}",
+                "type": atype, "ok": False, "advisory": advisory,
+                "msg": f"断言执行异常: {e}", **explanation,
             })
             emit("assertion_advisory" if advisory else "assertion_fail", {
                 "type": atype, "msg": f"异常: {e}",
                 "step": _asrt_step, "step_label": _asrt_step_label,
-                "advisory": advisory,
+                "advisory": advisory, **explanation,
             })
 
     explicit_upload_readback = any(

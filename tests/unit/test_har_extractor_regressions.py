@@ -20,6 +20,8 @@ from lib.har_extractor import (
     _build_preview_business_blocks,
     _build_preview_business_flow,
     _build_default_assertions,
+    _build_validation_points,
+    _apply_validation_points_to_assertions,
     _clean_display_label,
     collapse_repeated_polling_steps,
     _drop_locked_update_fields,
@@ -1054,6 +1056,61 @@ def test_build_yaml_case_adds_business_block_metadata_for_vars_and_pick_fields()
     assert "保存" in case["vars_meta"]["test_name"]["group_label"]
     assert case["pick_fields"]["pick_org_id"]["form_id"] == "haos_adminorgdetail"
     assert case["pick_fields"]["pick_org_id"]["source_step_id"]
+
+
+def test_build_yaml_case_emits_validation_points_for_system_and_fields():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="regression_adminorg_validation_points",
+        var_overrides={
+            "test_name": {
+                "enabled": True,
+                "template": "自动化校验点",
+                "user_overridden": True,
+            }
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+
+    points = case["validation_points"]
+    assert any(p["category"] == "system" and p["required"] for p in points)
+    field_point = next(p for p in points if p.get("kind") == "variable" and p.get("target_id") == "test_name")
+    assert field_point["enabled"] is True
+    assert {
+        "type": "maintained_value_applied",
+        "kind": "variable",
+        "target_id": "test_name",
+        "step": field_point["step_id"],
+    } in case["assertions"]
+
+
+def test_disabled_field_validation_point_does_not_create_assertion():
+    case = {
+        "vars_meta": {
+            "test_name": {
+                "label": "名称",
+                "field_key": "name",
+                "source_step_id": "fill_name",
+                "user_overridden": True,
+            }
+        },
+        "pick_fields": {},
+        "steps": [{"id": "fill_name", "type": "update_fields"}],
+        "assertions": [{"type": "no_error_actions", "last_step": True}],
+    }
+
+    points = _build_validation_points(
+        case,
+        validation_point_overrides={
+            "field_var_test_name": {"enabled": False},
+        },
+    )
+    case["validation_points"] = points
+    _apply_validation_points_to_assertions(case)
+
+    assert not any(a.get("type") == "maintained_value_applied" for a in case["assertions"])
 
 
 def test_build_yaml_case_applies_preview_var_override_to_generated_vars():

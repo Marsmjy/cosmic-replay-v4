@@ -1448,6 +1448,7 @@ def api_har_extract(body: dict = Body(...)):
     case_name = unique_case_name(requested_case_name)
     var_overrides = body.get("var_overrides")  # ⭐ 用户变量配置
     pick_field_overrides = body.get("pick_field_overrides")  # ⭐ 环境字段配置
+    validation_point_overrides = body.get("validation_point_overrides")  # ⭐ 用户校验点配置
     if not har_file:
         raise HTTPException(400, "缺少 har_file")
     har_path = har_upload_dir() / har_file
@@ -1487,6 +1488,7 @@ def api_har_extract(body: dict = Body(...)):
             case_name,
             var_overrides=var_overrides,
             pick_field_overrides=pick_field_overrides,
+            validation_point_overrides=validation_point_overrides,
             meta_resolver=meta_resolver,
             include_readback_assertions=bool(body.get("include_readback_assertions")),
         )
@@ -1611,6 +1613,56 @@ def api_pick_field_update(body: dict = Body(...)):
     p.write_text(new_content, encoding="utf-8")
 
     return {"ok": True, "step_id": step_id, "value_id": value_id, "value_code": value_code}
+
+
+@APP.post("/api/validation-point-update")
+def api_validation_point_update(body: dict = Body(...)):
+    """更新已生成 YAML 中的校验点启用状态，并同步字段级断言。"""
+    case_name = body.get("case_name")
+    point_id = str(body.get("point_id") or "").strip()
+    enabled = bool(body.get("enabled"))
+    if not case_name or not point_id:
+        raise HTTPException(400, "缺少 case_name 或 point_id")
+
+    p = case_path_from_name(case_name)
+    if not p.exists():
+        raise HTTPException(404, f"用例不存在: {case_name}")
+
+    case = load_yaml(p)
+    if not isinstance(case, dict):
+        raise HTTPException(500, "用例解析失败")
+
+    points = case.get("validation_points") or []
+    if not isinstance(points, list):
+        raise HTTPException(500, "validation_points 格式异常")
+
+    found = False
+    for point in points:
+        if not isinstance(point, dict) or str(point.get("id") or "") != point_id:
+            continue
+        if point.get("required") and not enabled:
+            enabled = True
+        point["enabled"] = enabled
+        found = True
+        break
+    if not found:
+        raise HTTPException(404, f"validation_points 中未找到 id={point_id}")
+
+    assertions = [
+        item
+        for item in (case.get("assertions") or [])
+        if not (isinstance(item, dict) and item.get("type") == "maintained_value_applied")
+    ]
+    case["assertions"] = assertions
+    try:
+        har_extractor._apply_validation_points_to_assertions(case)
+    except Exception as e:
+        raise HTTPException(500, f"同步断言失败: {e}")
+
+    import yaml
+    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    p.write_text(new_content, encoding="utf-8")
+    return {"ok": True, "point_id": point_id, "enabled": enabled, "yaml": new_content}
 
 
 @APP.post("/api/cases/{name:path}/write-confirmation")

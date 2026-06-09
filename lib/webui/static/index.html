@@ -761,6 +761,12 @@
             <span class="text-xs text-slate-500" x-text="'(' + caseMaintenanceItems().length + ')'"></span>
           </button>
           <button class="px-4 py-2 text-sm -mb-px border-b-2"
+                  :class="detailTab==='validation' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
+                  @click="detailTab='validation'">
+            校验点
+            <span class="text-xs text-slate-500" x-text="'(' + parsedValidationPoints().length + ')'"></span>
+          </button>
+          <button class="px-4 py-2 text-sm -mb-px border-b-2"
                   :class="detailTab==='yaml' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'"
                   @click="detailTab='yaml'">
             YAML
@@ -1304,6 +1310,55 @@
           </div>
           <div x-show="caseMaintenanceItems().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center border border-slate-800 rounded-lg">
             该用例没有可维护业务字段
+          </div>
+        </div>
+
+        <!-- Tab: 校验点 -->
+        <div x-show="detailTab==='validation'">
+          <div class="border border-cyan-900/40 rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-800">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-cyan-400 text-sm">&#10003;</span>
+                <span class="text-sm font-medium text-cyan-200">执行成功判断</span>
+                <span class="text-xs text-slate-500">系统必校锁定；字段级校验只在用户维护后建议启用</span>
+              </div>
+              <span class="text-xs text-slate-500" x-text="parsedValidationPoints().length + ' 项'"></span>
+            </div>
+            <div class="divide-y divide-slate-800">
+              <template x-for="group in caseValidationGroups()" :key="group.key">
+                <div>
+                  <div class="px-4 py-2 bg-slate-900/70 flex items-center justify-between">
+                    <div>
+                      <div class="text-xs font-medium text-cyan-200" x-text="group.label"></div>
+                      <div class="text-[11px] text-slate-500" x-text="validationGroupHint(group.key)"></div>
+                    </div>
+                    <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+                  </div>
+                  <template x-for="point in group.items" :key="point.id">
+                    <label class="flex items-start gap-3 px-4 py-3 hover:bg-slate-800/50">
+                      <input type="checkbox"
+                             class="mt-1 accent-cyan-500 shrink-0"
+                             :checked="point.enabled"
+                             :disabled="point.required"
+                             @change="updateCaseValidationPoint(point.id, $event.target.checked)">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm text-slate-100" x-text="point.label"></span>
+                          <span class="text-[10px] rounded px-1.5 py-0.5"
+                                :class="validationPointBadgeClass(point)"
+                                x-text="validationPointBadgeLabel(point)"></span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-0.5" x-text="point.help || validationPointHelp(point)"></div>
+                      </div>
+                      <code class="mono text-[10px] text-slate-600 shrink-0" x-text="point.id"></code>
+                    </label>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div x-show="parsedValidationPoints().length === 0" class="px-4 py-4 text-sm text-slate-500 text-center border border-slate-800 rounded-lg">
+            该用例还没有生成校验点
           </div>
         </div>
 
@@ -1914,7 +1969,9 @@
                                 'bg-slate-800 text-slate-300': !['编码','名称','电话','证件号','金额'].includes(item.ref.category),
                               }" x-text="item.label"></span>
                       </div>
-                      <input type="text" x-model="item.ref.template" :disabled="!item.ref.enabled"
+                      <input type="text" x-model="item.ref.template"
+                             @input="markHarVarOverridden(item.ref)"
+                             :disabled="!item.ref.enabled"
                              class="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm mono disabled:opacity-30 disabled:cursor-not-allowed"
                              placeholder="模板值">
                       <div class="w-44 shrink-0 text-right">
@@ -1985,6 +2042,51 @@
           提示：这里展示的是业务用户可安全维护的字段；模板中 <code class="text-purple-400">${rand:N}</code> 表示 N 位随机数字，
           <code class="text-purple-400">${today}</code> 表示当天日期。
           禁用录入字段后，该字段将保留 HAR 中的原始值。
+        </div>
+      </div>
+      <div x-show="(harValidationPointConfig || []).length > 0"
+           class="bg-slate-950 border border-cyan-900/40 rounded-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-cyan-400 text-sm">&#10003;</span>
+            <span class="text-sm font-medium text-cyan-200">执行成功判断</span>
+            <span class="text-xs text-slate-500">系统必校已锁定；你维护过的字段会自动推荐勾选“值已生效”</span>
+            <span class="text-[11px] rounded bg-cyan-900/50 px-2 py-0.5 text-cyan-200"
+                  x-text="'已启用 ' + harValidationEnabledCount() + ' 项'"></span>
+          </div>
+          <span class="text-xs text-slate-500" x-text="(harValidationPointConfig || []).length + ' 项'"></span>
+        </div>
+        <div class="space-y-3">
+          <template x-for="group in harValidationGroups()" :key="group.key">
+            <div class="border border-slate-800 rounded-lg overflow-hidden">
+              <div class="px-3 py-2 bg-slate-900/80 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-medium text-cyan-200" x-text="group.label"></div>
+                  <div class="text-[11px] text-slate-500" x-text="validationGroupHint(group.key)"></div>
+                </div>
+                <span class="text-[11px] text-slate-500" x-text="group.items.length + ' 项'"></span>
+              </div>
+              <div class="divide-y divide-slate-800">
+                <template x-for="point in group.items" :key="point.id">
+                  <label class="flex items-start gap-3 px-3 py-2 bg-slate-900">
+                    <input type="checkbox"
+                           class="mt-1 accent-cyan-500 shrink-0"
+                           x-model="point.enabled"
+                           :disabled="point.required">
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-100" x-text="point.label"></span>
+                        <span class="text-[10px] rounded px-1.5 py-0.5"
+                              :class="validationPointBadgeClass(point)"
+                              x-text="validationPointBadgeLabel(point)"></span>
+                      </div>
+                      <div class="text-xs text-slate-500 mt-0.5" x-text="point.help || validationPointHelp(point)"></div>
+                    </div>
+                  </label>
+                </template>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
       <div x-show="false && harPickFields.length > 0"
@@ -3451,6 +3553,7 @@ function app() {
 	    harCaseName: '',
 	    harVarConfig: [],     // ⭐ 变量配置（从 preview 初始化，用户可编辑）
 	    harPickFields: [],    // ⭐ 环境相关字段（从 preview 初始化，用户可编辑）
+	    harValidationPointConfig: [], // ⭐ 校验点配置（系统必校 + 字段生效候选）
 	    harPickFieldDrafts: {},
 	    harResolvingFields: false,
 	    harIncludeReadbackAssertions: false,
@@ -3713,6 +3816,7 @@ function app() {
 	      this.harPreview = null;
 	      this.harVarConfig = [];
 	      this.harPickFields = [];
+	      this.harValidationPointConfig = [];
 	      this.hydrateCasePickFieldDrafts();
 	      this.yamlDirty = false;
       this.selectedStep = null;
@@ -4077,12 +4181,14 @@ function app() {
       });
       es.addEventListener('assertion_ok', (ev) => {
         const d = JSON.parse(ev.data);
-        addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'ok');
+        addPhase('assert:'+d.type, '断言 ' + d.type, d.user_message || d.msg || '', 'ok');
       });
       es.addEventListener('assertion_fail', (ev) => {
         const d = JSON.parse(ev.data);
-        const p = addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'fail');
-        if (d.msg) p.errors = [d.msg];
+        const p = addPhase('assert:'+d.type, '断言 ' + d.type, d.user_message || d.msg || '', 'fail');
+        p.category = d.category || '';
+        p.next_action = d.next_action || '';
+        if (d.msg || d.next_action) p.errors = [d.msg, d.next_action].filter(Boolean);
         // ⭐ P0-1: 断言失败也自动选中
         if (this.currentCase?.name === name) {
           this.selectedStep = 'assert:'+d.type;
@@ -4460,6 +4566,7 @@ function app() {
       this.harCaseName = '';
       this.harVarConfig = [];
       this.harPickFields = [];
+      this.harValidationPointConfig = [];
       this.harPickFieldDrafts = {};
       this.harResolvingFields = false;
       this.harIncludeReadbackAssertions = false;
@@ -4511,6 +4618,7 @@ function app() {
         out[vc.name] = {
           enabled: vc.enabled,
           template: vc.template,
+          user_overridden: !!vc.user_overridden,
         };
       }
       return out;
@@ -4538,6 +4646,10 @@ function app() {
         };
       }
       return out;
+    },
+
+    _defaultValidationPointOverrides(preview = {}) {
+      return this._validationPointOverrides(this._normalizeValidationPoints(preview.validation_points || []));
     },
 
     async importHarBatch(files) {
@@ -4577,6 +4689,7 @@ function app() {
               env_id: envId,
               var_overrides: this._defaultVarOverrides(previewData.preview),
               pick_field_overrides: this._defaultPickFieldOverrides(previewData.preview),
+              validation_point_overrides: this._defaultValidationPointOverrides(previewData.preview),
               include_readback_assertions: !!((previewData.preview?.readback_plan?.plans || []).length),
             }),
           });
@@ -4630,6 +4743,8 @@ function app() {
             ...v,
             order,
             _catalog_order: catalogOrderValue,
+            original_template: v.template,
+            user_overridden: !!v.user_overridden,
           };
         }).sort((a, b) => {
           const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;
@@ -4655,6 +4770,7 @@ function app() {
               if (ao !== bo) return ao - bo;
               return (SENS_ORDER[a.env_sensitive] ?? 1) - (SENS_ORDER[b.env_sensitive] ?? 1);
             });
+        this.harValidationPointConfig = this._normalizeValidationPoints(data.preview.validation_points || []);
         this.hydrateHarPickFieldDrafts();
         this.harIncludeReadbackAssertions = this.harReadbackPlanCount() > 0;
         this.harCaseName = file.name.replace(/\.har$/i, '');
@@ -4724,9 +4840,11 @@ function app() {
       // ⭐ 构建变量覆盖配置
       const varOverrides = {};
       for (const vc of this.harVarConfig) {
+        const userOverridden = !!vc.user_overridden || String(vc.template ?? '') !== String(vc.original_template ?? '');
         varOverrides[vc.name] = {
           enabled: vc.enabled,
           template: vc.template,
+          user_overridden: userOverridden,
         };
       }
       // ⭐ 构建环境字段覆盖配置
@@ -4761,6 +4879,7 @@ function app() {
             env_id: this.currentEnv || '',
             var_overrides: varOverrides,
             pick_field_overrides: pickFieldOverrides,
+            validation_point_overrides: this._validationPointOverrides(this.harValidationPointConfig),
             include_readback_assertions: !!this.harIncludeReadbackAssertions,
           }),
         });
@@ -5020,6 +5139,7 @@ function app() {
       this.harPickFieldDrafts = {...(this.harPickFieldDrafts || {}), [key]: text};
 	      pf.edit_value = text;
 	      this.markHarPickFieldDraft(pf);
+	      this.enableHarValidationForField('environment_field', pf.id || pf.step_id || key);
 	    },
 
 	    async savePendingCasePickFieldDrafts() {
@@ -5381,6 +5501,102 @@ function app() {
       return this._groupFieldItems(this.harMaintenanceItems(), 'HAR 维护字段');
     },
 
+    _normalizeValidationPoints(points = []) {
+      return (points || []).filter(p => p && typeof p === 'object').map((p, idx) => ({
+        ...p,
+        id: p.id || `validation_${idx}`,
+        enabled: p.enabled !== false,
+        required: !!p.required,
+        order: Number.isFinite(Number(p.order)) ? Number(p.order) : 99999,
+      })).sort((a, b) => {
+        const cat = {system: 0, recommended: 1, readback: 2, optional: 3};
+        const ca = cat[a.category] ?? 9;
+        const cb = cat[b.category] ?? 9;
+        if (ca !== cb) return ca - cb;
+        if (a.order !== b.order) return a.order - b.order;
+        return String(a.label || a.id).localeCompare(String(b.label || b.id));
+      });
+    },
+
+    _validationPointOverrides(points = []) {
+      const out = {};
+      for (const point of (points || [])) {
+        if (!point || !point.id) continue;
+        out[point.id] = {enabled: !!point.enabled};
+      }
+      return out;
+    },
+
+    harValidationEnabledCount() {
+      return (this.harValidationPointConfig || []).filter(p => p.enabled).length;
+    },
+
+    _groupValidationPoints(points = []) {
+      const labels = {
+        system: '系统必校',
+        recommended: '字段生效校验',
+        readback: '入库回查',
+        optional: '可选校验',
+      };
+      const groups = new Map();
+      for (const point of this._normalizeValidationPoints(points)) {
+        const key = point.category || 'optional';
+        if (!groups.has(key)) groups.set(key, {key, label: labels[key] || '其他校验', items: []});
+        groups.get(key).items.push(point);
+      }
+      return Array.from(groups.values());
+    },
+
+    harValidationGroups() {
+      return this._groupValidationPoints(this.harValidationPointConfig || []);
+    },
+
+    caseValidationGroups() {
+      return this._groupValidationPoints(this.parsedValidationPoints());
+    },
+
+    validationGroupHint(key) {
+      return {
+        system: '接口错误、保存失败、录制期业务提示等基础安全网',
+        recommended: '用户维护字段后建议开启，用来确认新值进入本次请求',
+        readback: '写入类用例的只读入库证据',
+        optional: '不阻断执行的辅助校验',
+      }[key] || '';
+    },
+
+    validationPointBadgeLabel(point = {}) {
+      if (point.required) return '必校';
+      if (point.enabled) return '已启用';
+      return '未启用';
+    },
+
+    validationPointBadgeClass(point = {}) {
+      if (point.required) return 'bg-rose-900/60 text-rose-200';
+      if (point.enabled) return 'bg-emerald-900/60 text-emerald-200';
+      return 'bg-slate-800 text-slate-400';
+    },
+
+    validationPointHelp(point = {}) {
+      if (point.scope === 'maintainable_field') return '确认用户维护的值进入本次回放请求，避免继续使用 HAR 旧值。';
+      if (point.category === 'readback') return '确认保存或提交后能按业务键查到记录。';
+      return '确认关键接口没有偏离录制时的稳定业务语义。';
+    },
+
+    enableHarValidationForField(kind, targetId) {
+      const normalizedKind = kind === 'var' ? 'variable' : kind === 'pick' ? 'environment_field' : kind;
+      for (const point of (this.harValidationPointConfig || [])) {
+        if (point.kind === normalizedKind && String(point.target_id || '') === String(targetId || '')) {
+          point.enabled = true;
+        }
+      }
+    },
+
+    markHarVarOverridden(v) {
+      if (!v) return;
+      v.user_overridden = true;
+      this.enableHarValidationForField('variable', v.name);
+    },
+
 	    casePickFieldItems() {
 	      const parsed = this.parsedPickFields();
 	      return parsed;
@@ -5462,6 +5678,7 @@ function app() {
         pf = parsed || null;
       }
       if (!pf) return;
+      this.enableHarValidationForField('environment_field', pf.id || pf.step_id || stepId);
       pf.edit_value = text;
       const key = this.pickFieldDraftKey(pf);
       if (key) {
@@ -6448,11 +6665,13 @@ function app() {
               break;
             }
             case 'assertion_ok':
-              addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'ok');
+              addPhase('assert:'+d.type, '断言 ' + d.type, d.user_message || d.msg || '', 'ok');
               break;
             case 'assertion_fail': {
-              const p = addPhase('assert:'+d.type, '断言 ' + d.type, d.msg || '', 'fail');
-              if (d.msg) p.errors = [d.msg];
+              const p = addPhase('assert:'+d.type, '断言 ' + d.type, d.user_message || d.msg || '', 'fail');
+              p.category = d.category || '';
+              p.next_action = d.next_action || '';
+              if (d.msg || d.next_action) p.errors = [d.msg, d.next_action].filter(Boolean);
               break;
             }
             case 'fixes_ready':
@@ -7623,6 +7842,78 @@ function app() {
       });
     },
 
+    parsedValidationPoints() {
+      const yamlText = this.yamlSource || '';
+      const points = [];
+      try {
+        const lines = yamlText.split('\n');
+        let inBlock = false;
+        let current = null;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!inBlock && /^validation_points\s*:/.test(line.trimStart())) {
+            inBlock = true;
+            continue;
+          }
+          if (!inBlock) continue;
+          if (trimmed && !line.startsWith(' ') && !line.startsWith('\t') && !trimmed.startsWith('#')) {
+            break;
+          }
+          const itemMatch = line.match(/^ {0,2}- id:\s*(.*)\s*$/);
+          if (itemMatch) {
+            if (current) points.push(current);
+            current = {id: this._parseYamlScalar(itemMatch[1])};
+            continue;
+          }
+          if (!current) continue;
+          const propMatch = line.match(/^ {2,4}([\w-]+):\s*(.*)\s*$/);
+          if (propMatch) {
+            const key = propMatch[1];
+            if (key === 'assertion') continue;
+            current[key] = this._parseYamlScalar(propMatch[2]);
+          }
+        }
+        if (current) points.push(current);
+      } catch(e) {
+        return [];
+      }
+      return this._normalizeValidationPoints(points);
+    },
+
+    async updateCaseValidationPoint(pointId, enabled, silent = false) {
+      if (!this.currentCase) return;
+      try {
+        const resp = await fetch('/api/validation-point-update', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            case_name: this.currentCase.name,
+            point_id: pointId,
+            enabled: !!enabled,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '保存失败');
+        }
+        if (data.yaml) this.yamlSource = data.yaml;
+        this.yamlDirty = false;
+        if (!silent) this.showToast(enabled ? '✓ 校验点已启用' : '✓ 校验点已停用');
+      } catch(e) {
+        this.showToast('校验点保存失败: ' + (e.message || e), 'error');
+      }
+    },
+
+    async enableCaseValidationForField(kind, targetId) {
+      const normalizedKind = kind === 'var' ? 'variable' : kind === 'pick' ? 'environment_field' : kind;
+      const point = this.parsedValidationPoints().find(p =>
+        p.kind === normalizedKind && String(p.target_id || '') === String(targetId || '')
+      );
+      if (point && !point.enabled && !point.required) {
+        await this.updateCaseValidationPoint(point.id, true, true);
+      }
+    },
+
     async saveVarValue(key) {
       if (!this.currentCase) {
         this.showToast('未选中用例', 'error');
@@ -7639,6 +7930,7 @@ function app() {
           throw new Error(data.detail || '保存失败');
         }
         this.yamlDirty = false;
+        await this.enableCaseValidationForField('variable', key);
         this.showToast('✓ 变量已保存');
       } catch(e) {
         this.showToast('保存失败: ' + (e.message || e), 'error');
@@ -7808,6 +8100,7 @@ function app() {
 	        this.yamlSource = yamlData.yaml;
 	        this.hydrateCasePickFieldDrafts();
 	        this.yamlDirty = false;
+	        await this.enableCaseValidationForField('environment_field', stepId);
         this.showToast('✓ 字段值已保存');
       } catch(e) {
         // ⭐ API失败时不回滚本地值，显示错误信息
