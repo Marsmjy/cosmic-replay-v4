@@ -230,6 +230,19 @@ def test_har_preview_hides_manual_env_resolve_buttons_from_primary_flow():
     assert "建议先一键解析环境字段" not in html
 
 
+def test_validation_point_parser_accepts_safe_dump_indentless_lists():
+    html = _index_html()
+
+    item_match_pos = html.index("const itemMatch = raw.match(/^(\\s*)-\\s+id:")
+    block_end_pos = html.index("if (trimmed && !raw.startsWith(' ') && !trimmed.startsWith('#'))", item_match_pos)
+    prop_indent_pos = html.index("if (indent !== itemIndent + 2) continue;", item_match_pos)
+    override_metadata_pos = html.index("target_id: point.target_id || ''")
+
+    assert item_match_pos < block_end_pos
+    assert prop_indent_pos > item_match_pos
+    assert override_metadata_pos > 0
+
+
 def test_agent_repair_prompt_points_ai_to_ir_summary_and_safe_har_tool():
     html = _index_html()
 

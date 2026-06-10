@@ -1113,6 +1113,43 @@ def test_disabled_field_validation_point_does_not_create_assertion():
     assert not any(a.get("type") == "maintained_value_applied" for a in case["assertions"])
 
 
+def test_validation_point_override_can_match_field_metadata_when_id_changes():
+    case = {
+        "vars_meta": {},
+        "pick_fields": {
+            "pick_salary_adjust_employee_id": {
+                "label": "定调薪人",
+                "field_key": "person",
+                "source_step_id": "update_salary_adjust_employee",
+                "user_overridden": False,
+            }
+        },
+        "steps": [{"id": "update_salary_adjust_employee", "type": "update_fields"}],
+        "assertions": [{"type": "no_error_actions", "last_step": True}],
+    }
+
+    points = _build_validation_points(
+        case,
+        validation_point_overrides={
+            "preview_generated_temporary_id": {
+                "enabled": True,
+                "kind": "environment_field",
+                "target_id": "pick_salary_adjust_employee_id",
+                "category": "recommended",
+                "scope": "maintainable_field",
+            },
+        },
+    )
+
+    point = next(
+        p
+        for p in points
+        if p.get("kind") == "environment_field"
+        and p.get("target_id") == "pick_salary_adjust_employee_id"
+    )
+    assert point["enabled"] is True
+
+
 def test_build_yaml_case_applies_preview_var_override_to_generated_vars():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
 

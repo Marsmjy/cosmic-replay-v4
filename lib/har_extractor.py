@@ -5810,6 +5810,63 @@ def _validation_point_order(value: Any) -> int:
         return 99999
 
 
+def _validation_point_override_enabled(
+    overrides: Mapping[str, Any] | None,
+    point_id: str,
+    default: bool,
+    *,
+    kind: str = "",
+    target_id: str = "",
+    category: str = "",
+    scope: str = "",
+    assertion_type: str = "",
+    step_id: str = "",
+) -> bool:
+    if not isinstance(overrides, Mapping):
+        return default
+    exact = overrides.get(point_id)
+    if isinstance(exact, Mapping) and "enabled" in exact:
+        return bool(exact.get("enabled"))
+
+    field_kind = str(kind or "")
+    field_target = str(target_id or "")
+    if field_kind and field_target:
+        for item in overrides.values():
+            if not isinstance(item, Mapping) or "enabled" not in item:
+                continue
+            if (
+                str(item.get("kind") or "") == field_kind
+                and str(item.get("target_id") or "") == field_target
+            ):
+                return bool(item.get("enabled"))
+
+    atype = str(assertion_type or "")
+    astep = str(step_id or "")
+    acategory = str(category or "")
+    ascope = str(scope or "")
+    if atype:
+        candidates = []
+        for item in overrides.values():
+            if not isinstance(item, Mapping) or "enabled" not in item:
+                continue
+            if str(item.get("assertion_type") or "") != atype:
+                continue
+            item_step = str(item.get("step_id") or "")
+            if astep and item_step and item_step != astep:
+                continue
+            item_category = str(item.get("category") or "")
+            if acategory and item_category and item_category != acategory:
+                continue
+            item_scope = str(item.get("scope") or "")
+            if ascope and item_scope and item_scope != ascope:
+                continue
+            candidates.append(item)
+        if len(candidates) == 1:
+            return bool(candidates[0].get("enabled"))
+
+    return default
+
+
 def _build_validation_points(
     case: Mapping[str, Any],
     validation_point_overrides: Mapping[str, Any] | None = None,
@@ -5831,17 +5888,18 @@ def _build_validation_points(
             continue
         point = _validation_point_for_assertion(assertion, steps_by_id)
         pid = str(point.get("id") or "")
-        override = overrides.get(pid) if isinstance(overrides, Mapping) else None
-        if isinstance(override, Mapping) and not point.get("required"):
-            point["enabled"] = bool(override.get("enabled", point.get("enabled", True)))
+        if not point.get("required"):
+            point["enabled"] = _validation_point_override_enabled(
+                overrides,
+                pid,
+                bool(point.get("enabled", True)),
+                category=str(point.get("category") or ""),
+                scope=str(point.get("scope") or ""),
+                assertion_type=str(assertion.get("type") or ""),
+                step_id=str(assertion.get("step") or ""),
+            )
         points.append(point)
         seen_ids.add(pid)
-
-    def _field_override_enabled(pid: str, default: bool) -> bool:
-        override = overrides.get(pid) if isinstance(overrides, Mapping) else None
-        if isinstance(override, Mapping) and "enabled" in override:
-            return bool(override.get("enabled"))
-        return default
 
     for var_name, meta in (case.get("vars_meta") or {}).items():
         if not isinstance(meta, Mapping):
@@ -5865,7 +5923,17 @@ def _build_validation_points(
             ("category", "recommended"),
             ("scope", "maintainable_field"),
             ("source", "vars_meta"),
-            ("enabled", _field_override_enabled(pid, bool(meta.get("user_overridden")))),
+            ("enabled", _validation_point_override_enabled(
+                overrides,
+                pid,
+                bool(meta.get("user_overridden")),
+                kind="variable",
+                target_id=str(var_name),
+                category="recommended",
+                scope="maintainable_field",
+                assertion_type="maintained_value_applied",
+                step_id=source_step_id,
+            )),
             ("required", False),
             ("severity", "strict"),
             ("kind", "variable"),
@@ -5907,7 +5975,17 @@ def _build_validation_points(
             ("category", "recommended"),
             ("scope", "maintainable_field"),
             ("source", "pick_fields"),
-            ("enabled", _field_override_enabled(pid, default_enabled)),
+            ("enabled", _validation_point_override_enabled(
+                overrides,
+                pid,
+                default_enabled,
+                kind="environment_field",
+                target_id=str(pick_id),
+                category="recommended",
+                scope="maintainable_field",
+                assertion_type="maintained_value_applied",
+                step_id=source_step_id,
+            )),
             ("required", False),
             ("severity", "strict"),
             ("kind", "environment_field"),

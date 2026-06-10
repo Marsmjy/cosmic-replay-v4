@@ -5522,7 +5522,16 @@ function app() {
       const out = {};
       for (const point of (points || [])) {
         if (!point || !point.id) continue;
-        out[point.id] = {enabled: !!point.enabled};
+        const assertion = point.assertion || {};
+        out[point.id] = {
+          enabled: !!point.enabled,
+          kind: point.kind || '',
+          target_id: point.target_id || '',
+          category: point.category || '',
+          scope: point.scope || '',
+          step_id: point.step_id || assertion.step || '',
+          assertion_type: assertion.type || '',
+        };
       }
       return out;
     },
@@ -7849,28 +7858,33 @@ function app() {
         const lines = yamlText.split('\n');
         let inBlock = false;
         let current = null;
+        let itemIndent = -1;
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!inBlock && /^validation_points\s*:/.test(line.trimStart())) {
+          const raw = line.replace(/\t/g, '    ');
+          const trimmed = raw.trim();
+          if (!inBlock && /^validation_points\s*:/.test(raw.trimStart())) {
             inBlock = true;
             continue;
           }
           if (!inBlock) continue;
-          if (trimmed && !line.startsWith(' ') && !line.startsWith('\t') && !trimmed.startsWith('#')) {
-            break;
-          }
-          const itemMatch = line.match(/^ {0,2}- id:\s*(.*)\s*$/);
+          const itemMatch = raw.match(/^(\s*)-\s+id:\s*(.*)\s*$/);
           if (itemMatch) {
             if (current) points.push(current);
-            current = {id: this._parseYamlScalar(itemMatch[1])};
+            itemIndent = itemMatch[1].length;
+            current = {id: this._parseYamlScalar(itemMatch[2])};
             continue;
           }
+          if (trimmed && !raw.startsWith(' ') && !trimmed.startsWith('#')) {
+            break;
+          }
           if (!current) continue;
-          const propMatch = line.match(/^ {2,4}([\w-]+):\s*(.*)\s*$/);
+          const propMatch = raw.match(/^(\s+)([\w-]+):\s*(.*)\s*$/);
           if (propMatch) {
-            const key = propMatch[1];
+            const indent = propMatch[1].length;
+            if (indent !== itemIndent + 2) continue;
+            const key = propMatch[2];
             if (key === 'assertion') continue;
-            current[key] = this._parseYamlScalar(propMatch[2]);
+            current[key] = this._parseYamlScalar(propMatch[3]);
           }
         }
         if (current) points.push(current);
