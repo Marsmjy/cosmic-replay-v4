@@ -5936,7 +5936,7 @@ def _build_validation_points(
 
 def _apply_validation_points_to_assertions(case: OrderedDict) -> None:
     assertions = [
-        OrderedDict(a)
+        dict(a)
         for a in (case.get("assertions") or [])
         if isinstance(a, Mapping)
     ]
@@ -5950,7 +5950,7 @@ def _apply_validation_points_to_assertions(case: OrderedDict) -> None:
         sig = _assertion_signature(assertion)
         if sig in seen:
             continue
-        assertions.append(OrderedDict(assertion))
+        assertions.append(dict(assertion))
         seen.add(sig)
     case["assertions"] = assertions
 

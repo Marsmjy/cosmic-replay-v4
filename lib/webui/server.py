@@ -79,6 +79,27 @@ class _SafeEncoder(json.JSONEncoder):
 def _safe_json_dumps(obj, **kwargs):
     """json.dumps with date-safe encoder."""
     return json.dumps(obj, cls=_SafeEncoder, ensure_ascii=False, **kwargs)
+
+
+def _plain_yaml_data(obj):
+    """Convert Python-specific containers to safe YAML builtins."""
+    if isinstance(obj, dict):
+        return {k: _plain_yaml_data(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_plain_yaml_data(v) for v in obj]
+    if isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    return obj
+
+
+def _dump_yaml_plain(obj) -> str:
+    import yaml
+    return yaml.safe_dump(
+        _plain_yaml_data(obj),
+        allow_unicode=True,
+        sort_keys=False,
+        default_flow_style=False,
+    )
 from pathlib import Path
 from typing import Any
 
@@ -572,7 +593,6 @@ def api_apply_case_repair(name: str, body: dict = Body(...)):
         raise HTTPException(400, "repair 必须是对象")
 
     from lib.repair_planner import apply_repair
-    import yaml
 
     new_case, applied, message = apply_repair(case, repair)
     if not applied:
@@ -587,7 +607,7 @@ def api_apply_case_repair(name: str, body: dict = Body(...)):
         backup_path.write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
     except Exception:
         pass
-    new_yaml = yaml.dump(new_case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    new_yaml = _dump_yaml_plain(new_case)
     p.write_text(new_yaml, encoding="utf-8")
     return {
         "ok": True,
@@ -626,8 +646,7 @@ def api_update_case_display_name(name: str, body: dict = Body(...)):
     case["name"] = new_display_name
     
     # 写回文件
-    import yaml
-    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    new_content = _dump_yaml_plain(case)
     p.write_text(new_content, encoding="utf-8")
     
     return {"ok": True, "display_name": new_display_name}
@@ -750,7 +769,6 @@ def api_rename_case(name: str, body: dict = Body(...)):
 @APP.post("/api/cases/{name:path}/description")
 def api_update_case_description(name: str, body: dict = Body(...)):
     """更新用例描述"""
-    import yaml
     description = body.get("description", "")
     p = case_path_from_name(name)
     if not p.exists():
@@ -761,7 +779,7 @@ def api_update_case_description(name: str, body: dict = Body(...)):
         raise HTTPException(500, "用例解析失败")
     data['description'] = description
     data['created_at'] = datetime.now().isoformat(timespec='seconds')
-    new_content = yaml.dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    new_content = _dump_yaml_plain(data)
     p.write_text(new_content, encoding="utf-8")
     return {"ok": True}
 
@@ -1608,8 +1626,7 @@ def api_pick_field_update(body: dict = Body(...)):
         raise HTTPException(404, f"pick_fields 中未找到 id={step_id}")
 
     # 写回文件
-    import yaml
-    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    new_content = _dump_yaml_plain(case)
     p.write_text(new_content, encoding="utf-8")
 
     return {"ok": True, "step_id": step_id, "value_id": value_id, "value_code": value_code}
@@ -1659,8 +1676,7 @@ def api_validation_point_update(body: dict = Body(...)):
     except Exception as e:
         raise HTTPException(500, f"同步断言失败: {e}")
 
-    import yaml
-    new_content = yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    new_content = _dump_yaml_plain(case)
     p.write_text(new_content, encoding="utf-8")
     return {"ok": True, "point_id": point_id, "enabled": enabled, "yaml": new_content}
 
@@ -1685,9 +1701,8 @@ def api_confirm_case_write(name: str, body: dict = Body(default={})):
         "scope": "same_case_pass_with_unverified_write_evidence",
     }
 
-    import yaml
     p.write_text(
-        yaml.dump(case, allow_unicode=True, sort_keys=False, default_flow_style=False),
+        _dump_yaml_plain(case),
         encoding="utf-8",
     )
     return {"ok": True, "name": name, "write_verification": case["write_verification"]}

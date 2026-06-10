@@ -11,9 +11,28 @@ cosmic-replay v4 - API端点集成测试
 import pytest
 import sys
 from pathlib import Path
+from collections import OrderedDict
+
+import yaml
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
+
+
+def test_webui_yaml_dump_never_emits_python_object_tags():
+    from lib.webui.server import _dump_yaml_plain
+
+    text = _dump_yaml_plain({
+        "assertions": [
+            OrderedDict([
+                ("type", "maintained_value_applied"),
+                ("target_id", "pick_createorg_id"),
+            ])
+        ]
+    })
+
+    assert "!!python/object" not in text
+    assert yaml.safe_load(text)["assertions"][0]["type"] == "maintained_value_applied"
 
 
 # 使用TestClient进行API测试
@@ -342,6 +361,66 @@ class TestBatchEndpoints:
             for path in (existing_path, generated_path, har_path):
                 if path.exists():
                     path.unlink()
+
+    def test_validation_point_update_writes_safe_yaml(self, client):
+        """启用校验点后写回的 YAML 仍可 safe_load，不含 Python 对象标签"""
+        from lib.webui import server
+
+        case_name = "_pytest_validation_point_update"
+        case_path = server.case_path_from_name(case_name)
+        if case_path.exists():
+            case_path.unlink()
+        case_path.parent.mkdir(parents=True, exist_ok=True)
+        case_path.write_text(
+            "\n".join([
+                f"name: {case_name}",
+                "vars: {}",
+                "vars_meta: {}",
+                "pick_fields: {}",
+                "steps:",
+                "- id: fill_name",
+                "  type: update_fields",
+                "assertions:",
+                "- type: no_error_actions",
+                "  last_step: true",
+                "validation_points:",
+                "- id: field_var_test_name",
+                "  label: 名称：维护值进入回放请求",
+                "  category: recommended",
+                "  enabled: false",
+                "  required: false",
+                "  kind: variable",
+                "  target_id: test_name",
+                "  step_id: fill_name",
+                "  assertion:",
+                "    type: maintained_value_applied",
+                "    kind: variable",
+                "    target_id: test_name",
+                "    step: fill_name",
+                "",
+            ]),
+            encoding="utf-8",
+        )
+        try:
+            resp = client.post("/api/validation-point-update", json={
+                "case_name": case_name,
+                "point_id": "field_var_test_name",
+                "enabled": True,
+            })
+            assert resp.status_code == 200
+            text = case_path.read_text(encoding="utf-8")
+            assert "!!python/object" not in text
+            parsed = yaml.safe_load(text)
+            assert parsed["validation_points"][0]["enabled"] is True
+            assert {
+                "type": "maintained_value_applied",
+                "kind": "variable",
+                "target_id": "test_name",
+                "step": "fill_name",
+            } in parsed["assertions"]
+        finally:
+            if case_path.exists():
+                case_path.unlink()
 
 
 class TestCORSHeaders:
