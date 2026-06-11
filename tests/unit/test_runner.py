@@ -2326,6 +2326,92 @@ class TestStepHandlers:
         assert result.steps[0]["warning"] == "HAR 仅包含录制期临时附件句柄"
         assert any(event == "step_ok" and payload.get("skipped") for event, payload in events)
 
+    def test_run_case_contract_preflight_blocks_before_login(self, monkeypatch):
+        events = []
+
+        def fail_login(*_args, **_kwargs):
+            raise AssertionError("login should not be called when contract preflight fails")
+
+        monkeypatch.setattr(runner_mod, "login", fail_login)
+        case = {
+            "name": "unsafe-write",
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "pick_fields": {
+                "pick_person_id": {
+                    "label": "人员",
+                    "field_key": "person",
+                    "form_id": "demo_bill",
+                    "app_id": "demo",
+                    "auto_resolve": True,
+                    "source_step_id": "pick_person",
+                    "write_step_id": "save_bill",
+                }
+            },
+            "steps": [{
+                "id": "save_bill",
+                "type": "invoke",
+                "form_id": "demo_bill",
+                "app_id": "demo",
+                "ac": "save",
+                "method": "save",
+            }],
+            "assertions": [{"type": "no_error_actions", "last_step": True}],
+        }
+
+        result = run_case(case, on_event=lambda event, payload: events.append((event, payload)))
+
+        assert result.passed is False
+        assert result.steps[0]["id"] == "preflight_contract"
+        assert any("no_save_failure" in error for error in result.steps[0]["_errors"])
+        assert result.runtime_evidence["contract_preflight"]["ok"] is False
+        assert any(event == "step_fail" and payload.get("id") == "preflight_contract" for event, payload in events)
+
+    def test_run_case_query_only_is_not_blocked_by_write_contract(self, monkeypatch):
+        events = []
+
+        class FakeSession:
+            user_id = "user-1"
+            root_base_id = "a" * 32
+            root_page_id = "root" + root_base_id
+
+        class FakeReplay:
+            def __init__(self, session, sign_required=True):
+                self.s = session
+                self.page_ids = {}
+
+            def init_root(self):
+                return self.s.root_page_id
+
+        monkeypatch.setattr(runner_mod, "login", lambda *args, **kwargs: FakeSession())
+        monkeypatch.setattr(runner_mod, "CosmicFormReplay", FakeReplay)
+        case = {
+            "name": "query-only",
+            "env": {
+                "base_url": "https://example.test",
+                "username": "user",
+                "password": "pw",
+                "datacenter_id": "dc",
+            },
+            "steps": [{
+                "id": "load_list",
+                "type": "invoke",
+                "ac": "loadData",
+                "skip_replay": True,
+            }],
+            "assertions": [],
+        }
+
+        result = run_case(case, on_event=lambda event, payload: events.append((event, payload)))
+
+        assert result.passed is True
+        assert result.runtime_evidence["capability"]["write_mode"] == "read_only"
+        assert any(event == "preflight_ok" and payload.get("id") == "preflight_contract" for event, payload in events)
+
     def test_upload_file_handler_calls_replay_and_records_runtime_upload(self, tmp_path):
         uploaded = tmp_path / "salary.xlsx"
         uploaded.write_bytes(b"demo")

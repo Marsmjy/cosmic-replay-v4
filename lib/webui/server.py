@@ -1052,6 +1052,7 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
     """Build a report-like case result from single-run SSE events."""
     phases: list[dict] = []
     assertions: list[dict] = []
+    runtime_evidence: dict = {}
 
     def phase_for(step_id: str) -> dict:
         existing = next((p for p in phases if p.get("id") == step_id), None)
@@ -1102,6 +1103,11 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
                 "ok": event_type == "assertion_ok",
                 "msg": data.get("msg", ""),
             })
+        elif event_type == "case_start":
+            runtime_evidence["capability"] = data.get("capability") or {}
+            runtime_evidence["environment_binding_plan"] = data.get("environment_binding_plan") or {}
+            runtime_evidence["runtime_value_flow_plan"] = data.get("runtime_value_flow_plan") or {}
+            runtime_evidence["execution_contract"] = data.get("execution_contract") or {}
 
     summary = next(
         (event.get("data") or {} for event in reversed(events) if event.get("type") == "case_done"),
@@ -1170,6 +1176,7 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
         assertions=assertions,
         failure_analysis=failure_analysis,
         env_fields=env_fields_event.get("fields") or [],
+        runtime_evidence=runtime_evidence,
         write_verification=_case_write_verification(case_name),
     )
     enrich_case_result(result)
@@ -1765,12 +1772,17 @@ def _refresh_report_acceptance(report_data: dict) -> None:
 
     queues = {"auto_repair": [], "manual_confirm": [], "ai_agent": [], "write_unverified": []}
     for row in rows:
+        decision_summary = row.get("decision_summary") or {}
         item = {
             "name": row.get("name", ""),
             "run_id": row.get("run_id", ""),
             "error": row.get("error", ""),
             "write_status": row.get("write_status", ""),
             "reason": row.get("ai_reason") or (row.get("failure_analysis") or {}).get("root_cause", ""),
+            "decision_summary": decision_summary,
+            "decision_category": decision_summary.get("category", ""),
+            "decision_title": decision_summary.get("title", ""),
+            "next_step": decision_summary.get("next_step", ""),
         }
         action = row.get("next_action")
         if action in queues:
@@ -1969,6 +1981,11 @@ def api_start_task(task_id: str):
                             "optional": payload.get("optional", False),
                             "resolved_request": payload.get("resolved_request"),
                         })
+                    elif evt_type == "case_start":
+                        result.runtime_evidence["capability"] = payload.get("capability") or {}
+                        result.runtime_evidence["environment_binding_plan"] = payload.get("environment_binding_plan") or {}
+                        result.runtime_evidence["runtime_value_flow_plan"] = payload.get("runtime_value_flow_plan") or {}
+                        result.runtime_evidence["execution_contract"] = payload.get("execution_contract") or {}
                     if evt_type == "step_ok":
                         result.step_ok += 1
                         result.step_count += 1
@@ -2008,6 +2025,7 @@ def api_start_task(task_id: str):
                 try:
                     run_result = run_case(case, on_event=capture_event)
                     result.passed = run_result.passed
+                    result.runtime_evidence.update(run_result.runtime_evidence or {})
                     if not result.assertions:
                         result.assertions = run_result.assertions
                     if not run_result.passed and not result.error:

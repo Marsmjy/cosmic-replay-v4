@@ -17,6 +17,7 @@ from .deep_chain_pipeline import DEFAULT_CATALOG, build_readback_plan, load_cata
 from .failure_analysis import classify_run_failure
 from .ir.evidence import build_case_ir_summary
 from .pageid_trace import build_pageid_trace
+from .case_contract import build_case_contract
 
 
 def build_repair_evidence_package(
@@ -48,6 +49,7 @@ def build_repair_evidence_package(
         case_data if isinstance(case_data, dict) else {},
         run_events=run_events,
     )
+    case_contract = build_case_contract(case_data)
     package = {
         "schema_version": "1.0",
         "created_at": datetime.now().isoformat(),
@@ -72,6 +74,7 @@ def build_repair_evidence_package(
         "case_artifacts": {
             "case_path": str(case_path),
             "yaml": yaml_text,
+            "case_contract": case_contract,
         },
         "run_artifacts": {
             "events_count": len(run_events),
@@ -83,6 +86,9 @@ def build_repair_evidence_package(
             "pageid_trace": pageid_trace,
             "ir_summary": ir_summary,
             "dynamic_value_flow": ir_summary.get("dynamic_value_flow", {}),
+            "environment_binding_plan": case_contract.get("environment_binding_plan", {}),
+            "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan", {}),
+            "capability": case_contract.get("capability", {}),
         },
         "report_context": {
             "acceptance": report_data.get("acceptance", {}),

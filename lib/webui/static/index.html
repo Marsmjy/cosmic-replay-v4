@@ -3249,7 +3249,11 @@
                 <div class="flex flex-col md:flex-row md:items-center gap-2 py-2 border-t border-rose-900/40 first:border-t-0">
                   <div class="flex-1 min-w-0">
                     <div class="text-sm text-slate-200 truncate" x-text="item.name" :title="item.name"></div>
-                    <div class="text-xs text-slate-500 truncate" x-text="item.reason || item.error || '需要排查入库证据、pageId 链路或断言盲区'"></div>
+                    <div class="text-xs text-slate-400 truncate"
+                         x-text="item.decision_title || item.reason || item.error || '需要排查入库证据、pageId 链路或断言盲区'"></div>
+                    <div x-show="item.next_step"
+                         class="mt-0.5 text-xs text-slate-500 truncate"
+                         x-text="item.next_step"></div>
                   </div>
                   <button @click="copyAgentRepairPrompt(item)"
                           class="text-xs text-white bg-rose-600 hover:bg-rose-500 rounded px-3 py-1.5">
@@ -5893,8 +5897,28 @@ function app() {
       };
       this.currentReport.action_queues = {
         ...(this.currentReport.action_queues || {}),
-        ai_agent: cases.filter(r => r.next_action === 'ai_agent').map(r => ({name: r.name, run_id: r.run_id, error: r.error, write_status: r.write_status, reason: r.ai_reason || ''})),
-        write_unverified: cases.filter(r => r.write_status === 'unverified').map(r => ({name: r.name, run_id: r.run_id, error: r.error, write_status: r.write_status, reason: r.ai_reason || ''})),
+        ai_agent: cases.filter(r => r.next_action === 'ai_agent').map(r => ({
+          name: r.name,
+          run_id: r.run_id,
+          error: r.error,
+          write_status: r.write_status,
+          reason: r.ai_reason || '',
+          decision_summary: r.decision_summary || {},
+          decision_category: r.decision_summary?.category || '',
+          decision_title: r.decision_summary?.title || '',
+          next_step: r.decision_summary?.next_step || '',
+        })),
+        write_unverified: cases.filter(r => r.write_status === 'unverified').map(r => ({
+          name: r.name,
+          run_id: r.run_id,
+          error: r.error,
+          write_status: r.write_status,
+          reason: r.ai_reason || '',
+          decision_summary: r.decision_summary || {},
+          decision_category: r.decision_summary?.category || '',
+          decision_title: r.decision_summary?.title || '',
+          next_step: r.decision_summary?.next_step || '',
+        })),
       };
     },
 
@@ -5927,6 +5951,37 @@ function app() {
     },
 
     failureDecision() {
+      const summary = this.singleRunDiagnosis?.decision_summary || {};
+      if (summary.title) {
+        const category = summary.category || '';
+        const envCategories = new Set(['environment_binding', 'environment_or_session']);
+        const varsCategories = new Set(['runtime_value_flow']);
+        const readbackCategories = new Set(['write_unverified']);
+        const action = envCategories.has(category)
+          ? 'environment'
+          : (varsCategories.has(category) ? 'vars' : (readbackCategories.has(category) ? 'readback' : 'ai'));
+        const tone = action === 'environment'
+          ? 'amber'
+          : (action === 'vars' ? 'sky' : (action === 'readback' ? 'amber' : 'rose'));
+        const badge = {
+          environment_binding: '先查环境字段',
+          environment_or_session: '先查环境',
+          script_or_environment_contract_drift: '接口不一致',
+          script_chain: '修用例',
+          runtime_value_flow: '查动态值',
+          write_unverified: '入库待确认',
+          unsupported: '不支持',
+          ok: '通过',
+        }[category] || '待排查';
+        return {
+          action,
+          tone,
+          badge,
+          confidence: summary.confidence || this.failureAnalysis?.confidence || '中',
+          title: summary.title,
+          message: summary.next_step || this.failureAnalysis?.root_cause || '系统已生成诊断摘要，请按建议处理。',
+        };
+      }
       const category = this.singleRunDiagnosis?.failure_analysis?.category
         || this.failureAnalysis?.category
         || '';
@@ -6071,6 +6126,7 @@ function app() {
 
     failureDecisionEvidence() {
       const items = [];
+      const summary = this.singleRunDiagnosis?.decision_summary || {};
       const category = this.singleRunDiagnosis?.failure_analysis?.category
         || this.failureAnalysis?.category
         || '';
@@ -6090,6 +6146,15 @@ function app() {
         items.push('执行结果缺少明确入库证据，不能只看 PASS/FAIL。');
       } else {
         items.push('失败类型更接近回放链路、字段解析、F7/下拉或断言设计问题。');
+      }
+      if (summary.response_contract_failure_count) {
+        items.push(`关键响应契约失败 ${summary.response_contract_failure_count} 项。`);
+      }
+      if (summary.unresolved_env_field_count) {
+        items.push(`目标环境必需字段未解析 ${summary.unresolved_env_field_count} 项。`);
+      }
+      if (summary.dynamic_warning_count) {
+        items.push(`动态值链路告警 ${summary.dynamic_warning_count} 项。`);
       }
       if (failed?.label) items.push(`失败位置：${failed.label}`);
       if (category && category !== 'unknown') items.push(`系统分类：${this.failureCategoryLabel(category)}`);

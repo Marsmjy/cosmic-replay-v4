@@ -39,6 +39,7 @@ from lib.response_signature import (
     summarize_response_signature,
 )
 from lib.request_signature import build_request_signature
+from lib.case_contract import attach_case_contract, build_case_contract
 from lib.pageid_trace import (
     annotate_recorded_pageid_sources,
     annotate_pageid_recovery_strategies,
@@ -7408,6 +7409,7 @@ def build_yaml_case(
         validation_point_overrides=validation_point_overrides,
     )
     _apply_validation_points_to_assertions(case)
+    attach_case_contract(case)
 
     trim_note = (f"# 已裁剪前 {trimmed_skipped} 条首页/门户步骤（与主流程无关）"
                  if trimmed_skipped else "")
@@ -8173,6 +8175,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         ("assertions", _build_default_assertions(preview_steps)),
     ])
     validation_points = _build_validation_points(preview_validation_case)
+    preview_contract = build_case_contract(preview_validation_case)
 
     preview = {
         "main_form_id": main_form,
@@ -8184,6 +8187,11 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "business_flow": _build_preview_business_flow(preview_copy, var_items, pick_fields, main_form),
         "readback_plan": readback_plan,
         "validation_points": validation_points,
+        "capability": preview_contract["capability"],
+        "ai_assistance": preview_contract["ai_assistance"],
+        "environment_binding_plan": preview_contract["environment_binding_plan"],
+        "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
+        "execution_contract": preview_contract["execution_contract"],
         "components": component_report,
         "pageid_alignment": pageid_alignment,
         "recorded_pageid_flow": recorded_pageid_flow,

@@ -2,6 +2,7 @@ from lib.task_manager import (
     CaseResult,
     TaskManager,
     build_acceptance_summary,
+    build_decision_summary,
     enrich_case_result,
     infer_write_status,
 )
@@ -260,7 +261,11 @@ def test_task_manager_report_contains_acceptance_and_queues():
 
     assert data["acceptance"]["failed"] == 1
     assert data["acceptance"]["ai_required"] == 1
-    assert data["action_queues"]["ai_agent"][0]["name"] == "case_a"
+    item = data["action_queues"]["ai_agent"][0]
+    assert item["name"] == "case_a"
+    assert item["decision_category"] == "script_chain"
+    assert "pageId" in item["decision_title"]
+    assert "交给 AI" in item["next_step"]
 
 
 def test_readback_assertion_gap_routes_to_ai_with_clear_reason():
@@ -316,3 +321,55 @@ def test_report_hydration_applies_manual_write_confirmation(monkeypatch):
     assert row["next_action"] == "none"
     assert hydrated["acceptance"]["status"] == "ready"
     assert hydrated["action_queues"]["ai_agent"] == []
+
+
+def test_response_contract_failure_marks_write_failed_and_explains_next_step():
+    result = CaseResult(
+        name="case_contract_drift",
+        passed=True,
+        phases=[{
+            "id": "step:save_main",
+            "label": "保存",
+            "status": "ok",
+            "response": {"success": True},
+        }],
+        runtime_evidence={
+            "response_contract_results": {
+                "save_main": {
+                    "contract_level": "critical",
+                    "errors": ["required action ShowNotificationMsg missing"],
+                    "warnings": [],
+                }
+            }
+        },
+    )
+
+    enrich_case_result(result)
+
+    assert result.write_status == "failed"
+    assert "response_contract_failed" in result.write_evidence["signals"][0]
+    assert result.decision_summary["category"] == "script_or_environment_contract_drift"
+    assert "关键接口响应" in result.decision_summary["title"]
+
+
+def test_decision_summary_prefers_environment_binding_when_required_field_missing():
+    result = CaseResult(
+        name="case_env_missing",
+        passed=False,
+        runtime_evidence={
+            "capability": {"status": "partial_supported", "flow_kind": "write"},
+            "environment_binding_plan": {
+                "fields": [{
+                    "id": "pick_person_id",
+                    "label": "人员",
+                    "required": True,
+                    "status": "missing",
+                }]
+            },
+        },
+    )
+
+    summary = build_decision_summary(result)
+
+    assert summary["category"] == "environment_binding"
+    assert summary["unresolved_env_field_count"] == 1

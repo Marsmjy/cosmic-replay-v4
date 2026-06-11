@@ -70,6 +70,7 @@ from .pageid_trace import (
 )
 from .response_signature import evaluate_response_contract
 from .request_signature import evaluate_request_contract
+from .case_contract import build_case_contract, validate_case_contract_for_run
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -4187,6 +4188,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
                 pass
 
     result = RunResult()
+    case_contract = build_case_contract(case)
+    contract_preflight = validate_case_contract_for_run(case)
 
     # 构建 pick_fields 预览（状态为 pending）
     _pick_fields_raw = case.get("pick_fields") or {}
@@ -4231,7 +4234,68 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "vars_meta": case.get("vars_meta", {}),
         "pick_fields_preview": _pick_fields_preview,
         "env_resolution_plan": _env_resolution_plan,
+        "capability": case_contract.get("capability") or {},
+        "ai_assistance": case_contract.get("ai_assistance") or {},
+        "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+        "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+        "execution_contract": case_contract.get("execution_contract") or {},
     })
+
+    contract_errors = list(contract_preflight.get("errors") or [])
+    contract_warnings = list(contract_preflight.get("warnings") or [])
+    emit("preflight_start", {
+        "id": "preflight_contract",
+        "checks": ["capability", "environment_binding_plan", "execution_contract", "runtime_value_flow_plan"],
+    })
+    emit("preflight_fail" if contract_errors else "preflight_ok", {
+        "id": "preflight_contract",
+        "errors": contract_errors,
+        "warnings": contract_warnings,
+    })
+    if contract_errors:
+        emit("step_fail", {
+            "id": "preflight_contract",
+            "errors": contract_errors[:5],
+            "duration_ms": 0,
+            "response": {"preflight": "contract_failed"},
+        })
+        result.steps.append({
+            "id": "preflight_contract",
+            "type": "preflight",
+            "ok": False,
+            "optional": False,
+            "detail": "用例契约预检",
+            "error": "; ".join(contract_errors[:5]),
+            "_errors": contract_errors,
+            "_warnings": contract_warnings,
+        })
+        result.runtime_evidence = {
+            "case_contract": case_contract,
+            "capability": case_contract.get("capability") or {},
+            "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+            "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+            "execution_contract": case_contract.get("execution_contract") or {},
+            "contract_preflight": {
+                "ok": False,
+                "errors": contract_errors,
+                "warnings": contract_warnings,
+            },
+        }
+        result.end_ts = time.time()
+        emit("case_done", {
+            "passed": False,
+            "duration_s": round(result.duration, 2),
+            "step_count": len(result.steps),
+            "step_ok": 0,
+            "step_fail": 1,
+            "assertion_ok": 0,
+            "assertion_fail": 0,
+            "assertion_advisory": 0,
+            "readback_verified": 0,
+            "maintenance_expected": 0,
+            "maintenance_matched": 0,
+        })
+        return result
 
     # 1. 解析 env
     env = case.get("env", {}) or {}
@@ -4975,6 +5039,11 @@ def run_case(case: dict, on_event=None) -> RunResult:
     ]
     maintenance_trace = list(ctx.get("maintenance_value_trace") or [])
     result.runtime_evidence = {
+        "case_contract": case_contract,
+        "capability": case_contract.get("capability") or {},
+        "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+        "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+        "execution_contract": case_contract.get("execution_contract") or {},
         "request_contract_results": dict(ctx.get("request_contract_results") or {}),
         "response_contract_results": dict(ctx.get("response_contract_results") or {}),
         "readback_results": readback_results,

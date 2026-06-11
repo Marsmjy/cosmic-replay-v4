@@ -38,11 +38,13 @@ class CaseResult:
     failure_analysis: dict = field(default_factory=dict)
     repair_plan: list[dict] = field(default_factory=list)
     env_fields: list[dict] = field(default_factory=list)
+    runtime_evidence: dict = field(default_factory=dict)
     write_status: str = "not_checked"  # verified(readback) / unverified / failed / not_applicable / not_checked
     write_evidence: dict = field(default_factory=dict)
     write_verification: dict = field(default_factory=dict)
     next_action: str = "none"  # none / auto_repair / manual_confirm / ai_agent
     ai_reason: str = ""
+    decision_summary: dict = field(default_factory=dict)
     
     def to_dict(self) -> dict:
         return {
@@ -59,11 +61,13 @@ class CaseResult:
             "failure_analysis": self.failure_analysis,
             "repair_plan": self.repair_plan,
             "env_fields": self.env_fields[:20] if self.env_fields else [],
+            "runtime_evidence": self.runtime_evidence,
             "write_status": self.write_status,
             "write_evidence": self.write_evidence,
             "write_verification": self.write_verification,
             "next_action": self.next_action,
             "ai_reason": self.ai_reason,
+            "decision_summary": self.decision_summary,
         }
 
 
@@ -395,6 +399,7 @@ def enrich_case_result(result: CaseResult) -> None:
             result.next_action = "manual_confirm"
     else:
         result.next_action = "none"
+    result.decision_summary = build_decision_summary(result)
 
 
 def infer_write_status(result: CaseResult) -> tuple[str, dict]:
@@ -420,7 +425,22 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
         return "verified", evidence
 
     response_evidence_found = False
+    response_contract_results = (result.runtime_evidence or {}).get("response_contract_results") or {}
     for phase in write_phases:
+        phase_id = str(phase.get("id") or "")
+        step_id = phase_id[5:] if phase_id.startswith("step:") else phase_id
+        contract = (
+            response_contract_results.get(step_id)
+            or response_contract_results.get(phase_id)
+            or {}
+        )
+        if isinstance(contract, dict) and contract.get("errors"):
+            evidence["signals"].append(f"{phase.get('id', '')}:response_contract_failed")
+            evidence["response_contract_errors"] = list(contract.get("errors") or [])[:5]
+            return "failed", evidence
+        if isinstance(contract, dict) and contract.get("contract_level") and not contract.get("errors"):
+            evidence["signals"].append(f"{phase.get('id', '')}:response_contract_ok")
+            response_evidence_found = True
         response = phase.get("response")
         text = _response_text(response)
         compact_text = "".join(text.split()).lower()
@@ -460,6 +480,97 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
     if response_evidence_found:
         evidence["response_verified"] = True
     return "unverified", evidence
+
+
+def build_decision_summary(result: CaseResult) -> dict:
+    """Return a concise user-facing diagnosis and next-step summary."""
+    runtime_evidence = result.runtime_evidence or {}
+    capability = runtime_evidence.get("capability") or (
+        runtime_evidence.get("case_contract") or {}
+    ).get("capability") or {}
+    env_plan = runtime_evidence.get("environment_binding_plan") or (
+        runtime_evidence.get("case_contract") or {}
+    ).get("environment_binding_plan") or {}
+    dynamic_plan = runtime_evidence.get("runtime_value_flow_plan") or (
+        runtime_evidence.get("case_contract") or {}
+    ).get("runtime_value_flow_plan") or {}
+    failure_category = (result.failure_analysis or {}).get("category") or result.error_category or ""
+    write_status = result.write_status
+
+    unresolved_env_fields = [
+        item for item in (env_plan.get("fields") or [])
+        if isinstance(item, dict)
+        and item.get("required")
+        and item.get("status") in {"missing", "unresolved"}
+    ]
+    dynamic_warnings = [
+        item for item in (dynamic_plan.get("warnings") or [])
+        if isinstance(item, dict)
+    ]
+    response_contract_failures = [
+        {"step_id": step_id, "errors": item.get("errors") or []}
+        for step_id, item in ((runtime_evidence.get("response_contract_results") or {}).items())
+        if isinstance(item, dict) and item.get("errors")
+    ]
+
+    if capability.get("status") == "unsupported":
+        category = "unsupported"
+        title = "当前场景超出 HAR 回放核心边界"
+        next_step = "不要让 AI 幻觉补全业务链路；先确认是否拆成专项能力或人工测试。"
+        confidence = "high"
+    elif unresolved_env_fields:
+        category = "environment_binding"
+        title = "目标环境字段尚未完成解析"
+        next_step = "优先确认目标环境是否存在对应人员、组织、基础资料、权限或菜单入口。"
+        confidence = "high"
+    elif response_contract_failures:
+        category = "script_or_environment_contract_drift"
+        title = "关键接口响应与录制语义不一致"
+        next_step = "先对比录制和回放的关键接口；若业务页面也异常则查环境，否则交给 AI 修 pageId/字段解析。"
+        confidence = "high"
+    elif failure_category in {"invalid_request_or_session", "navigation_or_environment_service", "server_stack_exception"}:
+        category = "environment_or_session"
+        title = "更像环境、会话、权限或后端服务问题"
+        next_step = "先在目标环境手工确认页面和账号权限；环境正常后再让 AI 修用例。"
+        confidence = "medium"
+    elif failure_category in {"pageid_context", "assertion_anchor_missing"}:
+        category = "script_chain"
+        title = "更像回放链路或 pageId 上下文问题"
+        next_step = "交给 AI 检查 pageId、L2/L3、弹窗、F7 和动态值生产消费链路。"
+        confidence = "high"
+    elif dynamic_warnings:
+        category = "runtime_value_flow"
+        title = "运行时动态值链路存在风险"
+        next_step = "检查保存后 ID、单号、审批任务、回调值是否由前序响应产生并传给后续步骤。"
+        confidence = "medium"
+    elif result.passed and write_status == "unverified":
+        category = "write_unverified"
+        title = "执行通过但缺少入库证据"
+        next_step = "补业务键只读回查，或由人工确认后再标记为已验证。"
+        confidence = "high"
+    elif result.passed:
+        category = "ok"
+        title = "执行结果满足当前校验门槛"
+        next_step = ""
+        confidence = "high"
+    else:
+        category = failure_category or "unknown"
+        title = "失败原因需要进一步诊断"
+        next_step = result.ai_reason or "交给 AI 读取证据包并按 pageId、变量、环境字段、断言顺序排查。"
+        confidence = "low"
+
+    return {
+        "category": category,
+        "title": title,
+        "confidence": confidence,
+        "next_step": next_step,
+        "capability_status": capability.get("status", ""),
+        "flow_kind": capability.get("flow_kind", ""),
+        "write_status": write_status,
+        "unresolved_env_field_count": len(unresolved_env_fields),
+        "dynamic_warning_count": len(dynamic_warnings),
+        "response_contract_failure_count": len(response_contract_failures),
+    }
 
 
 def build_acceptance_summary(results: list[CaseResult]) -> dict:
@@ -504,12 +615,17 @@ def build_acceptance_summary(results: list[CaseResult]) -> dict:
 def build_action_queues(results: list[CaseResult]) -> dict:
     queues = {"auto_repair": [], "manual_confirm": [], "ai_agent": [], "write_unverified": []}
     for result in results:
+        decision_summary = result.decision_summary or build_decision_summary(result)
         item = {
             "name": result.name,
             "run_id": result.run_id,
             "error": result.error,
             "write_status": result.write_status,
             "reason": result.ai_reason or (result.failure_analysis or {}).get("root_cause", ""),
+            "decision_summary": decision_summary,
+            "decision_category": decision_summary.get("category", ""),
+            "decision_title": decision_summary.get("title", ""),
+            "next_step": decision_summary.get("next_step", ""),
         }
         if result.next_action in queues:
             queues[result.next_action].append(item)

@@ -76,6 +76,10 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 16. 保存/提交后的晚期列表只读检查若遇到原会话过期，可在新登录会话中只重放最近的只读菜单窗口，再按运行时业务键查询并重建 `selDatas`。禁止在新会话中重放写步骤，也禁止回退点击 HAR 旧行。
 17. 录制查询后紧跟 `wait_until(grid_row_exists)` 时，首次查询暂时为空可以作为瞬态告警；等待结束后的最终查询仍必须满足非空、列结构和业务键契约。不能把所有空列表都降级。
 18. 业务接口返回“操作成功，数据同步中”只证明前置操作被接受，不证明后续业务投影已生成。若按本次运行姓名/编号跨状态查询仍无记录，应归类为 `environment_async_business_sync_timeout`，提示排查异步任务、消息队列和投影服务；不得删除后置点击或入库回查来制造 PASS。
+19. 每个 YAML 现在应带用例级契约：`capability`、`ai_assistance`、`environment_binding_plan`、`runtime_value_flow_plan` 和 `execution_contract`。排障时先看该契约判断场景是 `query_only`、`write`、`submit_or_audit`、`delete`、`upload` 还是 `unsupported/partial_supported`；不要把只读查询 HAR 强行要求保存/入库，也不要把审批、删除、上传等目标环境依赖场景说成完全自动稳定。
+20. 运行前契约预检只阻断真正不安全的写入用例，例如缺少必需目标环境解析字段、写入用例缺 `no_save_failure`，或场景被明确标记 `unsupported`。动态值链路、审批待办、录制环境内部 ID 等默认先作为告警交给运行时和报告解释；除非有真实失败证据，不要把所有告警升级成阻断。
+21. 用户在预览或用例详情勾选的“校验点”属于业务断言开关，只控制是否额外检查某个可维护值/字段值；它不能替代系统断言，也不能关闭系统断言。即使用户不勾选任何业务校验点，写入用例仍必须保留 `no_save_failure`、关键响应契约、动态值消费和入库/人工确认证据。
+22. 执行报告中的 `decision_summary` 是给使用者看的下一步建议：`environment_binding` 先确认目标环境数据/权限，`script_or_environment_contract_drift` 先比对录制与回放关键接口，`environment_or_session` 先查环境/会话/后端，`script_chain` 再交给 AI 修 pageId/F7/弹窗/字段解析，`write_unverified` 补只读回查。Agent 不应只根据红色 FAIL 就直接改 YAML。
 
 ## 一、整体防护架构
 
