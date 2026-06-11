@@ -7700,6 +7700,12 @@ def build_yaml_case(
     )
     _apply_validation_points_to_assertions(case)
     attach_case_contract(case)
+    try:
+        from lib.yaml_schema import attach_yaml_schema_contract
+        attach_yaml_schema_contract(case)
+    except Exception:
+        # Diagnostic-only linting should never block HAR import.
+        pass
 
     trim_note = (f"# 已裁剪前 {trimmed_skipped} 条首页/门户步骤（与主流程无关）"
                  if trimmed_skipped else "")
@@ -8467,6 +8473,33 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     ])
     validation_points = _build_validation_points(preview_validation_case)
     preview_contract = build_case_contract(preview_validation_case)
+    try:
+        from lib.yaml_schema import validate_yaml_schema
+        preview_schema_contract = validate_yaml_schema({
+            "name": f"preview_{main_form or 'case'}",
+            "schema_version": 1,
+            "vars_meta": preview_validation_case.get("vars_meta"),
+            "pick_fields": preview_validation_case.get("pick_fields"),
+            "steps": preview_validation_case.get("steps"),
+            "assertions": preview_validation_case.get("assertions"),
+            "capability": preview_contract["capability"],
+            "ai_assistance": preview_contract["ai_assistance"],
+            "environment_binding_plan": preview_contract["environment_binding_plan"],
+            "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
+            "execution_contract": preview_contract["execution_contract"],
+        })
+    except Exception as e:
+        log.warning("YAML schema contract 预览失败（非致命）: %s", e)
+        preview_schema_contract = {
+            "schema_version": "1.0",
+            "status": "invalid",
+            "ok": False,
+            "error_codes": ["schema_contract_failed"],
+            "warning_codes": [],
+            "errors": [{"code": "schema_contract_failed", "path": "$", "message": str(e)}],
+            "warnings": [],
+            "summary": {},
+        }
 
     preview = {
         "main_form_id": main_form,
@@ -8483,6 +8516,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "environment_binding_plan": preview_contract["environment_binding_plan"],
         "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
         "execution_contract": preview_contract["execution_contract"],
+        "yaml_schema_contract": preview_schema_contract,
         "components": component_report,
         "pageid_alignment": pageid_alignment,
         "recorded_pageid_flow": recorded_pageid_flow,
