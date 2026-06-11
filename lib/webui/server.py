@@ -1106,6 +1106,7 @@ def _case_result_from_run_events(run_id: str, case_name: str, events: list[dict]
         elif event_type == "case_start":
             runtime_evidence["capability"] = data.get("capability") or {}
             runtime_evidence["environment_binding_plan"] = data.get("environment_binding_plan") or {}
+            runtime_evidence["maintainable_field_binding_plan"] = data.get("maintainable_field_binding_plan") or {}
             runtime_evidence["runtime_value_flow_plan"] = data.get("runtime_value_flow_plan") or {}
             runtime_evidence["execution_contract"] = data.get("execution_contract") or {}
 
@@ -1984,6 +1985,7 @@ def api_start_task(task_id: str):
                     elif evt_type == "case_start":
                         result.runtime_evidence["capability"] = payload.get("capability") or {}
                         result.runtime_evidence["environment_binding_plan"] = payload.get("environment_binding_plan") or {}
+                        result.runtime_evidence["maintainable_field_binding_plan"] = payload.get("maintainable_field_binding_plan") or {}
                         result.runtime_evidence["runtime_value_flow_plan"] = payload.get("runtime_value_flow_plan") or {}
                         result.runtime_evidence["execution_contract"] = payload.get("execution_contract") or {}
                     if evt_type == "step_ok":

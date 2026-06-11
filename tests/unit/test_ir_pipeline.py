@@ -6,9 +6,11 @@ from pathlib import Path
 import yaml
 
 from lib.har_extractor import build_yaml_case, preview_har
+from lib.har_extractor import merge_consecutive_update_values
 from lib.ir import (
     apply_ir_navigation_policy,
     assess_ir_preview_alignment,
+    build_ir_field_bridge,
     build_ir_yaml_bridge,
     build_normalized_flow,
     compact_flow_for_preview,
@@ -188,6 +190,14 @@ def test_ir_expands_batch_request_to_action_level_without_persisting_values():
     assert len(flow["request"]) == 2
     assert "业务值" not in payload
     assert all("args_shape" in request["action"] for request in flow["request"].values())
+    first_action = next(iter(flow["request"].values()))["action"]
+    assert first_action["operation_kind"] == "field_update"
+    assert first_action["selector_interface"] == "updateValue"
+    assert first_action["field_refs"] == [{
+        "field_key": "field_a",
+        "row_index": None,
+        "value_shape": "unknown",
+    }]
 
 
 def test_ir_navigation_policy_uses_exact_action_provenance():
@@ -280,6 +290,77 @@ def test_ir_yaml_bridge_treats_edit_as_covered_by_field_model():
     assert bridge["step_role_map"][0]["match_reason"] == "field_model"
 
 
+def test_ir_field_bridge_uses_exact_action_provenance_and_field_bindings():
+    flow = build_normalized_flow(_multi_action_har(), source_name="multi.har")
+    bridge = build_ir_field_bridge(
+        flow,
+        [{
+            "id": "fill_field_a",
+            "type": "update_fields",
+            "form_id": "demo_form",
+            "fields": {"field_a": "${vars.test_field_a}"},
+            "ir_sources": [{"source_index": 0, "action_index": 0}],
+        }, {
+            "id": "save",
+            "type": "invoke",
+            "form_id": "demo_form",
+            "ac": "save",
+            "ir_sources": [{"source_index": 0, "action_index": 1}],
+        }],
+        vars_meta={
+            "test_field_a": {
+                "label": "字段A",
+                "form_id": "demo_form",
+                "field_key": "field_a",
+                "source_step_id": "fill_field_a",
+            },
+        },
+        pick_fields={},
+    )
+
+    assert bridge["status"] == "ready"
+    assert bridge["coverage_score"] == 100
+    assert bridge["checks"]["uncovered_ir_field_action_count"] == 0
+    assert bridge["checks"]["field_action_order_mismatch_count"] == 0
+    binding = bridge["maintainable_field_binding_plan"]["fields"][0]
+    assert binding["status"] == "bound"
+    assert binding["injection_strategy"] == "variable_reference"
+    assert binding["target_step_ids"] == ["fill_field_a"]
+
+
+def test_merge_update_fields_preserves_all_ir_action_sources():
+    steps = [{
+        "id": "update_a",
+        "type": "invoke",
+        "form_id": "demo_form",
+        "app_id": "demo",
+        "key": "",
+        "method": "updateValue",
+        "post_data": [{}, [{"k": "field_a", "v": "A", "r": -1}]],
+        "_har_index": 4,
+        "_har_action_index": 0,
+    }, {
+        "id": "update_b",
+        "type": "invoke",
+        "form_id": "demo_form",
+        "app_id": "demo",
+        "key": "",
+        "method": "updateValue",
+        "post_data": [{}, [{"k": "field_b", "v": "B", "r": -1}]],
+        "_har_index": 4,
+        "_har_action_index": 1,
+    }]
+
+    merged = merge_consecutive_update_values(steps)
+
+    assert len(merged) == 1
+    assert merged[0]["type"] == "update_fields"
+    assert merged[0]["ir_sources"] == [
+        {"source_index": 4, "action_index": 0},
+        {"source_index": 4, "action_index": 1},
+    ]
+
+
 def test_generate_yaml_from_ir_and_dry_run_without_network():
     flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
     yaml_text = generate_yaml_case_from_ir(flow, case_name="IR合成用例")
@@ -309,6 +390,8 @@ def test_build_yaml_case_includes_value_safe_ir_contract(tmp_path: Path):
     assert case["ir_contract"]["coverage"]["yaml_step_count"] >= 0
     assert case["ir_contract"]["generation_bridge"]["mode"] == "shadow_contract"
     assert case["ir_contract"]["generation_bridge"]["checks"]["ir_step_count"] >= 1
+    assert case["ir_contract"]["field_bridge"]["raw_values_included"] is False
+    assert "maintainable_field_binding_plan" in case
     assert case["ir_contract"]["navigation_policy"]["stage"] == "stage_1_navigation_list"
     assert case["ir_contract"]["alignment"]["risk_level"] in {"low", "medium", "high"}
     assert "secret-token" not in payload

@@ -78,6 +78,7 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
         "capability",
         "ai_assistance",
         "environment_binding_plan",
+        "maintainable_field_binding_plan",
         "runtime_value_flow_plan",
         "execution_contract",
     ):
@@ -86,6 +87,7 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
 
     assert case["capability"]["requires_environment_preflight"] is True
     assert preview["environment_binding_plan"]["summary"]["field_count"] == len(preview["pick_fields"])
+    assert any(step.get("ir_sources") for step in case["steps"])
 
 
 def test_contract_preflight_blocks_write_missing_no_save_failure_and_required_env_field():
@@ -193,3 +195,56 @@ def test_contract_preflight_allows_query_without_write_assertions():
 
     assert result["ok"] is True
     assert any("no_error_actions" in item for item in result["warnings"])
+
+
+def test_contract_preflight_blocks_user_override_without_executable_binding_for_write():
+    result = validate_case_contract_for_run({
+        "name": "unbound_override",
+        "pick_fields": {
+            "pick_person_id": {
+                "label": "人员",
+                "field_key": "person",
+                "form_id": "demo_bill",
+                "value_code": "001",
+                "user_overridden": True,
+                "auto_resolve": True,
+            },
+        },
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "ac": "save",
+            "method": "save",
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "save_bill"}],
+    })
+
+    assert result["ok"] is False
+    assert any("用户维护值没有绑定到可执行步骤" in item for item in result["errors"])
+
+
+def test_contract_preflight_does_not_apply_write_binding_gate_to_query_only_case():
+    result = validate_case_contract_for_run({
+        "name": "query_with_optional_filter",
+        "pick_fields": {
+            "pick_person_id": {
+                "label": "人员",
+                "field_key": "person",
+                "form_id": "demo_list",
+                "value_code": "001",
+                "user_overridden": True,
+                "auto_resolve": True,
+            },
+        },
+        "steps": [{
+            "id": "load_list",
+            "type": "invoke",
+            "form_id": "demo_list",
+            "ac": "loadData",
+            "method": "loadData",
+        }],
+        "assertions": [{"type": "no_error_actions", "last_step": True}],
+    })
+
+    assert result["ok"] is True

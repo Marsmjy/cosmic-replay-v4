@@ -154,6 +154,8 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
     ir_preview = preview.get("ir_preview") or {}
     ir_bridge = preview.get("ir_generation_bridge") or {}
     bridge_checks = ir_bridge.get("checks") or {}
+    ir_field_bridge = preview.get("ir_field_bridge") or {}
+    field_bridge_checks = ir_field_bridge.get("checks") or {}
     ir_navigation = preview.get("ir_navigation_policy") or {}
     return {
         "status": "ok",
@@ -186,6 +188,18 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "ir_bridge_coverage_score": ir_bridge.get("coverage_score", 0),
         "ir_bridge_uncovered_count": bridge_checks.get("uncovered_count", 0),
         "ir_bridge_uncovered_write_or_edit_count": bridge_checks.get("uncovered_write_or_edit_count", 0),
+        "ir_field_bridge_status": ir_field_bridge.get("status", ""),
+        "ir_field_bridge_coverage_score": ir_field_bridge.get("coverage_score", 0),
+        "ir_field_action_count": field_bridge_checks.get("ir_field_action_count", 0),
+        "ir_field_action_uncovered_count": field_bridge_checks.get("uncovered_ir_field_action_count", 0),
+        "ir_field_action_order_mismatch_count": field_bridge_checks.get("field_action_order_mismatch_count", 0),
+        "maintainable_field_bound_count": field_bridge_checks.get("bound_count", 0),
+        "maintainable_field_unbound_count": field_bridge_checks.get("unbound_count", 0),
+        "maintainable_field_context_count": field_bridge_checks.get("context_count", 0),
+        "overridden_unbound_count": field_bridge_checks.get("overridden_unbound_count", 0),
+        "cross_env_selector_count": field_bridge_checks.get("cross_env_selector_count", 0),
+        "cross_env_selector_bound_count": field_bridge_checks.get("cross_env_selector_bound_count", 0),
+        "cross_env_selector_ready_count": field_bridge_checks.get("cross_env_selector_ready_count", 0),
         "ir_navigation_status": ir_navigation.get("status", ""),
         "ir_navigation_matched_count": ir_navigation.get("matched_yaml_count", 0),
         "ir_navigation_unmatched_count": ir_navigation.get("unmatched_ir_count", 0),
@@ -234,6 +248,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- pageId 精确链路：links={(item.get('parse') or {}).get('recorded_pageid_exact_link_count', 0)}，external={(item.get('parse') or {}).get('recorded_pageid_external_root_count', 0)}，filtered={(item.get('parse') or {}).get('recorded_pageid_filtered_source_count', 0)}，cross_form={(item.get('parse') or {}).get('recorded_pageid_cross_form_count', 0)}",
                 f"- IR 对齐：grade={(item.get('parse') or {}).get('ir_grade', '')}，risk={(item.get('parse') or {}).get('ir_risk_level', '')}，issues={(item.get('parse') or {}).get('ir_issue_count', 0)}，warnings={(item.get('parse') or {}).get('ir_warning_count', 0)}，ir_steps={(item.get('parse') or {}).get('ir_step_count', 0)}",
                 f"- IR 生成桥：status={(item.get('parse') or {}).get('ir_bridge_status', '')}，coverage={(item.get('parse') or {}).get('ir_bridge_coverage_score', 0)}，uncovered={(item.get('parse') or {}).get('ir_bridge_uncovered_count', 0)}，write/edit未覆盖={(item.get('parse') or {}).get('ir_bridge_uncovered_write_or_edit_count', 0)}",
+                f"- IR 字段绑定：status={(item.get('parse') or {}).get('ir_field_bridge_status', '')}，coverage={(item.get('parse') or {}).get('ir_field_bridge_coverage_score', 0)}，字段动作={(item.get('parse') or {}).get('ir_field_action_count', 0)}，动作未覆盖={(item.get('parse') or {}).get('ir_field_action_uncovered_count', 0)}，顺序倒置={(item.get('parse') or {}).get('ir_field_action_order_mismatch_count', 0)}，维护项绑定={(item.get('parse') or {}).get('maintainable_field_bound_count', 0)}/{(item.get('parse') or {}).get('maintainable_field_bound_count', 0) + (item.get('parse') or {}).get('maintainable_field_unbound_count', 0)}，用户修改未绑定={(item.get('parse') or {}).get('overridden_unbound_count', 0)}",
                 f"- IR 导航策略：status={(item.get('parse') or {}).get('ir_navigation_status', '')}，matched={(item.get('parse') or {}).get('ir_navigation_matched_count', 0)}，unmatched={(item.get('parse') or {}).get('ir_navigation_unmatched_count', 0)}",
                 f"- 响应契约：critical={(item.get('parse') or {}).get('response_contract_critical_count', 0)}，business={(item.get('parse') or {}).get('response_contract_business_count', 0)}，advisory={(item.get('parse') or {}).get('response_contract_advisory_count', 0)}",
                 f"- 请求契约：步骤={(item.get('parse') or {}).get('request_signature_step_count', 0)}，失败={execution.get('request_contract_failure_count', 0)}，告警={execution.get('request_contract_warning_count', 0)}",
@@ -441,6 +456,7 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
         parse = item.get("parse") or {}
         execution = item.get("execution") or {}
         failed_steps = execution.get("failed_steps") or []
+        blocking_failed_steps = [] if execution.get("passed") else failed_steps
         samples.append(
             {
                 "id": item.get("id", ""),
@@ -477,13 +493,29 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "ir_bridge_coverage_score": parse.get("ir_bridge_coverage_score", 0),
                 "ir_bridge_uncovered_count": parse.get("ir_bridge_uncovered_count", 0),
                 "ir_bridge_uncovered_write_or_edit_count": parse.get("ir_bridge_uncovered_write_or_edit_count", 0),
+                "ir_field_bridge_status": parse.get("ir_field_bridge_status", ""),
+                "ir_field_bridge_coverage_score": parse.get("ir_field_bridge_coverage_score", 0),
+                "ir_field_action_count": parse.get("ir_field_action_count", 0),
+                "ir_field_action_uncovered_count": parse.get("ir_field_action_uncovered_count", 0),
+                "ir_field_action_order_mismatch_count": parse.get("ir_field_action_order_mismatch_count", 0),
+                "maintainable_field_bound_count": parse.get("maintainable_field_bound_count", 0),
+                "maintainable_field_unbound_count": parse.get("maintainable_field_unbound_count", 0),
+                "maintainable_field_context_count": parse.get("maintainable_field_context_count", 0),
+                "overridden_unbound_count": parse.get("overridden_unbound_count", 0),
+                "cross_env_selector_count": parse.get("cross_env_selector_count", 0),
+                "cross_env_selector_bound_count": parse.get("cross_env_selector_bound_count", 0),
+                "cross_env_selector_ready_count": parse.get("cross_env_selector_ready_count", 0),
                 "ir_navigation_status": parse.get("ir_navigation_status", ""),
                 "ir_navigation_matched_count": parse.get("ir_navigation_matched_count", 0),
                 "ir_navigation_unmatched_count": parse.get("ir_navigation_unmatched_count", 0),
                 "execution_status": execution.get("status", ""),
                 "passed": bool(execution.get("passed")),
                 "failure_kind": item.get("failure_kind", ""),
-                "failed_step_ids": [str(step.get("id", "")) for step in failed_steps if isinstance(step, dict)],
+                "failed_step_ids": [
+                    str(step.get("id", ""))
+                    for step in blocking_failed_steps
+                    if isinstance(step, dict)
+                ],
                 "write_event_count": len(execution.get("write_events") or []),
                 "request_contract_warning_count": execution.get("request_contract_warning_count", 0),
                 "request_contract_failure_count": execution.get("request_contract_failure_count", 0),
@@ -550,6 +582,18 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "ir_bridge_coverage_score",
         "ir_bridge_uncovered_count",
         "ir_bridge_uncovered_write_or_edit_count",
+        "ir_field_bridge_status",
+        "ir_field_bridge_coverage_score",
+        "ir_field_action_count",
+        "ir_field_action_uncovered_count",
+        "ir_field_action_order_mismatch_count",
+        "maintainable_field_bound_count",
+        "maintainable_field_unbound_count",
+        "maintainable_field_context_count",
+        "overridden_unbound_count",
+        "cross_env_selector_count",
+        "cross_env_selector_bound_count",
+        "cross_env_selector_ready_count",
         "ir_navigation_status",
         "ir_navigation_matched_count",
         "ir_navigation_unmatched_count",

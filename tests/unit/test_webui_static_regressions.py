@@ -281,6 +281,8 @@ def test_troubleshooter_documents_workflow_approval_field_override_lesson():
     assert "decision_radio_group" in troubleshooter
     assert "msg_approval" in troubleshooter
     assert "归一化为服务端码" in troubleshooter
+    assert "maintainable_field_binding_plan" in troubleshooter
+    assert "maintainable_value_unbound" in troubleshooter
 
 
 def test_ai_repair_ui_explains_handoff_without_hidden_steps():
@@ -308,3 +310,5 @@ def test_har_advanced_diagnostics_include_ir_coverage_radar():
     assert "harPreview?.ir_alignment?.summary" in html
     assert "harPreview?.ir_alignment?.checks?.ir_api_entry_count" in html
     assert "harPreview?.ir_alignment?.checks?.preview_role_counts?.write" in html
+    assert "字段绑定" in html
+    assert "harPreview?.ir_field_bridge?.checks?.bound_count" in html

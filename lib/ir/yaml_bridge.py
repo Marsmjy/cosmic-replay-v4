@@ -231,6 +231,8 @@ def _best_yaml_match(signature: dict[str, Any], candidates: list[dict[str, Any]]
 
 
 def _yaml_candidate(step: dict[str, Any], index: int) -> dict[str, Any]:
+    ir_sources = step.get("ir_sources") if isinstance(step.get("ir_sources"), list) else []
+    primary_source = next((item for item in ir_sources if isinstance(item, Mapping)), {})
     return {
         "index": index,
         "id": str(step.get("id") or f"yaml_step_{index + 1}"),
@@ -242,8 +244,8 @@ def _yaml_candidate(step: dict[str, Any], index: int) -> dict[str, Any]:
         "method": str(step.get("method") or ""),
         "key": str(step.get("key") or ""),
         "preserve_l2_page": bool(step.get("preserve_l2_page")),
-        "source_index": step.get("_har_index"),
-        "action_index": step.get("_har_action_index"),
+        "source_index": step.get("_har_index", primary_source.get("source_index")),
+        "action_index": step.get("_har_action_index", primary_source.get("action_index")),
     }
 
 

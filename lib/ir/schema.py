@@ -6,7 +6,7 @@ from typing import Any
 from .detector import enrich_entries
 from .normalizer import normalize_har_entries
 
-SCHEMA_VERSION = "0.2"
+SCHEMA_VERSION = "0.3"
 
 
 def build_normalized_flow(
@@ -37,7 +37,11 @@ def build_normalized_flow(
             "app_id": signals.get("app_id", ""),
             "ac": signals.get("ac", ""),
             "invoke_method": signals.get("method", ""),
-            "action": _safe_action_shape(action, action_index=unit["action_index"]),
+            "action": _safe_action_shape(
+                action,
+                action_index=unit["action_index"],
+                ac=str(signals.get("ac") or ""),
+            ),
             "source_index": unit["source_index"],
             "action_index": unit["action_index"],
         }
@@ -193,7 +197,12 @@ def _build_assertions(steps: list[dict[str, Any]], responses: dict[str, Any]) ->
     return assertions
 
 
-def _safe_action_shape(action: dict[str, Any], *, action_index: int) -> dict[str, Any]:
+def _safe_action_shape(
+    action: dict[str, Any],
+    *,
+    action_index: int,
+    ac: str = "",
+) -> dict[str, Any]:
     if not isinstance(action, dict) or not action:
         return {
             "index": action_index,
@@ -201,13 +210,26 @@ def _safe_action_shape(action: dict[str, Any], *, action_index: int) -> dict[str
             "method": "",
             "args_shape": [],
             "post_data_shape": [],
+            "operation_kind": "none",
+            "field_refs": [],
+            "selector_interface": "",
         }
+    method = str(action.get("methodName") or action.get("method") or "")
+    key = str(action.get("key") or "")
+    operation_kind = _action_operation_kind(ac=ac, method=method)
     return {
         "index": action_index,
-        "key": str(action.get("key") or ""),
-        "method": str(action.get("methodName") or action.get("method") or ""),
+        "key": key,
+        "method": method,
         "args_shape": [_value_shape(value) for value in (action.get("args") or [])],
         "post_data_shape": [_value_shape(value) for value in (action.get("postData") or [])],
+        "operation_kind": operation_kind,
+        "field_refs": _safe_field_refs(
+            action,
+            fallback_key=key,
+            operation_kind=operation_kind,
+        ),
+        "selector_interface": _selector_interface(operation_kind),
     }
 
 
@@ -223,3 +245,69 @@ def _value_shape(value: Any) -> str:
     if isinstance(value, (int, float)):
         return "number"
     return "string"
+
+
+def _action_operation_kind(*, ac: str, method: str) -> str:
+    text = f"{ac} {method}".strip().lower()
+    if "getlookuplist" in text:
+        return "lookup_query"
+    if "setitembyidfromclient" in text:
+        return "lookup_selection"
+    if "entryrowclick" in text:
+        return "grid_selection"
+    if "updatevalue" in text:
+        return "field_update"
+    return "action"
+
+
+def _safe_field_refs(
+    action: dict[str, Any],
+    *,
+    fallback_key: str,
+    operation_kind: str,
+) -> list[dict[str, Any]]:
+    """Return field names and value shapes without persisting recorded values."""
+    if operation_kind in {"grid_selection", "lookup_query"}:
+        return [{
+            "field_key": fallback_key,
+            "row_index": None,
+            "value_shape": "selector",
+        }] if fallback_key else []
+    refs: list[dict[str, Any]] = []
+    seen: set[tuple[str, int | None]] = set()
+    post_data = action.get("postData") or []
+    entries = post_data[1] if isinstance(post_data, list) and len(post_data) >= 2 else []
+    if isinstance(entries, list):
+        for item in entries:
+            if not isinstance(item, dict):
+                continue
+            field_key = str(item.get("k") or "").strip()
+            if not field_key:
+                continue
+            raw_row = item.get("r")
+            row_index = raw_row if isinstance(raw_row, int) and raw_row >= 0 else None
+            dedupe_key = (field_key.lower(), row_index)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            refs.append({
+                "field_key": field_key,
+                "row_index": row_index,
+                "value_shape": _value_shape(item.get("v")),
+            })
+    if fallback_key and not refs:
+        refs.append({
+            "field_key": fallback_key,
+            "row_index": None,
+            "value_shape": "unknown",
+        })
+    return refs
+
+
+def _selector_interface(operation_kind: str) -> str:
+    return {
+        "lookup_query": "getLookUpList",
+        "lookup_selection": "getLookUpList/setItemByIdFromClient",
+        "grid_selection": "loadData/commonSearch/entryRowClick",
+        "field_update": "updateValue",
+    }.get(operation_kind, "")

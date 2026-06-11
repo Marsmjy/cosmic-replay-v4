@@ -11,6 +11,8 @@ import json
 import re
 from typing import Any, Mapping
 
+from lib.ir.field_bridge import build_maintainable_field_binding_plan
+
 
 SCHEMA_VERSION = "1.0"
 
@@ -60,6 +62,11 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
     vars_meta = case.get("vars_meta") if isinstance(case.get("vars_meta"), Mapping) else {}
 
     environment_binding_plan = build_environment_binding_plan(case)
+    maintainable_field_binding_plan = build_maintainable_field_binding_plan(
+        steps,
+        vars_meta=vars_meta,
+        pick_fields=pick_fields,
+    )
     runtime_value_flow_plan = build_runtime_value_flow_plan(case)
     capability = build_capability(case, environment_binding_plan, runtime_value_flow_plan)
     ai_assistance = build_ai_assistance(case, capability, environment_binding_plan, runtime_value_flow_plan)
@@ -70,12 +77,19 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "capability": capability,
         "ai_assistance": ai_assistance,
         "environment_binding_plan": environment_binding_plan,
+        "maintainable_field_binding_plan": maintainable_field_binding_plan,
         "runtime_value_flow_plan": runtime_value_flow_plan,
         "execution_contract": execution_contract,
         "field_model_summary": {
             "business_variable_count": len(vars_meta),
             "environment_field_count": len(pick_fields),
             "maintainable_field_count": len(vars_meta) + len(pick_fields),
+            "bound_maintainable_field_count": (
+                maintainable_field_binding_plan.get("summary") or {}
+            ).get("bound_count", 0),
+            "unbound_maintainable_field_count": (
+                maintainable_field_binding_plan.get("summary") or {}
+            ).get("unbound_count", 0),
             "step_count": len(steps),
         },
     }
@@ -88,6 +102,7 @@ def attach_case_contract(case: dict[str, Any]) -> dict[str, Any]:
     case["capability"] = contract["capability"]
     case["ai_assistance"] = contract["ai_assistance"]
     case["environment_binding_plan"] = contract["environment_binding_plan"]
+    case["maintainable_field_binding_plan"] = contract["maintainable_field_binding_plan"]
     case["runtime_value_flow_plan"] = contract["runtime_value_flow_plan"]
     case["execution_contract"] = contract["execution_contract"]
     return case
@@ -103,6 +118,7 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
     contract = build_case_contract(case)
     capability = contract["capability"]
     env_plan = contract["environment_binding_plan"]
+    field_binding_plan = contract["maintainable_field_binding_plan"]
     runtime_plan = contract["runtime_value_flow_plan"]
     execution_contract = contract["execution_contract"]
 
@@ -123,6 +139,30 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
     for item in missing_required_env[:8]:
         label = item.get("label") or item.get("id")
         errors.append(f"目标环境必需字段未配置或无法解析: {label} ({item.get('id')})")
+
+    if capability.get("write_mode") == "write":
+        overridden_unbound = [
+            item for item in field_binding_plan.get("fields") or []
+            if isinstance(item, Mapping)
+            and item.get("user_overridden")
+            and item.get("status") == "unbound"
+        ]
+        for item in overridden_unbound[:8]:
+            label = item.get("label") or item.get("id")
+            errors.append(
+                f"用户维护值没有绑定到可执行步骤: {label} ({item.get('id')})"
+            )
+        unbound_fields = [
+            item for item in field_binding_plan.get("fields") or []
+            if isinstance(item, Mapping)
+            and not item.get("user_overridden")
+            and item.get("status") == "unbound"
+        ]
+        if unbound_fields:
+            warnings.append(
+                f"有 {len(unbound_fields)} 个可维护字段尚未绑定到明确执行步骤，"
+                "未修改时继续使用 HAR 录制链路。"
+            )
 
     missing_checks = set(execution_contract.get("missing_recommended_checks") or [])
     if capability.get("write_mode") == "write" and "no_save_failure" in missing_checks:

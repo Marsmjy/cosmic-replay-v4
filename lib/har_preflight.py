@@ -118,11 +118,14 @@ def assess_har_preflight(
     quality: dict[str, Any] | None,
     pageid_alignment: dict[str, Any] | None,
     ir_alignment: dict[str, Any] | None = None,
+    ir_field_bridge: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a user-facing import preflight decision."""
     quality = quality or {}
     pageid_alignment = pageid_alignment or {}
     ir_alignment = ir_alignment or {}
+    ir_field_bridge = ir_field_bridge or {}
+    field_checks = ir_field_bridge.get("checks") or {}
     component_summary = (component_report or {}).get("summary") or {}
     checks = {
         "main_form_id": main_form_id,
@@ -139,8 +142,20 @@ def assess_har_preflight(
         "pageid_score": int(pageid_alignment.get("score", 0) or 0),
         "ir_alignment_score": int(ir_alignment.get("score", 100) or 0),
         "ir_alignment_risk_level": ir_alignment.get("risk_level", ""),
+        "ir_field_binding_score": int(ir_field_bridge.get("coverage_score", 100) or 0),
+        "ir_field_action_count": int(field_checks.get("ir_field_action_count") or 0),
+        "ir_field_action_uncovered_count": int(field_checks.get("uncovered_ir_field_action_count") or 0),
+        "maintainable_field_bound_count": int(field_checks.get("bound_count") or 0),
+        "maintainable_field_unbound_count": int(field_checks.get("unbound_count") or 0),
+        "overridden_unbound_count": int(field_checks.get("overridden_unbound_count") or 0),
     }
-    issues = _preflight_issues(checks, quality, pageid_alignment, ir_alignment)
+    issues = _preflight_issues(
+        checks,
+        quality,
+        pageid_alignment,
+        ir_alignment,
+        ir_field_bridge,
+    )
     score = _preflight_score(checks, issues)
     decision = _preflight_decision(score, issues)
     return {
@@ -152,7 +167,12 @@ def assess_har_preflight(
         "summary": _preflight_summary(score, decision, issues),
         "issues": issues,
         "checks": checks,
-        "next_actions": _preflight_next_actions(decision, issues, pageid_alignment, ir_alignment),
+        "next_actions": _preflight_next_actions(
+            decision,
+            issues,
+            pageid_alignment,
+            ir_alignment,
+        ),
     }
 
 
@@ -239,9 +259,11 @@ def _preflight_issues(
     quality: dict[str, Any],
     pageid_alignment: dict[str, Any],
     ir_alignment: dict[str, Any] | None = None,
+    ir_field_bridge: dict[str, Any] | None = None,
 ) -> list[Issue]:
     issues: list[Issue] = []
     ir_alignment = ir_alignment or {}
+    ir_field_bridge = ir_field_bridge or {}
     if not checks["main_form_id"]:
         issues.append({
             "severity": "critical",
@@ -322,6 +344,26 @@ def _preflight_issues(
             "code": "ir_alignment_review",
             "message": f"IR 覆盖雷达需要复核：{checks['ir_alignment_score']}。",
             "suggestion": "生成前建议查看 IR 覆盖雷达，避免录制链路里有动作但 YAML 未覆盖。",
+        })
+    if checks.get("overridden_unbound_count", 0):
+        issues.append({
+            "severity": "critical",
+            "code": "maintainable_value_unbound",
+            "message": (
+                f"有 {checks['overridden_unbound_count']} 个用户已修改字段"
+                "没有绑定到可执行步骤。"
+            ),
+            "suggestion": "先修复字段解析/绑定规则，不能继续使用 HAR 旧值执行写入。",
+        })
+    elif ir_field_bridge.get("status") == "needs_review" and checks.get("ir_field_action_uncovered_count", 0):
+        issues.append({
+            "severity": "medium",
+            "code": "ir_field_action_uncovered",
+            "message": (
+                f"有 {checks['ir_field_action_uncovered_count']} 个 HAR 字段动作"
+                "尚未由生成步骤明确覆盖。"
+            ),
+            "suggestion": "检查普通录入、F7/基础资料和下拉动作是否进入字段目录及 YAML。",
         })
     return _dedupe_issues(issues)
 

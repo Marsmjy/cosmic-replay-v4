@@ -4237,6 +4237,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "capability": case_contract.get("capability") or {},
         "ai_assistance": case_contract.get("ai_assistance") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+        "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
     })
@@ -4245,7 +4246,13 @@ def run_case(case: dict, on_event=None) -> RunResult:
     contract_warnings = list(contract_preflight.get("warnings") or [])
     emit("preflight_start", {
         "id": "preflight_contract",
-        "checks": ["capability", "environment_binding_plan", "execution_contract", "runtime_value_flow_plan"],
+        "checks": [
+            "capability",
+            "environment_binding_plan",
+            "maintainable_field_binding_plan",
+            "execution_contract",
+            "runtime_value_flow_plan",
+        ],
     })
     emit("preflight_fail" if contract_errors else "preflight_ok", {
         "id": "preflight_contract",
@@ -4273,6 +4280,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "case_contract": case_contract,
             "capability": case_contract.get("capability") or {},
             "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+            "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
             "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
             "execution_contract": case_contract.get("execution_contract") or {},
             "contract_preflight": {
@@ -5042,6 +5050,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "case_contract": case_contract,
         "capability": case_contract.get("capability") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
+        "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
         "request_contract_results": dict(ctx.get("request_contract_results") or {}),

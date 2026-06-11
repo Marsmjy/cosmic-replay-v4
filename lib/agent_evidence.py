@@ -87,6 +87,7 @@ def build_repair_evidence_package(
             "ir_summary": ir_summary,
             "dynamic_value_flow": ir_summary.get("dynamic_value_flow", {}),
             "environment_binding_plan": case_contract.get("environment_binding_plan", {}),
+            "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan", {}),
             "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan", {}),
             "capability": case_contract.get("capability", {}),
         },

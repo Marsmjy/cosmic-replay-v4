@@ -114,3 +114,29 @@ def test_preflight_uses_ir_alignment_to_surface_missing_write_coverage():
     assert result["checks"]["ir_alignment_score"] == 68
     assert any(issue["code"] == "ir_write_step_not_covered" for issue in result["issues"])
     assert any("IR 覆盖雷达" in action for action in result["next_actions"])
+
+
+def test_preflight_blocks_user_maintained_value_without_executable_binding():
+    result = assess_har_preflight(
+        main_form_id="demo_form",
+        tier_counts={"core": 2, "ui_reaction": 0, "noise": 0},
+        steps=[{"type": "invoke", "id": "save", "ac": "save"}],
+        detected_vars=[],
+        pick_fields=[{"id": "pick_person_id"}],
+        component_report={"summary": {"coverage_percent": 100, "unsupported_steps": 0}},
+        quality={"score": 100, "issues": []},
+        pageid_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_field_bridge={
+            "status": "blocked",
+            "coverage_score": 50,
+            "checks": {
+                "overridden_unbound_count": 1,
+                "unbound_count": 1,
+            },
+        },
+    )
+
+    assert result["decision"] == "blocked"
+    assert result["allow_generate"] is False
+    assert any(issue["code"] == "maintainable_value_unbound" for issue in result["issues"])

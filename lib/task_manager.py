@@ -491,6 +491,9 @@ def build_decision_summary(result: CaseResult) -> dict:
     env_plan = runtime_evidence.get("environment_binding_plan") or (
         runtime_evidence.get("case_contract") or {}
     ).get("environment_binding_plan") or {}
+    field_binding_plan = runtime_evidence.get("maintainable_field_binding_plan") or (
+        runtime_evidence.get("case_contract") or {}
+    ).get("maintainable_field_binding_plan") or {}
     dynamic_plan = runtime_evidence.get("runtime_value_flow_plan") or (
         runtime_evidence.get("case_contract") or {}
     ).get("runtime_value_flow_plan") or {}
@@ -502,6 +505,12 @@ def build_decision_summary(result: CaseResult) -> dict:
         if isinstance(item, dict)
         and item.get("required")
         and item.get("status") in {"missing", "unresolved"}
+    ]
+    overridden_unbound_fields = [
+        item for item in (field_binding_plan.get("fields") or [])
+        if isinstance(item, dict)
+        and item.get("user_overridden")
+        and item.get("status") == "unbound"
     ]
     dynamic_warnings = [
         item for item in (dynamic_plan.get("warnings") or [])
@@ -517,6 +526,11 @@ def build_decision_summary(result: CaseResult) -> dict:
         category = "unsupported"
         title = "当前场景超出 HAR 回放核心边界"
         next_step = "不要让 AI 幻觉补全业务链路；先确认是否拆成专项能力或人工测试。"
+        confidence = "high"
+    elif overridden_unbound_fields:
+        category = "maintainable_value_unbound"
+        title = "用户维护值没有进入可执行步骤"
+        next_step = "交给 AI 修字段解析或绑定规则；无需先排查目标环境。"
         confidence = "high"
     elif unresolved_env_fields:
         category = "environment_binding"

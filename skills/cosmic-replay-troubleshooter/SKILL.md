@@ -82,6 +82,9 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 22. 执行报告中的 `decision_summary` 是给使用者看的下一步建议：`environment_binding` 先确认目标环境数据/权限，`script_or_environment_contract_drift` 先比对录制与回放关键接口，`environment_or_session` 先查环境/会话/后端，`script_chain` 再交给 AI 修 pageId/F7/弹窗/字段解析，`write_unverified` 补只读回查。Agent 不应只根据红色 FAIL 就直接改 YAML。
 23. `required_context/source=runtime_rule/resolve_status=missing_required_context` 这类字段表示运行时可由目标环境或前置步骤补齐的软上下文。契约预检应提示用户可能需要确认环境数据，但不能在第 0 步直接阻断；只有真实写入步骤证明字段无法解析或后端明确返回必填缺失时，才升级为解析/回放修复项。
 24. 定调薪申请单若 `khr_scope=3`（目标薪酬+津贴补助+福利），后续保存/提交可能要求津贴、福利分录生效日期。录制链路中的基准生效日期通常来自子表单 `khr_hcdm_targetsalary.khr_heffectivedate`，但 `khr_hjteffectivedate`、`khr_hfleffectivedate` 要写回父表单 `khr_hcdm_fapplybill` 的分录行模型，且应在 `hcdm_targetsalary` 关闭后、提交/审核前生成可维护字段和 `update_fields`。若错误写到子表单，接口可能返回空数组、页面看似通过但提交仍报“津贴生效日期/福利生效日期”缺失。
+25. 每个可维护字段必须有“面板字段 → YAML 步骤 → 运行时注入”的绑定证据。优先查看 `ir_contract.field_bridge` 和 `maintainable_field_binding_plan`：普通变量应绑定 `update_fields/invoke post_data`，F7/基础资料应绑定 `pick_basedata/select_f7_list_row`，列表 selector 应绑定录制的 `entryRowClick`，日期/下拉/开关应绑定对应字段写入。`ir_sources` 只保存 HAR entry/action 索引，不保存真实值，用于证明合并或降级后没有丢动作来源。
+26. 写入用例中，若 `user_overridden/manual_override=true` 但绑定状态为 `unbound`，必须在登录和写库前阻断，并归类为 `maintainable_value_unbound`；不能继续使用 HAR 旧值，也不能让用户先排查环境。只读查询用例不应用写入硬门槛。未修改的 `required_context/runtime_rule` 可标记为 `context` 交给目标环境或前置链路补齐，不能误报为用户值未生效。
+27. `scripts/har_execute_regression.py` baseline 记录 IR 字段动作覆盖、字段顺序、维护项绑定和跨环境 selector 指标。用例整体 PASS 时，可选/建议型步骤失败仍保留在 Markdown 的“非阻断诊断”，但不进入 `failed_step_ids` 的阻断基线，避免环境瞬态告警制造假回归；请求/响应契约、维护值命中、写入证据和回查结果仍必须参与对比。
 
 ## 一、整体防护架构
 

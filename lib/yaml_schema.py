@@ -146,6 +146,7 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "capability",
         "ai_assistance",
         "environment_binding_plan",
+        "maintainable_field_binding_plan",
         "runtime_value_flow_plan",
         "execution_contract",
     }
@@ -200,4 +201,3 @@ def _result(*, errors: list[dict[str, str]], warnings: list[dict[str, str]], sum
 
 def _issue(code: str, path: str, message: str) -> dict[str, str]:
     return {"code": code, "path": path, "message": message}
-

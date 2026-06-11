@@ -2974,6 +2974,8 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
                 "fields": merged_fields,
                 "_tier": "core",
                 "_har_index": s.get("_har_index"),
+                "_har_action_index": s.get("_har_action_index"),
+                "ir_sources": _collect_ir_sources(group),
                 "_har_page_id": s.get("_har_page_id", ""),  # 保留 pageId 供 keep_page 检测
             }
             if row_idx >= 0:
@@ -2994,6 +2996,8 @@ def merge_consecutive_update_values(steps: list[dict]) -> list[dict]:
                     "fields": merged_fields,
                     "_tier": "core",
                     "_har_index": s.get("_har_index"),
+                    "_har_action_index": s.get("_har_action_index"),
+                    "ir_sources": _collect_ir_sources([s]),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
                 row_idx = _extract_row_index(pd)
@@ -3025,6 +3029,7 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
             )] = {
                 "args": s.get("args") or [["%", "", "%", 0, 20, 0]],
                 "_har_index": s.get("_har_index"),
+                "_har_action_index": s.get("_har_action_index"),
                 "_har_page_id": s.get("_har_page_id", ""),
             }
             continue
@@ -3080,6 +3085,8 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "fields": extra_fields,
                     "_tier": "core",
                     "_har_index": s.get("_har_index"),
+                    "_har_action_index": s.get("_har_action_index"),
+                    "ir_sources": _collect_ir_sources([s]),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
                 if extra_row_idx >= 0:
@@ -3123,6 +3130,8 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                     "value_name": value_name,
                     "_tier": "core",
                     "_har_index": s.get("_har_index"),
+                    "_har_action_index": s.get("_har_action_index"),
+                    "ir_sources": _collect_ir_sources([s]),
                     "_har_page_id": s.get("_har_page_id", ""),
                 }
                 if s.get("_resp_text"):
@@ -3148,6 +3157,31 @@ def lower_set_item_to_pick_basedata(steps: list[dict]) -> list[dict]:
                 continue
         out.append(s)
     return out
+
+
+def _collect_ir_sources(steps: list[Mapping[str, Any]]) -> list[dict[str, int]]:
+    """Keep value-safe HAR action provenance through merge/lowering transforms."""
+    sources: list[dict[str, int]] = []
+    seen: set[tuple[int, int]] = set()
+    for step in steps:
+        inherited = step.get("ir_sources")
+        candidates = inherited if isinstance(inherited, list) else [{
+            "source_index": step.get("_har_index"),
+            "action_index": step.get("_har_action_index"),
+        }]
+        for item in candidates:
+            if not isinstance(item, Mapping):
+                continue
+            source_index = item.get("source_index")
+            action_index = item.get("action_index")
+            if not isinstance(source_index, int) or not isinstance(action_index, int):
+                continue
+            key = (source_index, action_index)
+            if key in seen:
+                continue
+            seen.add(key)
+            sources.append({"source_index": source_index, "action_index": action_index})
+    return sources
 
 
 # ---------- ⭐ 规则2：session pageId 动态化 ----------
@@ -4422,7 +4456,13 @@ def _compact_ir_contract_for_yaml(
     whether the main parser covered what IR observed.
     """
     try:
-        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
+        from lib.ir import (
+            assess_ir_preview_alignment,
+            build_ir_field_bridge,
+            build_ir_yaml_bridge,
+            build_normalized_flow,
+            compact_flow_for_preview,
+        )
 
         flow = dict(ir_flow) if isinstance(ir_flow, Mapping) else build_normalized_flow(har, source_name=source_name)
         ir_preview = compact_flow_for_preview(flow)
@@ -4489,6 +4529,12 @@ def _compact_ir_contract_for_yaml(
                 ("pick_field_count", int(checks.get("pick_field_count") or 0)),
             ])),
             ("generation_bridge", build_ir_yaml_bridge(
+                flow,
+                yaml_steps,
+                vars_meta=vars_meta,
+                pick_fields=pick_fields,
+            )),
+            ("field_bridge", build_ir_field_bridge(
                 flow,
                 yaml_steps,
                 vars_meta=vars_meta,
@@ -7678,9 +7724,13 @@ def build_yaml_case(
                   "recorded_file_names", "recorded_tempfile_reference",
                   "file_path", "upload_endpoint", "upload_url", "endpoint",
                   "file_field", "field_name", "extra_data", "data",
-                  "headers", "upload_id"):
+                  "headers", "upload_id", "ir_sources"):
             if k in s:
                 entry[k] = s[k]
+        if "ir_sources" not in entry:
+            ir_sources = _collect_ir_sources([s])
+            if ir_sources:
+                entry["ir_sources"] = ir_sources
         # ⭐ 自动生成步骤业务描述
         desc = generate_step_description(s)
         if desc:
@@ -8500,7 +8550,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         }
 
     try:
-        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, compact_flow_for_preview
+        from lib.ir import (
+            assess_ir_preview_alignment,
+            build_ir_field_bridge,
+            build_ir_yaml_bridge,
+            compact_flow_for_preview,
+        )
         ir_preview = compact_flow_for_preview(ir_flow)
         ir_alignment = assess_ir_preview_alignment(
             ir_flow,
@@ -8509,6 +8564,20 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             pick_fields=pick_fields,
         )
         ir_generation_bridge = build_ir_yaml_bridge(
+            ir_flow,
+            preview_steps,
+            vars_meta=OrderedDict(
+                (item.get("name"), OrderedDict((k, v) for k, v in item.items() if k != "name"))
+                for item in var_items
+                if item.get("name")
+            ),
+            pick_fields=OrderedDict(
+                (item.get("id"), OrderedDict((k, v) for k, v in item.items() if k != "id"))
+                for item in pick_fields
+                if item.get("id")
+            ),
+        )
+        ir_field_bridge = build_ir_field_bridge(
             ir_flow,
             preview_steps,
             vars_meta=OrderedDict(
@@ -8556,6 +8625,20 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "step_role_map": [],
             "migration_policy": {"current_generator": "har_extractor_main", "bridge_mode": "observe_and_validate"},
         }
+        ir_field_bridge = {
+            "schema_version": "1.0",
+            "status": "diagnostic_failed",
+            "raw_values_included": False,
+            "coverage_score": 0,
+            "summary": f"IR field bridge 失败: {type(e).__name__}: {e}",
+            "checks": {},
+            "ir_field_map": [],
+            "maintainable_field_binding_plan": {
+                "status": "diagnostic_failed",
+                "fields": [],
+                "summary": {},
+            },
+        }
 
     readback_plan = _build_preview_readback_plan(main_form, var_items)
     preview_validation_case = OrderedDict([
@@ -8586,6 +8669,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "capability": preview_contract["capability"],
             "ai_assistance": preview_contract["ai_assistance"],
             "environment_binding_plan": preview_contract["environment_binding_plan"],
+            "maintainable_field_binding_plan": preview_contract["maintainable_field_binding_plan"],
             "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
             "execution_contract": preview_contract["execution_contract"],
         })
@@ -8615,6 +8699,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "capability": preview_contract["capability"],
         "ai_assistance": preview_contract["ai_assistance"],
         "environment_binding_plan": preview_contract["environment_binding_plan"],
+        "maintainable_field_binding_plan": preview_contract["maintainable_field_binding_plan"],
         "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
         "execution_contract": preview_contract["execution_contract"],
         "yaml_schema_contract": preview_schema_contract,
@@ -8624,6 +8709,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "ir_preview": ir_preview,
         "ir_alignment": ir_alignment,
         "ir_generation_bridge": ir_generation_bridge,
+        "ir_field_bridge": ir_field_bridge,
         "ir_navigation_policy": ir_navigation_policy,
         "steps": [
             {
@@ -8680,6 +8766,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             quality=preview.get("quality"),
             pageid_alignment=pageid_alignment,
             ir_alignment=ir_alignment,
+            ir_field_bridge=ir_field_bridge,
         )
     except Exception as e:
         log.warning("HAR 导入预审失败（非致命）: %s", e)

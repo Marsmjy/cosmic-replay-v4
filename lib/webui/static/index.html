@@ -1753,7 +1753,7 @@
               <div class="text-xs text-slate-500">IR/YAML</div>
             </div>
           </div>
-          <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3 text-xs">
             <div class="bg-slate-900 rounded px-2 py-1.5">
               <div class="text-slate-500">IR API</div>
               <div class="text-slate-200" x-text="harPreview?.ir_alignment?.checks?.ir_api_entry_count || 0"></div>
@@ -1766,6 +1766,11 @@
             <div class="bg-slate-900 rounded px-2 py-1.5">
               <div class="text-slate-500">L2 保留</div>
               <div class="text-slate-200" x-text="harPreview?.ir_alignment?.checks?.preview_l2_preserve_count || 0"></div>
+            </div>
+            <div class="bg-slate-900 rounded px-2 py-1.5">
+              <div class="text-slate-500">字段绑定</div>
+              <div class="text-slate-200"
+                   x-text="(harPreview?.ir_field_bridge?.checks?.bound_count || 0) + '/' + ((harPreview?.ir_field_bridge?.checks?.bound_count || 0) + (harPreview?.ir_field_bridge?.checks?.unbound_count || 0))"></div>
             </div>
           </div>
           <div x-show="(harPreview?.ir_alignment?.issues || []).length" class="mt-3 space-y-1">

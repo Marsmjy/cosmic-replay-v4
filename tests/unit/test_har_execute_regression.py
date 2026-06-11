@@ -61,6 +61,18 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                     "ir_bridge_coverage_score": 100,
                     "ir_bridge_uncovered_count": 0,
                     "ir_bridge_uncovered_write_or_edit_count": 0,
+                    "ir_field_bridge_status": "ready",
+                    "ir_field_bridge_coverage_score": 100,
+                    "ir_field_action_count": 2,
+                    "ir_field_action_uncovered_count": 0,
+                    "ir_field_action_order_mismatch_count": 0,
+                    "maintainable_field_bound_count": 3,
+                    "maintainable_field_unbound_count": 0,
+                    "maintainable_field_context_count": 0,
+                    "overridden_unbound_count": 0,
+                    "cross_env_selector_count": 1,
+                    "cross_env_selector_bound_count": 1,
+                    "cross_env_selector_ready_count": 1,
                     "ir_navigation_status": "applied",
                     "ir_navigation_matched_count": 2,
                     "ir_navigation_unmatched_count": 0,
@@ -73,7 +85,7 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                 "execution": {
                     "status": "done",
                     "passed": True,
-                    "failed_steps": [],
+                    "failed_steps": [{"id": "optional_probe", "error": "diagnostic only"}],
                     "write_events": [{"response_tokens": ["保存成功"]}],
                     "stdout_tail": "would contain values but must not be copied",
                 },
@@ -91,8 +103,12 @@ def test_baseline_view_keeps_value_safe_execution_shape():
     assert baseline["samples"][0]["ir_step_count"] == 3
     assert baseline["samples"][0]["ir_bridge_coverage_score"] == 100
     assert baseline["samples"][0]["ir_bridge_uncovered_write_or_edit_count"] == 0
+    assert baseline["samples"][0]["ir_field_bridge_status"] == "ready"
+    assert baseline["samples"][0]["ir_field_action_order_mismatch_count"] == 0
+    assert baseline["samples"][0]["cross_env_selector_ready_count"] == 1
     assert baseline["samples"][0]["ir_navigation_status"] == "applied"
     assert baseline["samples"][0]["ir_navigation_matched_count"] == 2
+    assert baseline["samples"][0]["failed_step_ids"] == []
     assert "stdout_tail" not in baseline["samples"][0]
 
 
