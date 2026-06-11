@@ -118,6 +118,65 @@ def test_contract_preflight_blocks_write_missing_no_save_failure_and_required_en
     assert any("no_save_failure" in item for item in result["errors"])
 
 
+def test_contract_preflight_warns_for_soft_runtime_required_context_fields():
+    result = validate_case_contract_for_run({
+        "name": "soft_context_write",
+        "pick_fields": {
+            "pick_chgreason_id": {
+                "label": "变动原因",
+                "field_key": "chgreason",
+                "form_id": "hom_onbrdinfo",
+                "app_id": "hom",
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "missing_required_context",
+                "required_context": True,
+                "source": "runtime_rule",
+            }
+        },
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "hom_onbrdinfo",
+            "app_id": "hom",
+            "ac": "save",
+            "method": "save",
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "save_bill"}],
+    })
+
+    contract = build_case_contract({
+        "pick_fields": {
+            "pick_chgreason_id": {
+                "label": "变动原因",
+                "field_key": "chgreason",
+                "form_id": "hom_onbrdinfo",
+                "app_id": "hom",
+                "auto_resolve": True,
+                "resolve_by": "value_code",
+                "resolve_status": "missing_required_context",
+                "required_context": True,
+                "source": "runtime_rule",
+            }
+        },
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "hom_onbrdinfo",
+            "app_id": "hom",
+            "ac": "save",
+            "method": "save",
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "save_bill"}],
+    })
+
+    field = contract["environment_binding_plan"]["fields"][0]
+    assert result["ok"] is True
+    assert field["status"] == "missing_required_context"
+    assert field["required"] is False
+    assert field["failure_policy"] == "warn"
+
+
 def test_contract_preflight_allows_query_without_write_assertions():
     result = validate_case_contract_for_run({
         "name": "query_only",

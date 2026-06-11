@@ -80,6 +80,8 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 20. 运行前契约预检只阻断真正不安全的写入用例，例如缺少必需目标环境解析字段、写入用例缺 `no_save_failure`，或场景被明确标记 `unsupported`。动态值链路、审批待办、录制环境内部 ID 等默认先作为告警交给运行时和报告解释；除非有真实失败证据，不要把所有告警升级成阻断。
 21. 用户在预览或用例详情勾选的“校验点”属于业务断言开关，只控制是否额外检查某个可维护值/字段值；它不能替代系统断言，也不能关闭系统断言。即使用户不勾选任何业务校验点，写入用例仍必须保留 `no_save_failure`、关键响应契约、动态值消费和入库/人工确认证据。
 22. 执行报告中的 `decision_summary` 是给使用者看的下一步建议：`environment_binding` 先确认目标环境数据/权限，`script_or_environment_contract_drift` 先比对录制与回放关键接口，`environment_or_session` 先查环境/会话/后端，`script_chain` 再交给 AI 修 pageId/F7/弹窗/字段解析，`write_unverified` 补只读回查。Agent 不应只根据红色 FAIL 就直接改 YAML。
+23. `required_context/source=runtime_rule/resolve_status=missing_required_context` 这类字段表示运行时可由目标环境或前置步骤补齐的软上下文。契约预检应提示用户可能需要确认环境数据，但不能在第 0 步直接阻断；只有真实写入步骤证明字段无法解析或后端明确返回必填缺失时，才升级为解析/回放修复项。
+24. 定调薪申请单若 `khr_scope=3`（目标薪酬+津贴补助+福利），后续保存/提交可能要求津贴、福利分录生效日期。录制链路中的基准生效日期通常来自子表单 `khr_hcdm_targetsalary.khr_heffectivedate`，但 `khr_hjteffectivedate`、`khr_hfleffectivedate` 要写回父表单 `khr_hcdm_fapplybill` 的分录行模型，且应在 `hcdm_targetsalary` 关闭后、提交/审核前生成可维护字段和 `update_fields`。若错误写到子表单，接口可能返回空数组、页面看似通过但提交仍报“津贴生效日期/福利生效日期”缺失。
 
 ## 一、整体防护架构
 

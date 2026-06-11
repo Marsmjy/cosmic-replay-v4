@@ -199,6 +199,16 @@ _SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM = {
     },
 }
 
+_SALARY_APPLY_FORM_ID = "khr_hcdm_fapplybill"
+_SALARY_TARGET_FORM_ID = "khr_hcdm_targetsalary"
+_SALARY_SCOPE_FIELD_KEY = "khr_scope"
+_SALARY_SCOPE_ALL_VALUE = "3"
+_SALARY_EFFECTIVE_DATE_FIELD_KEY = "khr_heffectivedate"
+_SALARY_SCOPE_ALL_DATE_FIELDS = (
+    "khr_hjteffectivedate",
+    "khr_hfleffectivedate",
+)
+
 # ⭐ 跨环境系统托管字段：
 # 这些字段在部分录制环境可写，但其他目标环境可能由系统编码规则托管。HAR 明确
 # 录制的写入/选择必须保留，并标记为运行时“锁定则跳过”；不能在导入阶段直接删除，
@@ -862,6 +872,8 @@ _FIELD_LABELS = {
     'khr_saproposal':         '薪酬提案',
     'khr_sapexplanation':     '提案说明',
     'khr_heffectivedate':     '调薪后-生效日期',
+    'khr_hjteffectivedate':   '调薪后津贴-生效日期',
+    'khr_hfleffectivedate':   '调薪后福利-生效日期',
     'khr_scope':              '定调薪范围',
     'khr_upperson':           '薪酬直接上级',
     'decision_radio_group':    '审批动作',
@@ -4324,6 +4336,151 @@ def _append_recorded_default_update_steps(
     return out
 
 
+def _normalize_scalar_for_rule(value: Any) -> str:
+    if isinstance(value, dict):
+        for key in ("value_code", "number", "id", "zh_CN", "GLang"):
+            if value.get(key) not in (None, ""):
+                return str(value.get(key)).strip()
+    if isinstance(value, list):
+        return ",".join(_normalize_scalar_for_rule(item) for item in value if item not in (None, ""))
+    return str(value or "").strip()
+
+
+def _last_update_field_ref(
+    steps: list[dict],
+    *,
+    form_id: str,
+    field_key: str,
+) -> tuple[int, dict, str, Any] | None:
+    wanted_form = str(form_id or "")
+    wanted_field = str(field_key or "").lower()
+    found: tuple[int, dict, str, Any] | None = None
+    for idx, step in enumerate(steps or []):
+        if step.get("type") != "update_fields":
+            continue
+        if wanted_form and str(step.get("form_id") or "") != wanted_form:
+            continue
+        fields = step.get("fields") or {}
+        if not isinstance(fields, dict):
+            continue
+        for key, value in fields.items():
+            if str(key or "").lower() == wanted_field:
+                found = (idx, step, str(key), value)
+    return found
+
+
+def _has_model_field_step(steps: list[dict], *, form_id: str, field_key: str) -> bool:
+    wanted_form = str(form_id or "")
+    wanted_field = str(field_key or "").lower()
+    for step in steps or []:
+        if wanted_form and str(step.get("form_id") or "") != wanted_form:
+            continue
+        if step.get("type") == "update_fields":
+            fields = step.get("fields") or {}
+            if isinstance(fields, dict) and any(str(key).lower() == wanted_field for key in fields):
+                return True
+        if step.get("type") == "pick_basedata" and str(step.get("field_key") or "").lower() == wanted_field:
+            return True
+    return False
+
+
+def _copy_replay_context_from_step(source: dict) -> dict[str, Any]:
+    copied: dict[str, Any] = {}
+    for key in (
+        "_har_page_id",
+        "preserve_l2_page",
+        "row_index",
+        "recorded_pageid_source",
+        "recorded_pageid_source_step_id",
+        "recorded_pageid_source_type",
+        "recorded_pageid_source_form_match",
+        "recorded_pageid_source_kind",
+        "recorded_pageid_retained",
+        "pageid_recovery_strategy",
+        "pageid_recovery_source_step_id",
+    ):
+        if key in source:
+            copied[key] = copy.deepcopy(source.get(key))
+    return copied
+
+
+def _append_salary_scope_required_date_steps(
+    steps: list[dict],
+    observations: dict[str, Any],
+) -> list[dict]:
+    """Derive editable allowance/welfare effective dates when salary scope needs them.
+
+    In HR salary-adjust forms, scope=3 means the recorded business action covered
+    target salary, allowance, and welfare. The browser may carry allowance/welfare
+    effective dates as model defaults without explicit updateValue calls; API
+    replay must make them explicit so preview/YAML/users can maintain them.
+    """
+    if not steps:
+        return steps
+    scope_ref = _last_update_field_ref(
+        steps,
+        form_id=_SALARY_APPLY_FORM_ID,
+        field_key=_SALARY_SCOPE_FIELD_KEY,
+    )
+    if not scope_ref:
+        return steps
+    _scope_idx, _scope_step, _scope_key, scope_value = scope_ref
+    if _normalize_scalar_for_rule(scope_value) != _SALARY_SCOPE_ALL_VALUE:
+        return steps
+    effective_ref = _last_update_field_ref(
+        steps,
+        form_id=_SALARY_TARGET_FORM_ID,
+        field_key=_SALARY_EFFECTIVE_DATE_FIELD_KEY,
+    )
+    if not effective_ref:
+        return steps
+    effective_idx, effective_step, _effective_key, effective_value = effective_ref
+    if effective_value in (None, ""):
+        return steps
+
+    insert_idx = effective_idx
+    for idx in range(effective_idx + 1, len(steps)):
+        step = steps[idx]
+        if (
+            str(step.get("form_id") or "") == _SALARY_TARGET_FORM_ID
+            and str(step.get("ac") or step.get("method") or "").lower() == "close"
+        ):
+            insert_idx = idx
+            break
+    context_step = _scope_step
+    for idx in range(insert_idx, -1, -1):
+        step = steps[idx]
+        if str(step.get("form_id") or "") == _SALARY_APPLY_FORM_ID:
+            context_step = step
+            break
+
+    additions: list[dict[str, Any]] = []
+    for field_key in _SALARY_SCOPE_ALL_DATE_FIELDS:
+        if _has_model_field_step(steps, form_id=_SALARY_APPLY_FORM_ID, field_key=field_key):
+            continue
+        step = {
+            "type": "update_fields",
+            "id": f"fill_{field_key}",
+            "form_id": _SALARY_APPLY_FORM_ID,
+            "app_id": context_step.get("app_id") or effective_step.get("app_id", "hcdm"),
+            "fields": {field_key: copy.deepcopy(effective_value)},
+            "_tier": "core",
+            "_derived_from": _SALARY_EFFECTIVE_DATE_FIELD_KEY,
+            "_derived_reason": "khr_scope=3 requires allowance/welfare effective dates",
+            "description": f"填写「{_FIELD_LABELS.get(field_key, field_key)}」",
+        }
+        step.update(_copy_replay_context_from_step(context_step))
+        step["row_index"] = int(effective_step.get("row_index", 0) or 0)
+        additions.append(step)
+
+    if not additions:
+        return steps
+    out = list(steps)
+    for offset, step in enumerate(additions, start=1):
+        out.insert(insert_idx + offset, step)
+    return out
+
+
 def _existing_model_field_keys(steps: list[dict], form_id: str) -> set[str]:
     form = str(form_id or "")
     keys: set[str] = set()
@@ -6782,6 +6939,7 @@ def build_yaml_case(
         main_form=main_form,
         app_id=_context_app_id,
     )
+    cleaned = _append_salary_scope_required_date_steps(cleaned, field_observations)
     cleaned = _drop_locked_update_fields(cleaned, field_observations)
     cleaned = _append_missing_required_context_steps(
         cleaned,
@@ -7582,6 +7740,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         main_form=main_form,
         app_id=_preview_app_id,
     )
+    preview_steps = _append_salary_scope_required_date_steps(preview_steps, field_observations)
     _mark_recorded_business_validations(preview_steps)
     _dedupe_step_ids(preview_steps)
     preview_steps = _ensure_workflow_approval_update_steps(preview_steps, field_observations)

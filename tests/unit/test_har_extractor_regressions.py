@@ -1454,6 +1454,50 @@ def test_salary_adjust_build_keeps_recorded_effective_date_when_local_har_exists
     assert "${today}" not in yaml_text
 
 
+def test_salary_adjust_scope_three_derives_allowance_and_welfare_dates_from_recorded_har():
+    har_path = PROJECT_ROOT.parent / "项目归档" / "回归专用HAR" / "金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
+    if not har_path.exists():
+        pytest.skip("desktop regression HAR fixture is not present")
+
+    preview = preview_har(har_path)
+    preview_fields = {item["id"]: item for item in preview["pick_fields"]}
+
+    assert preview_fields["date_khr_hjteffectivedate"]["label"] == "调薪后津贴-生效日期"
+    assert preview_fields["date_khr_hjteffectivedate"]["value_id"] == "2026-06-30"
+    assert preview_fields["date_khr_hfleffectivedate"]["label"] == "调薪后福利-生效日期"
+    assert preview_fields["date_khr_hfleffectivedate"]["value_id"] == "2026-06-30"
+
+    yaml_text = build_yaml_case(
+        har_path,
+        case_name="salary_adjust_scope_all_dates",
+        pick_field_overrides={
+            "date_khr_hjteffectivedate": {
+                "field_key": "khr_hjteffectivedate",
+                "form_id": "khr_hcdm_targetsalary",
+                "value_id": "2026-07-01",
+                "user_overridden": True,
+            },
+            "date_khr_hfleffectivedate": {
+                "field_key": "khr_hfleffectivedate",
+                "form_id": "khr_hcdm_targetsalary",
+                "value_id": "2026-07-02",
+                "user_overridden": True,
+            },
+        },
+    )
+    case = yaml.safe_load(yaml_text)
+    pick_fields = case["pick_fields"]
+    steps_by_id = {step["id"]: step for step in case["steps"]}
+
+    assert pick_fields["date_khr_hjteffectivedate"]["value_id"] == "2026-07-01"
+    assert pick_fields["date_khr_hfleffectivedate"]["value_id"] == "2026-07-02"
+    assert steps_by_id["fill_khr_hjteffectivedate"]["fields"]["khr_hjteffectivedate"] == "2026-07-01"
+    assert steps_by_id["fill_khr_hfleffectivedate"]["fields"]["khr_hfleffectivedate"] == "2026-07-02"
+    assert steps_by_id["fill_khr_hjteffectivedate"]["row_index"] == 0
+    assert steps_by_id["fill_khr_hfleffectivedate"]["row_index"] == 0
+    assert steps_by_id["fill_khr_heffectivedate"]["fields"]["khr_heffectivedate"] == "2026-06-30"
+
+
 def test_salary_adjust_approval_import_exposes_action_and_opinion_when_local_har_exists():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1780544303_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har"
     if not har_path.exists():

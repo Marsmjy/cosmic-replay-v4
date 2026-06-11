@@ -242,10 +242,16 @@ def build_environment_binding_plan(case: Mapping[str, Any] | None) -> dict[str, 
         resolver_kind = _resolver_kind(str(field_id), meta)
         query_value = _query_value(meta)
         status = _binding_status(meta, query_value=query_value)
+        is_soft_runtime_context = bool(
+            meta.get("required_context")
+            or str(meta.get("source") or "") == "runtime_rule"
+            or status == "missing_required_context"
+        )
         required = bool(
             has_write
             and resolver_kind in {"lookup", "grid_selector"}
             and not meta.get("context_only")
+            and not is_soft_runtime_context
         )
         fields.append({
             "id": str(field_id),
@@ -513,7 +519,7 @@ def _query_value(meta: Mapping[str, Any]) -> str:
 
 def _binding_status(meta: Mapping[str, Any], *, query_value: str) -> str:
     raw_status = str(meta.get("resolve_status") or "").strip()
-    if raw_status in {"resolved", "pending", "manual", "context"}:
+    if raw_status in {"resolved", "pending", "manual", "context", "missing_required_context"}:
         return raw_status
     if meta.get("context_only"):
         return "context"
