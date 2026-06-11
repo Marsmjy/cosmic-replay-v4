@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from lib.har_extractor import preview_har
+from lib.har_extractor import build_yaml_case, preview_har
 from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
 from lib.ir.dry_run import dry_run_flow, dry_run_yaml_case
 from lib.ir.normalizer import normalize_har_entries
@@ -150,6 +150,25 @@ def test_generate_yaml_from_ir_and_dry_run_without_network():
     assert dry_run_yaml_case(yaml_text)["ok"] is True
     assert "secret-token" not in yaml_text
     assert EDIT_PAGE_ID not in yaml_text
+
+
+def test_build_yaml_case_includes_value_safe_ir_contract(tmp_path: Path):
+    har_path = tmp_path / "synthetic.har"
+    har_path.write_text(json.dumps(_synthetic_har(), ensure_ascii=False), encoding="utf-8")
+
+    yaml_text = build_yaml_case(har_path, case_name="IR主干契约用例")
+    case = yaml.safe_load(yaml_text)
+    payload = json.dumps(case["ir_contract"], ensure_ascii=False)
+
+    assert case["ir_contract"]["source"] == "normalized_flow"
+    assert case["ir_contract"]["policy"]["store_full_ir_in_yaml"] is False
+    assert case["ir_contract"]["policy"]["raw_har_committed"] is False
+    assert case["ir_contract"]["coverage"]["api_entry_count"] == 1
+    assert case["ir_contract"]["coverage"]["ir_step_count"] >= 1
+    assert case["ir_contract"]["coverage"]["yaml_step_count"] >= 0
+    assert case["ir_contract"]["alignment"]["risk_level"] in {"low", "medium", "high"}
+    assert "secret-token" not in payload
+    assert EDIT_PAGE_ID not in payload
 
 
 def test_preview_har_includes_ir_preview_without_changing_main_preview(tmp_path: Path):

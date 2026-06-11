@@ -51,6 +51,12 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                     "field_catalog_count": 4,
                     "unknown_catalog_count": 0,
                     "business_flow_count": 1,
+                    "ir_grade": "A",
+                    "ir_risk_level": "low",
+                    "ir_issue_count": 0,
+                    "ir_warning_count": 0,
+                    "ir_step_count": 3,
+                    "ir_api_entry_count": 3,
                     "response_signature_step_count": 1,
                     "recorded_pageid_exact_link_count": 3,
                     "recorded_pageid_external_root_count": 1,
@@ -74,6 +80,8 @@ def test_baseline_view_keeps_value_safe_execution_shape():
     assert baseline["samples"][0]["passed"] is True
     assert baseline["samples"][0]["write_event_tokens"] == ["保存成功"]
     assert baseline["samples"][0]["recorded_pageid_exact_link_count"] == 3
+    assert baseline["samples"][0]["ir_grade"] == "A"
+    assert baseline["samples"][0]["ir_step_count"] == 3
     assert "stdout_tail" not in baseline["samples"][0]
 
 

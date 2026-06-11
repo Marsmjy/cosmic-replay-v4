@@ -4404,6 +4404,131 @@ def _copy_replay_context_from_step(source: dict) -> dict[str, Any]:
     return copied
 
 
+def _compact_ir_contract_for_yaml(
+    har: dict[str, Any],
+    *,
+    source_name: str,
+    yaml_steps: list[dict[str, Any]],
+    vars_meta: Mapping[str, Any],
+    pick_fields: Mapping[str, Any],
+) -> OrderedDict:
+    """Build a value-safe IR contract section for generated YAML.
+
+    The full normalized flow remains a separate diagnostic artifact. YAML only
+    carries coverage/risk signals so replay, reports, and AI repair can tell
+    whether the main parser covered what IR observed.
+    """
+    try:
+        from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
+
+        flow = build_normalized_flow(har, source_name=source_name)
+        ir_preview = compact_flow_for_preview(flow)
+        alignment = assess_ir_preview_alignment(
+            flow,
+            preview_steps=yaml_steps,
+            detected_vars=[
+                {"name": name, **(dict(meta) if isinstance(meta, Mapping) else {})}
+                for name, meta in (vars_meta or {}).items()
+                if str(name or "").strip() and not str(name).startswith("_")
+            ],
+            pick_fields=[
+                {"id": field_id, **(dict(meta) if isinstance(meta, Mapping) else {})}
+                for field_id, meta in (pick_fields or {}).items()
+                if str(field_id or "").strip()
+            ],
+        )
+        checks = alignment.get("checks") or {}
+        issues = alignment.get("issues") or []
+        warning_codes = sorted({
+            str(item.get("code") or "")
+            for item in ir_preview.get("warnings", [])
+            if item.get("code")
+        })
+        high_issue_count = sum(
+            1
+            for issue in issues
+            if issue.get("severity") in {"critical", "high"}
+        )
+        risk_level = str(alignment.get("risk_level") or "high")
+        status = "ready"
+        if risk_level == "high" or high_issue_count:
+            status = "needs_review"
+        elif warning_codes:
+            status = "ready_with_warnings"
+
+        return OrderedDict([
+            ("schema_version", 1),
+            ("source", "normalized_flow"),
+            ("status", status),
+            ("ir_schema_version", (ir_preview.get("schema_version") or "0.1")),
+            ("alignment", OrderedDict([
+                ("score", int(alignment.get("score") or 0)),
+                ("grade", str(alignment.get("grade") or "")),
+                ("risk_level", risk_level),
+                ("summary", str(alignment.get("summary") or "")),
+                ("issue_codes", sorted({
+                    str(issue.get("code") or "")
+                    for issue in issues
+                    if issue.get("code")
+                })),
+                ("high_issue_count", high_issue_count),
+            ])),
+            ("coverage", OrderedDict([
+                ("api_entry_count", int(checks.get("ir_api_entry_count") or 0)),
+                ("ir_step_count", int(checks.get("ir_step_count") or 0)),
+                ("yaml_step_count", len(yaml_steps or [])),
+                ("ir_role_counts", checks.get("ir_role_counts") or {}),
+                ("yaml_role_counts", checks.get("preview_role_counts") or {}),
+                ("ir_l2_expected_count", int(checks.get("ir_l2_expected_count") or 0)),
+                ("ir_l3_expected_count", int(checks.get("ir_l3_expected_count") or 0)),
+                ("yaml_l2_preserve_count", int(checks.get("preview_l2_preserve_count") or 0)),
+                ("variable_count", int(checks.get("detected_var_count") or 0)),
+                ("pick_field_count", int(checks.get("pick_field_count") or 0)),
+            ])),
+            ("warning_codes", warning_codes),
+            ("policy", OrderedDict([
+                ("store_full_ir_in_yaml", False),
+                ("raw_har_committed", False),
+                ("blocks_run", False),
+                ("repair_hint", "IR 与主解析链路差异较大时，优先修解析规则而不是手写 YAML。"),
+            ])),
+        ])
+    except Exception as exc:
+        return OrderedDict([
+            ("schema_version", 1),
+            ("source", "normalized_flow"),
+            ("status", "diagnostic_failed"),
+            ("ir_schema_version", "0.1"),
+            ("alignment", OrderedDict([
+                ("score", 0),
+                ("grade", "E"),
+                ("risk_level", "high"),
+                ("summary", f"IR contract build failed: {type(exc).__name__}"),
+                ("issue_codes", ["ir_contract_failed"]),
+                ("high_issue_count", 0),
+            ])),
+            ("coverage", OrderedDict([
+                ("api_entry_count", 0),
+                ("ir_step_count", 0),
+                ("yaml_step_count", len(yaml_steps or [])),
+                ("ir_role_counts", {}),
+                ("yaml_role_counts", {}),
+                ("ir_l2_expected_count", 0),
+                ("ir_l3_expected_count", 0),
+                ("yaml_l2_preserve_count", 0),
+                ("variable_count", len(vars_meta or {})),
+                ("pick_field_count", len(pick_fields or {})),
+            ])),
+            ("warning_codes", ["ir_contract_failed"]),
+            ("policy", OrderedDict([
+                ("store_full_ir_in_yaml", False),
+                ("raw_har_committed", False),
+                ("blocks_run", False),
+                ("repair_hint", "先检查 HAR 是否可正常脱敏和规范化。"),
+            ])),
+        ])
+
+
 def _append_salary_scope_required_date_steps(
     steps: list[dict],
     observations: dict[str, Any],
@@ -7557,6 +7682,13 @@ def build_yaml_case(
         ("vars_meta", built_vars_meta),       # 变量来源表单/业务块，供长链路分组维护
         ("pick_fields", pick_fields_map if pick_fields_map else OrderedDict()),
         ("main_form_id", main_form),
+        ("ir_contract", _compact_ir_contract_for_yaml(
+            har,
+            source_name=har_path.name,
+            yaml_steps=yaml_steps,
+            vars_meta=built_vars_meta,
+            pick_fields=pick_fields_map,
+        )),
         ("steps", yaml_steps),
         ("assertions", _build_default_assertions(yaml_steps)),
     ])
