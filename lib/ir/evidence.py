@@ -9,6 +9,7 @@ from lib.pageid_trace import build_pageid_trace
 
 from .dynamic_flow import build_dynamic_value_flow
 from .sanitizer import scan_sensitive_text
+from .yaml_bridge import classify_yaml_step_role
 
 
 def build_case_ir_summary(
@@ -229,25 +230,12 @@ def _warnings(
 
 
 def _step_role(step: dict[str, Any]) -> str:
-    ac = str(step.get("ac") or "").lower()
-    method = str(step.get("method") or "").lower()
-    key = str(step.get("key") or "").lower()
-    text = " ".join([ac, method, key])
-    if any(token in text for token in ("save", "submit", "confirm", "audit", "bar_save", "保存", "提交", "审核")):
+    role = classify_yaml_step_role(step)
+    if role == "write":
         return "write"
-    if step.get("type") in {"update_fields", "pick_basedata", "select_f7_list_row"}:
+    if role == "edit":
         return "edit"
-    if bool(step.get("preserve_l2_page")) or ac in {
-        "menuitemclick",
-        "loaddata",
-        "treenodeclick",
-        "treemenuclick",
-        "postexpandnodes",
-        "querytreenodechildren",
-        "entryrowclick",
-        "refresh",
-        "itemclick",
-    }:
+    if role == "navigation":
         return "navigation_or_list"
     return "unknown"
 

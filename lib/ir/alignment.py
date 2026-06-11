@@ -4,6 +4,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from .yaml_bridge import classify_yaml_step_role
+
 
 def assess_ir_preview_alignment(
     flow: dict[str, Any],
@@ -24,7 +26,7 @@ def assess_ir_preview_alignment(
         if page.get("id")
     }
     ir_roles = Counter(str(step.get("role") or "unknown") for step in ir_steps)
-    preview_roles = Counter(_preview_step_role(step) for step in preview_steps or [])
+    preview_roles = Counter(classify_yaml_step_role(step) for step in preview_steps or [])
     ir_l2_expected = sum(
         1
         for step in ir_steps
@@ -143,32 +145,6 @@ def _alignment_score(checks: dict[str, Any], issues: list[dict[str, Any]]) -> in
         if coverage < 0.4:
             score -= 8
     return max(0, min(100, score))
-
-
-def _preview_step_role(step: dict[str, Any]) -> str:
-    step_type = str(step.get("type") or "")
-    ac = str(step.get("ac") or "").lower()
-    method = str(step.get("method") or "").lower()
-    key = str(step.get("key") or "").lower()
-    args = " ".join(str(item).lower() for item in (step.get("args") or []))
-    text = " ".join([ac, method, key, args])
-    if any(token in text for token in ("save", "submit", "audit", "confirm", "btnok")):
-        return "write"
-    if step_type in {"update_fields", "pick_basedata", "select_f7_list_row"}:
-        return "edit"
-    if step.get("preserve_l2_page") or ac in {
-        "menuitemclick",
-        "loaddata",
-        "treenodeclick",
-        "treemenuclick",
-        "postexpandnodes",
-        "querytreenodechildren",
-        "entryrowclick",
-        "refresh",
-        "itemclick",
-    }:
-        return "navigation"
-    return "action"
 
 
 def _grade(score: int) -> str:

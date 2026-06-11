@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from lib.har_extractor import build_yaml_case, preview_har
-from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
+from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
 from lib.ir.dry_run import dry_run_flow, dry_run_yaml_case
 from lib.ir.normalizer import normalize_har_entries
 from lib.ir.sanitizer import sanitize_har, scan_sensitive_text
@@ -139,6 +139,41 @@ def test_ir_alignment_scores_matching_write_coverage_as_low_risk():
     assert result["risk_level"] == "low"
 
 
+def test_ir_yaml_bridge_maps_roles_and_flags_write_gap():
+    flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
+    covered = build_ir_yaml_bridge(
+        flow,
+        [{"id": "save", "type": "invoke", "form_id": "demo_form", "app_id": "demo", "ac": "save", "method": "save"}],
+    )
+    uncovered = build_ir_yaml_bridge(
+        flow,
+        [{"id": "load", "type": "invoke", "form_id": "demo_form", "app_id": "demo", "ac": "loadData"}],
+    )
+
+    assert covered["status"] == "ready"
+    assert covered["checks"]["uncovered_write_or_edit_count"] == 0
+    assert covered["step_role_map"][0]["coverage"] == "covered"
+    assert uncovered["status"] == "needs_review"
+    assert uncovered["checks"]["uncovered_write_or_edit_count"] == 1
+    assert "write" in uncovered["uncovered_roles"]
+
+
+def test_ir_yaml_bridge_treats_edit_as_covered_by_field_model():
+    flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
+    flow["steps"][0]["role"] = "edit"
+    bridge = build_ir_yaml_bridge(
+        flow,
+        [],
+        vars_meta={"test_number": {"form_id": "demo_form", "field_key": "number"}},
+        pick_fields={},
+    )
+
+    assert bridge["status"] == "ready"
+    assert bridge["checks"]["uncovered_write_or_edit_count"] == 0
+    assert bridge["step_role_map"][0]["coverage"] == "covered_by_field_model"
+    assert bridge["step_role_map"][0]["match_reason"] == "field_model"
+
+
 def test_generate_yaml_from_ir_and_dry_run_without_network():
     flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
     yaml_text = generate_yaml_case_from_ir(flow, case_name="IR合成用例")
@@ -166,6 +201,8 @@ def test_build_yaml_case_includes_value_safe_ir_contract(tmp_path: Path):
     assert case["ir_contract"]["coverage"]["api_entry_count"] == 1
     assert case["ir_contract"]["coverage"]["ir_step_count"] >= 1
     assert case["ir_contract"]["coverage"]["yaml_step_count"] >= 0
+    assert case["ir_contract"]["generation_bridge"]["mode"] == "shadow_contract"
+    assert case["ir_contract"]["generation_bridge"]["checks"]["ir_step_count"] >= 1
     assert case["ir_contract"]["alignment"]["risk_level"] in {"low", "medium", "high"}
     assert "secret-token" not in payload
     assert EDIT_PAGE_ID not in payload
@@ -180,6 +217,8 @@ def test_preview_har_includes_ir_preview_without_changing_main_preview(tmp_path:
     assert "ir_preview" in preview
     assert preview["ir_preview"]["source_har"]["api_entry_count"] == 1
     assert preview["ir_alignment"]["checks"]["ir_api_entry_count"] == 1
+    assert preview["ir_generation_bridge"]["mode"] == "shadow_contract"
+    assert preview["ir_generation_bridge"]["checks"]["ir_step_count"] == 1
     assert preview["ir_preview"]["sensitive_field_count"] >= 3
     assert "main_form_id" in preview
 

@@ -4419,7 +4419,7 @@ def _compact_ir_contract_for_yaml(
     whether the main parser covered what IR observed.
     """
     try:
-        from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
+        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
 
         flow = build_normalized_flow(har, source_name=source_name)
         ir_preview = compact_flow_for_preview(flow)
@@ -4485,6 +4485,12 @@ def _compact_ir_contract_for_yaml(
                 ("variable_count", int(checks.get("detected_var_count") or 0)),
                 ("pick_field_count", int(checks.get("pick_field_count") or 0)),
             ])),
+            ("generation_bridge", build_ir_yaml_bridge(
+                flow,
+                yaml_steps,
+                vars_meta=vars_meta,
+                pick_fields=pick_fields,
+            )),
             ("warning_codes", warning_codes),
             ("policy", OrderedDict([
                 ("store_full_ir_in_yaml", False),
@@ -8425,7 +8431,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         }
 
     try:
-        from lib.ir import assess_ir_preview_alignment, build_normalized_flow, compact_flow_for_preview
+        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
         ir_flow = build_normalized_flow(har, source_name=har_path.name)
         ir_preview = compact_flow_for_preview(ir_flow)
         ir_alignment = assess_ir_preview_alignment(
@@ -8433,6 +8439,20 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             preview_steps=preview_copy,
             detected_vars=var_items,
             pick_fields=pick_fields,
+        )
+        ir_generation_bridge = build_ir_yaml_bridge(
+            ir_flow,
+            preview_steps,
+            vars_meta=OrderedDict(
+                (item.get("name"), OrderedDict((k, v) for k, v in item.items() if k != "name"))
+                for item in var_items
+                if item.get("name")
+            ),
+            pick_fields=OrderedDict(
+                (item.get("id"), OrderedDict((k, v) for k, v in item.items() if k != "id"))
+                for item in pick_fields
+                if item.get("id")
+            ),
         )
     except Exception as e:
         log.warning("HAR IR 对齐诊断失败（非致命）: %s", e)
@@ -8454,6 +8474,19 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "summary": f"IR 对齐诊断失败: {type(e).__name__}: {e}",
             "issues": [{"severity": "medium", "code": "ir_alignment_failed", "message": str(e), "suggestion": "查看 HAR 是否可正常脱敏和规范化。"}],
             "checks": {},
+        }
+        ir_generation_bridge = {
+            "schema_version": "0.1",
+            "source": "normalized_flow_to_generated_yaml",
+            "status": "diagnostic_failed",
+            "mode": "shadow_contract",
+            "coverage_score": 0,
+            "summary": f"IR bridge 失败: {type(e).__name__}: {e}",
+            "checks": {},
+            "role_requirements": [],
+            "uncovered_roles": [],
+            "step_role_map": [],
+            "migration_policy": {"current_generator": "har_extractor_main", "bridge_mode": "observe_and_validate"},
         }
 
     readback_plan = _build_preview_readback_plan(main_form, var_items)
@@ -8522,6 +8555,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "recorded_pageid_flow": recorded_pageid_flow,
         "ir_preview": ir_preview,
         "ir_alignment": ir_alignment,
+        "ir_generation_bridge": ir_generation_bridge,
         "steps": [
             {
                 "id": s.get("id"),
