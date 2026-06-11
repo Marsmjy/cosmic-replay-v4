@@ -6,6 +6,7 @@ from scripts.har_execute_regression import (
     _classify_failure,
     _compare_baseline,
     _detect_recorded_env,
+    _write_markdown,
 )
 
 
@@ -145,3 +146,43 @@ def test_detect_recorded_env_uses_har_host_and_base_path(tmp_path):
     assert detected["env_id"] == "sit"
     assert detected["recorded_host"] == "feature.kingdee.com:1026"
     assert detected["recorded_base_path"] == "feature_sit_hrpro"
+
+
+def test_markdown_labels_passed_non_blocking_failed_steps_as_diagnostics(tmp_path):
+    report = {
+        "generated_at": "2026-06-11T00:00:00",
+        "env": "auto",
+        "har_dir": "/local/hars",
+        "sample_count": 1,
+        "parse_ok": 1,
+        "exec_pass": 1,
+        "exec_total": 1,
+        "first_success_verified": 0,
+        "readback_verified": 0,
+        "execution_duration_s": 1,
+        "baseline_path": "/tmp/baseline.json",
+        "results": [
+            {
+                "id": "01_sample",
+                "title": "样本",
+                "recorded_env": "sit",
+                "recorded_host": "feature.kingdee.com:1026",
+                "execution_env": "sit",
+                "failure_kind": "passed",
+                "parse": {"status": "ok", "main_form_id": "form_a", "step_count": 3},
+                "execution": {
+                    "status": "done",
+                    "passed": True,
+                    "duration_s": 1,
+                    "failed_steps": [{"id": "advisory_lookup", "error": "optional dynamic row not found"}],
+                },
+            }
+        ],
+    }
+    path = tmp_path / "summary.md"
+
+    _write_markdown(path, report)
+
+    text = path.read_text(encoding="utf-8")
+    assert "非阻断诊断：`advisory_lookup`" in text
+    assert "失败步骤：`advisory_lookup`" not in text

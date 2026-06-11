@@ -223,7 +223,10 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         failed_steps = execution.get("failed_steps") or []
         if failed_steps:
             first = failed_steps[0]
-            lines.append(f"- 失败步骤：`{first.get('id', '')}`；{first.get('error', '')[:220]}")
+            if execution.get("passed"):
+                lines.append(f"- 非阻断诊断：`{first.get('id', '')}`；{first.get('error', '')[:220]}")
+            else:
+                lines.append(f"- 失败步骤：`{first.get('id', '')}`；{first.get('error', '')[:220]}")
         write_events = execution.get("write_events") or []
         if write_events:
             tokens = sorted({token for event in write_events for token in (event.get("response_tokens") or [])})
