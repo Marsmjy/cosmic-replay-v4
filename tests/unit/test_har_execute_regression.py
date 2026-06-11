@@ -61,6 +61,9 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                     "ir_bridge_coverage_score": 100,
                     "ir_bridge_uncovered_count": 0,
                     "ir_bridge_uncovered_write_or_edit_count": 0,
+                    "ir_navigation_status": "applied",
+                    "ir_navigation_matched_count": 2,
+                    "ir_navigation_unmatched_count": 0,
                     "response_signature_step_count": 1,
                     "recorded_pageid_exact_link_count": 3,
                     "recorded_pageid_external_root_count": 1,
@@ -88,6 +91,8 @@ def test_baseline_view_keeps_value_safe_execution_shape():
     assert baseline["samples"][0]["ir_step_count"] == 3
     assert baseline["samples"][0]["ir_bridge_coverage_score"] == 100
     assert baseline["samples"][0]["ir_bridge_uncovered_write_or_edit_count"] == 0
+    assert baseline["samples"][0]["ir_navigation_status"] == "applied"
+    assert baseline["samples"][0]["ir_navigation_matched_count"] == 2
     assert "stdout_tail" not in baseline["samples"][0]
 
 

@@ -654,6 +654,21 @@ GET /api/tasks/{task_id}/agent-evidence/{case_name}
 
 **正确替代方案**: 运行时三层防护（预验证 + auto-open + 安全网重试）
 
+### IR 动作粒度与导航策略
+
+**结论**: 苍穹 `batchInvokeAction` 必须按 action 粒度进入 IR，不能把一个 HTTP entry 简化成一个 step。
+
+**原因**:
+1. 同一个请求内可能同时包含 `updateValue`、`menuItemClick`、`click(save)` 等不同语义动作。
+2. 只按 HTTP entry 建模会漏掉编辑/写入角色，也无法与 YAML 的 `_har_index + _har_action_index` 精确对齐。
+3. 真实 HAR 的动作载荷既可能位于 `actions`，也可能位于 `params`；两种都必须解析，但 IR 只能保存 `key/method/args_shape/post_data_shape`，不得沉淀原始业务值。
+
+**排查方式**:
+- 查看 `ir_preview.source_har.action_count` 是否大于等于 `api_entry_count`。
+- 查看 `ir_navigation_policy.matched_yaml_count/unmatched_ir_count`；存在 unmatched 时先确认该动作是否被 noise 过滤、是否是尚未迁移的 `invokeAction.do` 导航动作，不能直接硬补 pageId。
+- 查看 `ir_contract.navigation_policy.stage=stage_1_navigation_list`，确认菜单/L2/装饰导航策略已经由 action 级 IR 参与判定。
+- 修改 IR 解析或导航策略后，必须重新跑 13 条 HAR baseline；要求执行结果、pageId 链路、维护字段和响应契约无回归。
+
 ---
 
 ## 八、关键文件索引

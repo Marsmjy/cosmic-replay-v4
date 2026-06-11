@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = "0.2"
 
 ROLE_REQUIREMENTS = {
     "navigation": {
@@ -77,6 +77,9 @@ def build_ir_yaml_bridge(
             "app_id": str(request.get("app_id") or page.get("app_id") or ""),
             "ac": str(request.get("ac") or ""),
             "method": str(request.get("invoke_method") or request.get("method") or ""),
+            "key": str((request.get("action") or {}).get("key") or ""),
+            "source_index": step.get("source_index"),
+            "action_index": step.get("action_index"),
             "expected_pageid_role": str(page.get("expected_role") or ""),
         }
         match = _best_yaml_match(signature, yaml_candidates, used_yaml_indexes)
@@ -94,6 +97,9 @@ def build_ir_yaml_bridge(
             "app_id": signature["app_id"],
             "ac": signature["ac"],
             "method": signature["method"],
+            "key": signature["key"],
+            "source_index": signature["source_index"],
+            "action_index": signature["action_index"],
             "expected_pageid_role": signature["expected_pageid_role"],
             "coverage": coverage,
             "yaml_step_id": match.get("id", "") if match else "",
@@ -180,7 +186,7 @@ def build_ir_yaml_bridge(
     }
 
 
-def _best_yaml_match(signature: dict[str, str], candidates: list[dict[str, Any]], used: set[int]) -> dict[str, Any]:
+def _best_yaml_match(signature: dict[str, Any], candidates: list[dict[str, Any]], used: set[int]) -> dict[str, Any]:
     best: dict[str, Any] = {}
     best_score = 0
     for candidate in candidates:
@@ -205,6 +211,15 @@ def _best_yaml_match(signature: dict[str, str], candidates: list[dict[str, Any]]
         if signature["method"] and candidate["method"] == signature["method"]:
             score += 2
             reasons.append("method")
+        if signature["key"] and candidate["key"] == signature["key"]:
+            score += 2
+            reasons.append("key")
+        if signature["source_index"] is not None and candidate["source_index"] == signature["source_index"]:
+            score += 4
+            reasons.append("source")
+            if candidate["action_index"] == signature["action_index"]:
+                score += 3
+                reasons.append("action")
         if signature["expected_pageid_role"] == "L2" and candidate["preserve_l2_page"]:
             score += 1
             reasons.append("l2")
@@ -227,6 +242,8 @@ def _yaml_candidate(step: dict[str, Any], index: int) -> dict[str, Any]:
         "method": str(step.get("method") or ""),
         "key": str(step.get("key") or ""),
         "preserve_l2_page": bool(step.get("preserve_l2_page")),
+        "source_index": step.get("_har_index"),
+        "action_index": step.get("_har_action_index"),
     }
 
 

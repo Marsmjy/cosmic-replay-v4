@@ -2701,7 +2701,7 @@ def extract_steps(har: dict) -> list[dict]:
                 actions = json.loads(params_raw) if params_raw else []
             except Exception:
                 actions = []
-            for action in actions:
+            for action_index, action in enumerate(actions):
                 if not isinstance(action, dict):
                     continue
                 key = str(action.get("key") or "")
@@ -2723,7 +2723,7 @@ def extract_steps(har: dict) -> list[dict]:
                 actions = []
             # ⭐ 捕获响应体（用于提取 setItemByIdFromClient 的 value_name）
             _resp_text = (entry.get("response") or {}).get("content", {}).get("text", "") or ""
-            for action in actions:
+            for action_index, action in enumerate(actions):
                 if not isinstance(action, dict):
                     continue
                 counter += 1
@@ -2741,6 +2741,7 @@ def extract_steps(har: dict) -> list[dict]:
                     tier = "core"
                 step_dict: dict[str, Any] = {
                     "_har_index": i,
+                    "_har_action_index": action_index,
                     "type": "invoke",
                     "id": name,
                     "form_id": form_id,
@@ -4411,6 +4412,8 @@ def _compact_ir_contract_for_yaml(
     yaml_steps: list[dict[str, Any]],
     vars_meta: Mapping[str, Any],
     pick_fields: Mapping[str, Any],
+    ir_flow: Mapping[str, Any] | None = None,
+    navigation_policy: Mapping[str, Any] | None = None,
 ) -> OrderedDict:
     """Build a value-safe IR contract section for generated YAML.
 
@@ -4421,7 +4424,7 @@ def _compact_ir_contract_for_yaml(
     try:
         from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
 
-        flow = build_normalized_flow(har, source_name=source_name)
+        flow = dict(ir_flow) if isinstance(ir_flow, Mapping) else build_normalized_flow(har, source_name=source_name)
         ir_preview = compact_flow_for_preview(flow)
         alignment = assess_ir_preview_alignment(
             flow,
@@ -4491,6 +4494,7 @@ def _compact_ir_contract_for_yaml(
                 vars_meta=vars_meta,
                 pick_fields=pick_fields,
             )),
+            ("navigation_policy", dict(navigation_policy or {})),
             ("warning_codes", warning_codes),
             ("policy", OrderedDict([
                 ("store_full_ir_in_yaml", False),
@@ -6721,6 +6725,12 @@ def build_yaml_case(
     include_readback_assertions: bool = False,
 ) -> str:
     har = load_har(har_path)
+    try:
+        from lib.ir import build_normalized_flow
+        ir_flow = build_normalized_flow(har, source_name=har_path.name)
+    except Exception as exc:
+        log.warning("HAR IR 构建失败，主解析链路继续执行: %s", exc)
+        ir_flow = {}
     field_observations = _collect_har_field_observations(har)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
@@ -6802,7 +6812,16 @@ def build_yaml_case(
             s.pop("optional", None)
 
     # 列表/树进入卡片的桥接步骤一旦失败，后面的默认组织/上下文都会失真，不能 optional。
-    _mark_context_bridge_steps_required(cleaned, main_form)
+    try:
+        from lib.ir import apply_ir_navigation_policy
+        navigation_policy = apply_ir_navigation_policy(
+            ir_flow,
+            cleaned,
+            main_form=main_form,
+            decorative_form_ids=_NAVIGATION_FORM_IDS,
+        )
+    except Exception:
+        _mark_context_bridge_steps_required(cleaned, main_form)
 
     # ⭐ 规则14 已禁用 — 静态插入 loadData 缺乏运行时上下文，可能干扰 pageId 状态
     # 等效保护由 runner.py 的安全网重试（invoke_retry）和 pageId 预验证（_validate_pageid_before_invoke）提供
@@ -6830,7 +6849,24 @@ def build_yaml_case(
 
     # 推断主表单（在 release 清理 + 门户截断后重新推断，结果更准确）
     main_form = infer_main_form(cleaned)
-    _mark_context_bridge_steps_required(cleaned, main_form)
+    try:
+        from lib.ir import apply_ir_navigation_policy
+        navigation_policy = apply_ir_navigation_policy(
+            ir_flow,
+            cleaned,
+            main_form=main_form,
+            decorative_form_ids=_NAVIGATION_FORM_IDS,
+        )
+    except Exception as exc:
+        log.warning("IR 导航策略应用失败，回退到旧规则: %s", exc)
+        _mark_context_bridge_steps_required(cleaned, main_form)
+        navigation_policy = {
+            "schema_version": 1,
+            "stage": "stage_1_navigation_list",
+            "mode": "fallback",
+            "status": "diagnostic_failed",
+            "error": type(exc).__name__,
+        }
 
     # ⭐ 规则13：menuItemClick → 自动绑定 target_form + target_forms + 移除冗余 open_form
     # 苍穹菜单导航：menuItemClick 创建 L2 pageId ({menuId}root{baseId})，
@@ -7080,7 +7116,15 @@ def build_yaml_case(
         meta_resolver=meta_resolver,
     )
     cleaned = _drop_portal_side_effect_steps(cleaned, main_form)
-    _mark_navigation_steps_optional(cleaned, main_form)
+    try:
+        navigation_policy = apply_ir_navigation_policy(
+            ir_flow,
+            cleaned,
+            main_form=main_form,
+            decorative_form_ids=_NAVIGATION_FORM_IDS,
+        )
+    except Exception:
+        _mark_navigation_steps_optional(cleaned, main_form)
 
     # ⭐ step ID 去重：同名 ID 加数字后缀
     _dedupe_step_ids(cleaned)
@@ -7694,6 +7738,8 @@ def build_yaml_case(
             yaml_steps=yaml_steps,
             vars_meta=built_vars_meta,
             pick_fields=pick_fields_map,
+            ir_flow=ir_flow,
+            navigation_policy=navigation_policy,
         )),
         ("steps", yaml_steps),
         ("assertions", _build_default_assertions(yaml_steps)),
@@ -7848,6 +7894,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     """只预览不落盘。供 webui 展示用。"""
     import copy
     har = load_har(har_path)
+    try:
+        from lib.ir import build_normalized_flow
+        ir_flow = build_normalized_flow(har, source_name=har_path.name)
+    except Exception as exc:
+        log.warning("HAR IR 构建失败，预览主链路继续执行: %s", exc)
+        ir_flow = {}
     field_observations = _collect_har_field_observations(har)
     raw_steps = extract_steps(har)
     raw_steps = dedup_open_forms(raw_steps)
@@ -7870,7 +7922,24 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         meta_resolver=meta_resolver,
     )
     preview_steps = _drop_locked_update_fields(preview_steps, field_observations)
-    _mark_navigation_steps_optional(preview_steps, main_form)
+    try:
+        from lib.ir import apply_ir_navigation_policy
+        ir_navigation_policy = apply_ir_navigation_policy(
+            ir_flow,
+            preview_steps,
+            main_form=main_form,
+            decorative_form_ids=_NAVIGATION_FORM_IDS,
+        )
+    except Exception as exc:
+        log.warning("预览 IR 导航策略应用失败，回退到旧规则: %s", exc)
+        _mark_navigation_steps_optional(preview_steps, main_form)
+        ir_navigation_policy = {
+            "schema_version": 1,
+            "stage": "stage_1_navigation_list",
+            "mode": "fallback",
+            "status": "diagnostic_failed",
+            "error": type(exc).__name__,
+        }
     _preview_app_id = next((s.get("app_id", "") for s in preview_steps if s.get("form_id") == main_form), "")
     preview_steps = _append_recorded_default_pick_steps(
         preview_steps,
@@ -8431,8 +8500,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         }
 
     try:
-        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
-        ir_flow = build_normalized_flow(har, source_name=har_path.name)
+        from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, compact_flow_for_preview
         ir_preview = compact_flow_for_preview(ir_flow)
         ir_alignment = assess_ir_preview_alignment(
             ir_flow,
@@ -8556,6 +8624,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "ir_preview": ir_preview,
         "ir_alignment": ir_alignment,
         "ir_generation_bridge": ir_generation_bridge,
+        "ir_navigation_policy": ir_navigation_policy,
         "steps": [
             {
                 "id": s.get("id"),

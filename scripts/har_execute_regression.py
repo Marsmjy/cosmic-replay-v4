@@ -154,6 +154,7 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
     ir_preview = preview.get("ir_preview") or {}
     ir_bridge = preview.get("ir_generation_bridge") or {}
     bridge_checks = ir_bridge.get("checks") or {}
+    ir_navigation = preview.get("ir_navigation_policy") or {}
     return {
         "status": "ok",
         "main_form_id": preview.get("main_form_id", ""),
@@ -185,6 +186,9 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "ir_bridge_coverage_score": ir_bridge.get("coverage_score", 0),
         "ir_bridge_uncovered_count": bridge_checks.get("uncovered_count", 0),
         "ir_bridge_uncovered_write_or_edit_count": bridge_checks.get("uncovered_write_or_edit_count", 0),
+        "ir_navigation_status": ir_navigation.get("status", ""),
+        "ir_navigation_matched_count": ir_navigation.get("matched_yaml_count", 0),
+        "ir_navigation_unmatched_count": ir_navigation.get("unmatched_ir_count", 0),
     }
 
 
@@ -230,6 +234,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- pageId 精确链路：links={(item.get('parse') or {}).get('recorded_pageid_exact_link_count', 0)}，external={(item.get('parse') or {}).get('recorded_pageid_external_root_count', 0)}，filtered={(item.get('parse') or {}).get('recorded_pageid_filtered_source_count', 0)}，cross_form={(item.get('parse') or {}).get('recorded_pageid_cross_form_count', 0)}",
                 f"- IR 对齐：grade={(item.get('parse') or {}).get('ir_grade', '')}，risk={(item.get('parse') or {}).get('ir_risk_level', '')}，issues={(item.get('parse') or {}).get('ir_issue_count', 0)}，warnings={(item.get('parse') or {}).get('ir_warning_count', 0)}，ir_steps={(item.get('parse') or {}).get('ir_step_count', 0)}",
                 f"- IR 生成桥：status={(item.get('parse') or {}).get('ir_bridge_status', '')}，coverage={(item.get('parse') or {}).get('ir_bridge_coverage_score', 0)}，uncovered={(item.get('parse') or {}).get('ir_bridge_uncovered_count', 0)}，write/edit未覆盖={(item.get('parse') or {}).get('ir_bridge_uncovered_write_or_edit_count', 0)}",
+                f"- IR 导航策略：status={(item.get('parse') or {}).get('ir_navigation_status', '')}，matched={(item.get('parse') or {}).get('ir_navigation_matched_count', 0)}，unmatched={(item.get('parse') or {}).get('ir_navigation_unmatched_count', 0)}",
                 f"- 响应契约：critical={(item.get('parse') or {}).get('response_contract_critical_count', 0)}，business={(item.get('parse') or {}).get('response_contract_business_count', 0)}，advisory={(item.get('parse') or {}).get('response_contract_advisory_count', 0)}",
                 f"- 请求契约：步骤={(item.get('parse') or {}).get('request_signature_step_count', 0)}，失败={execution.get('request_contract_failure_count', 0)}，告警={execution.get('request_contract_warning_count', 0)}",
                 f"- 执行：{status}，分类 `{item.get('failure_kind', '')}`，耗时 {execution.get('duration_s', 0)}s，响应契约失败={execution.get('response_contract_failure_count', 0)}，响应契约告警={execution.get('response_contract_warning_count', 0)}",
@@ -472,6 +477,9 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "ir_bridge_coverage_score": parse.get("ir_bridge_coverage_score", 0),
                 "ir_bridge_uncovered_count": parse.get("ir_bridge_uncovered_count", 0),
                 "ir_bridge_uncovered_write_or_edit_count": parse.get("ir_bridge_uncovered_write_or_edit_count", 0),
+                "ir_navigation_status": parse.get("ir_navigation_status", ""),
+                "ir_navigation_matched_count": parse.get("ir_navigation_matched_count", 0),
+                "ir_navigation_unmatched_count": parse.get("ir_navigation_unmatched_count", 0),
                 "execution_status": execution.get("status", ""),
                 "passed": bool(execution.get("passed")),
                 "failure_kind": item.get("failure_kind", ""),
@@ -542,6 +550,9 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "ir_bridge_coverage_score",
         "ir_bridge_uncovered_count",
         "ir_bridge_uncovered_write_or_edit_count",
+        "ir_navigation_status",
+        "ir_navigation_matched_count",
+        "ir_navigation_unmatched_count",
         "recorded_env",
         "recorded_host",
         "recorded_base_path",

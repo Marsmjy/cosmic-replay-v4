@@ -97,6 +97,14 @@ def _redact_mapping(values: dict[str, list[str]], *, prefix: str) -> tuple[dict[
     result: dict[str, Any] = {}
     redactions: list[dict[str, str]] = []
     for key, raw_values in (values or {}).items():
+        if str(key).lower() in {"actions", "params"}:
+            result[key] = "${ACTION_PAYLOAD}"
+            redactions.append({
+                "location": f"{prefix}.{key}",
+                "type": "action_payload",
+                "replacement": "${ACTION_PAYLOAD}",
+            })
+            continue
         out_values = []
         for idx, value in enumerate(raw_values or [""]):
             redacted, record = redact_value(key, value, location=f"{prefix}.{key}[{idx}]")
@@ -120,16 +128,20 @@ def _parse_json_body(text: str) -> Any:
 
 
 def _extract_actions(body_params: dict[str, list[str]], body_json: Any) -> list[Any]:
-    raw = _first(body_params.get("actions"))
-    if raw:
+    for key in ("actions", "params"):
+        raw = _first(body_params.get(key))
+        if not raw:
+            continue
         try:
             value = json.loads(raw)
             return value if isinstance(value, list) else [value]
         except Exception:
-            return []
+            continue
     if isinstance(body_json, dict):
-        actions = body_json.get("actions")
-        return actions if isinstance(actions, list) else []
+        for key in ("actions", "params"):
+            actions = body_json.get(key)
+            if isinstance(actions, list):
+                return actions
     return []
 
 

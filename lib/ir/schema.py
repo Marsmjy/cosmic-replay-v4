@@ -6,7 +6,7 @@ from typing import Any
 from .detector import enrich_entries
 from .normalizer import normalize_har_entries
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = "0.2"
 
 
 def build_normalized_flow(
@@ -22,7 +22,10 @@ def build_normalized_flow(
     responses: dict[str, Any] = {}
     warnings: list[dict[str, str]] = []
 
-    for step, entry in zip(enriched["steps"], normalized["entries"]):
+    for step, unit in zip(enriched["steps"], enriched["units"]):
+        entry = unit["entry"]
+        action = unit["action"]
+        signals = unit["signals"]
         requests[step["request_ref"]] = {
             "method": entry.get("method", ""),
             "path": entry.get("path", ""),
@@ -30,10 +33,13 @@ def build_normalized_flow(
             "headers": entry.get("request", {}).get("headers", {}),
             "query": entry.get("request", {}).get("query", {}),
             "body": entry.get("request", {}).get("body_params", {}),
-            "form_id": entry.get("signals", {}).get("form_id", ""),
-            "app_id": entry.get("signals", {}).get("app_id", ""),
-            "ac": entry.get("signals", {}).get("ac", ""),
-            "invoke_method": entry.get("signals", {}).get("method", ""),
+            "form_id": signals.get("form_id", ""),
+            "app_id": signals.get("app_id", ""),
+            "ac": signals.get("ac", ""),
+            "invoke_method": signals.get("method", ""),
+            "action": _safe_action_shape(action, action_index=unit["action_index"]),
+            "source_index": unit["source_index"],
+            "action_index": unit["action_index"],
         }
         responses[step["response_ref"]] = entry.get("response", {})
 
@@ -51,6 +57,7 @@ def build_normalized_flow(
             "file_name": source_name,
             "entry_count": normalized["entry_count"],
             "api_entry_count": normalized["api_entry_count"],
+            "action_count": len(enriched["steps"]),
             "redacted": True,
             "raw_har_committed": False,
         },
@@ -85,6 +92,7 @@ def compact_flow_for_preview(flow: dict[str, Any]) -> dict[str, Any]:
         "source_har": {
             "entry_count": (flow.get("source_har") or {}).get("entry_count", 0),
             "api_entry_count": (flow.get("source_har") or {}).get("api_entry_count", 0),
+            "action_count": (flow.get("source_har") or {}).get("action_count", len(flow.get("steps") or [])),
             "redacted": True,
         },
         "step_count": len(flow.get("steps") or []),
@@ -95,6 +103,8 @@ def compact_flow_for_preview(flow: dict[str, Any]) -> dict[str, Any]:
             {
                 "id": step.get("id", ""),
                 "role": step.get("role", ""),
+                "source_index": step.get("source_index"),
+                "action_index": step.get("action_index"),
                 "page_ref": step.get("page_ref", ""),
                 "confidence_score": step.get("confidence_score", 0),
             }
@@ -106,6 +116,8 @@ def compact_flow_for_preview(flow: dict[str, Any]) -> dict[str, Any]:
                 "app_id": page.get("app_id", ""),
                 "pageid_type": page.get("pageid_type", ""),
                 "expected_role": page.get("expected_role", ""),
+                "source_index": page.get("source_index"),
+                "action_index": page.get("action_index"),
                 "confidence_score": page.get("confidence_score", 0),
             }
             for page in (flow.get("pages") or [])[:20]
@@ -179,3 +191,35 @@ def _build_assertions(steps: list[dict[str, Any]], responses: dict[str, Any]) ->
                     "reason": "generic_common_search_not_form_specific",
                 })
     return assertions
+
+
+def _safe_action_shape(action: dict[str, Any], *, action_index: int) -> dict[str, Any]:
+    if not isinstance(action, dict) or not action:
+        return {
+            "index": action_index,
+            "key": "",
+            "method": "",
+            "args_shape": [],
+            "post_data_shape": [],
+        }
+    return {
+        "index": action_index,
+        "key": str(action.get("key") or ""),
+        "method": str(action.get("methodName") or action.get("method") or ""),
+        "args_shape": [_value_shape(value) for value in (action.get("args") or [])],
+        "post_data_shape": [_value_shape(value) for value in (action.get("postData") or [])],
+    }
+
+
+def _value_shape(value: Any) -> str:
+    if isinstance(value, dict):
+        return "dict"
+    if isinstance(value, list):
+        return "list"
+    if isinstance(value, bool):
+        return "bool"
+    if value is None:
+        return "null"
+    if isinstance(value, (int, float)):
+        return "number"
+    return "string"

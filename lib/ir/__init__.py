@@ -5,12 +5,14 @@ dependencies, variables and assertion policy without persisting raw cookies,
 tokens or full pageIds.
 """
 
-from .schema import build_normalized_flow, compact_flow_for_preview, validate_normalized_flow
 from .alignment import assess_ir_preview_alignment
+from .navigation import apply_ir_navigation_policy
+from .schema import build_normalized_flow, compact_flow_for_preview, validate_normalized_flow
 from .yaml_bridge import build_ir_yaml_bridge, classify_yaml_step_role
 
 __all__ = [
     "assess_ir_preview_alignment",
+    "apply_ir_navigation_policy",
     "build_ir_yaml_bridge",
     "build_normalized_flow",
     "classify_yaml_step_role",

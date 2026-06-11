@@ -6,7 +6,13 @@ from pathlib import Path
 import yaml
 
 from lib.har_extractor import build_yaml_case, preview_har
-from lib.ir import assess_ir_preview_alignment, build_ir_yaml_bridge, build_normalized_flow, compact_flow_for_preview
+from lib.ir import (
+    apply_ir_navigation_policy,
+    assess_ir_preview_alignment,
+    build_ir_yaml_bridge,
+    build_normalized_flow,
+    compact_flow_for_preview,
+)
 from lib.ir.dry_run import dry_run_flow, dry_run_yaml_case
 from lib.ir.normalizer import normalize_har_entries
 from lib.ir.sanitizer import sanitize_har, scan_sensitive_text
@@ -73,6 +79,65 @@ def _synthetic_har() -> dict:
     }
 
 
+def _multi_action_har() -> dict:
+    page_id = "456root0123456789abcdef0123456789abcdef"
+    actions = [
+        {
+            "key": "field_a",
+            "methodName": "updateValue",
+            "args": ["业务值"],
+            "postData": [{}, []],
+        },
+        {
+            "key": "tbmain",
+            "methodName": "click",
+            "args": ["bar_save", "save"],
+            "postData": [{}, []],
+        },
+    ]
+    return {
+        "log": {
+            "entries": [{
+                "request": {
+                    "method": "POST",
+                    "url": "https://example.invalid/ierp/form/batchInvokeAction.do?appId=demo&f=demo_form&ac=click",
+                    "headers": [],
+                    "postData": {
+                        "mimeType": "application/x-www-form-urlencoded",
+                        "text": "pageId=" + page_id + "&params=" + json.dumps(actions, ensure_ascii=False),
+                    },
+                },
+                "response": {"status": 200, "content": {"text": "[]"}},
+            }],
+        }
+    }
+
+
+def _navigation_har() -> dict:
+    actions = [{
+        "key": "appnavigationmenuap",
+        "methodName": "menuItemClick",
+        "args": [{"menuId": "123"}],
+        "postData": [{}, []],
+    }]
+    return {
+        "log": {
+            "entries": [{
+                "request": {
+                    "method": "POST",
+                    "url": "https://example.invalid/ierp/form/batchInvokeAction.do?appId=bos&f=bos_portal_myapp_new&ac=menuItemClick",
+                    "headers": [],
+                    "postData": {
+                        "mimeType": "application/x-www-form-urlencoded",
+                        "text": "pageId=" + PAGE_ID + "&actions=" + json.dumps(actions),
+                    },
+                },
+                "response": {"status": 200, "content": {"text": "[]"}},
+            }],
+        }
+    }
+
+
 def test_sanitize_har_redacts_secret_headers_and_pageids():
     sanitized, redactions = sanitize_har(_synthetic_har())
     payload = json.dumps(sanitized, ensure_ascii=False)
@@ -110,6 +175,47 @@ def test_build_normalized_flow_and_preview_are_redacted():
     assert "secret-token" not in payload
     assert EDIT_PAGE_ID not in payload
     assert scan_sensitive_text(payload) == []
+
+
+def test_ir_expands_batch_request_to_action_level_without_persisting_values():
+    flow = build_normalized_flow(_multi_action_har(), source_name="multi.har")
+    payload = json.dumps(flow, ensure_ascii=False)
+
+    assert flow["source_har"]["api_entry_count"] == 1
+    assert flow["source_har"]["action_count"] == 2
+    assert [step["role"] for step in flow["steps"]] == ["edit", "write"]
+    assert [step["action_index"] for step in flow["steps"]] == [0, 1]
+    assert len(flow["request"]) == 2
+    assert "业务值" not in payload
+    assert all("args_shape" in request["action"] for request in flow["request"].values())
+
+
+def test_ir_navigation_policy_uses_exact_action_provenance():
+    flow = build_normalized_flow(_navigation_har(), source_name="navigation.har")
+    steps = [{
+        "_har_index": 0,
+        "_har_action_index": 0,
+        "id": "menu",
+        "type": "invoke",
+        "form_id": "bos_portal_myapp_new",
+        "app_id": "bos",
+        "ac": "menuItemClick",
+        "key": "appnavigationmenuap",
+        "method": "menuItemClick",
+    }]
+
+    report = apply_ir_navigation_policy(
+        flow,
+        steps,
+        main_form="demo_list",
+        decorative_form_ids={"bos_portal_myapp_new"},
+    )
+
+    assert report["status"] == "applied"
+    assert report["matched_yaml_count"] == 1
+    assert steps[0]["preserve_l2_page"] is True
+    assert steps[0]["target_form"] == "demo_list"
+    assert steps[0]["resolve_by"] == "menu_path_or_form"
 
 
 def test_ir_alignment_detects_missing_write_coverage():
@@ -203,6 +309,7 @@ def test_build_yaml_case_includes_value_safe_ir_contract(tmp_path: Path):
     assert case["ir_contract"]["coverage"]["yaml_step_count"] >= 0
     assert case["ir_contract"]["generation_bridge"]["mode"] == "shadow_contract"
     assert case["ir_contract"]["generation_bridge"]["checks"]["ir_step_count"] >= 1
+    assert case["ir_contract"]["navigation_policy"]["stage"] == "stage_1_navigation_list"
     assert case["ir_contract"]["alignment"]["risk_level"] in {"low", "medium", "high"}
     assert "secret-token" not in payload
     assert EDIT_PAGE_ID not in payload
@@ -219,6 +326,7 @@ def test_preview_har_includes_ir_preview_without_changing_main_preview(tmp_path:
     assert preview["ir_alignment"]["checks"]["ir_api_entry_count"] == 1
     assert preview["ir_generation_bridge"]["mode"] == "shadow_contract"
     assert preview["ir_generation_bridge"]["checks"]["ir_step_count"] == 1
+    assert preview["ir_navigation_policy"]["stage"] == "stage_1_navigation_list"
     assert preview["ir_preview"]["sensitive_field_count"] >= 3
     assert "main_form_id" in preview
 
