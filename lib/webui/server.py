@@ -545,7 +545,24 @@ def api_get_case_yaml(name: str):
     p = case_path_from_name(name)
     if not p.exists():
         raise HTTPException(404, f"用例不存在: {name}")
-    return {"name": name, "yaml": p.read_text(encoding="utf-8")}
+    source = p.read_text(encoding="utf-8")
+    field_catalog = []
+    generation_gate = {}
+    try:
+        case = load_yaml(p)
+        if isinstance(case, dict):
+            field_catalog = case.get("field_catalog") if isinstance(case.get("field_catalog"), list) else []
+            from lib.case_contract import build_case_contract
+
+            generation_gate = build_case_contract(case).get("generation_gate") or {}
+    except Exception:
+        pass
+    return {
+        "name": name,
+        "yaml": source,
+        "field_catalog": field_catalog,
+        "generation_gate": generation_gate,
+    }
 
 
 @APP.put("/api/cases/{name:path}/yaml")
@@ -1520,11 +1537,32 @@ def api_har_extract(body: dict = Body(...)):
             meta_resolver=meta_resolver,
             include_readback_assertions=bool(body.get("include_readback_assertions")),
         )
+        import yaml
+        parsed_case = yaml.safe_load(yaml_text) or {}
+        generation_gate = (
+            parsed_case.get("generation_gate")
+            if isinstance(parsed_case, dict)
+            and isinstance(parsed_case.get("generation_gate"), dict)
+            else {}
+        )
+        if generation_gate and not generation_gate.get("allow_generate", True):
+            blockers = [
+                str(item.get("message") or item.get("code") or "")
+                for item in generation_gate.get("issues") or []
+                if isinstance(item, dict) and item.get("blocks_generate")
+            ]
+            detail = "；".join(item for item in blockers if item) or "首次成功门槛未通过"
+            raise HTTPException(
+                422,
+                {
+                    "message": "当前 HAR 不能安全生成可执行 YAML。",
+                    "reason": detail,
+                    "generation_gate": generation_gate,
+                },
+            )
         field_type_catalog_status = {"enabled": False, "entity_count": 0, "field_count": 0}
         if meta_resolver:
             try:
-                import yaml
-                parsed_case = yaml.safe_load(yaml_text) or {}
                 if isinstance(parsed_case, dict):
                     field_type_catalog_status = _persist_field_type_catalog(
                         meta_resolver,
@@ -1556,7 +1594,10 @@ def api_har_extract(body: dict = Body(...)):
         return {"ok": True, "name": case_name, "file": str(out_path.relative_to(SKILL_ROOT)),
                 "overwritten": overwritten, "action": action,
                 "renamed_from": renamed_from,
+                "generation_gate": generation_gate,
                 "field_type_catalog_status": field_type_catalog_status}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"抽取失败: {e}")
 

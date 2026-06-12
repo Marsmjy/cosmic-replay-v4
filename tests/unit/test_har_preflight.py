@@ -186,7 +186,7 @@ def test_preflight_blocks_uncovered_ir_write_anchor_and_missing_contract():
     assert "ir_write_contract_missing" in codes
 
 
-def test_preflight_blocks_uncovered_high_risk_complex_interaction():
+def test_preflight_requires_review_but_does_not_block_on_interaction_heuristic_alone():
     result = assess_har_preflight(
         main_form_id="demo_form",
         tier_counts={"core": 3, "ui_reaction": 0, "noise": 0},
@@ -207,7 +207,8 @@ def test_preflight_blocks_uncovered_high_risk_complex_interaction():
         },
     )
 
-    assert result["decision"] == "blocked"
+    assert result["decision"] == "risky"
+    assert result["allow_generate"] is True
     assert any(
         issue["code"] == "ir_complex_interaction_uncovered"
         for issue in result["issues"]

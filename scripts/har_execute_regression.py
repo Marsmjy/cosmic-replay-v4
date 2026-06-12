@@ -160,11 +160,23 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
     write_bridge_checks = ir_write_bridge.get("checks") or {}
     ir_navigation = preview.get("ir_navigation_policy") or {}
     scenario = preview.get("scenario") or {}
+    preflight = preview.get("preflight") or {}
+    generation_gate = preview.get("generation_gate") or preflight.get("generation_gate") or {}
     return {
         "status": "ok",
         "main_form_id": preview.get("main_form_id", ""),
         "scenario_kind": scenario.get("kind", ""),
         "scenario_stages": list(scenario.get("stages") or []),
+        "preflight_decision": preflight.get("decision", ""),
+        "preflight_allow_generate": bool(preflight.get("allow_generate", True)),
+        "generation_gate_decision": generation_gate.get("decision", ""),
+        "generation_gate_allow_generate": bool(generation_gate.get("allow_generate", True)),
+        "generation_gate_allow_run": bool(generation_gate.get("allow_run", True)),
+        "generation_gate_blocker_codes": sorted({
+            str(item.get("code") or "")
+            for item in generation_gate.get("issues") or []
+            if isinstance(item, dict) and item.get("blocks_generate") and item.get("code")
+        }),
         "step_count": len(preview.get("steps") or []),
         "vars_count": len(preview.get("detected_vars") or preview.get("vars") or []),
         "pick_fields_count": len(preview.get("pick_fields") or []),

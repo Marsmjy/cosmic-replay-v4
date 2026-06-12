@@ -329,9 +329,64 @@ def test_dynamic_query_entry_row_caps_legacy_retry_count(monkeypatch):
             "source_step_id": "search_bill",
             "requested_attempts": 40,
             "effective_attempts": 10,
-            "max_wait_seconds": 10,
+            "max_wait_seconds": 10.0,
+            "remaining_wait_seconds": 1.0,
         },
     )]
+
+
+def test_dynamic_query_entry_rows_share_one_case_retry_budget(monkeypatch):
+    monkeypatch.setattr(runner_mod.time, "sleep", lambda _seconds: None)
+    source_step = {
+        "id": "search_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "commonSearch",
+        "key": "filtercontainerap",
+        "method": "commonSearch",
+        "args": [[{"FieldName": ["billno"], "Value": ["NEW-BILL"]}]],
+        "post_data": [{}, []],
+    }
+    click_step = {
+        "id": "click_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "entryRowClick",
+        "key": "billlistap",
+        "post_data": [{"billlistap": {"selDatas": [["OLD-ID", "OLD-BILL"]]}}, []],
+        "dynamic_row_source_step_id": "search_bill",
+        "dynamic_row_grid_key": "billlistap",
+        "dynamic_row_field_map": ["id", "billno"],
+        "dynamic_row_retry_until_found": True,
+        "dynamic_row_max_attempts": 40,
+        "dynamic_row_interval_seconds": 1,
+    }
+
+    class EmptyReplay:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, *_args, **_kwargs):
+            self.calls += 1
+            return []
+
+    replay = EmptyReplay()
+    ctx = {
+        "case": {"steps": [source_step, click_step]},
+        "vars": {},
+        "step_responses": {"search_bill": []},
+        "response_history": [],
+        "dynamic_row_retry_budget_seconds": 10,
+        "dynamic_row_retry_wait_seconds": 9,
+    }
+
+    with pytest.raises(ProtocolError, match="after 2 attempts"):
+        _resolve_dynamic_query_entry_row(click_step, replay, ctx)
+
+    assert replay.calls == 1
+    assert ctx["dynamic_row_retry_wait_seconds"] == 10
 
 
 def test_maintenance_value_trace_accepts_resolved_basedata_code():

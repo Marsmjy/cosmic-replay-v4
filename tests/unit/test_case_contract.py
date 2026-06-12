@@ -64,6 +64,8 @@ def test_write_case_contract_exposes_environment_and_runtime_plans():
     assert contract["environment_binding_plan"]["summary"]["required_count"] == 1
     assert contract["environment_binding_plan"]["summary"]["static_id_risk_count"] == 1
     assert contract["environment_binding_plan"]["fields"][0]["interface"] == "getLookUpList"
+    assert contract["environment_binding_plan"]["fields"][0]["match_policy"] == "exactly_one"
+    assert contract["environment_binding_plan"]["fields"][0]["code_column"] == "number"
     assert "bill_id" in contract["runtime_value_flow_plan"]["summary"]["producer_kinds"]
     assert contract["write_anchor_plan"]["summary"]["write_anchor_count"] == 1
     assert "目标环境" in contract["ai_assistance"]["need_confirm"][0]
@@ -85,7 +87,9 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
         "maintainable_field_binding_plan",
         "write_anchor_plan",
         "runtime_value_flow_plan",
+        "pageid_source_graph",
         "execution_contract",
+        "generation_gate",
         "report_metadata",
     ):
         assert key in case
@@ -99,6 +103,49 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
     assert any(step.get("ir_sources") for step in case["steps"])
     assert case["cleanup"]["automatic"] is False
     assert case["report_metadata"]["value_safe"] is True
+    assert case["generation_gate"]["allow_generate"] is True
+    assert case["generation_gate"]["allow_run"] is True
+    assert case["pageid_source_graph"]["policy"]["static_pageid_values_included"] is False
+
+
+def test_generation_gate_allows_query_without_write_or_readback_contracts():
+    contract = build_case_contract({
+        "name": "query_only",
+        "steps": [{
+            "id": "query",
+            "type": "invoke",
+            "form_id": "demo_list",
+            "ac": "loadData",
+        }],
+        "assertions": [{"type": "no_error_actions", "last_step": True}],
+    })
+
+    assert contract["generation_gate"]["allow_generate"] is True
+    assert contract["generation_gate"]["allow_run"] is True
+    assert contract["generation_gate"]["policy"]["query_requires_write_verification"] is False
+
+
+def test_generation_gate_blocks_filtered_pageid_source_without_recovery():
+    contract = build_case_contract({
+        "name": "unsafe_pageid",
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "ac": "save",
+            "recorded_pageid_source_retained": False,
+            "pageid_recovery_strategy": "",
+        }],
+        "assertions": [
+            {"type": "no_error_actions", "last_step": True},
+            {"type": "no_save_failure", "step": "save_bill"},
+        ],
+    })
+
+    gate = contract["generation_gate"]
+    assert gate["allow_generate"] is False
+    assert gate["allow_run"] is False
+    assert any(item["code"] == "pageid_recovery_missing" for item in gate["issues"])
 
 
 def test_generic_dialog_ok_is_not_a_write_anchor():

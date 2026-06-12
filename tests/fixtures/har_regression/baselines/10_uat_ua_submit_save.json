@@ -12,8 +12,51 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_org_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_bizitemgroup_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_adminorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_cost_org_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "selector_employee_position_id|grid_selector|loadData/commonSearch|value_code|exactly_one|billlistap|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 14,
+      "signatures": [
+        "1|field_hpdi_bizdatabillchoicetpl_form_org|basedata|pick_fields||pick_org_id",
+        "2|field_hpdi_bizdatabillchoicetpl_entry_bizitemgroup|basedata|pick_fields||pick_bizitemgroup_id",
+        "3|control_hpdi_bizdatabillchoicetpl_form_ok_click_click|dialog|structural||",
+        "4|field_hpdi_bizdatabill_entry_adminorg|basedata|pick_fields||pick_adminorg_id",
+        "5|field_hpdi_bizdatabill_form_khr_audittype|combo|pick_fields||",
+        "6|field_hpdi_bizdatabill_entry_khr_cost_org|basedata|pick_fields||pick_khr_cost_org_id",
+        "7|control_hpdi_bizdatabill_entry_newentry_click_click|button|structural||",
+        "8|control_hsbs_empposf7querylist_dialog_btnok_click_click|dialog|structural||",
+        "9|field_hpdi_bizdatabillnewentry_entry_bizdate|date|vars|test_business_belong_date|",
+        "10|field_hpdi_bizdatabillnewentry_entry_kd311|amount|vars|test_workday_overtime_hours|",
+        "11|field_hpdi_bizdatabillnewentry_entry_kd305|amount|vars|test_weekend_overtime_hours|",
+        "12|field_hpdi_bizdatabillnewentry_entry_kd306|amount|vars|test_holiday_overtime_hours|",
+        "13|control_hpdi_bizdatabillnewentry_entry_ok_updatevalue_click|dialog|structural||",
+        "14|control_hpdi_bizdatabill_form_tbmain_save_itemclick|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "hpdi_bizdatabillnewentry",
     "name": "regression_10_uat_ua_submit_save",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 7,
+        "l3_consumer_count": 23,
+        "node_count": 39,
+        "recorded_source_retained_count": 31,
+        "safe_recovery_count": 6,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -1274,6 +1317,33 @@
       "test_weekend_overtime_hours",
       "test_workday_overtime_hours"
     ],
+    "field_catalog": {
+      "count": 14,
+      "field_ids": [
+        "field_hpdi_bizdatabillchoicetpl_form_org",
+        "field_hpdi_bizdatabillchoicetpl_entry_bizitemgroup",
+        "control_hpdi_bizdatabillchoicetpl_form_ok_click_click",
+        "field_hpdi_bizdatabill_entry_adminorg",
+        "field_hpdi_bizdatabill_form_khr_audittype",
+        "field_hpdi_bizdatabill_entry_khr_cost_org",
+        "control_hpdi_bizdatabill_entry_newentry_click_click",
+        "control_hsbs_empposf7querylist_dialog_btnok_click_click",
+        "field_hpdi_bizdatabillnewentry_entry_bizdate",
+        "field_hpdi_bizdatabillnewentry_entry_kd311",
+        "field_hpdi_bizdatabillnewentry_entry_kd305",
+        "field_hpdi_bizdatabillnewentry_entry_kd306",
+        "control_hpdi_bizdatabillnewentry_entry_ok_updatevalue_click",
+        "control_hpdi_bizdatabill_form_tbmain_save_itemclick"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -1335,9 +1405,9 @@
     ]
   },
   "sample_id": "10_uat_ua_submit_save",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1779437599_UA提报保存.har",
   "source_sha256": "99d2001e58553674582af0c532e3e89e9630f311caf6a55345b70c9560008401",
-  "summary_hash": "1e3de870eb975d9c7740b9d0ee23c2787ba1a91a1cd9dc008005afe212a14471",
+  "summary_hash": "b3d1851f6f625b229f4a42c1236f567670900511e040d0ad0eb6d272de61909a",
   "title": "UA提报保存"
 }

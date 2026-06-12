@@ -12,8 +12,65 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_khr_positiontpltype_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_parent_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_positiontpl_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "env_click_tblnew_treeview_focus|manual|||literal|lookup|number|name|id|version",
+      "pick_adminorg_id|lookup|getLookUpList|value_name|exactly_one|lookup|number|name|id|version",
+      "pick_changedesc_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_bsed|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_positiontype_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_countryregion_id|lookup|getLookUpList|value_name|exactly_one|lookup|number|name|id|version",
+      "pick_city_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_workplace_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_job_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_jobgradescm_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_joblevelscm_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_diplomareq_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 18,
+      "signatures": [
+        "1|field_hbpm_positionhr_form_adminorg|basedata|pick_fields||pick_adminorg_id",
+        "2|field_hbpm_positionhr_entry_changedesc|basedata|pick_fields||pick_changedesc_id",
+        "3|field_hbpm_positionhr_form_bsed|date|pick_fields||date_bsed",
+        "4|field_hbpm_positionhr_form_number|text|vars|test_number|",
+        "5|field_hbpm_positionhr_form_name|multi_lang_text|vars|test_name|",
+        "6|field_hbpm_positionhr_entry_positiontype|basedata|pick_fields||pick_positiontype_id",
+        "7|field_hbpm_positionhr_entry_countryregion|basedata|pick_fields||pick_countryregion_id",
+        "8|field_hbpm_positionhr_entry_city|basedata|pick_fields||pick_city_id",
+        "9|field_hbpm_positionhr_entry_workplace|basedata|pick_fields||pick_workplace_id",
+        "10|field_hbpm_positionhr_form_description|multi_lang_text|vars|test_description|",
+        "11|field_hbpm_positionhr_entry_job|basedata|pick_fields||pick_job_id",
+        "12|field_hbpm_positionhr_entry_jobgradescm|basedata|pick_fields||pick_jobgradescm_id",
+        "13|field_hbpm_positionhr_entry_joblevelscm|basedata|pick_fields||pick_joblevelscm_id",
+        "14|field_hbpm_positionhr_form_posorientation|multi_lang_text|vars||",
+        "15|field_hbpm_positionhr_form_posduty|multi_lang_text|vars||",
+        "16|field_hbpm_positionhr_form_posstandard|multi_lang_text|vars||",
+        "17|field_hbpm_positionhr_entry_diplomareq|basedata|pick_fields||pick_diplomareq_id",
+        "18|control_hbpm_positionhr_form_tbmain_save_itemclick|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "hbpm_positionhr",
     "name": "regression_08_position",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 4,
+        "l3_consumer_count": 21,
+        "node_count": 27,
+        "recorded_source_retained_count": 22,
+        "safe_recovery_count": 2,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -1318,6 +1375,37 @@
       "test_name",
       "test_number"
     ],
+    "field_catalog": {
+      "count": 18,
+      "field_ids": [
+        "field_hbpm_positionhr_form_adminorg",
+        "field_hbpm_positionhr_entry_changedesc",
+        "field_hbpm_positionhr_form_bsed",
+        "field_hbpm_positionhr_form_number",
+        "field_hbpm_positionhr_form_name",
+        "field_hbpm_positionhr_entry_positiontype",
+        "field_hbpm_positionhr_entry_countryregion",
+        "field_hbpm_positionhr_entry_city",
+        "field_hbpm_positionhr_entry_workplace",
+        "field_hbpm_positionhr_form_description",
+        "field_hbpm_positionhr_entry_job",
+        "field_hbpm_positionhr_entry_jobgradescm",
+        "field_hbpm_positionhr_entry_joblevelscm",
+        "field_hbpm_positionhr_form_posorientation",
+        "field_hbpm_positionhr_form_posduty",
+        "field_hbpm_positionhr_form_posstandard",
+        "field_hbpm_positionhr_entry_diplomareq",
+        "control_hbpm_positionhr_form_tbmain_save_itemclick"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -1391,9 +1479,9 @@
     ]
   },
   "sample_id": "08_position",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1778835351_岗位信息维护-新增一个岗位.har",
   "source_sha256": "41d1ce3fb7525775375ebb7c0f89e873c9195345fcbf51e415ecb203f3078de0",
-  "summary_hash": "3f8c26865e72eaa96e8e970bcd5ac0cd4bb26861c6c210956512c9b121719181",
+  "summary_hash": "0e86b23d11bdbefc1fb748b61ea4d4d2fe9d22d9e0847619278bd6cdb13da562",
   "title": "岗位信息维护-新增一个岗位"
 }

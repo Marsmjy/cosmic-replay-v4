@@ -12,8 +12,51 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_chgreason_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_certificatetype_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_gender_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_ba_e_laborrelstatus_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_ba_e_enterprise_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_po_adminorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_po_position_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_effectdatebak|literal_date|update_fields||literal|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 11,
+      "signatures": [
+        "1|field_hom_onbrdinfo_form_ba_em_name|multi_lang_text|vars|test_name|",
+        "2|field_hom_onbrdinfo_entry_certificatetype|basedata|pick_fields||pick_certificatetype_id",
+        "3|field_hom_onbrdinfo_form_certificatenumber|text|vars|test_cert_no|",
+        "4|field_hom_onbrdinfo_entry_gender|basedata|pick_fields||pick_gender_id",
+        "5|field_hom_onbrdinfo_form_phone|text|vars|test_phone|",
+        "6|field_hom_onbrdinfo_entry_ba_e_laborrelstatus|basedata|pick_fields||pick_ba_e_laborrelstatus_id",
+        "7|field_hom_onbrdinfo_form_ba_em_empnumber|text|vars|test_number|",
+        "8|field_hom_onbrdinfo_entry_ba_e_enterprise|basedata|pick_fields||pick_ba_e_enterprise_id",
+        "9|field_hom_onbrdinfo_entry_ba_po_adminorg|basedata|pick_fields||pick_ba_po_adminorg_id",
+        "10|field_hom_onbrdinfo_entry_ba_po_position|basedata|pick_fields||pick_ba_po_position_id",
+        "11|field_hom_onbrdinfo_form_effectdatebak|date|pick_fields||date_effectdatebak"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "hom_onbrdinfo",
     "name": "regression_05_onboard_confirm",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 4,
+        "l3_consumer_count": 28,
+        "node_count": 40,
+        "recorded_source_retained_count": 33,
+        "safe_recovery_count": 4,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -1372,6 +1415,30 @@
       "test_number",
       "test_phone"
     ],
+    "field_catalog": {
+      "count": 11,
+      "field_ids": [
+        "field_hom_onbrdinfo_form_ba_em_name",
+        "field_hom_onbrdinfo_entry_certificatetype",
+        "field_hom_onbrdinfo_form_certificatenumber",
+        "field_hom_onbrdinfo_entry_gender",
+        "field_hom_onbrdinfo_form_phone",
+        "field_hom_onbrdinfo_entry_ba_e_laborrelstatus",
+        "field_hom_onbrdinfo_form_ba_em_empnumber",
+        "field_hom_onbrdinfo_entry_ba_e_enterprise",
+        "field_hom_onbrdinfo_entry_ba_po_adminorg",
+        "field_hom_onbrdinfo_entry_ba_po_position",
+        "field_hom_onbrdinfo_form_effectdatebak"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -1438,9 +1505,9 @@
     ]
   },
   "sample_id": "05_onboard_confirm",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1778835327_入职申请到确认入职.har",
   "source_sha256": "7a64947392f6bac00ba86d9306bcb0a43eb988f1749e021fb654c5559559564e",
-  "summary_hash": "d52bb6a7fe1618deec4ccb40d8ca7344cd68515a271b17e7f477cb330ce68991",
+  "summary_hash": "2acfd128b0b7103c9bda776aba9a281fdad9a212dafd4b955e177c0a3bf9ad2e",
   "title": "入职申请到确认入职"
 }

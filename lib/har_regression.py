@@ -23,7 +23,7 @@ from lib.pageid_trace import build_pageid_trace, compact_pageid_trace
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MANIFEST = PROJECT_ROOT / "tests" / "fixtures" / "har_regression" / "manifest.json"
 DEFAULT_BASELINE_DIR = PROJECT_ROOT / "tests" / "fixtures" / "har_regression" / "baselines"
-SNAPSHOT_SCHEMA_VERSION = 1
+SNAPSHOT_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -84,6 +84,10 @@ def summarize_case(case: dict[str, Any], har_steps: list[dict[str, Any]] | None 
     pick_fields = case.get("pick_fields") or {}
     steps = case.get("steps") or []
     assertions = case.get("assertions") or []
+    field_catalog = case.get("field_catalog") or []
+    generation_gate = case.get("generation_gate") or {}
+    pageid_source_graph = case.get("pageid_source_graph") or {}
+    environment_binding_plan = case.get("environment_binding_plan") or {}
 
     return {
         "name": case.get("name", ""),
@@ -105,6 +109,53 @@ def summarize_case(case: dict[str, Any], har_steps: list[dict[str, Any]] | None 
             summarize_pick_field(name, cfg)
             for name, cfg in sorted(pick_fields.items())
         ],
+        "field_catalog": {
+            "count": len(field_catalog),
+            "signatures": [
+                "|".join([
+                    str(item.get("order") or ""),
+                    str(item.get("field_id") or ""),
+                    str(item.get("category") or ""),
+                    str(item.get("panel") or ""),
+                    ",".join(sorted(item.get("vars") or [])),
+                    ",".join(sorted(item.get("pick_fields") or [])),
+                ])
+                for item in field_catalog
+                if isinstance(item, dict)
+            ],
+        },
+        "generation_gate": {
+            "decision": generation_gate.get("decision", ""),
+            "allow_generate": bool(generation_gate.get("allow_generate", True)),
+            "allow_run": bool(generation_gate.get("allow_run", True)),
+            "blocker_codes": sorted({
+                str(item.get("code") or "")
+                for item in generation_gate.get("issues") or []
+                if isinstance(item, dict) and item.get("blocks_generate") and item.get("code")
+            }),
+        },
+        "environment_resolvers": [
+            "|".join([
+                str(item.get("id") or ""),
+                str(item.get("resolver_kind") or ""),
+                str(item.get("interface") or ""),
+                str(item.get("resolve_by") or ""),
+                str(item.get("match_policy") or ""),
+                str(item.get("grid_key") or ""),
+                str(item.get("code_column") or ""),
+                str(item.get("name_column") or ""),
+                str(item.get("id_column") or ""),
+                str(item.get("version_column") or ""),
+            ])
+            for item in environment_binding_plan.get("fields") or []
+            if isinstance(item, dict)
+        ],
+        "pageid_source_graph": {
+            "summary": dict(pageid_source_graph.get("summary") or {}),
+            "unsafe_consumer_step_ids": list(
+                pageid_source_graph.get("unsafe_consumer_step_ids") or []
+            ),
+        },
         "steps": [summarize_step(step) for step in steps],
         "assertions": [
             {
@@ -147,6 +198,9 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
         )
         for level in ("critical", "business", "advisory")
     }
+    field_catalog = preview.get("field_catalog") or []
+    preflight = preview.get("preflight") or {}
+    generation_gate = preview.get("generation_gate") or preflight.get("generation_gate") or {}
 
     return {
         "main_form_id": preview.get("main_form_id", ""),
@@ -184,6 +238,30 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
             for item in pick_fields
             if item.get("field_key")
         ),
+        "field_catalog": {
+            "count": len(field_catalog),
+            "field_ids": [
+                str(item.get("field_id") or "")
+                for item in field_catalog
+                if isinstance(item, dict) and item.get("field_id")
+            ],
+            "unknown_count": sum(
+                1
+                for item in field_catalog
+                if isinstance(item, dict) and item.get("category") in {"", "unknown"}
+            ),
+        },
+        "generation_gate": {
+            "preflight_decision": preflight.get("decision", ""),
+            "decision": generation_gate.get("decision", ""),
+            "allow_generate": bool(generation_gate.get("allow_generate", True)),
+            "allow_run": bool(generation_gate.get("allow_run", True)),
+            "blocker_codes": sorted({
+                str(item.get("code") or "")
+                for item in generation_gate.get("issues") or []
+                if isinstance(item, dict) and item.get("blocks_generate") and item.get("code")
+            }),
+        },
         "maintainability": {
             "detected_var_count": len(detected_vars),
             "pick_field_count": len(pick_fields),

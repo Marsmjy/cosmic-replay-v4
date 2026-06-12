@@ -18,6 +18,7 @@ from lib.ir.write_contract import (
     classify_write_operation,
     is_write_step as ir_is_write_step,
 )
+from lib.pageid_trace import expected_pageid_role
 
 
 SCHEMA_VERSION = "1.0"
@@ -42,6 +43,7 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
     write_anchor_plan = build_case_write_anchor_plan(case)
     runtime_value_flow_plan = build_runtime_value_flow_plan(case)
     target_data_selector_plan = build_target_data_selector_plan(case)
+    pageid_source_graph = build_pageid_source_graph(case)
     scenario = build_scenario_contract(case)
     cleanup = build_cleanup_contract(case)
     capability = build_capability(
@@ -52,6 +54,17 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
     )
     ai_assistance = build_ai_assistance(case, capability, environment_binding_plan, runtime_value_flow_plan)
     execution_contract = build_execution_contract(case, capability, write_anchor_plan)
+    generation_gate = build_generation_gate(
+        case,
+        scenario=scenario,
+        capability=capability,
+        environment_binding_plan=environment_binding_plan,
+        maintainable_field_binding_plan=maintainable_field_binding_plan,
+        write_anchor_plan=write_anchor_plan,
+        target_data_selector_plan=target_data_selector_plan,
+        pageid_source_graph=pageid_source_graph,
+        execution_contract=execution_contract,
+    )
     report_metadata = build_report_metadata(case, scenario, capability)
 
     return {
@@ -65,7 +78,9 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "write_anchor_plan": write_anchor_plan,
         "runtime_value_flow_plan": runtime_value_flow_plan,
         "target_data_selector_plan": target_data_selector_plan,
+        "pageid_source_graph": pageid_source_graph,
         "execution_contract": execution_contract,
+        "generation_gate": generation_gate,
         "report_metadata": report_metadata,
         "field_model_summary": {
             "business_variable_count": len(vars_meta),
@@ -95,7 +110,9 @@ def attach_case_contract(case: dict[str, Any]) -> dict[str, Any]:
     case["write_anchor_plan"] = contract["write_anchor_plan"]
     case["runtime_value_flow_plan"] = contract["runtime_value_flow_plan"]
     case["target_data_selector_plan"] = contract["target_data_selector_plan"]
+    case["pageid_source_graph"] = contract["pageid_source_graph"]
     case["execution_contract"] = contract["execution_contract"]
+    case["generation_gate"] = contract["generation_gate"]
     case["report_metadata"] = contract["report_metadata"]
     return case
 
@@ -113,69 +130,18 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
     field_binding_plan = contract["maintainable_field_binding_plan"]
     write_anchor_plan = contract["write_anchor_plan"]
     runtime_plan = contract["runtime_value_flow_plan"]
-    target_selector_plan = contract["target_data_selector_plan"]
-    execution_contract = contract["execution_contract"]
+    generation_gate = contract["generation_gate"]
 
-    errors: list[str] = []
-    warnings: list[str] = []
-
-    if capability.get("status") == "unsupported":
-        reasons = capability.get("unsupported_reasons") or ["unsupported_case"]
-        errors.append("当前 YAML 被标记为 unsupported: " + ", ".join(str(item) for item in reasons))
-
-    missing_required_env = [
-        item for item in env_plan.get("fields") or []
-        if isinstance(item, Mapping)
-        and item.get("required")
-        and item.get("failure_policy") == "block_before_write"
-        and item.get("status") in {"missing", "unresolved"}
+    errors = [
+        str(item.get("message") or item.get("code") or "")
+        for item in generation_gate.get("issues") or []
+        if isinstance(item, Mapping) and item.get("blocks_run")
     ]
-    for item in missing_required_env[:8]:
-        label = item.get("label") or item.get("id")
-        errors.append(f"目标环境必需字段未配置或无法解析: {label} ({item.get('id')})")
-
-    if capability.get("write_mode") == "write":
-        for item in target_selector_plan.get("selectors") or []:
-            if not isinstance(item, Mapping) or item.get("status") == "ready":
-                continue
-            errors.append(
-                "修改/删除目标数据选择器不可执行: "
-                f"{item.get('step_id')} ({', '.join(item.get('reasons') or [])})"
-            )
-        overridden_unbound = [
-            item for item in field_binding_plan.get("fields") or []
-            if isinstance(item, Mapping)
-            and item.get("user_overridden")
-            and item.get("status") == "unbound"
-        ]
-        for item in overridden_unbound[:8]:
-            label = item.get("label") or item.get("id")
-            errors.append(
-                f"用户维护值没有绑定到可执行步骤: {label} ({item.get('id')})"
-            )
-        unbound_fields = [
-            item for item in field_binding_plan.get("fields") or []
-            if isinstance(item, Mapping)
-            and not item.get("user_overridden")
-            and item.get("status") == "unbound"
-        ]
-        if unbound_fields:
-            warnings.append(
-                f"有 {len(unbound_fields)} 个可维护字段尚未绑定到明确执行步骤，"
-                "未修改时继续使用 HAR 录制链路。"
-            )
-        write_summary = write_anchor_plan.get("summary") or {}
-        if int(write_summary.get("ir_driven_anchor_count") or 0):
-            for step_id in write_anchor_plan.get("missing_response_contract_step_ids") or []:
-                errors.append(f"IR 写入锚点缺少关键响应契约: {step_id}")
-            for step_id in write_anchor_plan.get("missing_request_contract_step_ids") or []:
-                errors.append(f"IR 写入锚点缺少请求结构契约: {step_id}")
-
-    missing_checks = set(execution_contract.get("missing_recommended_checks") or [])
-    if capability.get("write_mode") == "write" and "no_save_failure" in missing_checks:
-        errors.append("写入用例缺少系统断言 no_save_failure，不能执行写库回放。")
-    if "no_error_actions" in missing_checks:
-        warnings.append("用例缺少 no_error_actions 断言，接口错误可能无法被基础校验捕获。")
+    warnings = [
+        str(item.get("message") or item.get("code") or "")
+        for item in generation_gate.get("issues") or []
+        if isinstance(item, Mapping) and not item.get("blocks_run")
+    ]
 
     if capability.get("partial_supported_reasons"):
         warnings.extend(
@@ -193,6 +159,343 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
         "errors": errors,
         "warnings": warnings,
         "contract": contract,
+    }
+
+
+def build_generation_gate(
+    case: Mapping[str, Any] | None,
+    *,
+    scenario: Mapping[str, Any],
+    capability: Mapping[str, Any],
+    environment_binding_plan: Mapping[str, Any],
+    maintainable_field_binding_plan: Mapping[str, Any],
+    write_anchor_plan: Mapping[str, Any],
+    target_data_selector_plan: Mapping[str, Any],
+    pageid_source_graph: Mapping[str, Any],
+    execution_contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build one evidence-based gate shared by import, YAML and replay.
+
+    Only deterministic contract violations block generation. Target environment
+    values may still be maintained after import, so unresolved required
+    bindings block replay but do not discard an otherwise valid generated case.
+    """
+    case = case if isinstance(case, Mapping) else {}
+    write_mode = str(capability.get("write_mode") or "read_only")
+    issues: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add(
+        code: str,
+        message: str,
+        *,
+        severity: str,
+        blocks_generate: bool = False,
+        blocks_run: bool = False,
+        action: str = "",
+    ) -> None:
+        key = (code, message)
+        if key in seen:
+            return
+        seen.add(key)
+        issues.append({
+            "code": code,
+            "severity": severity,
+            "message": message,
+            "blocks_generate": blocks_generate,
+            "blocks_run": blocks_run,
+            "action": action,
+        })
+
+    if capability.get("status") == "unsupported":
+        reasons = capability.get("unsupported_reasons") or ["unsupported_case"]
+        add(
+            "unsupported_case",
+            "当前 HAR 没有形成可执行场景: " + ", ".join(str(item) for item in reasons),
+            severity="critical",
+            blocks_generate=True,
+            blocks_run=True,
+            action="标记暂不支持或重新录制包含真实业务请求的 HAR。",
+        )
+
+    missing_required_env = [
+        item for item in environment_binding_plan.get("fields") or []
+        if isinstance(item, Mapping)
+        and item.get("required")
+        and item.get("failure_policy") == "block_before_write"
+        and item.get("status") in {"missing", "unresolved"}
+    ]
+    for item in missing_required_env[:8]:
+        label = item.get("label") or item.get("id")
+        add(
+            "required_environment_binding_unresolved",
+            f"目标环境必需字段未配置或无法解析: {label} ({item.get('id')})",
+            severity="high",
+            blocks_run=True,
+            action="修改维护值，并确认目标环境能按编码或名称精确解析。",
+        )
+
+    if write_mode == "write":
+        for item in target_data_selector_plan.get("selectors") or []:
+            if not isinstance(item, Mapping) or item.get("status") == "ready":
+                continue
+            add(
+                "target_data_selector_unsafe",
+                "修改/删除目标数据选择器不可执行: "
+                f"{item.get('step_id')} ({', '.join(item.get('reasons') or [])})",
+                severity="critical",
+                blocks_generate=True,
+                blocks_run=True,
+                action="使用业务键在目标环境精确查询本次目标数据，禁止复用录制环境静态 ID。",
+            )
+
+        overridden_unbound = [
+            item for item in maintainable_field_binding_plan.get("fields") or []
+            if isinstance(item, Mapping)
+            and item.get("user_overridden")
+            and item.get("status") == "unbound"
+        ]
+        for item in overridden_unbound[:8]:
+            label = item.get("label") or item.get("id")
+            add(
+                "maintainable_value_unbound",
+                f"用户维护值没有绑定到可执行步骤: {label} ({item.get('id')})",
+                severity="critical",
+                blocks_generate=True,
+                blocks_run=True,
+                action="修复字段绑定，确认维护值进入最终请求后再执行。",
+            )
+
+        unbound_fields = [
+            item for item in maintainable_field_binding_plan.get("fields") or []
+            if isinstance(item, Mapping)
+            and not item.get("user_overridden")
+            and item.get("status") == "unbound"
+        ]
+        if unbound_fields:
+            add(
+                "maintainable_fields_need_review",
+                f"有 {len(unbound_fields)} 个可维护字段尚未绑定到明确执行步骤，"
+                "未修改时继续使用 HAR 录制链路。",
+                severity="medium",
+                action="修改这些字段前先确认字段已绑定到最终请求。",
+            )
+
+        write_summary = write_anchor_plan.get("summary") or {}
+        if int(write_summary.get("ir_driven_anchor_count") or 0):
+            for step_id in write_anchor_plan.get("missing_response_contract_step_ids") or []:
+                add(
+                    "write_response_contract_missing",
+                    f"IR 写入锚点缺少关键响应契约: {step_id}",
+                    severity="critical",
+                    blocks_generate=True,
+                    blocks_run=True,
+                    action="从录制 HAR 响应提取稳定保存/提交/审核语义。",
+                )
+            for step_id in write_anchor_plan.get("missing_request_contract_step_ids") or []:
+                add(
+                    "write_request_contract_missing",
+                    f"IR 写入锚点缺少请求结构契约: {step_id}",
+                    severity="critical",
+                    blocks_generate=True,
+                    blocks_run=True,
+                    action="从录制 HAR 请求提取稳定动作与字段结构。",
+                )
+
+        ir_contract = case.get("ir_contract") if isinstance(case.get("ir_contract"), Mapping) else {}
+        ir_write = (
+            ir_contract.get("write_anchor_bridge")
+            if isinstance(ir_contract.get("write_anchor_bridge"), Mapping)
+            else {}
+        )
+        ir_write_checks = (
+            ir_write.get("checks")
+            if isinstance(ir_write.get("checks"), Mapping)
+            else {}
+        )
+        uncovered_count = int(ir_write_checks.get("uncovered_write_anchor_count") or 0)
+        if uncovered_count:
+            add(
+                "ir_write_anchor_uncovered",
+                f"有 {uncovered_count} 个 HAR 写入动作没有进入生成 YAML。",
+                severity="critical",
+                blocks_generate=True,
+                blocks_run=True,
+                action="先补齐保存、提交、审核或确认动作映射。",
+            )
+        missing_contract_count = int(
+            ir_write_checks.get("critical_response_contract_missing_count") or 0
+        )
+        if missing_contract_count:
+            add(
+                "ir_write_contract_missing",
+                f"有 {missing_contract_count} 个写入锚点缺少录制响应语义契约。",
+                severity="critical",
+                blocks_generate=True,
+                blocks_run=True,
+                action="先从 HAR 录制响应建立关键语义契约。",
+            )
+
+        unsafe_pageid_steps = list(
+            pageid_source_graph.get("unsafe_consumer_step_ids") or []
+        )
+        if unsafe_pageid_steps:
+            add(
+                "pageid_recovery_missing",
+                "pageId 生产者被过滤且没有安全恢复策略: "
+                + ", ".join(unsafe_pageid_steps[:8]),
+                severity="critical",
+                blocks_generate=True,
+                blocks_run=True,
+                action="保留 pageId 生产步骤，或生成同表单、同窗口生命周期的恢复策略。",
+            )
+
+    missing_checks = set(execution_contract.get("missing_recommended_checks") or [])
+    if write_mode == "write" and "no_save_failure" in missing_checks:
+        add(
+            "no_save_failure_missing",
+            "写入用例缺少系统断言 no_save_failure，不能执行写库回放。",
+            severity="critical",
+            blocks_generate=True,
+            blocks_run=True,
+            action="恢复系统写入失败断言。",
+        )
+    if "no_error_actions" in missing_checks:
+        add(
+            "no_error_actions_missing",
+            "用例缺少 no_error_actions 断言，接口错误可能无法被基础校验捕获。",
+            severity="medium",
+            action="恢复系统接口错误断言。",
+        )
+
+    for reason in capability.get("partial_supported_reasons") or []:
+        add(
+            f"partial_supported:{reason}",
+            f"partial_supported: {reason}",
+            severity="medium",
+            action="执行前确认目标环境数据、权限和运行时上下文。",
+        )
+    if (environment_binding_plan.get("summary") or {}).get("static_id_risk_count"):
+        add(
+            "recorded_static_id_risk",
+            "存在录制环境内部 ID 风险，跨环境执行前需解析为目标环境真实 ID。",
+            severity="high",
+            action="使用目标环境 resolver 按业务编码或名称重新解析。",
+        )
+
+    allow_generate = not any(item.get("blocks_generate") for item in issues)
+    allow_run = not any(item.get("blocks_run") for item in issues)
+    decision = "ready"
+    if not allow_generate:
+        decision = "blocked"
+    elif not allow_run:
+        decision = "needs_input"
+    elif any(item.get("severity") in {"high", "medium"} for item in issues):
+        decision = "review"
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "decision": decision,
+        "allow_generate": allow_generate,
+        "allow_run": allow_run,
+        "scenario_kind": str(scenario.get("kind") or ""),
+        "write_mode": write_mode,
+        "issues": issues,
+        "checks": {
+            "step_count": len([
+                step for step in case.get("steps") or [] if isinstance(step, Mapping)
+            ]),
+            "required_environment_binding_count": len(missing_required_env),
+            "write_anchor_count": int(
+                (write_anchor_plan.get("summary") or {}).get("write_anchor_count") or 0
+            ),
+            "field_binding_unbound_count": int(
+                (maintainable_field_binding_plan.get("summary") or {}).get("unbound_count") or 0
+            ),
+        },
+        "policy": {
+            "query_requires_write_verification": False,
+            "ai_may_add_unrecorded_business_steps": False,
+            "scores_alone_block_generation": False,
+        },
+    }
+
+
+def build_pageid_source_graph(case: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Persist a value-safe pageId producer/consumer lifecycle contract."""
+    case = case if isinstance(case, Mapping) else {}
+    nodes: list[dict[str, Any]] = []
+    unsafe: list[str] = []
+    recovered = 0
+    retained = 0
+    l2_count = 0
+    l3_count = 0
+    for order, step in enumerate(case.get("steps") or []):
+        if not isinstance(step, Mapping):
+            continue
+        role = expected_pageid_role(dict(step))
+        source_retained = step.get("recorded_pageid_source_retained")
+        recovery = str(step.get("pageid_recovery_strategy") or "")
+        source_index = step.get("source_request_index")
+        ir_sources = [
+            item for item in (step.get("ir_sources") or [])
+            if isinstance(item, Mapping)
+        ]
+        if source_index in (None, "") and ir_sources:
+            source_index = ir_sources[0].get("source_request_index")
+        if role == "L2":
+            l2_count += 1
+        elif role == "L3":
+            l3_count += 1
+        if source_retained is True:
+            retained += 1
+        elif source_retained is False and recovery:
+            recovered += 1
+        is_unsafe = (
+            source_retained is False
+            and recovery.strip().lower() in {"", "none", "missing", "unknown"}
+        )
+        step_id = str(step.get("id") or f"step_{order + 1}")
+        if is_unsafe:
+            unsafe.append(step_id)
+        if (
+            role in {"L2", "L3", "L2_or_L3"}
+            or source_retained is not None
+            or recovery
+            or step.get("preserve_l2_page")
+        ):
+            nodes.append({
+                "consumer_step_id": step_id,
+                "order": order,
+                "form_id": str(step.get("form_id") or ""),
+                "expected_role": role,
+                "source_request_index": source_index,
+                "recorded_source_retained": source_retained,
+                "recovery_strategy": recovery,
+                "preserve_l2_page": bool(step.get("preserve_l2_page")),
+                "window_reopen_aware": bool(
+                    step.get("require_harvested_l3")
+                    or recovery in {"harvested_l3_guard", "runtime_form_revalidate"}
+                ),
+                "status": "unsafe" if is_unsafe else "ready",
+            })
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "source": "normalized_ir_and_generated_steps",
+        "nodes": nodes,
+        "unsafe_consumer_step_ids": unsafe,
+        "summary": {
+            "node_count": len(nodes),
+            "l2_consumer_count": l2_count,
+            "l3_consumer_count": l3_count,
+            "recorded_source_retained_count": retained,
+            "safe_recovery_count": recovered,
+            "unsafe_consumer_count": len(unsafe),
+        },
+        "policy": {
+            "static_pageid_values_included": False,
+            "closed_window_pageid_reuse_allowed": False,
+            "changed_pageid_on_reopen_must_replace_old": True,
+        },
     }
 
 
@@ -497,6 +800,20 @@ def build_environment_binding_plan(case: Mapping[str, Any] | None) -> dict[str, 
             "interface": _resolver_interface(resolver_kind),
             "query": query_value,
             "resolve_by": str(meta.get("resolve_by") or ""),
+            "match_policy": (
+                "exactly_one"
+                if resolver_kind in {"lookup", "grid_selector"}
+                else "literal"
+            ),
+            "grid_key": str(
+                meta.get("grid_key")
+                or meta.get("selector_control_key")
+                or ("billlistap" if resolver_kind == "grid_selector" else "lookup")
+            ),
+            "code_column": str(meta.get("code_column") or meta.get("number_field") or "number"),
+            "name_column": str(meta.get("name_column") or "name"),
+            "id_column": str(meta.get("id_column") or "id"),
+            "version_column": str(meta.get("version_column") or "version"),
             "auto_resolve": bool(meta.get("auto_resolve")),
             "env_sensitive": str(meta.get("env_sensitive") or "medium"),
             "required": required,

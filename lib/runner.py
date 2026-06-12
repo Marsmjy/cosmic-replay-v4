@@ -162,6 +162,22 @@ def _pick_field_resolver_plan(pf_id: str, pf_meta: dict) -> dict[str, Any]:
         "app_id": app_id,
         "query": query,
         "resolve_by": pf_meta.get("resolve_by", ""),
+        "match_policy": (
+            "exactly_one"
+            if pf_meta.get("selector_source") == "entryRowClick"
+            or pf_id.startswith("pick_")
+            or pf_meta.get("auto_resolve")
+            else "literal"
+        ),
+        "grid_key": (
+            pf_meta.get("grid_key")
+            or pf_meta.get("selector_control_key")
+            or ("billlistap" if pf_meta.get("selector_source") == "entryRowClick" else "lookup")
+        ),
+        "code_column": pf_meta.get("code_column") or pf_meta.get("number_field") or "number",
+        "name_column": pf_meta.get("name_column") or "name",
+        "id_column": pf_meta.get("id_column") or "id",
+        "version_column": pf_meta.get("version_column") or "version",
         "auto_resolve": bool(pf_meta.get("auto_resolve")),
         "source_step_id": pf_meta.get("source_step_id", ""),
         "write_step_id": pf_meta.get("write_step_id", ""),
@@ -1428,7 +1444,16 @@ def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: 
     response = ctx.get("step_responses", {}).get(source_step_id)
     requested_attempts = max(int(step.get("dynamic_row_max_attempts") or 1), 1)
     interval_seconds = max(float(step.get("dynamic_row_interval_seconds") or 1), 0.1)
-    max_attempts_for_budget = max(int(10 / interval_seconds), 1)
+    total_budget_seconds = max(
+        float(ctx.get("dynamic_row_retry_budget_seconds") or 10),
+        0.0,
+    )
+    used_budget_seconds = max(
+        float(ctx.get("dynamic_row_retry_wait_seconds") or 0),
+        0.0,
+    )
+    remaining_budget_seconds = max(total_budget_seconds - used_budget_seconds, 0.0)
+    max_attempts_for_budget = max(int(remaining_budget_seconds / interval_seconds) + 1, 1)
     attempts = min(requested_attempts, 10, max_attempts_for_budget)
     resolved: tuple[int, list[Any], dict[str, int]] | None = None
 
@@ -1453,6 +1478,10 @@ def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: 
         if _response_has_page_timeout(response):
             break
         time.sleep(interval_seconds)
+        ctx["dynamic_row_retry_wait_seconds"] = (
+            float(ctx.get("dynamic_row_retry_wait_seconds") or 0)
+            + interval_seconds
+        )
         response = replay.invoke(
             str(runtime_query.get("form_id") or step.get("form_id") or ""),
             str(runtime_query.get("app_id") or step.get("app_id") or ""),
@@ -1475,7 +1504,12 @@ def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: 
                 "source_step_id": source_step_id,
                 "requested_attempts": requested_attempts,
                 "effective_attempts": attempts,
-                "max_wait_seconds": 10,
+                "max_wait_seconds": total_budget_seconds,
+                "remaining_wait_seconds": max(
+                    total_budget_seconds
+                    - float(ctx.get("dynamic_row_retry_wait_seconds") or 0),
+                    0.0,
+                ),
             })
 
     if (
@@ -4461,6 +4495,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "vars_def": {k: v for k, v in (case.get("vars") or {}).items() if not k.startswith("_")},
         "vars_labels": case.get("vars_labels", {}),
         "vars_meta": case.get("vars_meta", {}),
+        "field_catalog": case.get("field_catalog", []),
         "pick_fields_preview": _pick_fields_preview,
         "env_resolution_plan": _env_resolution_plan,
         "scenario": case_contract.get("scenario") or {},
@@ -4472,7 +4507,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
+        "pageid_source_graph": case_contract.get("pageid_source_graph") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
+        "generation_gate": case_contract.get("generation_gate") or {},
         "report_metadata": case_contract.get("report_metadata") or {},
     })
 
@@ -4485,7 +4522,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "environment_binding_plan",
             "maintainable_field_binding_plan",
             "write_anchor_plan",
+            "pageid_source_graph",
             "execution_contract",
+            "generation_gate",
             "runtime_value_flow_plan",
         ],
     })
@@ -4521,7 +4560,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
             "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
             "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
+            "pageid_source_graph": case_contract.get("pageid_source_graph") or {},
             "execution_contract": case_contract.get("execution_contract") or {},
+            "generation_gate": case_contract.get("generation_gate") or {},
             "report_metadata": case_contract.get("report_metadata") or {},
             "contract_preflight": {
                 "ok": False,
@@ -4633,6 +4674,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "maintenance_value_trace": [],
         "request_contract_results": {},
         "response_contract_results": {},
+        "dynamic_row_retry_budget_seconds": 10.0,
+        "dynamic_row_retry_wait_seconds": 0.0,
         "run_event": emit,
         "env": env,
         "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
@@ -5301,7 +5344,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
+        "pageid_source_graph": case_contract.get("pageid_source_graph") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
+        "generation_gate": case_contract.get("generation_gate") or {},
         "report_metadata": case_contract.get("report_metadata") or {},
         "request_contract_results": dict(ctx.get("request_contract_results") or {}),
         "response_contract_results": dict(ctx.get("response_contract_results") or {}),

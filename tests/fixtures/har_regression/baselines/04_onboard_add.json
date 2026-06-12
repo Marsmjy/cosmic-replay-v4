@@ -12,8 +12,65 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_chgreason_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_certificatetype_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_gender_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_nationality_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_ba_e_laborrelstatus_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_ba_e_enterprise_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_po_adminorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_po_workplace_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_po_position_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_effectdatebak|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_onbrdtcitybak_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_ba_a_country_id|lookup|getLookUpList|value_name|exactly_one|lookup|number|name|id|version",
+      "date_validuntil|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_handler_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 19,
+      "signatures": [
+        "1|field_hom_onbrdinfo_form_ba_em_name|multi_lang_text|vars|test_name|",
+        "2|field_hom_onbrdinfo_entry_certificatetype|basedata|pick_fields||pick_certificatetype_id",
+        "3|field_hom_onbrdinfo_form_certificatenumber|text|vars|test_cert_no|",
+        "4|field_hom_onbrdinfo_entry_gender|basedata|pick_fields||pick_gender_id",
+        "5|field_hom_onbrdinfo_form_phone|text|vars|test_phone|",
+        "6|field_hom_onbrdinfo_form_peremail|text|vars|test_email|",
+        "7|field_hom_onbrdinfo_entry_nationality|basedata|pick_fields||pick_nationality_id",
+        "8|field_hom_onbrdinfo_entry_ba_e_laborrelstatus|basedata|pick_fields||pick_ba_e_laborrelstatus_id",
+        "9|field_hom_onbrdinfo_form_ba_em_empnumber|text|vars|test_number|",
+        "10|field_hom_onbrdinfo_entry_ba_e_enterprise|basedata|pick_fields||pick_ba_e_enterprise_id",
+        "11|field_hom_onbrdinfo_entry_ba_po_adminorg|basedata|pick_fields||pick_ba_po_adminorg_id",
+        "12|field_hom_onbrdinfo_entry_ba_po_workplace|basedata|pick_fields||pick_ba_po_workplace_id",
+        "13|field_hom_onbrdinfo_entry_ba_po_position|basedata|pick_fields||pick_ba_po_position_id",
+        "14|field_hom_onbrdinfo_form_effectdatebak|date|pick_fields||date_effectdatebak",
+        "15|field_hom_onbrdinfo_entry_onbrdtcitybak|basedata|pick_fields||pick_onbrdtcitybak_id",
+        "16|field_hom_onbrdinfo_entry_ba_a_country|basedata|pick_fields||pick_ba_a_country_id",
+        "17|field_hom_onbrdinfo_form_validuntil|date|pick_fields||date_validuntil",
+        "18|field_hom_onbrdinfo_entry_handler|basedata|pick_fields||pick_handler_id",
+        "19|control_home_page_form_savesetting_savesetting|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "hom_onbrdinfo",
     "name": "regression_04_onboard_add",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 7,
+        "l3_consumer_count": 46,
+        "node_count": 104,
+        "recorded_source_retained_count": 50,
+        "safe_recovery_count": 48,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -2665,6 +2722,38 @@
       "test_number",
       "test_phone"
     ],
+    "field_catalog": {
+      "count": 19,
+      "field_ids": [
+        "field_hom_onbrdinfo_form_ba_em_name",
+        "field_hom_onbrdinfo_entry_certificatetype",
+        "field_hom_onbrdinfo_form_certificatenumber",
+        "field_hom_onbrdinfo_entry_gender",
+        "field_hom_onbrdinfo_form_phone",
+        "field_hom_onbrdinfo_form_peremail",
+        "field_hom_onbrdinfo_entry_nationality",
+        "field_hom_onbrdinfo_entry_ba_e_laborrelstatus",
+        "field_hom_onbrdinfo_form_ba_em_empnumber",
+        "field_hom_onbrdinfo_entry_ba_e_enterprise",
+        "field_hom_onbrdinfo_entry_ba_po_adminorg",
+        "field_hom_onbrdinfo_entry_ba_po_workplace",
+        "field_hom_onbrdinfo_entry_ba_po_position",
+        "field_hom_onbrdinfo_form_effectdatebak",
+        "field_hom_onbrdinfo_entry_onbrdtcitybak",
+        "field_hom_onbrdinfo_entry_ba_a_country",
+        "field_hom_onbrdinfo_form_validuntil",
+        "field_hom_onbrdinfo_entry_handler",
+        "control_home_page_form_savesetting_savesetting"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -2739,9 +2828,9 @@
     ]
   },
   "sample_id": "04_onboard_add",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1778835319_新增入职0512测试.har",
   "source_sha256": "852bb54c4aecca7282e9fd6bc80f6916c03db616370264f47ab5f789c2d732f7",
-  "summary_hash": "28eebfa69357eaa8561c7706548b696be6c54a1f8c42451fa37b45f143779c52",
+  "summary_hash": "0bea36171858da52afa10215a162e19628d594514383c16e1a6986f1aef4f376",
   "title": "新增入职0512测试"
 }

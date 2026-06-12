@@ -4585,7 +4585,14 @@ def _compact_ir_contract_for_yaml(
             ("policy", OrderedDict([
                 ("store_full_ir_in_yaml", False),
                 ("raw_har_committed", False),
-                ("blocks_run", False),
+                ("blocks_run", True),
+                ("enforcement_mode", "deterministic_generation_gate"),
+                ("block_scope", [
+                    "write_anchor_coverage",
+                    "critical_request_response_contracts",
+                    "maintainable_value_binding",
+                    "pageid_recovery",
+                ]),
                 ("repair_hint", "IR 与主解析链路差异较大时，优先修解析规则而不是手写 YAML。"),
             ])),
         ])
@@ -4619,7 +4626,8 @@ def _compact_ir_contract_for_yaml(
             ("policy", OrderedDict([
                 ("store_full_ir_in_yaml", False),
                 ("raw_har_committed", False),
-                ("blocks_run", False),
+                ("blocks_run", True),
+                ("enforcement_mode", "deterministic_generation_gate"),
                 ("repair_hint", "先检查 HAR 是否可正常脱敏和规范化。"),
             ])),
         ])
@@ -5577,7 +5585,7 @@ def _build_unified_field_catalog(
     main_form: str = "",
     meta_resolver=None,
 ) -> list[dict[str, Any]]:
-    """Build HAR-order field/control catalog for preview diagnostics."""
+    """Build the value-safe HAR-order field/control catalog used everywhere."""
     var_by_scope: dict[tuple[str, str], list[str]] = {}
     for item in var_items or []:
         form_id = str(item.get("form_id") or "")
@@ -5594,6 +5602,10 @@ def _build_unified_field_catalog(
 
     seen: set[tuple[str, str, str, str]] = set()
     catalog: list[dict[str, Any]] = []
+
+    def field_id(kind: str, form_id: str, location: str, identity: str) -> str:
+        raw = "_".join(part for part in (kind, form_id, location, identity) if part)
+        return _sanitize_id(raw).lower()[:160] or f"{kind}_{len(catalog) + 1}"
 
     def add_field(idx: int, step: dict, field_key: str, value: Any = None, *, kind: str = "field", action: str = "") -> None:
         form_id = str(step.get("form_id") or main_form or "")
@@ -5612,11 +5624,13 @@ def _build_unified_field_catalog(
         var_names = var_by_scope.get(scope, [])
         pick_ids = pick_by_scope.get(scope, [])
         panel = "pick_fields" if pick_ids else "vars" if var_names else info.get("field_panel") or "unknown"
-        key = (kind, form_id, field_key_s.lower(), str(step.get("id") or idx))
+        location = _location_for_step(step, field_key_s)
+        key = (kind, form_id, field_key_s.lower(), location)
         if key in seen:
             return
         seen.add(key)
         catalog.append({
+            "field_id": field_id(kind, form_id, location, field_key_s.lower()),
             "order": len(catalog) + 1,
             "kind": kind,
             "field_key": field_key_s,
@@ -5624,7 +5638,7 @@ def _build_unified_field_catalog(
             "form_id": form_id,
             "step_id": str(step.get("id") or ""),
             "action": action or str(step.get("ac") or step.get("type") or ""),
-            "location": _location_for_step(step, field_key_s),
+            "location": location,
             "metadata_type": info.get("metadata_type", ""),
             "category": info.get("field_category", "unknown"),
             "panel": panel,
@@ -5657,7 +5671,21 @@ def _build_unified_field_catalog(
             blob = f"{ac} {key} {method}".lower()
             if any(token in blob for token in ("save", "submit", "audit", "newentry", "btnok", "ok", "cancel")):
                 category = "dialog" if any(token in blob for token in ("btnok", "ok", "cancel")) else "button"
+                location = _location_for_step(step, key)
+                control_identity = ":".join(
+                    part for part in (key, ac, method) if part
+                ) or str(step.get("id") or idx)
+                control_key = (
+                    "control",
+                    str(step.get("form_id") or ""),
+                    control_identity.lower(),
+                    location,
+                )
+                if control_key in seen:
+                    continue
+                seen.add(control_key)
                 catalog.append({
+                    "field_id": field_id("control", str(step.get("form_id") or ""), location, control_identity),
                     "order": len(catalog) + 1,
                     "kind": "control",
                     "field_key": key,
@@ -5665,7 +5693,7 @@ def _build_unified_field_catalog(
                     "form_id": str(step.get("form_id") or ""),
                     "step_id": str(step.get("id") or ""),
                     "action": ac or method,
-                    "location": _location_for_step(step, key),
+                    "location": location,
                     "metadata_type": "",
                     "category": category,
                     "panel": "structural",
@@ -7824,6 +7852,19 @@ def build_yaml_case(
 
     recording_origin = _recording_origin(har)
     recorded_base_url = recording_origin.get("base_url") or "https://feature.kingdee.com:1026/feature_sit_hrpro"
+    field_catalog = _build_unified_field_catalog(
+        yaml_steps,
+        [
+            {"name": name, **(dict(meta) if isinstance(meta, Mapping) else {})}
+            for name, meta in built_vars_meta.items()
+        ],
+        [
+            {"id": field_id, **(dict(meta) if isinstance(meta, Mapping) else {})}
+            for field_id, meta in pick_fields_map.items()
+        ],
+        main_form=main_form,
+        meta_resolver=meta_resolver,
+    )
     case = OrderedDict([
         ("name", case_name),
         ("description", _build_case_description(
@@ -7847,6 +7888,7 @@ def build_yaml_case(
         ("vars_labels", built_vars_labels),  # 变量中文标签
         ("vars_meta", built_vars_meta),       # 变量来源表单/业务块，供长链路分组维护
         ("pick_fields", pick_fields_map if pick_fields_map else OrderedDict()),
+        ("field_catalog", field_catalog),
         ("main_form_id", main_form),
         ("ir_contract", _compact_ir_contract_for_yaml(
             har,
@@ -8758,6 +8800,16 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             for item in pick_fields
             if item.get("id")
         )),
+        ("field_catalog", field_catalog),
+        ("ir_contract", OrderedDict([
+            ("source", "normalized_flow"),
+            ("alignment", ir_alignment),
+            ("generation_bridge", ir_generation_bridge),
+            ("field_bridge", ir_field_bridge),
+            ("interaction_bridge", ir_interaction_bridge),
+            ("write_anchor_bridge", ir_write_bridge),
+            ("navigation_policy", ir_navigation_policy),
+        ])),
         ("steps", preview_steps),
         ("assertions", _build_default_assertions(preview_steps)),
     ])
@@ -8777,6 +8829,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "recording": recording,
             "vars_meta": preview_validation_case.get("vars_meta"),
             "pick_fields": preview_validation_case.get("pick_fields"),
+            "field_catalog": preview_validation_case.get("field_catalog"),
+            "ir_contract": preview_validation_case.get("ir_contract"),
             "steps": preview_validation_case.get("steps"),
             "assertions": preview_validation_case.get("assertions"),
             "scenario": preview_contract["scenario"],
@@ -8788,7 +8842,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "write_anchor_plan": preview_contract["write_anchor_plan"],
             "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
             "target_data_selector_plan": preview_contract["target_data_selector_plan"],
+            "pageid_source_graph": preview_contract["pageid_source_graph"],
             "execution_contract": preview_contract["execution_contract"],
+            "generation_gate": preview_contract["generation_gate"],
             "report_metadata": preview_contract["report_metadata"],
         })
     except Exception as e:
@@ -8824,7 +8880,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "write_anchor_plan": preview_contract["write_anchor_plan"],
         "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
         "target_data_selector_plan": preview_contract["target_data_selector_plan"],
+        "pageid_source_graph": preview_contract["pageid_source_graph"],
         "execution_contract": preview_contract["execution_contract"],
+        "generation_gate": preview_contract["generation_gate"],
         "report_metadata": preview_contract["report_metadata"],
         "yaml_schema_contract": preview_schema_contract,
         "components": component_report,
@@ -8896,6 +8954,26 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             ir_interaction_bridge=ir_interaction_bridge,
             ir_write_bridge=ir_write_bridge,
         )
+        generation_gate = preview_contract.get("generation_gate") or {}
+        preview["preflight"]["generation_gate"] = generation_gate
+        if not generation_gate.get("allow_generate", True):
+            preview["preflight"]["decision"] = "blocked"
+            preview["preflight"]["allow_generate"] = False
+            preview["preflight"]["recommend_generate"] = False
+            preview["preflight"]["summary"] = "首次成功门槛未通过，当前 HAR 不能安全生成可执行 YAML。"
+            gate_issues = [
+                {
+                    "severity": item.get("severity", "critical"),
+                    "code": item.get("code", "generation_gate_blocked"),
+                    "message": item.get("message", ""),
+                    "suggestion": item.get("action", ""),
+                }
+                for item in generation_gate.get("issues") or []
+                if item.get("blocks_generate")
+            ]
+            preview["preflight"]["issues"] = gate_issues + list(
+                preview["preflight"].get("issues") or []
+            )
     except Exception as e:
         log.warning("HAR 导入预审失败（非致命）: %s", e)
         preview["preflight"] = {

@@ -20,8 +20,82 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_khr_adminorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryadjrsn_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryadjscm_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_zcurrency_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_proposer_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_scope_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryproposal_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "selector_salary_adjust_employee_id|grid_selector|loadData/commonSearch|value_code|exactly_one|billlistap|number|name|id|version",
+      "pick_khr_salarylevel_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_hsalarymodel_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_hsalarylevel_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_khr_heffectivedate|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_khr_zcurrencyfield_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_khr_hjteffectivedate|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "date_khr_hfleffectivedate|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_khr_fir_approver_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_sec_approver_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_upperson_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_decision_radio_group_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 31,
+      "signatures": [
+        "1|field_khr_hcdm_fapplybill_form_khr_name|text|vars|test_name|",
+        "2|field_khr_hcdm_fapplybill_entry_khr_adminorg|basedata|pick_fields||pick_khr_adminorg_id",
+        "3|field_khr_hcdm_fapplybill_entry_khr_salaryadjrsn|basedata|pick_fields||pick_khr_salaryadjrsn_id",
+        "4|field_khr_hcdm_fapplybill_form_khr_scope|combo|pick_fields||pick_khr_scope_id",
+        "5|field_khr_hcdm_fapplybill_entry_khr_salaryadjscm|basedata|pick_fields||pick_khr_salaryadjscm_id",
+        "6|field_khr_hcdm_fapplybill_form_khr_zcurrency|combo|pick_fields||pick_khr_zcurrency_id",
+        "7|field_khr_hcdm_fapplybill_form_khr_salaryproposal|combo|pick_fields||pick_khr_salaryproposal_id",
+        "8|field_khr_hcdm_fapplybill_entry_khr_proposer|basedata|pick_fields||pick_khr_proposer_id",
+        "9|control_hcdm_adjfileinfof7_dialog_btnok_click_click|dialog|structural||",
+        "10|field_khr_hcdm_targetsalary_entry_khr_monthlycommission|amount|vars|test_salary_before_monthly_commission|",
+        "11|field_khr_hcdm_targetsalary_entry_khr_salarylevel|basedata|pick_fields||pick_khr_salarylevel_id",
+        "12|field_khr_hcdm_targetsalary_entry_khr_hsalarymodel|basedata|pick_fields||pick_khr_hsalarymodel_id",
+        "13|field_khr_hcdm_targetsalary_entry_khr_hpostallowance|amount|vars|test_salary_after_post_allowance|",
+        "14|field_khr_hcdm_targetsalary_entry_khr_hmonthlyincome|amount|vars|test_salary_after_fixed_monthly_income|",
+        "15|field_khr_hcdm_targetsalary_entry_khr_hperformancem|amount|vars|test_salary_after_monthly_performance|",
+        "16|field_khr_hcdm_targetsalary_entry_khr_hmonthlybonus|amount|vars|test_salary_after_monthly_bonus|",
+        "17|field_khr_hcdm_targetsalary_entry_khr_hquarterlybonus|amount|vars|test_salary_after_quarterly_bonus|",
+        "18|field_khr_hcdm_targetsalary_entry_khr_hhalfyearbonus|amount|vars|test_salary_after_half_year_bonus|",
+        "19|field_khr_hcdm_targetsalary_entry_khr_hannualbonus|amount|vars|test_salary_after_annual_bonus|",
+        "20|field_khr_hcdm_targetsalary_entry_khr_hsalarylevel|basedata|pick_fields||pick_khr_hsalarylevel_id",
+        "21|field_khr_hcdm_targetsalary_entry_khr_heffectivedate|date|pick_fields||date_khr_heffectivedate",
+        "22|field_khr_hcdm_targetsalary_entry_khr_zcurrencyfield|basedata|pick_fields||pick_khr_zcurrencyfield_id",
+        "23|field_khr_hcdm_fapplybill_entry_khr_hjteffectivedate|date|pick_fields||date_khr_hjteffectivedate",
+        "24|field_khr_hcdm_fapplybill_entry_khr_hfleffectivedate|date|pick_fields||date_khr_hfleffectivedate",
+        "25|field_khr_hcdm_fapplybill_entry_khr_fir_approver|basedata|pick_fields||pick_khr_fir_approver_id",
+        "26|field_khr_hcdm_fapplybill_entry_khr_sec_approver|basedata|pick_fields||pick_khr_sec_approver_id",
+        "27|control_khr_hcdm_fapplybill_form_tbmain_submit_itemclick|button|structural||",
+        "28|field_khr_hcdm_fapplybill_entry_khr_upperson|basedata|pick_fields||pick_khr_upperson_id",
+        "29|field_wf_batchtask_handle_form_decision_radio_group|combo|pick_fields||pick_decision_radio_group_id",
+        "30|field_wf_batchtask_handle_form_msg_approval|multi_lang_text|vars|test_workflow_approval_opinion|",
+        "31|control_wf_batchtask_handle_form_toolbarap_btnsubmit_itemclick|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "khr_hcdm_fapplybill",
     "name": "regression_12_salary_adjust_submit_audit",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 29,
+        "l3_consumer_count": 56,
+        "node_count": 94,
+        "recorded_source_retained_count": 85,
+        "safe_recovery_count": 0,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -3350,6 +3424,50 @@
       "test_salary_before_monthly_commission",
       "test_workflow_approval_opinion"
     ],
+    "field_catalog": {
+      "count": 31,
+      "field_ids": [
+        "field_khr_hcdm_fapplybill_form_khr_name",
+        "field_khr_hcdm_fapplybill_entry_khr_adminorg",
+        "field_khr_hcdm_fapplybill_entry_khr_salaryadjrsn",
+        "field_khr_hcdm_fapplybill_form_khr_scope",
+        "field_khr_hcdm_fapplybill_entry_khr_salaryadjscm",
+        "field_khr_hcdm_fapplybill_form_khr_zcurrency",
+        "field_khr_hcdm_fapplybill_form_khr_salaryproposal",
+        "field_khr_hcdm_fapplybill_entry_khr_proposer",
+        "control_hcdm_adjfileinfof7_dialog_btnok_click_click",
+        "field_khr_hcdm_targetsalary_entry_khr_monthlycommission",
+        "field_khr_hcdm_targetsalary_entry_khr_salarylevel",
+        "field_khr_hcdm_targetsalary_entry_khr_hsalarymodel",
+        "field_khr_hcdm_targetsalary_entry_khr_hpostallowance",
+        "field_khr_hcdm_targetsalary_entry_khr_hmonthlyincome",
+        "field_khr_hcdm_targetsalary_entry_khr_hperformancem",
+        "field_khr_hcdm_targetsalary_entry_khr_hmonthlybonus",
+        "field_khr_hcdm_targetsalary_entry_khr_hquarterlybonus",
+        "field_khr_hcdm_targetsalary_entry_khr_hhalfyearbonus",
+        "field_khr_hcdm_targetsalary_entry_khr_hannualbonus",
+        "field_khr_hcdm_targetsalary_entry_khr_hsalarylevel",
+        "field_khr_hcdm_targetsalary_entry_khr_heffectivedate",
+        "field_khr_hcdm_targetsalary_entry_khr_zcurrencyfield",
+        "field_khr_hcdm_fapplybill_entry_khr_hjteffectivedate",
+        "field_khr_hcdm_fapplybill_entry_khr_hfleffectivedate",
+        "field_khr_hcdm_fapplybill_entry_khr_fir_approver",
+        "field_khr_hcdm_fapplybill_entry_khr_sec_approver",
+        "control_khr_hcdm_fapplybill_form_tbmain_submit_itemclick",
+        "field_khr_hcdm_fapplybill_entry_khr_upperson",
+        "field_wf_batchtask_handle_form_decision_radio_group",
+        "field_wf_batchtask_handle_form_msg_approval",
+        "control_wf_batchtask_handle_form_toolbarap_btnsubmit_itemclick"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "risky"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -3428,9 +3546,9 @@
     ]
   },
   "sample_id": "12_salary_adjust_submit_audit",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1780552954_金蝶HR-新增员工定调薪申请单-薪酬提案为否-提交&审核.har",
   "source_sha256": "a58aacf7a7ad8627ebd6bb2367d099bcd8c0da07670e562744949c0b425bfdf5",
-  "summary_hash": "3fc6f3e56990a06b23a82c6f256d1ad0c93972f24ac72c298f8607e8f59c0988",
+  "summary_hash": "ab633fa55912d8bc1c14696a190cbf7282d9a7f5c9d223f4488fb67dbf06322d",
   "title": "员工定调薪申请单提交审核"
 }

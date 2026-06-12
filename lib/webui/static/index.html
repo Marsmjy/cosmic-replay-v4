@@ -1541,9 +1541,9 @@
                    class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 mono text-sm"
                    placeholder="用例文件名">
             <div class="flex gap-2">
-              <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
+              <button @click="doExtractHar()" :disabled="!harCaseName || harUploading || !harCanGenerate()"
                       class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-3 py-2 rounded text-sm">
-                生成 YAML
+                <span x-text="harCanGenerate() ? '生成 YAML' : '需先修复解析'"></span>
               </button>
             </div>
             <div x-show="harReadbackPlanCount() > 0"
@@ -2208,9 +2208,9 @@
           <button @click="harStep=3" class="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-100">
             只改名称
           </button>
-          <button @click="doExtractHar()" :disabled="!harCaseName || harUploading"
+          <button @click="doExtractHar()" :disabled="!harCaseName || harUploading || !harCanGenerate()"
                   class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-4 py-1.5 rounded text-sm shadow-lg shadow-emerald-900/20 hover:-translate-y-0.5 transition-all">
-            生成 YAML
+            <span x-text="harCanGenerate() ? '生成 YAML' : '需先修复解析'"></span>
           </button>
         </div>
       </div>
@@ -3517,6 +3517,8 @@ function app() {
     // 详情
     currentCase: null,
     yamlSource: '',
+    caseFieldCatalog: [],
+    caseGenerationGate: {},
     yamlDirty: false,
     phases: [],
     summary: null,
@@ -3806,6 +3808,8 @@ function app() {
 	      const data = await (await fetch(`/api/cases/${name}/yaml`)).json();
 	      this.currentCase = this.cases.find(c => c.name === name);
 	      this.yamlSource = data.yaml;
+	      this.caseFieldCatalog = Array.isArray(data.field_catalog) ? data.field_catalog : [];
+	      this.caseGenerationGate = data.generation_gate || {};
 	      this.harPreview = null;
 	      this.harVarConfig = [];
 	      this.harPickFields = [];
@@ -4379,6 +4383,19 @@ function app() {
       return this.harPreview?.preflight || null;
     },
 
+    harCanGenerate() {
+      const preflight = this.harPreflight();
+      return !preflight || preflight.allow_generate !== false;
+    },
+
+    apiErrorMessage(payload, fallback = '请求失败') {
+      const detail = payload?.detail ?? payload?.error;
+      if (detail && typeof detail === 'object') {
+        return [detail.message, detail.reason].filter(Boolean).join('：') || fallback;
+      }
+      return String(detail || fallback);
+    },
+
     harNeedsAdvancedReview() {
       const preflight = this.harPreflight();
       const decision = preflight?.decision || '';
@@ -4670,7 +4687,7 @@ function app() {
           });
           const previewData = await previewResp.json();
           if (!previewResp.ok || !previewData.ok) {
-            throw new Error(previewData.detail || previewData.error || `预览失败 ${previewResp.status}`);
+            throw new Error(this.apiErrorMessage(previewData, `预览失败 ${previewResp.status}`));
           }
           const caseName = this.uniqueCaseName(file.name.replace(/\.har$/i, ''), usedNames);
           const extractResp = await fetch('/api/har/extract', {
@@ -4688,7 +4705,7 @@ function app() {
           });
           const extractData = await extractResp.json();
           if (!extractResp.ok || !extractData.ok) {
-            throw new Error(extractData.detail || extractData.error || `生成失败 ${extractResp.status}`);
+            throw new Error(this.apiErrorMessage(extractData, `生成失败 ${extractResp.status}`));
           }
           row.status = 'ok';
           row.case_name = extractData.name || caseName;
@@ -4878,7 +4895,7 @@ function app() {
         });
         if (!resp.ok) {
           const err = await resp.json();
-          this.showToast('生成失败: ' + (err.detail || resp.status));
+          this.showToast('生成失败: ' + this.apiErrorMessage(err, String(resp.status)));
           return;
         }
         const data = await resp.json();
@@ -5316,7 +5333,8 @@ function app() {
       const byVar = new Map();
       const byPick = new Map();
       const byField = new Map();
-      const catalog = (preview || this.harPreview || {}).field_catalog || [];
+      const source = preview || this.harPreview || {field_catalog: this.caseFieldCatalog || []};
+      const catalog = source.field_catalog || [];
       const remember = (map, key, order) => {
         if (!key) return;
         if (!map.has(key) || order < map.get(key)) map.set(key, order);
@@ -5637,11 +5655,15 @@ function app() {
 
 	    caseMaintenanceItems() {
 	      const stepOrder = this._harStepOrderMapFromSteps(this.parsedSteps());
+	      const catalogOrder = this._harFieldCatalogOrderMaps({
+	        field_catalog: this.caseFieldCatalog || [],
+	      });
 	      const items = [];
 	      for (const raw of (this.parsedVars() || [])) {
 	        if (!raw || typeof raw !== 'object') continue;
 	        const v = {...raw, name: raw.name || raw.key};
 	        if (!this.harMaintenanceBusinessItem(v, 'var')) continue;
+	        v._catalog_order = this._harCatalogOrderForVar(v, catalogOrder);
 	        const order = this._harMaintenanceOrder({ref: v}, stepOrder);
 	        items.push({
 	          key: 'var:' + (v.key || v.name || order),
@@ -5660,6 +5682,7 @@ function app() {
 	        if (!raw || typeof raw !== 'object') continue;
 	        const pf = {...raw, id: raw.id || raw.step_id};
 	        if (!this.harMaintenanceBusinessItem(pf, 'pick')) continue;
+	        pf._catalog_order = this._harCatalogOrderForPick(pf, catalogOrder);
 	        const order = this._harMaintenanceOrder({ref: pf}, stepOrder);
 	        items.push({
 	          key: 'pick:' + (pf.id || pf.step_id || order),

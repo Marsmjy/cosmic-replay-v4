@@ -72,6 +72,11 @@ def test_generated_yaml_and_preview_include_yaml_schema_contract():
     assert case["yaml_schema_contract"]["summary"]["step_count"] == len(case["steps"])
     assert case["yaml_schema_contract"]["summary"]["has_ir_contract"] is True
     assert case["yaml_schema_contract"]["summary"]["scenario_kind"] == case["scenario"]["kind"]
+    assert case["yaml_schema_contract"]["summary"]["field_catalog_count"] == len(case["field_catalog"])
+    assert all(item.get("field_id") for item in case["field_catalog"])
+    assert [item["order"] for item in case["field_catalog"]] == sorted(
+        item["order"] for item in case["field_catalog"]
+    )
     assert preview["yaml_schema_contract"]["summary"]["step_count"] == len(preview["steps"])
     assert preview["yaml_schema_contract"]["summary"]["scenario_kind"] == preview["scenario"]["kind"]
     assert preview["yaml_schema_contract"]["ok"] is True

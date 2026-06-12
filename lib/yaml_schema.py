@@ -60,6 +60,8 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
     vars_map = case.get("vars") if isinstance(case.get("vars"), Mapping) else {}
     vars_meta = case.get("vars_meta") if isinstance(case.get("vars_meta"), Mapping) else {}
     pick_fields = case.get("pick_fields") if isinstance(case.get("pick_fields"), Mapping) else {}
+    field_catalog_raw = case.get("field_catalog")
+    field_catalog = field_catalog_raw if isinstance(field_catalog_raw, list) else []
     assertions_raw = case.get("assertions")
     assertions = assertions_raw if isinstance(assertions_raw, list) else []
 
@@ -75,6 +77,8 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         errors.append(_issue("vars_meta_not_mapping", "$.vars_meta", "vars_meta 必须是对象。"))
     if "pick_fields" in case and not isinstance(case.get("pick_fields"), Mapping):
         errors.append(_issue("pick_fields_not_mapping", "$.pick_fields", "pick_fields 必须是对象。"))
+    if "field_catalog" in case and not isinstance(field_catalog_raw, list):
+        errors.append(_issue("field_catalog_not_list", "$.field_catalog", "field_catalog 必须是列表。"))
     if "assertions" in case and not isinstance(assertions_raw, list):
         errors.append(_issue("assertions_not_list", "$.assertions", "assertions 必须是列表。"))
 
@@ -112,6 +116,27 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
     duplicated_ids = sorted(item for item, count in Counter(step_ids).items() if count > 1)
     for step_id in duplicated_ids[:10]:
         errors.append(_issue("duplicate_step_id", "$.steps", f"step id 重复: {step_id}。"))
+
+    catalog_ids: list[str] = []
+    catalog_orders: list[int] = []
+    for index, item in enumerate(field_catalog):
+        path = f"$.field_catalog[{index}]"
+        if not isinstance(item, Mapping):
+            errors.append(_issue("field_catalog_item_not_mapping", path, "field_catalog 项必须是对象。"))
+            continue
+        field_id = str(item.get("field_id") or "").strip()
+        if not field_id:
+            errors.append(_issue("field_catalog_id_missing", f"{path}.field_id", "field_catalog 项缺少稳定 field_id。"))
+        else:
+            catalog_ids.append(field_id)
+        try:
+            catalog_orders.append(int(item.get("order")))
+        except (TypeError, ValueError):
+            errors.append(_issue("field_catalog_order_invalid", f"{path}.order", "field_catalog order 必须是整数。"))
+    for field_id in sorted(item for item, count in Counter(catalog_ids).items() if count > 1)[:10]:
+        errors.append(_issue("duplicate_field_catalog_id", "$.field_catalog", f"field_id 重复: {field_id}。"))
+    if catalog_orders and catalog_orders != sorted(catalog_orders):
+        errors.append(_issue("field_catalog_order_unstable", "$.field_catalog", "field_catalog 必须保持 HAR 首次录入顺序。"))
 
     for index, assertion in enumerate(assertions):
         path = f"$.assertions[{index}]"
@@ -154,7 +179,10 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "maintainable_field_binding_plan",
         "write_anchor_plan",
         "runtime_value_flow_plan",
+        "target_data_selector_plan",
+        "pageid_source_graph",
         "execution_contract",
+        "generation_gate",
         "report_metadata",
     }
     missing_contract_sections = sorted(section for section in contract_sections if section not in case)
@@ -173,6 +201,7 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "vars_meta_count": len(vars_meta),
         "environment_field_count": len(pick_fields),
         "maintainable_field_count": len(vars_meta) + len(pick_fields),
+        "field_catalog_count": len(field_catalog),
         "write_step_count": write_step_count,
         "has_ir_contract": bool(ir_contract),
         "has_case_contract": not missing_contract_sections,

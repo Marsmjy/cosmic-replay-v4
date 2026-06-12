@@ -26,6 +26,10 @@ def test_infer_write_status_flags_empty_save_response_as_unverified():
 
     assert status == "unverified"
     assert "empty_response" in evidence["signals"][0]
+    assert evidence["request_success"] is True
+    assert evidence["action_success"] is True
+    assert evidence["write_verified"] is False
+    assert evidence["business_result"] == "write_unverified"
 
 
 def test_infer_write_status_flags_invalid_request_as_failed():
@@ -46,6 +50,7 @@ def test_infer_write_status_flags_invalid_request_as_failed():
 
     assert status == "failed"
     assert "invalid_request" in evidence["signals"][0]
+    assert evidence["business_result"] == "business_failed"
 
 
 def test_acceptance_summary_routes_unverified_pass_to_ai_agent():
@@ -96,6 +101,8 @@ def test_readback_assertion_marks_passed_write_as_verified():
     summary = build_acceptance_summary([result])
 
     assert result.write_status == "verified"
+    assert result.write_evidence["write_verified"] is True
+    assert result.write_evidence["business_result"] == "write_verified"
     assert result.next_action == "none"
     assert "assertion:readback_by_business_key" in result.write_evidence["signals"]
     assert summary["status"] == "ready"

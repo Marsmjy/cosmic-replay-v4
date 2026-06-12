@@ -90,6 +90,9 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 29. 关键响应校验必须来自录制 HAR 的脱敏语义契约，不做完整 JSON 相等。写入锚点的 `expected_response_signature.contract_level` 必须是 `critical`；运行时必须记录 `response_contract_results`。录制响应缺少稳定业务字段时允许使用最小契约 `outcome=not_failure`，但仍要由 `no_save_failure`、写入响应证据和入库回查共同兜底。若 `ir_write_anchor_uncovered` 或 `ir_write_contract_missing` 出现在 preflight，必须在登录和写库前阻断。
 30. “首次成功门槛”只有三种写入结论：`verified` 表示首次执行、全部写入锚点、关键请求/响应契约、用户维护值、系统断言和只读入库回查（或明确人工确认）全部通过；`write_unverified` 表示执行与关键契约通过但缺入库证据；`failed` 表示写入锚点未执行、契约失败、维护值未命中或系统断言失败。只读用例为 `not_applicable`，不得强行要求 save/readback。排障时优先查看 evidence 的 `write_anchor_plan`、`first_success_gate.checks/missing`，不要只看顶层 PASS。
 31. pageId 风险必须尊重录制事实：真实编辑/保存通常要求 L3，但如果 HAR 本身把工作流确认回调录制在 L2，并且精确 producer→consumer 来源一致，就不能只因 `preserve_l2_page=true` 判错。只有“录制要求 L3、生成步骤却强制保留 L2”、跨表单来源不一致、窗口关闭后复用或运行 trace 证明上下文过期时，才升级为阻断。
+32. 新生成 YAML 必须携带 `generation_gate`。预览、`/api/har/extract` 和 runner 共用该门槛：只有写入锚点遗漏、关键请求/响应契约缺失、用户覆盖值未绑定、目标选择器不安全、pageId 生产者丢失且无恢复策略等确定性问题才阻断；质量评分低或复杂交互启发式差异只能提示复核，不能单独误伤可执行用例。目标环境字段尚待维护时允许生成，但必须在写库前阻断运行。
+33. `field_catalog` 是预览、变量面板、YAML 和运行报告的统一字段目录。目录只保存脱敏结构信息，必须包含稳定 `field_id`、HAR 首次录入顺序、表单、字段键、类型、位置和变量/环境字段绑定；详情页不得脱离该目录按 vars/pick_fields 各自重排。同一表单、位置和字段只能有一个稳定 field_id。
+34. `pageid_source_graph` 是生成和执行契约，不是仅供查看的诊断图。它不保存真实 pageId，只记录消费者、L2/L3 角色、source_request_index、录制生产者是否保留、恢复策略和窗口重开守卫。`recorded_pageid_source_retained=false` 且没有安全 recovery strategy 的写入消费者必须在生成期阻断。
 
 ## 一、整体防护架构
 

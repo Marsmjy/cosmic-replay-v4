@@ -372,6 +372,8 @@ def enrich_case_result(result: CaseResult) -> None:
         result.write_status = "manual_verified"
         result.write_evidence.setdefault("signals", []).append("manual_confirmed")
         result.write_evidence["manual_confirmed"] = True
+        result.write_evidence["write_verified"] = True
+        result.write_evidence["business_result"] = "write_verified"
         result.next_action = "none"
         result.ai_reason = ""
         return
@@ -422,23 +424,52 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
         "write_step_count": len(write_phases),
         "checked": bool(write_phases),
         "signals": [],
+        "request_success": False,
+        "action_success": False,
+        "response_contract_passed": False,
+        "write_verified": False,
+        "business_result": "query_passed" if result.passed and not write_phases else "business_failed",
     }
+    response_contract_results = (result.runtime_evidence or {}).get("response_contract_results") or {}
+
+    def finish(status: str) -> tuple[str, dict]:
+        hard_failed = status == "failed"
+        evidence["request_success"] = bool(write_phases and result.passed and not hard_failed)
+        evidence["action_success"] = bool(write_phases and result.passed and not hard_failed)
+        relevant_contracts = [
+            item for item in response_contract_results.values()
+            if isinstance(item, dict)
+            and item.get("contract_level") in {"critical", "business"}
+        ]
+        evidence["response_contract_passed"] = bool(
+            relevant_contracts
+            and all(not item.get("errors") for item in relevant_contracts)
+            and not hard_failed
+        )
+        evidence["write_verified"] = status in {"verified", "manual_verified"}
+        evidence["business_result"] = (
+            "query_passed" if status == "not_applicable" and result.passed
+            else "write_verified" if status in {"verified", "manual_verified"}
+            else "write_unverified" if status == "unverified"
+            else "business_failed"
+        )
+        return status, evidence
+
     if not write_phases:
-        return "not_applicable", evidence
+        return finish("not_applicable")
     if not result.passed:
         evidence["signals"].append("case_failed")
-        return "failed", evidence
+        return finish("failed")
     if _has_runtime_upload_consumption_assertion(result):
         evidence["signals"].append("assertion:runtime_upload_consumed")
     if _has_verified_attachment_readback_assertion(result):
         evidence["signals"].append("assertion:readback_runtime_upload")
-        return "verified", evidence
+        return finish("verified")
     if _has_verified_readback_assertion(result):
         evidence["signals"].append("assertion:readback_by_business_key")
-        return "verified", evidence
+        return finish("verified")
 
     response_evidence_found = False
-    response_contract_results = (result.runtime_evidence or {}).get("response_contract_results") or {}
     for phase in write_phases:
         phase_id = str(phase.get("id") or "")
         step_id = phase_id[5:] if phase_id.startswith("step:") else phase_id
@@ -450,7 +481,7 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
         if isinstance(contract, dict) and contract.get("errors"):
             evidence["signals"].append(f"{phase.get('id', '')}:response_contract_failed")
             evidence["response_contract_errors"] = list(contract.get("errors") or [])[:5]
-            return "failed", evidence
+            return finish("failed")
         if isinstance(contract, dict) and contract.get("contract_level") and not contract.get("errors"):
             evidence["signals"].append(f"{phase.get('id', '')}:response_contract_ok")
             response_evidence_found = True
@@ -465,7 +496,7 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
             ("无效请求", "非法请求", "invalidrequest", "csrf", "signature"),
         ):
             evidence["signals"].append(f"{phase.get('id', '')}:invalid_request")
-            return "failed", evidence
+            return finish("failed")
         if _contains_any(
             compact_text,
             (
@@ -488,11 +519,11 @@ def infer_write_status(result: CaseResult) -> tuple[str, dict]:
             ("bos_operationresult", "showfieldtips", '"success":false', "'success':false"),
         ):
             evidence["signals"].append(f"{phase.get('id', '')}:failure_dialog")
-            return "failed", evidence
+            return finish("failed")
         evidence["signals"].append(f"{phase.get('id', '')}:non_empty_response")
     if response_evidence_found:
         evidence["response_verified"] = True
-    return "unverified", evidence
+    return finish("unverified")
 
 
 def build_decision_summary(result: CaseResult) -> dict:

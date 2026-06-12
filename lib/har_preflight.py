@@ -1,8 +1,8 @@
 """HAR import preflight and pageId alignment scoring.
 
-These helpers are diagnostic-only. They do not rewrite preview steps or YAML;
-they give the Web UI and AI evidence an earlier answer to: is this HAR complete
-enough to generate, and is the pageId chain likely to replay correctly?
+Scoring remains diagnostic, while deterministic generation blockers are
+carried by the shared case generation gate. This module must not turn a low
+score or a mapping heuristic alone into an unsafe hard block.
 """
 from __future__ import annotations
 
@@ -379,13 +379,13 @@ def _preflight_issues(
         })
     if checks.get("ir_interaction_high_risk_uncovered_count", 0):
         issues.append({
-            "severity": "critical",
+            "severity": "high",
             "code": "ir_complex_interaction_uncovered",
             "message": (
                 f"有 {checks['ir_interaction_high_risk_uncovered_count']} 个 F7/分录/"
                 "子弹窗确认动作未进入生成 YAML。"
             ),
-            "suggestion": "按 IR source_index/action_index 补齐选择、分录维护和确认边界后再生成。",
+            "suggestion": "按 IR source_index/action_index 复核选择、分录维护和确认边界；只有确认证据缺失时才阻断生成。",
         })
     elif (
         ir_interaction_bridge.get("status") == "ready_with_warnings"

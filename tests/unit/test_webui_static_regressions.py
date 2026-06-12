@@ -127,6 +127,26 @@ def test_case_variable_panel_reuses_unified_maintainable_business_fields():
     assert "_harStepOrderMapFromSteps(this.parsedSteps())" in html
 
 
+def test_case_variable_panel_uses_persisted_yaml_field_catalog_order():
+    html = _index_html()
+
+    assert "caseFieldCatalog: []" in html
+    assert "data.field_catalog" in html
+    assert "field_catalog: this.caseFieldCatalog || []" in html
+    assert "v._catalog_order = this._harCatalogOrderForVar" in html
+    assert "pf._catalog_order = this._harCatalogOrderForPick" in html
+
+
+def test_har_generation_button_uses_shared_generation_gate():
+    html = _index_html()
+
+    assert "harCanGenerate()" in html
+    assert "preflight.allow_generate !== false" in html
+    assert "!harCanGenerate()" in html
+    assert "需先修复解析" in html
+    assert "apiErrorMessage(payload" in html
+
+
 def test_maintenance_field_blocks_can_collapse_independently_and_use_option_selects():
     html = _index_html()
 

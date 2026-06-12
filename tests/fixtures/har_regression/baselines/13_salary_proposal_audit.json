@@ -16,8 +16,65 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_khr_adminorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryadjrsn_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_scope_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryadjscm_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_zcurrency_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_khr_salaryproposal_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "upload_upload_15_file_path|user_file|upload||literal|lookup|number|name|id|version",
+      "pick_khr_proposer_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "selector_salary_adjust_employee_id|grid_selector|loadData/commonSearch|value_code|exactly_one|billlistap|number|name|id|version",
+      "pick_khr_upperson_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_salarylevel_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_hsalarymodel_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_khr_zcurrencyfield_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 18,
+      "signatures": [
+        "1|field_khr_hcdm_fapplybill_form_khr_name|text|vars|test_name|",
+        "2|field_khr_hcdm_fapplybill_entry_khr_adminorg|basedata|pick_fields||pick_khr_adminorg_id",
+        "3|field_khr_hcdm_fapplybill_entry_khr_salaryadjrsn|basedata|pick_fields||pick_khr_salaryadjrsn_id",
+        "4|field_khr_hcdm_fapplybill_form_khr_scope|combo|pick_fields||pick_khr_scope_id",
+        "5|field_khr_hcdm_fapplybill_entry_khr_salaryadjscm|basedata|pick_fields||pick_khr_salaryadjscm_id",
+        "6|field_khr_hcdm_fapplybill_form_khr_zcurrency|combo|pick_fields||pick_khr_zcurrency_id",
+        "7|field_khr_hcdm_fapplybill_form_khr_salaryproposal|combo|pick_fields||pick_khr_salaryproposal_id",
+        "8|field_khr_hcdm_fapplybill_form_file_path|text|pick_fields||upload_upload_15_file_path",
+        "9|field_khr_hcdm_fapplybill_entry_khr_proposer|basedata|pick_fields||pick_khr_proposer_id",
+        "10|field_khr_hcdm_fapplybill_entry_khr_upperson|basedata|pick_fields||pick_khr_upperson_id",
+        "11|field_khr_hcdm_fapplybill_entry_khr_salarylevel|basedata|pick_fields||pick_khr_salarylevel_id",
+        "12|field_khr_hcdm_fapplybill_entry_khr_monthlycommission|amount|vars|test_salary_before_monthly_commission|",
+        "13|field_khr_hcdm_fapplybill_entry_khr_hsalarymodel|basedata|pick_fields||pick_khr_hsalarymodel_id",
+        "14|control_khr_hcdm_fapplybill_form_tbmain_submit_itemclick|button|structural||",
+        "15|field_khr_hcdm_proposalplan_entry_khr_saproposal|amount|vars|test_salary_proposal_amount|",
+        "16|field_khr_hcdm_proposalplan_entry_khr_sapexplanation|text|vars|test_salary_proposal_explanation|",
+        "17|field_khr_hcdm_proposalplan_entry_khr_zcurrencyfield|basedata|pick_fields||pick_khr_zcurrencyfield_id",
+        "18|control_khr_hcdm_proposalplan_form_tbmain_save_tian_itemclick|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": false,
+      "allow_run": false,
+      "blocker_codes": [
+        "target_data_selector_unsafe"
+      ],
+      "decision": "blocked"
+    },
     "main_form_id": "khr_hcdm_fapplybill",
     "name": "regression_13_salary_proposal_audit",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 14,
+        "l3_consumer_count": 32,
+        "node_count": 52,
+        "recorded_source_retained_count": 44,
+        "safe_recovery_count": 0,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -1869,6 +1926,39 @@
       "test_salary_proposal_amount",
       "test_salary_proposal_explanation"
     ],
+    "field_catalog": {
+      "count": 18,
+      "field_ids": [
+        "field_khr_hcdm_fapplybill_form_khr_name",
+        "field_khr_hcdm_fapplybill_entry_khr_adminorg",
+        "field_khr_hcdm_fapplybill_entry_khr_salaryadjrsn",
+        "field_khr_hcdm_fapplybill_form_khr_scope",
+        "field_khr_hcdm_fapplybill_entry_khr_salaryadjscm",
+        "field_khr_hcdm_fapplybill_form_khr_zcurrency",
+        "field_khr_hcdm_fapplybill_form_khr_salaryproposal",
+        "field_khr_hcdm_fapplybill_form_file_path",
+        "field_khr_hcdm_fapplybill_entry_khr_proposer",
+        "field_khr_hcdm_fapplybill_entry_khr_upperson",
+        "field_khr_hcdm_fapplybill_entry_khr_salarylevel",
+        "field_khr_hcdm_fapplybill_entry_khr_monthlycommission",
+        "field_khr_hcdm_fapplybill_entry_khr_hsalarymodel",
+        "control_khr_hcdm_fapplybill_form_tbmain_submit_itemclick",
+        "field_khr_hcdm_proposalplan_entry_khr_saproposal",
+        "field_khr_hcdm_proposalplan_entry_khr_sapexplanation",
+        "field_khr_hcdm_proposalplan_entry_khr_zcurrencyfield",
+        "control_khr_hcdm_proposalplan_form_tbmain_save_tian_itemclick"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": false,
+      "allow_run": false,
+      "blocker_codes": [
+        "target_data_selector_unsafe"
+      ],
+      "decision": "blocked",
+      "preflight_decision": "blocked"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -1942,9 +2032,9 @@
     ]
   },
   "sample_id": "13_salary_proposal_audit",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1780560406_金蝶HR-新增员工定调薪申请单-薪酬提案为是-提案审核.har",
   "source_sha256": "b6def7c185ea040fb26bb1a3ae2bd20ddcdc500d192f24870852e3eaa1eb80d6",
-  "summary_hash": "fba04c1ae5793a42cb2d0dbe0ea5be9841a87099f28fa3e5b7b380f990b87940",
+  "summary_hash": "3ff9f4fc06cd86d940e6ec53ce31ec459b173b419c4f18a730e274d174bc3375",
   "title": "员工定调薪薪酬提案审核"
 }

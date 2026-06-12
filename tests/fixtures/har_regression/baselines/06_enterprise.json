@@ -12,8 +12,39 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "pick_createorg_id|lookup|getLookUpList||exactly_one|lookup|number|name|id|version",
+      "pick_lawentity_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 5,
+      "signatures": [
+        "1|field_hbss_enterprise_form_createorg|basedata|pick_fields||pick_createorg_id",
+        "2|field_hbss_enterprise_form_number|text|vars|test_number|",
+        "3|field_hbss_enterprise_form_name|multi_lang_text|vars|test_name|",
+        "4|field_hbss_enterprise_entry_lawentity|basedata|pick_fields||pick_lawentity_id",
+        "5|control_hbss_enterprise_form_btnsave_click_click|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review"
+    },
     "main_form_id": "hbss_enterprise",
     "name": "regression_06_enterprise",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 4,
+        "l3_consumer_count": 6,
+        "node_count": 12,
+        "recorded_source_retained_count": 8,
+        "safe_recovery_count": 0,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -501,6 +532,24 @@
       "test_name",
       "test_number"
     ],
+    "field_catalog": {
+      "count": 5,
+      "field_ids": [
+        "field_hbss_enterprise_form_createorg",
+        "field_hbss_enterprise_form_number",
+        "field_hbss_enterprise_form_name",
+        "field_hbss_enterprise_entry_lawentity",
+        "control_hbss_enterprise_form_btnsave_click_click"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "review",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [
@@ -559,9 +608,9 @@
     ]
   },
   "sample_id": "06_enterprise",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1778835335_基础资料-用人单位.har",
   "source_sha256": "80b61e12486c83f9549d32b33ae9a14c1c4483d842aeca75064c7f12e7fe15d8",
-  "summary_hash": "7f44beeb49d98a0b4caedf83560ada0e2a7cbc7df8fa24f811a1b8871b83563f",
+  "summary_hash": "12fff780dcf45b2b23335c8d2b8884bbb0c65de08e6426482d24079e816e7c43",
   "title": "基础资料-用人单位"
 }

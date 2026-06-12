@@ -10,6 +10,8 @@ cosmic-replay v4 - API端点集成测试
 """
 import pytest
 import sys
+import json
+import urllib.parse
 from pathlib import Path
 from collections import OrderedDict
 
@@ -341,7 +343,47 @@ class TestBatchEndpoints:
                 path.unlink()
         existing_path.parent.mkdir(parents=True, exist_ok=True)
         existing_path.write_text(original_yaml, encoding="utf-8")
-        har_path.write_text('{"log":{"entries":[]}}', encoding="utf-8")
+        query_actions = [{
+            "key": "billlistap",
+            "methodName": "loadData",
+            "args": [],
+            "postData": [{}, []],
+        }]
+        har_path.write_text(
+            json.dumps({
+                "log": {
+                    "entries": [{
+                        "request": {
+                            "method": "POST",
+                            "url": (
+                                "http://example.test/form/batchInvokeAction.do"
+                                "?appId=demo&f=demo_list&ac=loadData"
+                            ),
+                            "postData": {
+                                "text": urllib.parse.urlencode({
+                                    "params": json.dumps(query_actions),
+                                    "pageId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                })
+                            },
+                        },
+                        "response": {
+                            "content": {
+                                "text": json.dumps([{
+                                    "p": [{
+                                        "k": "billlistap",
+                                        "data": {
+                                            "dataindex": {"number": 0},
+                                            "rows": [],
+                                        },
+                                    }],
+                                }])
+                            }
+                        },
+                    }]
+                }
+            }),
+            encoding="utf-8",
+        )
         try:
             resp = client.post("/api/har/extract", json={
                 "har_file": har_path.name,

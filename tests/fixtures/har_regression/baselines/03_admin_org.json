@@ -12,8 +12,48 @@
         "type": "no_error_actions"
       }
     ],
+    "environment_resolvers": [
+      "env_click_addnew_treeview_focus|manual|||literal|lookup|number|name|id|version",
+      "pick_org_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_changescene_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "date_bsed|literal_date|update_fields||literal|lookup|number|name|id|version",
+      "pick_adminorgtype_id|lookup|getLookUpList|value_name|exactly_one|lookup|number|name|id|version",
+      "pick_parentorg_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version",
+      "pick_otclassify_id|lookup|getLookUpList|value_code|exactly_one|lookup|number|name|id|version"
+    ],
+    "field_catalog": {
+      "count": 9,
+      "signatures": [
+        "1|field_haos_adminorgdetail_form_org|basedata|pick_fields||pick_org_id",
+        "2|field_haos_adminorgdetail_entry_changescene|basedata|pick_fields||pick_changescene_id",
+        "3|field_haos_adminorgdetail_form_bsed|date|pick_fields||date_bsed",
+        "4|field_haos_adminorgdetail_form_number|text|vars|test_number|",
+        "5|field_haos_adminorgdetail_form_name|multi_lang_text|vars|test_name|",
+        "6|field_haos_adminorgdetail_entry_adminorgtype|basedata|pick_fields||pick_adminorgtype_id",
+        "7|field_haos_adminorgdetail_form_parentorg|basedata|pick_fields||pick_parentorg_id",
+        "8|field_haos_adminorgdetail_form_otclassify|basedata|pick_fields||pick_otclassify_id",
+        "9|control_haos_adminorgdetail_form_tbmain_save_itemclick|button|structural||"
+      ]
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "ready"
+    },
     "main_form_id": "haos_adminorgdetail",
     "name": "regression_03_admin_org",
+    "pageid_source_graph": {
+      "summary": {
+        "l2_consumer_count": 8,
+        "l3_consumer_count": 22,
+        "node_count": 35,
+        "recorded_source_retained_count": 27,
+        "safe_recovery_count": 2,
+        "unsafe_consumer_count": 0
+      },
+      "unsafe_consumer_step_ids": []
+    },
     "pageid_trace": {
       "steps": [
         {
@@ -1227,6 +1267,28 @@
       "test_name",
       "test_number"
     ],
+    "field_catalog": {
+      "count": 9,
+      "field_ids": [
+        "field_haos_adminorgdetail_form_org",
+        "field_haos_adminorgdetail_entry_changescene",
+        "field_haos_adminorgdetail_form_bsed",
+        "field_haos_adminorgdetail_form_number",
+        "field_haos_adminorgdetail_form_name",
+        "field_haos_adminorgdetail_entry_adminorgtype",
+        "field_haos_adminorgdetail_form_parentorg",
+        "field_haos_adminorgdetail_form_otclassify",
+        "control_haos_adminorgdetail_form_tbmain_save_itemclick"
+      ],
+      "unknown_count": 0
+    },
+    "generation_gate": {
+      "allow_generate": true,
+      "allow_run": true,
+      "blocker_codes": [],
+      "decision": "ready",
+      "preflight_decision": "review"
+    },
     "ir_alignment": {
       "grade": "A",
       "issue_codes": [],
@@ -1292,9 +1354,9 @@
     ]
   },
   "sample_id": "03_admin_org",
-  "schema_version": 1,
+  "schema_version": 2,
   "source_har": "preview_1778835311_新增一条行政组织.har",
   "source_sha256": "70c9ed909e82ebc0c1911fd86a17b3edc0d5eea76894209067603e28cc3826c3",
-  "summary_hash": "baea9a02d561a4d7c1081a44f5ce7e650a4ccb59b1b3b0375caf0f7ec4b3508a",
+  "summary_hash": "1cf252a6f2e1a2504e6ce652e8d1a9130ecf15c8c6cc0a07f258934931fd49fb",
   "title": "新增一条行政组织"
 }
