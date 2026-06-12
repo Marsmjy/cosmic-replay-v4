@@ -984,6 +984,21 @@ def _find_recorded_readback_step(
             return query_field
         query_lower = query_field.lower()
         preferred_lower = preferred_field_key.lower()
+
+        def normalized_field(value: str) -> str:
+            return "".join(ch for ch in value.lower() if ch.isalnum())
+
+        query_normalized = normalized_field(query_lower)
+        preferred_normalized = normalized_field(preferred_lower)
+        for candidate in columns:
+            candidate_normalized = normalized_field(candidate)
+            if candidate_normalized == query_normalized:
+                return candidate
+        for candidate in columns:
+            candidate_normalized = normalized_field(candidate)
+            if candidate_normalized == preferred_normalized:
+                return candidate
+
         semantic_leaf = (
             preferred_lower.rsplit(".", 1)[-1].rsplit("_", 1)[-1]
             or query_lower.rsplit(".", 1)[-1].rsplit("_", 1)[-1]

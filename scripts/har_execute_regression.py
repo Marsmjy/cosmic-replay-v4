@@ -159,9 +159,12 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
     ir_write_bridge = preview.get("ir_write_bridge") or {}
     write_bridge_checks = ir_write_bridge.get("checks") or {}
     ir_navigation = preview.get("ir_navigation_policy") or {}
+    scenario = preview.get("scenario") or {}
     return {
         "status": "ok",
         "main_form_id": preview.get("main_form_id", ""),
+        "scenario_kind": scenario.get("kind", ""),
+        "scenario_stages": list(scenario.get("stages") or []),
         "step_count": len(preview.get("steps") or []),
         "vars_count": len(preview.get("detected_vars") or preview.get("vars") or []),
         "pick_fields_count": len(preview.get("pick_fields") or []),
@@ -491,6 +494,8 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "execution_env": item.get("execution_env", ""),
                 "parse_status": parse.get("status", ""),
                 "main_form_id": parse.get("main_form_id", ""),
+                "scenario_kind": parse.get("scenario_kind", ""),
+                "scenario_stages": parse.get("scenario_stages", []),
                 "step_count": parse.get("step_count", 0),
                 "vars_count": parse.get("vars_count", 0),
                 "pick_fields_count": parse.get("pick_fields_count", 0),
@@ -589,6 +594,8 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
     compare_fields = [
         "parse_status",
         "main_form_id",
+        "scenario_kind",
+        "scenario_stages",
         "step_count",
         "vars_count",
         "pick_fields_count",

@@ -27,6 +27,7 @@ def test_query_only_case_is_read_only_and_does_not_require_readback():
     assert contract["capability"]["flow_kind"] == "query_only"
     assert contract["capability"]["write_mode"] == "read_only"
     assert contract["capability"]["requires_readback"] is False
+    assert contract["scenario"]["kind"] == "query"
     assert "只读查询" in contract["ai_assistance"]["assumptions"][0]
 
 
@@ -76,6 +77,8 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
     preview = preview_har(har_path)
 
     for key in (
+        "cleanup",
+        "scenario",
         "capability",
         "ai_assistance",
         "environment_binding_plan",
@@ -83,13 +86,117 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
         "write_anchor_plan",
         "runtime_value_flow_plan",
         "execution_contract",
+        "report_metadata",
     ):
         assert key in case
         assert key in preview
 
     assert case["capability"]["requires_environment_preflight"] is True
+    assert case["scenario"]["kind"] == preview["scenario"]["kind"]
+    assert case["recording"]["base_url"] == preview["recording"]["base_url"]
+    assert case["env"]["base_url"].endswith(case["recording"]["base_url"] + "}")
     assert preview["environment_binding_plan"]["summary"]["field_count"] == len(preview["pick_fields"])
     assert any(step.get("ir_sources") for step in case["steps"])
+    assert case["cleanup"]["automatic"] is False
+    assert case["report_metadata"]["value_safe"] is True
+
+
+def test_generic_dialog_ok_is_not_a_write_anchor():
+    contract = build_case_contract({
+        "name": "dialog_confirm_only",
+        "steps": [{
+            "id": "confirm_picker",
+            "type": "invoke",
+            "form_id": "demo_f7",
+            "ac": "click",
+            "method": "click",
+            "key": "btnok",
+        }],
+        "assertions": [{"type": "no_error_actions", "last_step": True}],
+    })
+
+    assert contract["scenario"]["kind"] == "navigation"
+    assert contract["scenario"]["write_mode"] == "read_only"
+    assert contract["write_anchor_plan"]["summary"]["write_anchor_count"] == 0
+    assert contract["capability"]["requires_readback"] is False
+
+
+def test_business_confirm_and_submit_remain_write_scenarios():
+    confirm = build_case_contract({
+        "steps": [{
+            "id": "business_confirm",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "ac": "click",
+            "key": "btn_confirm",
+        }],
+    })
+    submit = build_case_contract({
+        "steps": [{
+            "id": "submit_bill",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "ac": "submit",
+        }],
+    })
+
+    assert confirm["scenario"]["kind"] == "confirm"
+    assert confirm["write_anchor_plan"]["summary"]["write_anchor_count"] == 1
+    assert submit["scenario"]["kind"] == "submit"
+    assert submit["capability"]["status"] == "partial_supported"
+    assert "workflow_or_audit_chain_depends_on_target_env_todo_and_permissions" in (
+        submit["capability"]["partial_supported_reasons"]
+    )
+
+
+def test_workflow_decision_plus_submit_is_classified_as_approval():
+    contract = build_case_contract({
+        "steps": [{
+            "id": "fill_approval",
+            "type": "update_fields",
+            "form_id": "wf_batchtask_handle",
+            "fields": {
+                "decision_radio_group": "Consent",
+                "msg_approval": {"zh_CN": "同意"},
+            },
+        }, {
+            "id": "confirm_approval",
+            "type": "invoke",
+            "form_id": "wf_batchtask_handle",
+            "ac": "btnsubmit",
+            "key": "toolbarap",
+        }],
+    })
+
+    assert contract["scenario"]["kind"] == "approve"
+    assert contract["scenario"]["stages"] == ["approve"]
+    assert contract["scenario"]["operations"][0]["source"] == (
+        "workflow_decision_and_submit_action"
+    )
+
+
+def test_environment_binding_plan_preserves_zero_based_har_order():
+    contract = build_case_contract({
+        "pick_fields": {
+            "pick_second": {
+                "label": "第二个字段",
+                "value_code": "002",
+                "auto_resolve": True,
+                "order": 1,
+            },
+            "pick_first": {
+                "label": "第一个字段",
+                "value_code": "001",
+                "auto_resolve": True,
+                "order": 0,
+            },
+        },
+        "steps": [{"id": "load", "type": "invoke", "ac": "loadData"}],
+    })
+
+    assert [
+        item["id"] for item in contract["environment_binding_plan"]["fields"]
+    ] == ["pick_first", "pick_second"]
 
 
 def test_contract_preflight_blocks_write_missing_no_save_failure_and_required_env_field():

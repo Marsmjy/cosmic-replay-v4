@@ -145,6 +145,9 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
             errors.append(_issue("unsafe_raw_har_committed", "$.ir_contract.policy", "YAML 不应声明提交原始 HAR。"))
 
     contract_sections = {
+        "recording",
+        "scenario",
+        "cleanup",
         "capability",
         "ai_assistance",
         "environment_binding_plan",
@@ -152,6 +155,7 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "write_anchor_plan",
         "runtime_value_flow_plan",
         "execution_contract",
+        "report_metadata",
     }
     missing_contract_sections = sorted(section for section in contract_sections if section not in case)
     if missing_contract_sections:
@@ -172,6 +176,10 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "write_step_count": write_step_count,
         "has_ir_contract": bool(ir_contract),
         "has_case_contract": not missing_contract_sections,
+        "scenario_kind": str(
+            ((case.get("scenario") or {}).get("kind") if isinstance(case.get("scenario"), Mapping) else "")
+            or ((case.get("capability") or {}).get("scenario_kind") if isinstance(case.get("capability"), Mapping) else "")
+        ),
     }
     return _result(errors=errors, warnings=warnings, summary=summary)
 

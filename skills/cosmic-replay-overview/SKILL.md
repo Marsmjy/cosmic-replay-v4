@@ -163,7 +163,7 @@ case_start → login_ok → session_ready → step_start/step_ok → assertion_o
 
 | 状态 | 含义 |
 |------|------|
-| `verified` | 系统检测到保存主键、成功 token 或后置查询回读证据 |
+| `verified` | 独立只读查询按本次运行业务键精确命中 |
 | `manual_verified` | 用户点击“人工确认已入库”，确认写入当前 YAML |
 | `unverified` | 用例 PASS，但保存响应为空或缺少写入 token |
 | `failed` | 保存/提交/断言失败 |

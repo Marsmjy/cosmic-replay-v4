@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Any, Mapping
 
+from .write_contract import is_write_step
+
 
 SCHEMA_VERSION = "0.2"
 
@@ -286,8 +288,7 @@ def classify_yaml_step_role(step: Mapping[str, Any]) -> str:
     method = str(step.get("method") or "").lower()
     key = str(step.get("key") or "").lower()
     args = " ".join(str(item).lower() for item in (step.get("args") or []))
-    text = " ".join([step_type, ac, method, key, args])
-    if any(token in text for token in ("save", "submit", "audit", "confirm", "btnok", "startupflow")):
+    if is_write_step(step):
         return "write"
     if step_type in {"update_fields", "pick_basedata", "select_f7_list_row", "upload_file"}:
         return "edit"

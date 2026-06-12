@@ -404,7 +404,20 @@ def enrich_case_result(result: CaseResult) -> None:
 
 def infer_write_status(result: CaseResult) -> tuple[str, dict]:
     """Infer whether a passed case has enough evidence that data was written."""
-    write_phases = [p for p in result.phases or [] if _is_write_phase(p)]
+    write_anchor_ids = {
+        str(item.get("step_id") or "")
+        for item in (
+            ((result.runtime_evidence or {}).get("write_anchor_plan") or {}).get("anchors") or []
+        )
+        if isinstance(item, dict) and item.get("step_id")
+    }
+    write_phases = [
+        phase for phase in result.phases or []
+        if (
+            _phase_step_id(phase) in write_anchor_ids
+            if write_anchor_ids else _is_write_phase(phase)
+        )
+    ]
     evidence = {
         "write_step_count": len(write_phases),
         "checked": bool(write_phases),
@@ -680,14 +693,24 @@ def build_action_queues(results: list[CaseResult]) -> dict:
 
 
 def _is_write_phase(phase: dict) -> bool:
-    text = " ".join(
-        str(phase.get(k) or "") for k in ("id", "label", "detail")
-    ).lower()
-    req_text = _response_text(phase.get("resolved_request")).lower()
-    return _contains_any(
-        text + " " + req_text,
-        ("save", "submit", "保存", "提交", "btnsave", "saveandeffect", "submitandeffect"),
-    )
+    from lib.ir.write_contract import classify_write_operation
+
+    request = phase.get("resolved_request")
+    if isinstance(request, dict):
+        return bool(classify_write_operation(
+            ac=request.get("ac"),
+            method=request.get("method"),
+            key=request.get("key"),
+            args=request.get("args"),
+            step_id=_phase_step_id(phase),
+        ))
+    text = " ".join(str(phase.get(k) or "") for k in ("id", "label", "detail")).lower()
+    return any(token in text for token in ("保存", "提交", "审核", "驳回", "删除"))
+
+
+def _phase_step_id(phase: dict) -> str:
+    phase_id = str(phase.get("id") or "")
+    return phase_id[5:] if phase_id.startswith("step:") else phase_id
 
 
 def _has_verified_readback_assertion(result: CaseResult) -> bool:

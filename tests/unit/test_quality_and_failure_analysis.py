@@ -25,7 +25,7 @@ def test_preview_har_returns_quality_for_known_position_har():
     assert "risk_counts" in preview["pageid_alignment"]["checks"]
 
 
-def test_quality_flags_missing_main_form_and_save_step():
+def test_quality_flags_missing_main_form_without_inventing_save_requirement():
     quality = assess_preview_quality(
         main_form_id="",
         tier_counts={"core": 0, "ui_reaction": 1, "noise": 10},
@@ -39,7 +39,7 @@ def test_quality_flags_missing_main_form_and_save_step():
     assert quality["blocking"] is True
     assert "main_form_missing" in codes
     assert "core_steps_missing" in codes
-    assert "persistence_step_missing" in codes
+    assert "persistence_step_missing" not in codes
 
 
 def test_quality_flags_hardcoded_unique_value():

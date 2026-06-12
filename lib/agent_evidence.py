@@ -86,6 +86,8 @@ def build_repair_evidence_package(
             "pageid_trace": pageid_trace,
             "ir_summary": ir_summary,
             "dynamic_value_flow": ir_summary.get("dynamic_value_flow", {}),
+            "scenario": case_contract.get("scenario", {}),
+            "report_metadata": case_contract.get("report_metadata", {}),
             "environment_binding_plan": case_contract.get("environment_binding_plan", {}),
             "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan", {}),
             "write_anchor_plan": case_contract.get("write_anchor_plan", {}),

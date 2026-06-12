@@ -168,7 +168,7 @@ def _interaction_kind(action: Mapping[str, Any], response: Mapping[str, Any]) ->
         return "grid_row_select"
     if operation == "field_update" and any(item.get("row_index") is not None for item in refs):
         return "entry_field_update"
-    if operation == "write_confirm":
+    if operation == "write_confirm" or key in {"btnok", "btn_ok", "ok"}:
         return "dialog_confirm"
     if response.get("has_pageid") and (
         key in {"newentry", "btnnew", "addnew"}

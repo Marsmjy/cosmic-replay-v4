@@ -22,40 +22,6 @@ from lib.ir.write_contract import (
 
 SCHEMA_VERSION = "1.0"
 
-WRITE_ACS = {
-    "save",
-    "submit",
-    "audit",
-    "unaudit",
-    "delete",
-    "modify",
-    "saveandeffect",
-    "submitandeffect",
-    "saveandaudit",
-    "doconfirm",
-    "afterconfirm",
-    "startupflow",
-}
-
-WRITE_KEYS = {
-    "btnsave",
-    "btn_save",
-    "bar_save",
-    "barsave",
-    "btn_confirm",
-    "btnconfirm",
-    "bar_confirm",
-    "barconfirm",
-    "btnok",
-    "btn_ok",
-    "bar_submit",
-    "barsubmit",
-    "barstart",
-    "bar_start",
-    "btn_delete",
-    "bardelete",
-}
-
 QUERY_ACS = {"loaddata", "commonsearch", "query", "getlookuplist", "querytreenodechildren"}
 PARTIAL_STEP_TYPES = {"upload_file"}
 
@@ -76,12 +42,22 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
     write_anchor_plan = build_case_write_anchor_plan(case)
     runtime_value_flow_plan = build_runtime_value_flow_plan(case)
     target_data_selector_plan = build_target_data_selector_plan(case)
-    capability = build_capability(case, environment_binding_plan, runtime_value_flow_plan)
+    scenario = build_scenario_contract(case)
+    cleanup = build_cleanup_contract(case)
+    capability = build_capability(
+        case,
+        environment_binding_plan,
+        runtime_value_flow_plan,
+        scenario_contract=scenario,
+    )
     ai_assistance = build_ai_assistance(case, capability, environment_binding_plan, runtime_value_flow_plan)
     execution_contract = build_execution_contract(case, capability, write_anchor_plan)
+    report_metadata = build_report_metadata(case, scenario, capability)
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "scenario": scenario,
+        "cleanup": cleanup,
         "capability": capability,
         "ai_assistance": ai_assistance,
         "environment_binding_plan": environment_binding_plan,
@@ -90,6 +66,7 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "runtime_value_flow_plan": runtime_value_flow_plan,
         "target_data_selector_plan": target_data_selector_plan,
         "execution_contract": execution_contract,
+        "report_metadata": report_metadata,
         "field_model_summary": {
             "business_variable_count": len(vars_meta),
             "environment_field_count": len(pick_fields),
@@ -109,6 +86,8 @@ def attach_case_contract(case: dict[str, Any]) -> dict[str, Any]:
     """Attach contract sections to a mutable YAML case and return it."""
     contract = build_case_contract(case)
     case.setdefault("schema_version", 1)
+    case["scenario"] = contract["scenario"]
+    case["cleanup"] = contract["cleanup"]
     case["capability"] = contract["capability"]
     case["ai_assistance"] = contract["ai_assistance"]
     case["environment_binding_plan"] = contract["environment_binding_plan"]
@@ -117,6 +96,7 @@ def attach_case_contract(case: dict[str, Any]) -> dict[str, Any]:
     case["runtime_value_flow_plan"] = contract["runtime_value_flow_plan"]
     case["target_data_selector_plan"] = contract["target_data_selector_plan"]
     case["execution_contract"] = contract["execution_contract"]
+    case["report_metadata"] = contract["report_metadata"]
     return case
 
 
@@ -220,6 +200,7 @@ def build_capability(
     case: Mapping[str, Any] | None,
     environment_binding_plan: Mapping[str, Any] | None = None,
     runtime_value_flow_plan: Mapping[str, Any] | None = None,
+    scenario_contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     case = case if isinstance(case, Mapping) else {}
     steps = [step for step in (case.get("steps") or []) if isinstance(step, Mapping)]
@@ -261,16 +242,18 @@ def build_capability(
 
     reasons: list[str] = []
     status = "supported"
+    scenario_contract = scenario_contract or build_scenario_contract(case)
+    scenario_kind = str(scenario_contract.get("kind") or "navigation")
     flow_kind = "query_only"
     if not steps:
         status = "unsupported"
         reasons.append("no_replay_steps")
         flow_kind = "empty"
-    elif delete_steps:
+    elif scenario_kind == "delete":
         status = "partial_supported"
         reasons.append("delete_requires_target_data_selector_and_manual_confirmation")
         flow_kind = "delete"
-    elif audit_steps:
+    elif scenario_kind in {"approve", "reject", "submit", "mixed"}:
         status = "partial_supported"
         reasons.append("workflow_or_audit_chain_depends_on_target_env_todo_and_permissions")
         flow_kind = "submit_or_audit"
@@ -296,6 +279,7 @@ def build_capability(
 
     return {
         "status": status,
+        "scenario_kind": scenario_kind,
         "flow_kind": flow_kind,
         "write_mode": "write" if write_steps else "read_only",
         "unsupported_reasons": reasons if status == "unsupported" else [],
@@ -311,6 +295,169 @@ def build_capability(
         "requires_runtime_value_flow": bool((runtime_value_flow_plan or {}).get("consumers")),
         "requires_target_data_selector": bool(delete_steps),
     }
+
+
+def build_scenario_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Classify the recorded scenario from executable HAR/IR evidence."""
+    case = case if isinstance(case, Mapping) else {}
+    steps = [step for step in (case.get("steps") or []) if isinstance(step, Mapping)]
+    operations: list[dict[str, Any]] = []
+    stages: list[str] = []
+    seen_stages: set[str] = set()
+
+    def remember_stage(stage: str) -> None:
+        if stage and stage not in seen_stages:
+            seen_stages.add(stage)
+            stages.append(stage)
+
+    has_query = False
+    has_create_intent = False
+    has_update_intent = False
+    workflow_decisions: dict[str, str] = {}
+    for index, step in enumerate(steps):
+        ac = str(step.get("ac") or "").strip().lower()
+        method = str(step.get("method") or "").strip().lower()
+        key = str(step.get("key") or "").strip().lower()
+        form_id = str(step.get("form_id") or "")
+        fields = step.get("fields") if isinstance(step.get("fields"), Mapping) else {}
+        decision = str(
+            fields.get("decision_radio_group")
+            or fields.get("combo_decision")
+            or ""
+        ).strip().lower()
+        if decision:
+            workflow_decisions[form_id] = decision
+        has_query = has_query or is_query_step(step)
+        if ac in {"new", "addnew", "newentry"} or method in {"new", "addnew", "newentry"}:
+            has_create_intent = True
+        if ac in {"modify", "edit"} or method in {"modify", "edit"}:
+            has_update_intent = True
+        operation_kind = classify_write_operation(
+            ac=ac,
+            method=method,
+            key=key,
+            args=step.get("args"),
+            step_id=step.get("id"),
+        )
+        source = "har_or_ir_action"
+        workflow_decision = workflow_decisions.get(form_id, "")
+        if operation_kind == "write_submit" and form_id.startswith("wf_") and workflow_decision:
+            operation_kind = (
+                "write_reject"
+                if workflow_decision in {"reject", "rejected", "disagree", "驳回", "不同意"}
+                else "write_approve"
+            )
+            source = "workflow_decision_and_submit_action"
+        if not operation_kind:
+            continue
+        stage = _scenario_stage_for_operation(operation_kind)
+        remember_stage(stage)
+        operations.append({
+            "step_id": str(step.get("id") or f"step_{index + 1}"),
+            "order": index,
+            "operation_kind": operation_kind,
+            "stage": stage,
+            "form_id": form_id,
+            "source": source,
+        })
+
+    if "delete" in seen_stages:
+        kind = "delete"
+    elif "reject" in seen_stages:
+        kind = "reject" if seen_stages == {"reject"} else "mixed"
+    elif "approve" in seen_stages:
+        kind = "approve" if seen_stages == {"approve"} else "mixed"
+    elif "submit" in seen_stages:
+        kind = "submit" if seen_stages <= {"submit", "confirm"} else "mixed"
+    elif "save" in seen_stages and has_update_intent:
+        kind = "update"
+    elif "save" in seen_stages and has_create_intent:
+        kind = "create_save"
+    elif "save" in seen_stages:
+        kind = "save"
+    elif "confirm" in seen_stages:
+        kind = "confirm"
+    elif has_query:
+        kind = "query"
+    elif steps:
+        kind = "navigation"
+    else:
+        kind = "unsupported"
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "kind": kind,
+        "stages": stages or (["query"] if kind == "query" else []),
+        "write_mode": "write" if operations else "read_only",
+        "has_query": has_query,
+        "has_create_intent": has_create_intent,
+        "has_update_intent": has_update_intent,
+        "operation_count": len(operations),
+        "operations": operations,
+        "classification_source": "normalized_ir_and_generated_steps",
+        "ai_inferred": False,
+    }
+
+
+def build_cleanup_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Describe cleanup without inventing destructive replay steps."""
+    case = case if isinstance(case, Mapping) else {}
+    configured = case.get("cleanup") if isinstance(case.get("cleanup"), Mapping) else {}
+    steps = [
+        dict(item)
+        for item in (configured.get("steps") or [])
+        if isinstance(item, Mapping)
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "configured" if steps else "not_configured",
+        "automatic": bool(steps and configured.get("automatic")),
+        "steps": steps,
+        "policy": {
+            "infer_delete_from_har": False,
+            "require_explicit_business_key": True,
+            "require_manual_confirmation": True,
+        },
+    }
+
+
+def build_report_metadata(
+    case: Mapping[str, Any] | None,
+    scenario: Mapping[str, Any],
+    capability: Mapping[str, Any],
+) -> dict[str, Any]:
+    case = case if isinstance(case, Mapping) else {}
+    recording = case.get("recording") if isinstance(case.get("recording"), Mapping) else {}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "source": str(recording.get("source") or "HAR"),
+        "scenario_kind": str(scenario.get("kind") or ""),
+        "capability_status": str(capability.get("status") or ""),
+        "value_safe": True,
+        "accepted_outcomes": [
+            "query_passed",
+            "write_verified",
+            "write_unverified",
+            "business_failed",
+            "unsupported",
+        ],
+    }
+
+
+def _scenario_stage_for_operation(kind: str) -> str:
+    if kind in {"write_save", "write_save_and_effect", "write_save_and_audit"}:
+        return "save"
+    if kind in {"write_submit", "write_submit_and_effect", "write_workflow_start"}:
+        return "submit"
+    if kind in {"write_audit", "write_unaudit", "write_approve"}:
+        return "approve"
+    if kind == "write_reject":
+        return "reject"
+    if kind == "write_delete":
+        return "delete"
+    if kind == "write_confirm":
+        return "confirm"
+    return "write"
 
 
 def build_environment_binding_plan(case: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -357,6 +504,7 @@ def build_environment_binding_plan(case: Mapping[str, Any] | None) -> dict[str, 
             "failure_policy": "block_before_write" if required else "warn",
             "recorded_static_id_risk": _looks_like_internal_id(meta.get("recorded_value_id") or meta.get("value_id")),
             "user_overridden": bool(meta.get("user_overridden") or meta.get("manual_override")),
+            "order": _safe_order(meta.get("order")),
         })
 
     return {
@@ -365,8 +513,7 @@ def build_environment_binding_plan(case: Mapping[str, Any] | None) -> dict[str, 
         "fields": sorted(
             fields,
             key=lambda item: (
-                str(item.get("group_key") or ""),
-                str(item.get("source_step_id") or ""),
+                int(item.get("order", 999999999)),
                 str(item.get("id") or ""),
             ),
         ),
@@ -619,6 +766,13 @@ def _binding_status(meta: Mapping[str, Any], *, query_value: str) -> str:
 def _looks_like_internal_id(value: Any) -> bool:
     text = str(value or "").strip()
     return bool(re.fullmatch(r"\d{15,}", text))
+
+
+def _safe_order(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 999999999
 
 
 def _payload_contains_runtime_callback(step: Mapping[str, Any]) -> bool:

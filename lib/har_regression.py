@@ -88,6 +88,8 @@ def summarize_case(case: dict[str, Any], har_steps: list[dict[str, Any]] | None 
     return {
         "name": case.get("name", ""),
         "main_form_id": case.get("main_form_id", ""),
+        "scenario_kind": ((case.get("scenario") or {}).get("kind") or ""),
+        "scenario_stages": list((case.get("scenario") or {}).get("stages") or []),
         "step_count": len(steps),
         "assertion_count": len(assertions),
         "target_forms": sorted(case.get("target_forms") or []),
@@ -148,6 +150,8 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "main_form_id": preview.get("main_form_id", ""),
+        "scenario_kind": ((preview.get("scenario") or {}).get("kind") or ""),
+        "scenario_stages": list((preview.get("scenario") or {}).get("stages") or []),
         "quality": {
             "score": quality.get("score"),
             "grade": quality.get("grade", ""),

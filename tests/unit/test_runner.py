@@ -34,6 +34,7 @@ from lib.runner import (
     _record_maintenance_value_trace,
     _resolve_dynamic_query_entry_row,
     _apply_target_data_selector,
+    _is_cross_environment_run,
 )
 from lib.request_signature import build_request_signature, evaluate_request_contract
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
@@ -932,7 +933,8 @@ class TestReplayErrorDetection:
 
         monkeypatch.setattr(runner_mod, "FieldResolver", FakeResolver)
 
-        _auto_resolve_pick_basedata_step(step, object(), {"env_id": "uat"})
+        with pytest.raises(ProtocolError, match="已阻止复用 HAR 录制内码"):
+            _auto_resolve_pick_basedata_step(step, object(), {"env_id": "uat"})
 
         assert step["value_id"] == "00002"
 
@@ -1088,10 +1090,21 @@ class TestReplayErrorDetection:
 
         monkeypatch.setattr(runner_mod, "FieldResolver", FakeResolver)
 
-        _auto_resolve_selector_row_step(step, object(), {"env_id": "uat"})
+        with pytest.raises(ProtocolError, match="已阻止复用 HAR 录制内码"):
+            _auto_resolve_selector_row_step(step, object(), {"env_id": "uat"})
 
         assert row[0] == "012890006"
         assert row[3] == "012890006"
+
+    def test_cross_environment_origin_compares_host_port_and_base_path(self):
+        assert _is_cross_environment_run(
+            "https://feature.kingdee.com:1026/feature_sit_hrpro",
+            "https://kdhruat.kingdee.com/kdhr",
+        ) is True
+        assert _is_cross_environment_run(
+            "https://feature.kingdee.com:1026/feature_sit_hrpro",
+            "https://feature.kingdee.com:1026/feature_sit_hrpro/login.html",
+        ) is False
 
     def test_selector_code_override_rebuilds_row_from_recent_grid_response(self):
         recorded_row = ["2465334257644485632", "00186-0001", "100000", "00186-0001", "C"]

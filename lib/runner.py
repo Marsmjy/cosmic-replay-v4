@@ -79,6 +79,22 @@ from .ir.write_contract import (
 
 log = logging.getLogger("cosmic_replay.runner")
 
+
+def _normalized_environment_origin(value: Any) -> tuple[str, str]:
+    parsed = urllib.parse.urlparse(str(value or ""))
+    host = (parsed.hostname or "").lower()
+    port = parsed.port
+    netloc = f"{host}:{port}" if host and port else host
+    base_path = next((part.lower() for part in parsed.path.split("/") if part), "")
+    return netloc, base_path
+
+
+def _is_cross_environment_run(recorded_base_url: Any, target_base_url: Any) -> bool:
+    recorded = _normalized_environment_origin(recorded_base_url)
+    target = _normalized_environment_origin(target_base_url)
+    return bool(recorded[0] and target[0] and recorded != target)
+
+
 _WORKFLOW_DECISION_FIELD_KEY = "decision_radio_group"
 _WORKFLOW_COMBO_DECISION_FIELD_KEY = "combo_decision"
 _WORKFLOW_DECISION_ALIASES = {
@@ -219,6 +235,12 @@ def _pick_field_case_order(case: dict, pf_id: str, pf_meta: dict | None = None) 
         if isinstance(step, dict) and step.get("id")
     }
     pf_meta = pf_meta or {}
+    try:
+        explicit_order = int(pf_meta.get("order"))
+        if explicit_order >= 0:
+            return explicit_order
+    except (TypeError, ValueError):
+        pass
     for key in ("source_step_id", "write_step_id"):
         step_id = str(pf_meta.get(key) or "")
         if step_id in step_order:
@@ -3883,6 +3905,13 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
         )
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
+        if _environment_resolution_must_succeed(pf_meta, ctx):
+            raise ProtocolError(_environment_resolution_error(
+                pf_meta,
+                query_value=query_value,
+                status=result.status,
+                message=result.message,
+            ))
         _apply_selector_row_value(step, pf_meta)
         rows = _selector_rows(step, pf_meta) or []
         value_idx = int(pf_meta.get("selector_value_index", 0) or 0)
@@ -3909,8 +3938,8 @@ def _auto_resolve_selector_row_step(step: dict, replay: CosmicFormReplay, ctx: d
 def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: dict) -> None:
     """按当前环境自动解析 pick_basedata 的 value_id。
 
-    安全策略：仅在 pick_fields 明确标记 auto_resolve 且 value_name 可用时触发；
-    解析成功才覆盖 value_id，解析失败/歧义时保留原始值。
+    安全策略：仅在 pick_fields 明确标记 auto_resolve 且业务编码/名称可用时触发。
+    用户覆盖值或跨环境执行时必须解析成功，禁止回退 HAR 录制内码。
     """
     if not step.get("auto_resolve"):
         return
@@ -3960,6 +3989,13 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
         step["value_id"] = result.resolved_value_id
         result_dict["effective_value_id"] = result.resolved_value_id
     else:
+        if _environment_resolution_must_succeed(pf_meta, ctx):
+            raise ProtocolError(_environment_resolution_error(
+                pf_meta,
+                query_value=query_value,
+                status=result.status,
+                message=result.message,
+            ))
         user_overrode_code = (
             resolve_by == "value_code"
             and value_code
@@ -4009,6 +4045,33 @@ def _auto_resolve_pick_basedata_step(step: dict, replay: CosmicFormReplay, ctx: 
             "message": result_dict.get("message", ""),
             "candidates": result_dict.get("candidates", []),
         }]})
+
+
+def _environment_resolution_must_succeed(pf_meta: dict, ctx: dict) -> bool:
+    if pf_meta.get("context_only") or pf_meta.get("required_context"):
+        return False
+    return bool(
+        pf_meta.get("user_overridden")
+        or pf_meta.get("manual_override")
+        or ctx.get("cross_environment")
+    )
+
+
+def _environment_resolution_error(
+    pf_meta: dict,
+    *,
+    query_value: str,
+    status: str,
+    message: str,
+) -> str:
+    label = str(pf_meta.get("label") or pf_meta.get("field_key") or "环境字段")
+    reason = {
+        "ambiguous": "目标环境命中多条记录",
+        "not_found": "目标环境未找到记录",
+        "error": "目标环境查询失败",
+    }.get(str(status or ""), "目标环境无法解析")
+    detail = f"；{message}" if message else ""
+    return f"{label}（{query_value}）{reason}{detail}，已阻止复用 HAR 录制内码"
 
 
 # =============================================================
@@ -4387,6 +4450,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "vars_meta": case.get("vars_meta", {}),
         "pick_fields_preview": _pick_fields_preview,
         "env_resolution_plan": _env_resolution_plan,
+        "scenario": case_contract.get("scenario") or {},
+        "cleanup": case_contract.get("cleanup") or {},
         "capability": case_contract.get("capability") or {},
         "ai_assistance": case_contract.get("ai_assistance") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
@@ -4395,6 +4460,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
+        "report_metadata": case_contract.get("report_metadata") or {},
     })
 
     contract_errors = list(contract_preflight.get("errors") or [])
@@ -4434,6 +4500,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
         })
         result.runtime_evidence = {
             "case_contract": case_contract,
+            "scenario": case_contract.get("scenario") or {},
+            "cleanup": case_contract.get("cleanup") or {},
             "capability": case_contract.get("capability") or {},
             "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
             "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
@@ -4441,6 +4509,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
             "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
             "execution_contract": case_contract.get("execution_contract") or {},
+            "report_metadata": case_contract.get("report_metadata") or {},
             "contract_preflight": {
                 "ok": False,
                 "errors": contract_errors,
@@ -4554,6 +4623,10 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "run_event": emit,
         "env": env,
         "env_id": case.get("_runtime_env_id") or case.get("env_id") or env.get("id") or "",
+        "cross_environment": _is_cross_environment_run(
+            (case.get("recording") or {}).get("base_url"),
+            base_url,
+        ),
         "main_form_id": main_form,  # ⭐ 供 menuItemClick L2 pageId 自动绑定
         "case": case,
         # ⭐ step_id → 中文业务描述，供断言/日志生成人话
@@ -5207,6 +5280,8 @@ def run_case(case: dict, on_event=None) -> RunResult:
     maintenance_trace = list(ctx.get("maintenance_value_trace") or [])
     runtime_evidence = {
         "case_contract": case_contract,
+        "scenario": case_contract.get("scenario") or {},
+        "cleanup": case_contract.get("cleanup") or {},
         "capability": case_contract.get("capability") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
         "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
@@ -5214,6 +5289,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
         "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
+        "report_metadata": case_contract.get("report_metadata") or {},
         "request_contract_results": dict(ctx.get("request_contract_results") or {}),
         "response_contract_results": dict(ctx.get("response_contract_results") or {}),
         "readback_results": readback_results,

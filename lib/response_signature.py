@@ -513,6 +513,11 @@ def _step_field_keys(step: dict[str, Any]) -> set[str]:
             field = str(node.get("k") or node.get("fieldKey") or "").strip()
             if field:
                 keys.add(field)
+            field_names = node.get("FieldName")
+            if isinstance(field_names, list):
+                keys.update(str(item) for item in field_names if str(item))
+            elif field_names:
+                keys.add(str(field_names))
             for value in node.values():
                 if isinstance(value, (dict, list)):
                     walk(value)
@@ -521,15 +526,21 @@ def _step_field_keys(step: dict[str, Any]) -> set[str]:
                 walk(item)
 
     walk(step.get("post_data"))
+    walk(step.get("args"))
     return keys
 
 
 def _compact_grid_schema(schema: dict[str, Any], step_fields: set[str]) -> dict[str, Any]:
     columns = [str(column) for column in (schema.get("columns") or []) if column]
+    normalized_step_fields = {
+        "".join(ch for ch in field.lower() if ch.isalnum())
+        for field in step_fields
+    }
     stable = [
         column
         for column in columns
         if column in step_fields
+        or "".join(ch for ch in column.lower() if ch.isalnum()) in normalized_step_fields
         or column.lower() in _IDENTITY_COLUMN_HINTS
     ]
     if not stable:

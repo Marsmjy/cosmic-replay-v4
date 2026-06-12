@@ -15,6 +15,8 @@ from lib.pageid_trace import (
     pageid_fragment,
     pageid_risks,
 )
+from lib.case_contract import build_scenario_contract
+from lib.ir.write_contract import is_write_step
 
 
 Issue = dict[str, Any]
@@ -33,16 +35,6 @@ _PAGEID_RISK_PENALTIES = {
     "pageid_producer_consumer_form_mismatch": 20,
     "pageid_reused_after_close": 24,
 }
-
-_PERSISTENCE_ACS = {
-    "save",
-    "saveandeffect",
-    "submit",
-    "submitandeffect",
-    "audit",
-    "unaudit",
-}
-
 
 def assess_pageid_alignment(
     steps: list[dict[str, Any]],
@@ -129,6 +121,7 @@ def assess_har_preflight(
     ir_field_bridge = ir_field_bridge or {}
     ir_interaction_bridge = ir_interaction_bridge or {}
     ir_write_bridge = ir_write_bridge or {}
+    scenario = build_scenario_contract({"steps": steps or []})
     field_checks = ir_field_bridge.get("checks") or {}
     interaction_checks = ir_interaction_bridge.get("summary") or {}
     write_checks = ir_write_bridge.get("checks") or {}
@@ -140,6 +133,8 @@ def assess_har_preflight(
         "noise_count": int((tier_counts or {}).get("noise") or 0),
         "step_count": len(steps or []),
         "persistence_step_count": sum(1 for step in steps or [] if _is_persistence_step(step)),
+        "scenario_kind": scenario.get("kind", ""),
+        "scenario_stages": list(scenario.get("stages") or []),
         "detected_var_count": len(detected_vars or []),
         "pick_field_count": len(pick_fields or []),
         "component_coverage_percent": int(component_summary.get("coverage_percent", 100) or 0),
@@ -301,13 +296,6 @@ def _preflight_issues(
             "code": "core_steps_missing",
             "message": "未识别到核心业务步骤。",
             "suggestion": "确认 HAR 包含打开、填写、选择、保存等业务请求。",
-        })
-    if checks["persistence_step_count"] <= 0:
-        issues.append({
-            "severity": "high",
-            "code": "persistence_step_missing",
-            "message": "未识别到保存/提交/确认类写入动作。",
-            "suggestion": "如果目标是写库用例，需要重新录制保存/提交动作；只读用例可忽略。",
         })
     if checks["component_unsupported_count"] > 0:
         issues.append({
@@ -495,14 +483,7 @@ def _preflight_next_actions(
 
 
 def _is_persistence_step(step: dict[str, Any]) -> bool:
-    ac = str(step.get("ac") or "").lower()
-    method = str(step.get("method") or "").lower()
-    key = str(step.get("key") or "").lower()
-    args = " ".join(str(item).lower() for item in (step.get("args") or []))
-    if ac in _PERSISTENCE_ACS:
-        return True
-    blob = " ".join([ac, method, key, args])
-    return any(token in blob for token in ("save", "submit", "audit", "confirm", "btnok"))
+    return is_write_step(step)
 
 
 def _expects_l2(step: dict[str, Any]) -> bool:

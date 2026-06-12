@@ -176,7 +176,7 @@ runner.py 加载 YAML
 
 | 状态 | 触发条件 | 面向用户的结论 |
 |------|----------|---------------|
-| `verified` | 保存/提交响应包含主键、成功 token，或后置查询回读命中 | 已自动验证入库 |
+| `verified` | 独立只读查询按本次运行业务键精确命中 | 已自动验证业务结果 |
 | `manual_verified` | YAML 中存在 `write_verification.manual_confirmed` 且本次 PASS | 用户已确认入库 |
 | `unverified` | 本次 PASS，但保存响应为空或缺少明确写入证据 | 需要补断言、修 pageId，或人工确认 |
 | `failed` | 保存、提交、断言或执行步骤失败 | 按失败分析修复 |

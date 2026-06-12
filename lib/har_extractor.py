@@ -370,6 +370,35 @@ def _header_value(headers: list[dict], name: str) -> str:
     return ""
 
 
+def _recording_origin(har: Mapping[str, Any] | None) -> dict[str, str]:
+    """Return the dominant API origin without carrying credentials or values."""
+    counts: dict[tuple[str, str, str], int] = {}
+    for entry in (((har or {}).get("log") or {}).get("entries") or []):
+        if not isinstance(entry, Mapping):
+            continue
+        request = entry.get("request") if isinstance(entry.get("request"), Mapping) else {}
+        parsed = urllib.parse.urlparse(str(request.get("url") or ""))
+        if not parsed.scheme or not parsed.netloc:
+            continue
+        first_path = next((part for part in parsed.path.split("/") if part), "")
+        key = (parsed.scheme.lower(), parsed.netloc.lower(), first_path)
+        counts[key] = counts.get(key, 0) + 1
+    if not counts:
+        return {"base_url": "", "host": "", "base_path": ""}
+    scheme, netloc, base_path = max(
+        counts,
+        key=lambda item: (counts[item], item),
+    )
+    base_url = f"{scheme}://{netloc}"
+    if base_path:
+        base_url += f"/{base_path}"
+    return {
+        "base_url": base_url,
+        "host": netloc,
+        "base_path": base_path,
+    }
+
+
 def _normalize_upload_endpoint_from_url(url: str) -> str:
     parsed = urllib.parse.urlparse(str(url or ""))
     path = parsed.path or ""
@@ -7793,6 +7822,8 @@ def build_yaml_case(
             ):
                 built_vars_meta[vname]["user_overridden"] = True
 
+    recording_origin = _recording_origin(har)
+    recorded_base_url = recording_origin.get("base_url") or "https://feature.kingdee.com:1026/feature_sit_hrpro"
     case = OrderedDict([
         ("name", case_name),
         ("description", _build_case_description(
@@ -7800,10 +7831,17 @@ def build_yaml_case(
             core_count=core_count, ui_count=ui_count, noise_count=noise_count,
         )),
         ("env", OrderedDict([
-            ("base_url", "${env:COSMIC_BASE_URL:https://feature.kingdee.com:1026/feature_sit_hrpro}"),
+            ("base_url", f"${{env:COSMIC_BASE_URL:{recorded_base_url}}}"),
             ("username", "${env:COSMIC_USERNAME}"),
             ("password", "${env:COSMIC_PASSWORD}"),
             ("datacenter_id", "${env:COSMIC_DATACENTER_ID}"),
+        ])),
+        ("recording", OrderedDict([
+            ("source", "HAR"),
+            ("source_har", har_path.name),
+            ("base_url", recorded_base_url),
+            ("host", recording_origin.get("host", "")),
+            ("base_path", recording_origin.get("base_path", "")),
         ])),
         ("vars", built_vars),
         ("vars_labels", built_vars_labels),  # 变量中文标签
@@ -8492,9 +8530,13 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         meta_resolver=meta_resolver,
     )
 
-    # 按 env_sensitive 排序：high(0) → medium(1) → low(2)
+    # 维护字段首先遵循 HAR 录制顺序；敏感度只作为同序字段的次级排序。
     _sens_order = {"high": 0, "medium": 1, "low": 2}
-    pick_fields.sort(key=lambda pf: _sens_order.get(pf["env_sensitive"], 9))
+    pick_fields.sort(key=lambda pf: (
+        _validation_point_order(pf.get("order")),
+        _sens_order.get(pf.get("env_sensitive"), 9),
+        str(pf.get("id") or ""),
+    ))
 
     # ⭐ 去重：把已被 pick_fields 覆盖的变量从 var_items 移除
     # 核心逻辑：pick_fields 的 id 去掉 "pick_" 前缀后，与 detected_vars 的 name 匹配
@@ -8721,15 +8763,24 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     ])
     validation_points = _build_validation_points(preview_validation_case)
     preview_contract = build_case_contract(preview_validation_case)
+    recording_origin = _recording_origin(har)
+    recording = {
+        "source": "HAR",
+        "source_har": har_path.name,
+        **recording_origin,
+    }
     try:
         from lib.yaml_schema import validate_yaml_schema
         preview_schema_contract = validate_yaml_schema({
             "name": f"preview_{main_form or 'case'}",
             "schema_version": 1,
+            "recording": recording,
             "vars_meta": preview_validation_case.get("vars_meta"),
             "pick_fields": preview_validation_case.get("pick_fields"),
             "steps": preview_validation_case.get("steps"),
             "assertions": preview_validation_case.get("assertions"),
+            "scenario": preview_contract["scenario"],
+            "cleanup": preview_contract["cleanup"],
             "capability": preview_contract["capability"],
             "ai_assistance": preview_contract["ai_assistance"],
             "environment_binding_plan": preview_contract["environment_binding_plan"],
@@ -8738,6 +8789,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
             "target_data_selector_plan": preview_contract["target_data_selector_plan"],
             "execution_contract": preview_contract["execution_contract"],
+            "report_metadata": preview_contract["report_metadata"],
         })
     except Exception as e:
         log.warning("YAML schema contract 预览失败（非致命）: %s", e)
@@ -8754,6 +8806,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
 
     preview = {
         "main_form_id": main_form,
+        "recording": recording,
         "tier_counts": by_tier,
         "detected_vars": var_items,
         "pick_fields": pick_fields,
@@ -8762,6 +8815,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "business_flow": _build_preview_business_flow(preview_copy, var_items, pick_fields, main_form),
         "readback_plan": readback_plan,
         "validation_points": validation_points,
+        "scenario": preview_contract["scenario"],
+        "cleanup": preview_contract["cleanup"],
         "capability": preview_contract["capability"],
         "ai_assistance": preview_contract["ai_assistance"],
         "environment_binding_plan": preview_contract["environment_binding_plan"],
@@ -8770,6 +8825,7 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
         "target_data_selector_plan": preview_contract["target_data_selector_plan"],
         "execution_contract": preview_contract["execution_contract"],
+        "report_metadata": preview_contract["report_metadata"],
         "yaml_schema_contract": preview_schema_contract,
         "components": component_report,
         "pageid_alignment": pageid_alignment,

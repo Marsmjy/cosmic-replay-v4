@@ -39,6 +39,7 @@ from lib.har_extractor import (
     to_yaml,
 )
 from lib import kb_loader
+from lib.response_signature import build_response_signature, specialize_response_signature
 
 
 def test_to_yaml_keeps_multilang_numeric_values_as_strings():
@@ -273,6 +274,101 @@ def test_preview_readback_plan_uses_detected_var_metadata():
     assert plan["status"] == "ready"
     assert plan["plans"][0]["suggested_assertion"]["type"] == "readback_by_business_key"
     assert plan["plans"][0]["suggested_assertion"]["value"] == "${vars.test_name}"
+
+
+def test_recorded_readback_maps_qualified_query_field_to_matching_grid_column():
+    case = {
+        "main_form_id": "hom_onbrdinfo",
+        "vars": {"test_number": "AUTO001"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "ba_em_empnumber",
+                "form_id": "hom_onbrdinfo",
+                "source_step_id": "fill_employee_number",
+            },
+        },
+        "steps": [
+            {
+                "id": "click_confirm",
+                "type": "invoke",
+                "form_id": "hom_onbrdinfo",
+                "app_id": "hom",
+                "ac": "doConfirm",
+                "method": "doConfirm",
+            },
+            {
+                "id": "search_assignment",
+                "type": "invoke",
+                "form_id": "hspm_assignmentlist",
+                "app_id": "hspm",
+                "ac": "commonSearch",
+                "method": "commonSearch",
+                "args": [[{
+                    "FieldName": [
+                        "hrpi_employee.empnumber",
+                        "hrpi_employee.name",
+                    ],
+                    "Value": ["recorded name"],
+                }]],
+                "expected_response_signature": {
+                    "required_grid_schemas": [{
+                        "control": "billlistap",
+                        "required_columns": [
+                            "number",
+                            "hrpi_employee_empnumber",
+                            "hrpi_employee_name",
+                        ],
+                    }],
+                },
+            },
+        ],
+    }
+
+    plan = _append_readback_assertions(case)
+
+    assert plan["status"] == "ready"
+    assertion = case["assertions"][0]
+    assert assertion["query_field_key"] == "hrpi_employee.empnumber"
+    assert assertion["field_key"] == "hrpi_employee_empnumber"
+
+
+def test_response_contract_keeps_grid_column_matching_qualified_query_field():
+    signature = build_response_signature(
+        [{
+            "p": [{
+                "data": {
+                    "dataindex": {
+                        "number": 0,
+                        "hrpi_employee_empnumber": 1,
+                        "hrpi_employee_name": 2,
+                    },
+                    "rows": [["assignment001", "employee001", "自动化"]],
+                },
+                "k": "billlistap",
+            }],
+            "a": "u",
+        }],
+        include_candidates=True,
+    )
+    specialized = specialize_response_signature(
+        signature,
+        {
+            "type": "invoke",
+            "form_id": "hspm_assignmentlist",
+            "ac": "commonSearch",
+            "method": "commonSearch",
+            "args": [[{
+                "FieldName": ["hrpi_employee.empnumber", "hrpi_employee.name"],
+                "Value": ["employee001"],
+            }]],
+        },
+        contract_level="business",
+        anchor_reason="selector_data_source",
+    )
+
+    columns = specialized["required_grid_schemas"][0]["required_columns"]
+    assert "hrpi_employee_empnumber" in columns
+    assert "hrpi_employee_name" in columns
 
 
 def test_env_field_source_annotation_explains_metadata_and_lookup_sources():

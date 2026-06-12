@@ -84,6 +84,23 @@ def test_preflight_recommends_review_for_medium_pageid_score():
     assert result["recommend_generate"] is True
 
 
+def test_preflight_classifies_query_without_requiring_persistence():
+    result = assess_har_preflight(
+        main_form_id="demo_list",
+        tier_counts={"core": 1, "ui_reaction": 0, "noise": 0},
+        steps=[{"type": "invoke", "id": "query", "ac": "loadData"}],
+        detected_vars=[],
+        pick_fields=[],
+        component_report={"summary": {"coverage_percent": 100, "unsupported_steps": 0}},
+        quality={"score": 100, "issues": []},
+        pageid_alignment={"score": 100, "risk_level": "low", "issues": []},
+    )
+
+    assert result["checks"]["scenario_kind"] == "query"
+    assert result["checks"]["persistence_step_count"] == 0
+    assert all(issue["code"] != "persistence_step_missing" for issue in result["issues"])
+
+
 def test_preflight_uses_ir_alignment_to_surface_missing_write_coverage():
     result = assess_har_preflight(
         main_form_id="demo_form",

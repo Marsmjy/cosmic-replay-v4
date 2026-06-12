@@ -24,6 +24,7 @@ def test_yaml_schema_contract_accepts_query_only_shape():
             "method": "loadData",
         }],
         "assertions": [{"type": "no_error_actions", "last_step": True}],
+        "recording": {"source": "HAR", "base_url": "https://example.test/sit"},
         "ir_contract": {
             "coverage": {"ir_step_count": 1},
             "policy": {"store_full_ir_in_yaml": False, "raw_har_committed": False},
@@ -70,7 +71,9 @@ def test_generated_yaml_and_preview_include_yaml_schema_contract():
 
     assert case["yaml_schema_contract"]["summary"]["step_count"] == len(case["steps"])
     assert case["yaml_schema_contract"]["summary"]["has_ir_contract"] is True
+    assert case["yaml_schema_contract"]["summary"]["scenario_kind"] == case["scenario"]["kind"]
     assert preview["yaml_schema_contract"]["summary"]["step_count"] == len(preview["steps"])
+    assert preview["yaml_schema_contract"]["summary"]["scenario_kind"] == preview["scenario"]["kind"]
     assert preview["yaml_schema_contract"]["ok"] is True
 
 
@@ -84,4 +87,3 @@ def test_dry_run_yaml_case_uses_yaml_schema_contract():
     assert "schema:name_missing" in summary["errors"]
     assert "schema:step_id_missing" in summary["errors"]
     assert summary["yaml_schema_contract"]["status"] == "invalid"
-

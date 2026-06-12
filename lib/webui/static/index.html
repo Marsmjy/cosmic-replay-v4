@@ -3385,13 +3385,13 @@
             <div>
               <div class="text-sm font-medium text-slate-300">用例执行详情</div>
               <div class="text-xs text-slate-500 mt-1">
-                入库证据是系统自动判定：有保存主键、成功 token 或后置查询回读证据才会显示“已验证”。
+                “请求成功”不等于“数据已入库”；只有独立只读查询按本次业务键精确命中才显示“已验证”。
               </div>
             </div>
             <div x-show="currentReport?.acceptance?.write_unverified"
                  class="text-xs rounded-lg border border-amber-800/60 bg-amber-950/20 text-amber-100 px-3 py-2 max-w-xl">
               <span class="font-medium">如何变成已验证：</span>
-              <span>补入库断言或修复 pageId 链路后重新运行；不能手工改状态，系统检测到写入证据后会自动变为已验证。</span>
+              <span>在目标环境按本次业务键确认，或补经过验证的只读回查；保存成功提示不能自动升级为已验证。</span>
             </div>
           </div>
           <div class="overflow-x-auto scrollbar-thin">

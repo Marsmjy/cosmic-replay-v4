@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from lib.ir.write_contract import is_write_step
+
 
 Issue = dict[str, Any]
 
@@ -25,25 +27,6 @@ _SEVERITY_PENALTY = {
     "low": 3,
     "info": 0,
 }
-
-_PERSISTENCE_ACS = {
-    "save",
-    "saveandeffect",
-    "submit",
-    "submitandeffect",
-    "audit",
-    "unaudit",
-}
-
-_PERSISTENCE_HINTS = (
-    "save",
-    "submit",
-    "audit",
-    "effect",
-    "startupflow",
-    "doconfirm",
-    "confirm",
-)
 
 _KNOWN_ACS = {
     "addnew",
@@ -201,15 +184,6 @@ def assess_preview_quality(
             "core_steps_missing",
             "未识别到核心业务步骤。",
             "重新录制 HAR，确保包含打开表单、填写字段、保存/提交等业务请求。",
-        )
-
-    if not persistence_steps:
-        add_issue(
-            "workflow",
-            "high",
-            "persistence_step_missing",
-            "未识别到保存、提交、审核或流程确认类写库步骤。",
-            "确认录制时已经点击保存/提交；如按钮 ac 特殊，需要补充按钮语义识别规则。",
         )
 
     if step_count > 250:
@@ -406,15 +380,7 @@ def _summary(score: int, grade: str, issues: list[Issue]) -> str:
 
 
 def _is_persistence_step(step: dict) -> bool:
-    ac = str(step.get("ac") or "").lower()
-    method = str(step.get("method") or "").lower()
-    key = str(step.get("key") or "").lower()
-    sid = str(step.get("id") or "").lower()
-    args = " ".join(str(x).lower() for x in (step.get("args") or []))
-    if ac in _PERSISTENCE_ACS:
-        return True
-    blob = " ".join([ac, method, key, sid, args])
-    return any(hint in blob for hint in _PERSISTENCE_HINTS)
+    return is_write_step(step)
 
 
 def _iter_update_fields(step: dict):

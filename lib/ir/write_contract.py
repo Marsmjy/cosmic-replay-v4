@@ -36,10 +36,7 @@ _SAVE_KEYS = {
     "btn_saveandeffect",
 }
 _SUBMIT_KEYS = {"btnsubmit", "btn_submit", "bar_submit", "barsubmit"}
-_CONFIRM_KEYS = {
-    "btnok",
-    "btn_ok",
-    "ok",
+_BUSINESS_CONFIRM_KEYS = {
     "btnconfirm",
     "btn_confirm",
     "barconfirm",
@@ -129,8 +126,8 @@ def classify_write_operation(
     ):
         return "write_save"
     if (
-        bool({"doconfirm", "afterconfirm"} & identifiers)
-        or bool(_CONFIRM_KEYS & identifiers)
+        bool({"doconfirm", "afterconfirm", "confirm"} & identifiers)
+        or bool(_BUSINESS_CONFIRM_KEYS & identifiers)
     ):
         return "write_confirm"
     return ""
@@ -494,10 +491,8 @@ def _ir_write_rows(flow: Mapping[str, Any]) -> list[dict[str, Any]]:
                 method=request.get("invoke_method"),
                 key=action.get("key"),
             )
-        if not operation_kind and str(step.get("role") or "") != "write":
-            continue
         if not operation_kind:
-            operation_kind = "write_confirm"
+            continue
         response = responses.get(str(step.get("response_ref") or ""), {})
         page = pages.get(str(step.get("page_ref") or ""), {})
         rows.append({
