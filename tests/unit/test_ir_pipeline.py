@@ -8,12 +8,18 @@ import yaml
 from lib.har_extractor import build_yaml_case, preview_har
 from lib.har_extractor import merge_consecutive_update_values
 from lib.ir import (
+    apply_ir_interaction_contracts,
     apply_ir_navigation_policy,
+    apply_ir_write_contracts,
     assess_ir_preview_alignment,
     build_ir_field_bridge,
+    build_ir_interaction_bridge,
+    build_ir_write_anchor_bridge,
     build_ir_yaml_bridge,
     build_normalized_flow,
+    classify_write_operation,
     compact_flow_for_preview,
+    evaluate_first_success_gate,
 )
 from lib.ir.dry_run import dry_run_flow, dry_run_yaml_case
 from lib.ir.normalizer import normalize_har_entries
@@ -198,6 +204,137 @@ def test_ir_expands_batch_request_to_action_level_without_persisting_values():
         "row_index": None,
         "value_shape": "unknown",
     }]
+    second_action = list(flow["request"].values())[1]["action"]
+    assert second_action["operation_kind"] == "write_save"
+
+
+def test_ir_write_anchor_carries_value_safe_recorded_response_contract():
+    flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
+    response = next(iter(flow["response"].values()))
+    contract = response["semantic_contract"]
+    payload = json.dumps(contract, ensure_ascii=False)
+
+    assert contract["contract_level"] == "critical"
+    assert contract["ir_write_kind"] == "write_save"
+    assert contract["contract_strength"] == "semantic"
+    assert "保存成功" not in payload
+    assert EDIT_PAGE_ID not in payload
+
+
+def test_write_classifier_does_not_promote_settings_or_custom_event_noise():
+    assert classify_write_operation(
+        ac="saveSetting",
+        method="saveSetting",
+        step_id="saveSetting_51",
+    ) == ""
+    assert classify_write_operation(
+        ac="customEvent",
+        method="customEvent",
+        args=[{
+            "event": "bookLookup",
+            "status": "ok",
+            "payload": {"region": "Oklahoma", "message": "save complete"},
+        }],
+        step_id="customEvent_8",
+    ) == ""
+
+
+def test_ir_write_bridge_applies_exact_anchor_and_first_success_contract():
+    flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
+    steps = [{
+        "id": "save_main",
+        "type": "invoke",
+        "form_id": "demo_form",
+        "app_id": "demo",
+        "ac": "save",
+        "method": "save",
+        "ir_sources": [{"source_index": 0, "action_index": 0}],
+    }]
+
+    applied = apply_ir_write_contracts(flow, steps)
+    bridge = build_ir_write_anchor_bridge(
+        flow,
+        steps,
+        assertions=[{"type": "no_save_failure", "step": "save_main"}],
+    )
+
+    assert applied["applied_count"] == 1
+    assert steps[0]["ir_write_kind"] == "write_save"
+    assert steps[0]["expected_response_signature"]["contract_level"] == "critical"
+    assert bridge["status"] == "ready"
+    assert bridge["checks"]["uncovered_write_anchor_count"] == 0
+    assert bridge["checks"]["critical_response_contract_missing_count"] == 0
+
+
+def test_ir_write_bridge_accepts_recorded_l2_write_callback_context():
+    flow = build_normalized_flow(_synthetic_har(), source_name="synthetic.har")
+    page = next(item for item in flow["pages"] if item["id"] == flow["steps"][0]["page_ref"])
+    page["pageid_type"] = "L2"
+    steps = [{
+        "id": "confirm_callback",
+        "type": "invoke",
+        "form_id": "demo_form",
+        "app_id": "demo",
+        "ac": "afterConfirm",
+        "method": "afterConfirm",
+        "preserve_l2_page": True,
+        "ir_sources": [{"source_index": 0, "action_index": 0}],
+    }]
+
+    apply_ir_write_contracts(flow, steps)
+    bridge = build_ir_write_anchor_bridge(flow, steps)
+
+    assert bridge["checks"]["write_anchor_l2_risk_count"] == 0
+
+
+def test_first_success_gate_distinguishes_verified_and_unverified_write():
+    case = {
+        "steps": [{
+            "id": "save_main",
+            "type": "invoke",
+            "ac": "save",
+            "ir_write_anchor": True,
+            "ir_write_kind": "write_save",
+            "expected_request_signature": {"contract_level": "critical"},
+            "expected_response_signature": {"contract_level": "critical"},
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "save_main"}],
+    }
+    evidence = {
+        "request_contract_results": {"save_main": {"errors": [], "warnings": []}},
+        "response_contract_results": {
+            "save_main": {"contract_level": "critical", "errors": [], "warnings": []},
+        },
+        "maintenance_expected_count": 1,
+        "maintenance_matched_count": 1,
+    }
+    assertions = [{"type": "no_save_failure", "ok": True}]
+
+    unverified = evaluate_first_success_gate(
+        case,
+        passed=True,
+        assertions=assertions,
+        runtime_evidence=evidence,
+        executed_step_ids={"save_main"},
+        response_step_ids={"save_main"},
+    )
+    verified = evaluate_first_success_gate(
+        case,
+        passed=True,
+        assertions=assertions + [{
+            "type": "readback_by_business_key",
+            "ok": True,
+            "advisory": False,
+        }],
+        runtime_evidence=evidence,
+        executed_step_ids={"save_main"},
+        response_step_ids={"save_main"},
+    )
+
+    assert unverified["status"] == "write_unverified"
+    assert unverified["missing"] == ["readback_or_manual_verification"]
+    assert verified["status"] == "verified"
+    assert verified["verified"] is True
 
 
 def test_ir_navigation_policy_uses_exact_action_provenance():
@@ -288,6 +425,31 @@ def test_ir_yaml_bridge_treats_edit_as_covered_by_field_model():
     assert bridge["checks"]["uncovered_write_or_edit_count"] == 0
     assert bridge["step_role_map"][0]["coverage"] == "covered_by_field_model"
     assert bridge["step_role_map"][0]["match_reason"] == "field_model"
+
+
+def test_ir_interaction_bridge_blocks_missing_entry_and_dialog_actions():
+    har_path = Path("har_uploads/preview_1779437599_UA提报保存.har")
+    har = json.loads(har_path.read_text(encoding="utf-8"))
+    flow = build_normalized_flow(har, source_name=har_path.name)
+    empty = build_ir_interaction_bridge(flow, [])
+
+    assert empty["summary"]["interaction_count"] > 0
+    assert empty["summary"]["uncovered_high_risk_count"] > 0
+    assert empty["status"] == "blocked"
+
+
+def test_ir_interaction_contracts_annotate_exact_generated_steps():
+    har_path = Path("har_uploads/preview_1779437599_UA提报保存.har")
+    har = json.loads(har_path.read_text(encoding="utf-8"))
+    flow = build_normalized_flow(har, source_name=har_path.name)
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="interaction_contract"))
+    steps = case["steps"]
+
+    report = apply_ir_interaction_contracts(flow, steps)
+
+    assert report["summary"]["interaction_count"] > 0
+    assert report["summary"]["uncovered_high_risk_count"] == 0
+    assert any(step.get("ir_interaction_kind") == "dialog_confirm" for step in steps)
 
 
 def test_ir_field_bridge_uses_exact_action_provenance_and_field_bindings():
@@ -391,7 +553,10 @@ def test_build_yaml_case_includes_value_safe_ir_contract(tmp_path: Path):
     assert case["ir_contract"]["generation_bridge"]["mode"] == "shadow_contract"
     assert case["ir_contract"]["generation_bridge"]["checks"]["ir_step_count"] >= 1
     assert case["ir_contract"]["field_bridge"]["raw_values_included"] is False
+    assert case["ir_contract"]["write_anchor_bridge"]["raw_values_included"] is False
+    assert case["ir_contract"]["write_anchor_bridge"]["checks"]["ir_write_anchor_count"] == 1
     assert "maintainable_field_binding_plan" in case
+    assert "write_anchor_plan" in case
     assert case["ir_contract"]["navigation_policy"]["stage"] == "stage_1_navigation_list"
     assert case["ir_contract"]["alignment"]["risk_level"] in {"low", "medium", "high"}
     assert "secret-token" not in payload
@@ -409,6 +574,7 @@ def test_preview_har_includes_ir_preview_without_changing_main_preview(tmp_path:
     assert preview["ir_alignment"]["checks"]["ir_api_entry_count"] == 1
     assert preview["ir_generation_bridge"]["mode"] == "shadow_contract"
     assert preview["ir_generation_bridge"]["checks"]["ir_step_count"] == 1
+    assert preview["ir_write_bridge"]["checks"]["ir_write_anchor_count"] == 1
     assert preview["ir_navigation_policy"]["stage"] == "stage_1_navigation_list"
     assert preview["ir_preview"]["sensitive_field_count"] >= 3
     assert "main_form_id" in preview

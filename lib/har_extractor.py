@@ -4459,6 +4459,8 @@ def _compact_ir_contract_for_yaml(
         from lib.ir import (
             assess_ir_preview_alignment,
             build_ir_field_bridge,
+            build_ir_interaction_bridge,
+            build_ir_write_anchor_bridge,
             build_ir_yaml_bridge,
             build_normalized_flow,
             compact_flow_for_preview,
@@ -4539,6 +4541,15 @@ def _compact_ir_contract_for_yaml(
                 yaml_steps,
                 vars_meta=vars_meta,
                 pick_fields=pick_fields,
+            )),
+            ("interaction_bridge", build_ir_interaction_bridge(
+                flow,
+                yaml_steps,
+            )),
+            ("write_anchor_bridge", build_ir_write_anchor_bridge(
+                flow,
+                yaml_steps,
+                assertions=_build_default_assertions(yaml_steps),
             )),
             ("navigation_policy", dict(navigation_policy or {})),
             ("warning_codes", warning_codes),
@@ -7182,6 +7193,12 @@ def build_yaml_case(
     cleaned = finalize_recorded_pageid_source_retention(cleaned)
     cleaned = annotate_pageid_recovery_strategies(cleaned)
     _attach_expected_response_signatures(cleaned)
+    try:
+        from lib.ir import apply_ir_interaction_contracts, apply_ir_write_contracts
+        apply_ir_interaction_contracts(ir_flow, cleaned)
+        apply_ir_write_contracts(ir_flow, cleaned)
+    except Exception as exc:
+        log.warning("IR 写入契约应用失败，继续使用旧写入识别: %s", exc)
     _attach_expected_request_signatures(cleaned)
 
     # 抽 vars
@@ -7704,6 +7721,8 @@ def build_yaml_case(
                   "navigation_form_id", "expected_notifications",
                   "expected_request_signature",
                   "expected_response_signature",
+                  "ir_write_anchor", "ir_write_kind",
+                  "ir_write_contract_source", "expected_pageid_role",
                   "continue_on_expected_error", "preserve_l2_page", "bind_l2_only",
                   "requires_harvested_l3_page",
                   "recorded_pageid_source_step_id",
@@ -8014,6 +8033,12 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
     )
     preview_steps = annotate_pageid_recovery_strategies(preview_steps)
     _attach_expected_response_signatures(preview_steps)
+    try:
+        from lib.ir import apply_ir_interaction_contracts, apply_ir_write_contracts
+        apply_ir_interaction_contracts(ir_flow, preview_steps)
+        apply_ir_write_contracts(ir_flow, preview_steps)
+    except Exception as exc:
+        log.warning("预览 IR 写入契约应用失败，继续使用旧写入识别: %s", exc)
     _attach_expected_request_signatures(preview_steps)
 
     # ⭐ 变量预检测：提前运行变量检测逻辑，让用户在导入前可配置
@@ -8553,6 +8578,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         from lib.ir import (
             assess_ir_preview_alignment,
             build_ir_field_bridge,
+            build_ir_interaction_bridge,
+            build_ir_write_anchor_bridge,
             build_ir_yaml_bridge,
             compact_flow_for_preview,
         )
@@ -8590,6 +8617,15 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 for item in pick_fields
                 if item.get("id")
             ),
+        )
+        ir_interaction_bridge = build_ir_interaction_bridge(
+            ir_flow,
+            preview_steps,
+        )
+        ir_write_bridge = build_ir_write_anchor_bridge(
+            ir_flow,
+            preview_steps,
+            assertions=_build_default_assertions(preview_steps),
         )
     except Exception as e:
         log.warning("HAR IR 对齐诊断失败（非致命）: %s", e)
@@ -8639,6 +8675,25 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
                 "summary": {},
             },
         }
+        ir_write_bridge = {
+            "schema_version": "1.0",
+            "status": "diagnostic_failed",
+            "raw_values_included": False,
+            "coverage_score": 0,
+            "summary": f"IR write bridge 失败: {type(e).__name__}: {e}",
+            "checks": {},
+            "write_anchor_map": [],
+            "first_success_requirements": {},
+        }
+        ir_interaction_bridge = {
+            "schema_version": "1.0",
+            "status": "diagnostic_failed",
+            "raw_values_included": False,
+            "coverage_score": 0,
+            "summary": {},
+            "interaction_map": [],
+            "policy": {},
+        }
 
     readback_plan = _build_preview_readback_plan(main_form, var_items)
     preview_validation_case = OrderedDict([
@@ -8670,7 +8725,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             "ai_assistance": preview_contract["ai_assistance"],
             "environment_binding_plan": preview_contract["environment_binding_plan"],
             "maintainable_field_binding_plan": preview_contract["maintainable_field_binding_plan"],
+            "write_anchor_plan": preview_contract["write_anchor_plan"],
             "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
+            "target_data_selector_plan": preview_contract["target_data_selector_plan"],
             "execution_contract": preview_contract["execution_contract"],
         })
     except Exception as e:
@@ -8700,7 +8757,9 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "ai_assistance": preview_contract["ai_assistance"],
         "environment_binding_plan": preview_contract["environment_binding_plan"],
         "maintainable_field_binding_plan": preview_contract["maintainable_field_binding_plan"],
+        "write_anchor_plan": preview_contract["write_anchor_plan"],
         "runtime_value_flow_plan": preview_contract["runtime_value_flow_plan"],
+        "target_data_selector_plan": preview_contract["target_data_selector_plan"],
         "execution_contract": preview_contract["execution_contract"],
         "yaml_schema_contract": preview_schema_contract,
         "components": component_report,
@@ -8710,6 +8769,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
         "ir_alignment": ir_alignment,
         "ir_generation_bridge": ir_generation_bridge,
         "ir_field_bridge": ir_field_bridge,
+        "ir_interaction_bridge": ir_interaction_bridge,
+        "ir_write_bridge": ir_write_bridge,
         "ir_navigation_policy": ir_navigation_policy,
         "steps": [
             {
@@ -8767,6 +8828,8 @@ def preview_har(har_path: Path, meta_resolver=None) -> dict:
             pageid_alignment=pageid_alignment,
             ir_alignment=ir_alignment,
             ir_field_bridge=ir_field_bridge,
+            ir_interaction_bridge=ir_interaction_bridge,
+            ir_write_bridge=ir_write_bridge,
         )
     except Exception as e:
         log.warning("HAR 导入预审失败（非致命）: %s", e)

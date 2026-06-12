@@ -156,6 +156,8 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
     bridge_checks = ir_bridge.get("checks") or {}
     ir_field_bridge = preview.get("ir_field_bridge") or {}
     field_bridge_checks = ir_field_bridge.get("checks") or {}
+    ir_write_bridge = preview.get("ir_write_bridge") or {}
+    write_bridge_checks = ir_write_bridge.get("checks") or {}
     ir_navigation = preview.get("ir_navigation_policy") or {}
     return {
         "status": "ok",
@@ -200,6 +202,16 @@ def _preview_summary(preview: dict[str, Any]) -> dict[str, Any]:
         "cross_env_selector_count": field_bridge_checks.get("cross_env_selector_count", 0),
         "cross_env_selector_bound_count": field_bridge_checks.get("cross_env_selector_bound_count", 0),
         "cross_env_selector_ready_count": field_bridge_checks.get("cross_env_selector_ready_count", 0),
+        "ir_write_bridge_status": ir_write_bridge.get("status", ""),
+        "ir_write_bridge_coverage_score": ir_write_bridge.get("coverage_score", 0),
+        "ir_write_anchor_count": write_bridge_checks.get("ir_write_anchor_count", 0),
+        "ir_write_anchor_uncovered_count": write_bridge_checks.get("uncovered_write_anchor_count", 0),
+        "ir_write_contract_missing_count": write_bridge_checks.get(
+            "critical_response_contract_missing_count",
+            0,
+        ),
+        "ir_write_l2_risk_count": write_bridge_checks.get("write_anchor_l2_risk_count", 0),
+        "ir_write_kind_mismatch_count": write_bridge_checks.get("write_kind_mismatch_count", 0),
         "ir_navigation_status": ir_navigation.get("status", ""),
         "ir_navigation_matched_count": ir_navigation.get("matched_yaml_count", 0),
         "ir_navigation_unmatched_count": ir_navigation.get("unmatched_ir_count", 0),
@@ -359,6 +371,8 @@ def _summary_from_evidence(evidence_path: Path, *, returncode: int, duration_s: 
         "maintenance_expected_count": summary.get("maintenance_expected_count", 0),
         "maintenance_matched_count": summary.get("maintenance_matched_count", 0),
         "first_success_verified": bool(summary.get("first_success_verified")),
+        "first_success_status": summary.get("first_success_status", ""),
+        "first_success_missing": summary.get("first_success_missing", []),
         "evidence_path": str(evidence_path),
     }
 
@@ -505,6 +519,13 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "cross_env_selector_count": parse.get("cross_env_selector_count", 0),
                 "cross_env_selector_bound_count": parse.get("cross_env_selector_bound_count", 0),
                 "cross_env_selector_ready_count": parse.get("cross_env_selector_ready_count", 0),
+                "ir_write_bridge_status": parse.get("ir_write_bridge_status", ""),
+                "ir_write_bridge_coverage_score": parse.get("ir_write_bridge_coverage_score", 0),
+                "ir_write_anchor_count": parse.get("ir_write_anchor_count", 0),
+                "ir_write_anchor_uncovered_count": parse.get("ir_write_anchor_uncovered_count", 0),
+                "ir_write_contract_missing_count": parse.get("ir_write_contract_missing_count", 0),
+                "ir_write_l2_risk_count": parse.get("ir_write_l2_risk_count", 0),
+                "ir_write_kind_mismatch_count": parse.get("ir_write_kind_mismatch_count", 0),
                 "ir_navigation_status": parse.get("ir_navigation_status", ""),
                 "ir_navigation_matched_count": parse.get("ir_navigation_matched_count", 0),
                 "ir_navigation_unmatched_count": parse.get("ir_navigation_unmatched_count", 0),
@@ -526,6 +547,8 @@ def _baseline_view(report: dict[str, Any]) -> dict[str, Any]:
                 "write_evidence_status": execution.get("write_evidence_status", "missing"),
                 "readback_status": execution.get("readback_status", "not_supported"),
                 "first_success_verified": bool(execution.get("first_success_verified")),
+                "first_success_status": execution.get("first_success_status", ""),
+                "first_success_missing": execution.get("first_success_missing", []),
                 "write_event_tokens": sorted(
                     {
                         str(token)
@@ -594,6 +617,13 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "cross_env_selector_count",
         "cross_env_selector_bound_count",
         "cross_env_selector_ready_count",
+        "ir_write_bridge_status",
+        "ir_write_bridge_coverage_score",
+        "ir_write_anchor_count",
+        "ir_write_anchor_uncovered_count",
+        "ir_write_contract_missing_count",
+        "ir_write_l2_risk_count",
+        "ir_write_kind_mismatch_count",
         "ir_navigation_status",
         "ir_navigation_matched_count",
         "ir_navigation_unmatched_count",
@@ -616,6 +646,8 @@ def _compare_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> dict
         "write_evidence_status",
         "readback_status",
         "first_success_verified",
+        "first_success_status",
+        "first_success_missing",
     ]
     for sample_id in keys:
         before = baseline_samples.get(sample_id)

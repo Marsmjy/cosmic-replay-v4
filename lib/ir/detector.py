@@ -6,6 +6,7 @@ import copy
 from typing import Any
 
 from lib.pageid_trace import expected_pageid_role
+from .write_contract import classify_write_operation
 
 
 def enrich_entries(entries: list[dict[str, Any]], *, playwright_context: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -132,18 +133,12 @@ def _step_role(signals: dict[str, Any], *, action: dict[str, Any] | None = None)
     ac = str(signals.get("ac") or "").lower()
     method = str(signals.get("method") or "").lower()
     key = str(signals.get("key") or "").lower()
-    action_text = _action_semantic_text(action)
-    text = " ".join((ac, method, key, action_text))
-    if any(token in text for token in (
-        "save",
-        "submit",
-        "audit",
-        "confirm",
-        "btnok",
-        "startupflow",
-        "barapprove",
-        "barreject",
-    )):
+    if classify_write_operation(
+        ac=ac,
+        method=method,
+        key=key,
+        args=(action or {}).get("args") if isinstance(action, dict) else None,
+    ):
         return "write"
     if ac in {"menuitemclick", "treemenuclick", "loadData".lower(), "refresh", "querytreenodechildren"}:
         return "navigation"

@@ -780,10 +780,11 @@ def _readback_assertion_policy(strategy: dict[str, Any]) -> dict[str, Any]:
     ):
         return {
             "auto_append": False,
-            "mode": "advisory",
+            "mode": "candidate",
             "reason": (
-                "录制查询依赖浏览器父页面 responsePageId；只有验证过可重建入口后"
-                "才能升级为硬回查。"
+                "该查询需要在新会话重建录制导航上下文；真实样本表明列表过滤、"
+                "组织上下文或数据可见性可能与保存会话不同。未经表单专用验证前，"
+                "只能作为候选回查，不能自动生成硬断言。"
             ),
         }
     if strategy.get("source") in {"strategy_library", "recorded_har_query"}:

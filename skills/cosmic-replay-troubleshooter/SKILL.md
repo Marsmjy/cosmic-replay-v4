@@ -85,6 +85,10 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
 25. 每个可维护字段必须有“面板字段 → YAML 步骤 → 运行时注入”的绑定证据。优先查看 `ir_contract.field_bridge` 和 `maintainable_field_binding_plan`：普通变量应绑定 `update_fields/invoke post_data`，F7/基础资料应绑定 `pick_basedata/select_f7_list_row`，列表 selector 应绑定录制的 `entryRowClick`，日期/下拉/开关应绑定对应字段写入。`ir_sources` 只保存 HAR entry/action 索引，不保存真实值，用于证明合并或降级后没有丢动作来源。
 26. 写入用例中，若 `user_overridden/manual_override=true` 但绑定状态为 `unbound`，必须在登录和写库前阻断，并归类为 `maintainable_value_unbound`；不能继续使用 HAR 旧值，也不能让用户先排查环境。只读查询用例不应用写入硬门槛。未修改的 `required_context/runtime_rule` 可标记为 `context` 交给目标环境或前置链路补齐，不能误报为用户值未生效。
 27. `scripts/har_execute_regression.py` baseline 记录 IR 字段动作覆盖、字段顺序、维护项绑定和跨环境 selector 指标。用例整体 PASS 时，可选/建议型步骤失败仍保留在 Markdown 的“非阻断诊断”，但不进入 `failed_step_ids` 的阻断基线，避免环境瞬态告警制造假回归；请求/响应契约、维护值命中、写入证据和回查结果仍必须参与对比。
+28. 写入动作必须由 IR 的规范类型统一识别：`write_save/write_submit/write_audit/write_approve/write_reject/write_delete/write_confirm/write_workflow_start` 等。优先查看 `ir_contract.write_anchor_bridge` 和 `write_anchor_plan`，确认每个 HAR 写入锚点都精确映射到 YAML 步骤，并同时具有关键请求、关键响应和 `no_save_failure` 保护。`saveSetting` 是设置持久化噪声，不是业务保存；普通 `customEvent` 的参数文本即使包含 `save` 或 `ok` 子串，也不能因此升级成写入锚点。
+29. 关键响应校验必须来自录制 HAR 的脱敏语义契约，不做完整 JSON 相等。写入锚点的 `expected_response_signature.contract_level` 必须是 `critical`；运行时必须记录 `response_contract_results`。录制响应缺少稳定业务字段时允许使用最小契约 `outcome=not_failure`，但仍要由 `no_save_failure`、写入响应证据和入库回查共同兜底。若 `ir_write_anchor_uncovered` 或 `ir_write_contract_missing` 出现在 preflight，必须在登录和写库前阻断。
+30. “首次成功门槛”只有三种写入结论：`verified` 表示首次执行、全部写入锚点、关键请求/响应契约、用户维护值、系统断言和只读入库回查（或明确人工确认）全部通过；`write_unverified` 表示执行与关键契约通过但缺入库证据；`failed` 表示写入锚点未执行、契约失败、维护值未命中或系统断言失败。只读用例为 `not_applicable`，不得强行要求 save/readback。排障时优先查看 evidence 的 `write_anchor_plan`、`first_success_gate.checks/missing`，不要只看顶层 PASS。
+31. pageId 风险必须尊重录制事实：真实编辑/保存通常要求 L3，但如果 HAR 本身把工作流确认回调录制在 L2，并且精确 producer→consumer 来源一致，就不能只因 `preserve_l2_page=true` 判错。只有“录制要求 L3、生成步骤却强制保留 L2”、跨表单来源不一致、窗口关闭后复用或运行 trace 证明上下文过期时，才升级为阻断。
 
 ## 一、整体防护架构
 

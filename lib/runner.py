@@ -71,6 +71,10 @@ from .pageid_trace import (
 from .response_signature import evaluate_response_contract
 from .request_signature import evaluate_request_contract
 from .case_contract import build_case_contract, validate_case_contract_for_run
+from .ir.write_contract import (
+    evaluate_first_success_gate,
+    is_write_step as ir_is_write_step,
+)
 
 
 log = logging.getLogger("cosmic_replay.runner")
@@ -1028,6 +1032,93 @@ def _extract_grid_payload_with_field(
         return None
 
     return walk(resp) or ({}, [])
+
+
+def _apply_target_data_selector(step: dict, ctx: dict) -> None:
+    """Bind one target-environment query row into a modify/delete request."""
+    spec = step.get("target_data_selector")
+    if not isinstance(spec, dict):
+        return
+    source_step_id = str(spec.get("source_step") or "")
+    field_key = str(spec.get("field_key") or "")
+    value = str(spec.get("value") or spec.get("value_ref") or "")
+    if not (source_step_id and field_key and value):
+        raise ProtocolError("target_data_selector 缺少 source_step/field_key/value")
+    response = (ctx.get("step_responses") or {}).get(source_step_id)
+    if response is None:
+        raise ProtocolError(f"target_data_selector 找不到查询响应: {source_step_id}")
+
+    dataindex, rows = _extract_grid_payload_with_field(
+        response,
+        str(spec.get("grid_key") or "billlistap"),
+        field_key,
+    )
+    matches = [
+        row for row in rows
+        if str(_grid_cell(row, dataindex, field_key) or "").strip() == value.strip()
+    ]
+    if len(matches) != 1:
+        raise ProtocolError(
+            f"target_data_selector 要求业务键唯一命中，实际 {len(matches)} 条: "
+            f"{field_key}={value}"
+        )
+    row = matches[0]
+    bindings = [
+        item for item in (spec.get("bindings") or [])
+        if isinstance(item, dict)
+    ]
+    if not bindings:
+        raise ProtocolError("target_data_selector 缺少 identity bindings")
+    applied: list[dict[str, str]] = []
+    for binding in bindings:
+        source_field = str(binding.get("source_field") or "")
+        target_path = str(binding.get("target_path") or "")
+        if not (source_field and target_path):
+            continue
+        source_value = _grid_cell(row, dataindex, source_field)
+        if source_value is None:
+            raise ProtocolError(
+                f"target_data_selector 查询行缺少身份字段: {source_field}"
+            )
+        _set_nested_path(step, target_path, source_value)
+        applied.append({"source_field": source_field, "target_path": target_path})
+    if not applied:
+        raise ProtocolError("target_data_selector 没有可执行的 identity binding")
+    step["_target_data_selector_resolved"] = {
+        "source_step": source_step_id,
+        "field_key": field_key,
+        "match_count": 1,
+        "bindings": applied,
+    }
+
+
+def _set_nested_path(target: Any, path: str, value: Any) -> None:
+    parts = [part for part in path.split(".") if part != ""]
+    if not parts:
+        raise ProtocolError("target_data_selector target_path 为空")
+    current = target
+    for part in parts[:-1]:
+        if isinstance(current, list):
+            if not part.isdigit() or int(part) >= len(current):
+                raise ProtocolError(f"target_data_selector 无效列表路径: {path}")
+            current = current[int(part)]
+        elif isinstance(current, dict):
+            if part not in current:
+                raise ProtocolError(f"target_data_selector 无效对象路径: {path}")
+            current = current[part]
+        else:
+            raise ProtocolError(f"target_data_selector 无法进入路径: {path}")
+    leaf = parts[-1]
+    if isinstance(current, list):
+        if not leaf.isdigit() or int(leaf) >= len(current):
+            raise ProtocolError(f"target_data_selector 无效列表叶子: {path}")
+        current[int(leaf)] = value
+    elif isinstance(current, dict):
+        if leaf not in current:
+            raise ProtocolError(f"target_data_selector 无效对象叶子: {path}")
+        current[leaf] = value
+    else:
+        raise ProtocolError(f"target_data_selector 无法写入路径: {path}")
 
 
 def _grid_cell(row: list[Any], dataindex: dict[str, int], field: str) -> Any:
@@ -3967,11 +4058,7 @@ _WRITE_KEYS = {
 
 
 def _is_write_step(step: dict) -> bool:
-    ac = str(step.get("ac") or "").lower()
-    key = str(step.get("key") or "").lower()
-    args = step.get("args") or []
-    arg_text = json.dumps(args, ensure_ascii=False).lower() if args else ""
-    return ac in _WRITE_ACS or key in _WRITE_KEYS or any(k in arg_text for k in _WRITE_KEYS)
+    return ir_is_write_step(step)
 
 
 def _case_has_write_step(case: dict) -> bool:
@@ -4238,7 +4325,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "ai_assistance": case_contract.get("ai_assistance") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
         "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
+        "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+        "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
     })
 
@@ -4250,6 +4339,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "capability",
             "environment_binding_plan",
             "maintainable_field_binding_plan",
+            "write_anchor_plan",
             "execution_contract",
             "runtime_value_flow_plan",
         ],
@@ -4281,7 +4371,9 @@ def run_case(case: dict, on_event=None) -> RunResult:
             "capability": case_contract.get("capability") or {},
             "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
             "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
+            "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
             "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+            "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
             "execution_contract": case_contract.get("execution_contract") or {},
             "contract_preflight": {
                 "ok": False,
@@ -4475,6 +4567,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         if stype == "invoke":
             _apply_latest_afterconfirm_callback(step, ctx)
             try:
+                _apply_target_data_selector(step, ctx)
                 _resolve_dynamic_query_entry_row(step, replay, ctx)
             except Exception as exc:
                 preparation_errors.append(str(exc))
@@ -5046,12 +5139,14 @@ def run_case(case: dict, on_event=None) -> RunResult:
         if isinstance(item, dict)
     ]
     maintenance_trace = list(ctx.get("maintenance_value_trace") or [])
-    result.runtime_evidence = {
+    runtime_evidence = {
         "case_contract": case_contract,
         "capability": case_contract.get("capability") or {},
         "environment_binding_plan": case_contract.get("environment_binding_plan") or {},
         "maintainable_field_binding_plan": case_contract.get("maintainable_field_binding_plan") or {},
+        "write_anchor_plan": case_contract.get("write_anchor_plan") or {},
         "runtime_value_flow_plan": case_contract.get("runtime_value_flow_plan") or {},
+        "target_data_selector_plan": case_contract.get("target_data_selector_plan") or {},
         "execution_contract": case_contract.get("execution_contract") or {},
         "request_contract_results": dict(ctx.get("request_contract_results") or {}),
         "response_contract_results": dict(ctx.get("response_contract_results") or {}),
@@ -5065,6 +5160,19 @@ def run_case(case: dict, on_event=None) -> RunResult:
             1 for item in maintenance_trace if item.get("matched")
         ),
     }
+    runtime_evidence["first_success_gate"] = evaluate_first_success_gate(
+        case,
+        passed=result.passed,
+        assertions=result.assertions,
+        runtime_evidence=runtime_evidence,
+        executed_step_ids={
+            str(item.get("id") or "")
+            for item in result.steps
+            if item.get("ok") and item.get("id")
+        },
+        response_step_ids=set(str(item) for item in (ctx.get("step_responses") or {}).keys()),
+    )
+    result.runtime_evidence = runtime_evidence
     result.end_ts = time.time()
     env_fields = _build_env_fields(case, result, ctx.get("env_resolution", {}))
     if env_fields:
@@ -5081,6 +5189,7 @@ def run_case(case: dict, on_event=None) -> RunResult:
         "readback_verified": sum(1 for item in readback_results if item.get("matched")),
         "maintenance_expected": result.runtime_evidence["maintenance_expected_count"],
         "maintenance_matched": result.runtime_evidence["maintenance_matched_count"],
+        "first_success_gate": result.runtime_evidence["first_success_gate"],
     })
     return result
 

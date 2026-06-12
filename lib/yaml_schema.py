@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Mapping
 
+from lib.ir.write_contract import is_write_step
+
 
 SCHEMA_VERSION = "1.0"
 
@@ -104,7 +106,7 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
             warnings.append(_issue("update_fields_missing_fields", f"{path}.fields", f"update_fields step {step_id or index} 缺少 fields。"))
         if step_type in {"pick_basedata", "select_f7_list_row"} and not str(step.get("field_key") or "").strip():
             warnings.append(_issue("selector_missing_field_key", f"{path}.field_key", f"{step_type} step {step_id or index} 缺少 field_key。"))
-        if ac in WRITE_ACS:
+        if is_write_step(step):
             write_step_count += 1
 
     duplicated_ids = sorted(item for item, count in Counter(step_ids).items() if count > 1)
@@ -147,6 +149,7 @@ def validate_yaml_schema(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "ai_assistance",
         "environment_binding_plan",
         "maintainable_field_binding_plan",
+        "write_anchor_plan",
         "runtime_value_flow_plan",
         "execution_contract",
     }

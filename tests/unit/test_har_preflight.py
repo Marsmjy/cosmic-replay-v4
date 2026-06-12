@@ -140,3 +140,58 @@ def test_preflight_blocks_user_maintained_value_without_executable_binding():
     assert result["decision"] == "blocked"
     assert result["allow_generate"] is False
     assert any(issue["code"] == "maintainable_value_unbound" for issue in result["issues"])
+
+
+def test_preflight_blocks_uncovered_ir_write_anchor_and_missing_contract():
+    result = assess_har_preflight(
+        main_form_id="demo_form",
+        tier_counts={"core": 2, "ui_reaction": 0, "noise": 0},
+        steps=[{"type": "invoke", "id": "save", "ac": "save"}],
+        detected_vars=[],
+        pick_fields=[],
+        component_report={"summary": {"coverage_percent": 100, "unsupported_steps": 0}},
+        quality={"score": 100, "issues": []},
+        pageid_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_write_bridge={
+            "status": "blocked",
+            "checks": {
+                "ir_write_anchor_count": 1,
+                "uncovered_write_anchor_count": 1,
+                "critical_response_contract_missing_count": 1,
+            },
+        },
+    )
+
+    assert result["decision"] == "blocked"
+    codes = {item["code"] for item in result["issues"]}
+    assert "ir_write_anchor_uncovered" in codes
+    assert "ir_write_contract_missing" in codes
+
+
+def test_preflight_blocks_uncovered_high_risk_complex_interaction():
+    result = assess_har_preflight(
+        main_form_id="demo_form",
+        tier_counts={"core": 3, "ui_reaction": 0, "noise": 0},
+        steps=[{"type": "invoke", "id": "save", "ac": "save"}],
+        detected_vars=[],
+        pick_fields=[],
+        component_report={"summary": {"coverage_percent": 100, "unsupported_steps": 0}},
+        quality={"score": 100, "issues": []},
+        pageid_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_alignment={"score": 100, "risk_level": "low", "issues": []},
+        ir_interaction_bridge={
+            "status": "blocked",
+            "summary": {
+                "interaction_count": 3,
+                "uncovered_count": 1,
+                "uncovered_high_risk_count": 1,
+            },
+        },
+    )
+
+    assert result["decision"] == "blocked"
+    assert any(
+        issue["code"] == "ir_complex_interaction_uncovered"
+        for issue in result["issues"]
+    )

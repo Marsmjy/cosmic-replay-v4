@@ -8,6 +8,31 @@ def _index_html() -> str:
     return (PROJECT_ROOT / "lib" / "webui" / "static" / "index.html").read_text(encoding="utf-8")
 
 
+def test_har_preview_exposes_ir_write_contract_coverage():
+    html = _index_html()
+
+    assert "写入契约" in html
+    assert "harPreview?.ir_write_bridge?.checks?.critical_response_contract_count" in html
+    assert "harPreview?.ir_write_bridge?.checks?.ir_write_anchor_count" in html
+
+
+def test_run_result_explains_first_success_gate_gaps():
+    html = _index_html()
+
+    assert "first_success_gate_failed" in html
+    assert "首次成功门槛缺失" in html
+
+
+def test_run_result_uses_one_user_decision_and_does_not_call_unverified_pass_valid():
+    html = _index_html()
+
+    assert "singleRunOutcome()" in html
+    assert "执行成功，数据已验证" in html
+    assert "执行通过，入库待确认" in html
+    assert "查询或校验执行成功" in html
+    assert "可以作为当前环境的有效自动化用例使用" not in html
+
+
 def test_har_preview_grouping_keeps_original_field_object_references():
     html = _index_html()
 

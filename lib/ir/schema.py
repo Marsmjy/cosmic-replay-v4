@@ -4,9 +4,15 @@ from __future__ import annotations
 from typing import Any
 
 from .detector import enrich_entries
+from .interaction_contract import build_ir_interaction_contract
 from .normalizer import normalize_har_entries
+from .write_contract import classify_write_operation, is_write_operation_kind
+from lib.response_signature import (
+    is_meaningful_response_signature,
+    specialize_response_signature,
+)
 
-SCHEMA_VERSION = "0.3"
+SCHEMA_VERSION = "0.4"
 
 
 def build_normalized_flow(
@@ -26,6 +32,11 @@ def build_normalized_flow(
         entry = unit["entry"]
         action = unit["action"]
         signals = unit["signals"]
+        action_shape = _safe_action_shape(
+            action,
+            action_index=unit["action_index"],
+            ac=str(signals.get("ac") or ""),
+        )
         requests[step["request_ref"]] = {
             "method": entry.get("method", ""),
             "path": entry.get("path", ""),
@@ -37,15 +48,23 @@ def build_normalized_flow(
             "app_id": signals.get("app_id", ""),
             "ac": signals.get("ac", ""),
             "invoke_method": signals.get("method", ""),
-            "action": _safe_action_shape(
-                action,
-                action_index=unit["action_index"],
-                ac=str(signals.get("ac") or ""),
-            ),
+            "action": action_shape,
             "source_index": unit["source_index"],
             "action_index": unit["action_index"],
         }
-        responses[step["response_ref"]] = entry.get("response", {})
+        response = dict(entry.get("response") or {})
+        semantic_signature = response.pop("semantic_signature", {})
+        semantic_contract = _build_ir_response_contract(
+            semantic_signature,
+            step_id=step["id"],
+            role=str(step.get("role") or ""),
+            form_id=str(signals.get("form_id") or ""),
+            ac=str(signals.get("ac") or ""),
+            action=action_shape,
+        )
+        if semantic_contract:
+            response["semantic_contract"] = semantic_contract
+        responses[step["response_ref"]] = response
 
     if not normalized["entries"]:
         warnings.append({"code": "api_entries_missing", "message": "未识别到苍穹业务 API 请求。"})
@@ -82,6 +101,7 @@ def build_normalized_flow(
         "confidence_score": enriched["confidence_score"],
         "warnings": warnings,
     }
+    flow["interaction_contract"] = build_ir_interaction_contract(flow)
     ok, validation_warnings = validate_normalized_flow(flow)
     if not ok:
         flow["warnings"].extend({"code": "schema_warning", "message": item} for item in validation_warnings)
@@ -103,6 +123,7 @@ def compact_flow_for_preview(flow: dict[str, Any]) -> dict[str, Any]:
         "page_count": len(flow.get("pages") or []),
         "sensitive_field_count": len(flow.get("sensitive_fields") or []),
         "warnings": flow.get("warnings") or [],
+        "interaction_contract": flow.get("interaction_contract") or {},
         "steps": [
             {
                 "id": step.get("id", ""),
@@ -216,7 +237,12 @@ def _safe_action_shape(
         }
     method = str(action.get("methodName") or action.get("method") or "")
     key = str(action.get("key") or "")
-    operation_kind = _action_operation_kind(ac=ac, method=method)
+    operation_kind = _action_operation_kind(
+        ac=ac,
+        method=method,
+        key=key,
+        args=action.get("args"),
+    )
     return {
         "index": action_index,
         "key": key,
@@ -247,7 +273,21 @@ def _value_shape(value: Any) -> str:
     return "string"
 
 
-def _action_operation_kind(*, ac: str, method: str) -> str:
+def _action_operation_kind(
+    *,
+    ac: str,
+    method: str,
+    key: str = "",
+    args: Any = None,
+) -> str:
+    write_kind = classify_write_operation(
+        ac=ac,
+        method=method,
+        key=key,
+        args=args,
+    )
+    if write_kind:
+        return write_kind
     text = f"{ac} {method}".strip().lower()
     if "getlookuplist" in text:
         return "lookup_query"
@@ -311,3 +351,45 @@ def _selector_interface(operation_kind: str) -> str:
         "grid_selection": "loadData/commonSearch/entryRowClick",
         "field_update": "updateValue",
     }.get(operation_kind, "")
+
+
+def _build_ir_response_contract(
+    signature: Any,
+    *,
+    step_id: str,
+    role: str,
+    form_id: str,
+    ac: str,
+    action: dict[str, Any],
+) -> dict[str, Any]:
+    """Build a value-safe critical contract for an IR write anchor."""
+    operation_kind = str(action.get("operation_kind") or "")
+    if not is_write_operation_kind(operation_kind) and role != "write":
+        return {}
+    if is_meaningful_response_signature(signature):
+        contract = specialize_response_signature(
+            signature,
+            {
+                "id": step_id,
+                "form_id": form_id,
+                "ac": ac,
+                "key": action.get("key", ""),
+            },
+            contract_level="critical",
+            anchor_reason="ir_write_anchor",
+        )
+        contract["contract_strength"] = "semantic"
+    else:
+        contract = {
+            "version": 2,
+            "outcome": "not_failure",
+            "contract_level": "critical",
+            "anchor_reason": "ir_write_anchor",
+            "contract_strength": "minimal",
+        }
+    contract["ir_write_kind"] = (
+        operation_kind
+        if is_write_operation_kind(operation_kind)
+        else classify_write_operation(ac=ac, key=action.get("key"))
+    )
+    return contract

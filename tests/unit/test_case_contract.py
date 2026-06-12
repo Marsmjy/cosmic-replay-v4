@@ -64,6 +64,7 @@ def test_write_case_contract_exposes_environment_and_runtime_plans():
     assert contract["environment_binding_plan"]["summary"]["static_id_risk_count"] == 1
     assert contract["environment_binding_plan"]["fields"][0]["interface"] == "getLookUpList"
     assert "bill_id" in contract["runtime_value_flow_plan"]["summary"]["producer_kinds"]
+    assert contract["write_anchor_plan"]["summary"]["write_anchor_count"] == 1
     assert "目标环境" in contract["ai_assistance"]["need_confirm"][0]
 
 
@@ -79,6 +80,7 @@ def test_generated_yaml_and_preview_share_case_contract_sections():
         "ai_assistance",
         "environment_binding_plan",
         "maintainable_field_binding_plan",
+        "write_anchor_plan",
         "runtime_value_flow_plan",
         "execution_contract",
     ):
@@ -248,3 +250,84 @@ def test_contract_preflight_does_not_apply_write_binding_gate_to_query_only_case
     })
 
     assert result["ok"] is True
+
+
+def test_contract_preflight_blocks_ir_write_anchor_without_contracts():
+    result = validate_case_contract_for_run({
+        "name": "ir_write_contract_gap",
+        "steps": [{
+            "id": "save_bill",
+            "type": "invoke",
+            "form_id": "demo_bill",
+            "ac": "save",
+            "ir_write_anchor": True,
+            "ir_write_kind": "write_save",
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "save_bill"}],
+    })
+
+    assert result["ok"] is False
+    assert any("关键响应契约" in item for item in result["errors"])
+    assert any("请求结构契约" in item for item in result["errors"])
+
+
+def test_delete_requires_target_environment_selector():
+    result = validate_case_contract_for_run({
+        "name": "unsafe_delete",
+        "steps": [{
+            "id": "delete_record",
+            "type": "invoke",
+            "form_id": "demo_list",
+            "ac": "delete",
+            "method": "delete",
+            "args": [{"pkvalue": "2381390676873980001", "version": "12"}],
+        }],
+        "assertions": [{"type": "no_save_failure", "step": "delete_record"}],
+    })
+
+    selector_plan = result["contract"]["target_data_selector_plan"]
+    assert result["ok"] is False
+    assert selector_plan["status"] == "blocked"
+    assert selector_plan["summary"]["static_identity_risk_count"] == 1
+    assert any("目标数据选择器不可执行" in item for item in result["errors"])
+
+
+def test_delete_selector_uses_business_key_and_runtime_identity_bindings():
+    case = {
+        "name": "safe_delete",
+        "steps": [
+            {
+                "id": "find_target",
+                "type": "invoke",
+                "form_id": "demo_list",
+                "ac": "commonSearch",
+                "method": "commonSearch",
+            },
+            {
+                "id": "delete_record",
+                "type": "invoke",
+                "form_id": "demo_list",
+                "ac": "delete",
+                "method": "delete",
+                "requires_target_selector": True,
+                "target_data_selector": {
+                    "source_step": "find_target",
+                    "field_key": "number",
+                    "value": "${vars.target_number}",
+                    "match_policy": "exactly_one",
+                    "bindings": [
+                        {"source_field": "id", "target_path": "args.0.pkvalue"},
+                        {"source_field": "version", "target_path": "args.0.version"},
+                    ],
+                },
+            },
+        ],
+        "assertions": [{"type": "no_save_failure", "step": "delete_record"}],
+    }
+
+    contract = build_case_contract(case)
+    selector = contract["target_data_selector_plan"]["selectors"][0]
+    assert selector["status"] == "ready"
+    assert selector["readback_expectation"] == "not_exists"
+    assert selector["match_policy"] == "exactly_one"
+    assert contract["capability"]["requires_target_data_selector"] is True

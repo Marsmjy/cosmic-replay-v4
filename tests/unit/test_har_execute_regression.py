@@ -73,6 +73,13 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                     "cross_env_selector_count": 1,
                     "cross_env_selector_bound_count": 1,
                     "cross_env_selector_ready_count": 1,
+                    "ir_write_bridge_status": "ready",
+                    "ir_write_bridge_coverage_score": 100,
+                    "ir_write_anchor_count": 1,
+                    "ir_write_anchor_uncovered_count": 0,
+                    "ir_write_contract_missing_count": 0,
+                    "ir_write_l2_risk_count": 0,
+                    "ir_write_kind_mismatch_count": 0,
                     "ir_navigation_status": "applied",
                     "ir_navigation_matched_count": 2,
                     "ir_navigation_unmatched_count": 0,
@@ -87,6 +94,9 @@ def test_baseline_view_keeps_value_safe_execution_shape():
                     "passed": True,
                     "failed_steps": [{"id": "optional_probe", "error": "diagnostic only"}],
                     "write_events": [{"response_tokens": ["保存成功"]}],
+                    "first_success_verified": False,
+                    "first_success_status": "write_unverified",
+                    "first_success_missing": ["readback_or_manual_verification"],
                     "stdout_tail": "would contain values but must not be copied",
                 },
                 "failure_kind": "passed",
@@ -106,8 +116,13 @@ def test_baseline_view_keeps_value_safe_execution_shape():
     assert baseline["samples"][0]["ir_field_bridge_status"] == "ready"
     assert baseline["samples"][0]["ir_field_action_order_mismatch_count"] == 0
     assert baseline["samples"][0]["cross_env_selector_ready_count"] == 1
+    assert baseline["samples"][0]["ir_write_bridge_status"] == "ready"
+    assert baseline["samples"][0]["ir_write_anchor_count"] == 1
+    assert baseline["samples"][0]["ir_write_contract_missing_count"] == 0
     assert baseline["samples"][0]["ir_navigation_status"] == "applied"
     assert baseline["samples"][0]["ir_navigation_matched_count"] == 2
+    assert baseline["samples"][0]["first_success_status"] == "write_unverified"
+    assert baseline["samples"][0]["first_success_missing"] == ["readback_or_manual_verification"]
     assert baseline["samples"][0]["failed_step_ids"] == []
     assert "stdout_tail" not in baseline["samples"][0]
 

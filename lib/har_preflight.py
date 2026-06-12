@@ -119,13 +119,19 @@ def assess_har_preflight(
     pageid_alignment: dict[str, Any] | None,
     ir_alignment: dict[str, Any] | None = None,
     ir_field_bridge: dict[str, Any] | None = None,
+    ir_interaction_bridge: dict[str, Any] | None = None,
+    ir_write_bridge: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a user-facing import preflight decision."""
     quality = quality or {}
     pageid_alignment = pageid_alignment or {}
     ir_alignment = ir_alignment or {}
     ir_field_bridge = ir_field_bridge or {}
+    ir_interaction_bridge = ir_interaction_bridge or {}
+    ir_write_bridge = ir_write_bridge or {}
     field_checks = ir_field_bridge.get("checks") or {}
+    interaction_checks = ir_interaction_bridge.get("summary") or {}
+    write_checks = ir_write_bridge.get("checks") or {}
     component_summary = (component_report or {}).get("summary") or {}
     checks = {
         "main_form_id": main_form_id,
@@ -148,6 +154,18 @@ def assess_har_preflight(
         "maintainable_field_bound_count": int(field_checks.get("bound_count") or 0),
         "maintainable_field_unbound_count": int(field_checks.get("unbound_count") or 0),
         "overridden_unbound_count": int(field_checks.get("overridden_unbound_count") or 0),
+        "ir_interaction_count": int(interaction_checks.get("interaction_count") or 0),
+        "ir_interaction_uncovered_count": int(interaction_checks.get("uncovered_count") or 0),
+        "ir_interaction_high_risk_uncovered_count": int(
+            interaction_checks.get("uncovered_high_risk_count") or 0
+        ),
+        "ir_write_anchor_count": int(write_checks.get("ir_write_anchor_count") or 0),
+        "ir_write_anchor_uncovered_count": int(write_checks.get("uncovered_write_anchor_count") or 0),
+        "ir_write_contract_missing_count": int(
+            write_checks.get("critical_response_contract_missing_count") or 0
+        ),
+        "ir_write_l2_risk_count": int(write_checks.get("write_anchor_l2_risk_count") or 0),
+        "ir_write_kind_mismatch_count": int(write_checks.get("write_kind_mismatch_count") or 0),
     }
     issues = _preflight_issues(
         checks,
@@ -155,6 +173,8 @@ def assess_har_preflight(
         pageid_alignment,
         ir_alignment,
         ir_field_bridge,
+        ir_interaction_bridge,
+        ir_write_bridge,
     )
     score = _preflight_score(checks, issues)
     decision = _preflight_decision(score, issues)
@@ -260,10 +280,14 @@ def _preflight_issues(
     pageid_alignment: dict[str, Any],
     ir_alignment: dict[str, Any] | None = None,
     ir_field_bridge: dict[str, Any] | None = None,
+    ir_interaction_bridge: dict[str, Any] | None = None,
+    ir_write_bridge: dict[str, Any] | None = None,
 ) -> list[Issue]:
     issues: list[Issue] = []
     ir_alignment = ir_alignment or {}
     ir_field_bridge = ir_field_bridge or {}
+    ir_interaction_bridge = ir_interaction_bridge or {}
+    ir_write_bridge = ir_write_bridge or {}
     if not checks["main_form_id"]:
         issues.append({
             "severity": "critical",
@@ -364,6 +388,58 @@ def _preflight_issues(
                 "尚未由生成步骤明确覆盖。"
             ),
             "suggestion": "检查普通录入、F7/基础资料和下拉动作是否进入字段目录及 YAML。",
+        })
+    if checks.get("ir_interaction_high_risk_uncovered_count", 0):
+        issues.append({
+            "severity": "critical",
+            "code": "ir_complex_interaction_uncovered",
+            "message": (
+                f"有 {checks['ir_interaction_high_risk_uncovered_count']} 个 F7/分录/"
+                "子弹窗确认动作未进入生成 YAML。"
+            ),
+            "suggestion": "按 IR source_index/action_index 补齐选择、分录维护和确认边界后再生成。",
+        })
+    elif (
+        ir_interaction_bridge.get("status") == "ready_with_warnings"
+        and checks.get("ir_interaction_uncovered_count", 0)
+    ):
+        issues.append({
+            "severity": "medium",
+            "code": "ir_complex_interaction_review",
+            "message": (
+                f"有 {checks['ir_interaction_uncovered_count']} 个低风险复杂交互仅被部分覆盖。"
+            ),
+            "suggestion": "检查弹窗打开和选择器预取动作是否属于可忽略 UI 联动。",
+        })
+    if checks.get("ir_write_anchor_uncovered_count", 0):
+        issues.append({
+            "severity": "critical",
+            "code": "ir_write_anchor_uncovered",
+            "message": (
+                f"有 {checks['ir_write_anchor_uncovered_count']} 个 HAR 写入动作"
+                "没有进入生成的 YAML。"
+            ),
+            "suggestion": "先修复保存/提交/审核/确认动作识别，不能生成缺写入锚点的用例。",
+        })
+    if checks.get("ir_write_contract_missing_count", 0):
+        issues.append({
+            "severity": "critical",
+            "code": "ir_write_contract_missing",
+            "message": (
+                f"有 {checks['ir_write_contract_missing_count']} 个写入锚点"
+                "缺少录制响应语义契约。"
+            ),
+            "suggestion": "从 HAR 录制响应生成关键契约后再执行，不能只依赖 HTTP 200。",
+        })
+    if checks.get("ir_write_l2_risk_count", 0) or checks.get("ir_write_kind_mismatch_count", 0):
+        issues.append({
+            "severity": "high",
+            "code": "ir_write_anchor_contract_risk",
+            "message": (
+                f"写入锚点存在 L2 风险 {checks.get('ir_write_l2_risk_count', 0)} 处，"
+                f"动作类型不一致 {checks.get('ir_write_kind_mismatch_count', 0)} 处。"
+            ),
+            "suggestion": "核对原始 HAR 的表单作用域、L3 pageId 与保存/提交/审核动作类型。",
         })
     return _dedupe_issues(issues)
 

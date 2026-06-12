@@ -319,7 +319,7 @@ def test_readback_plan_rebuilds_context_for_response_pageid_query():
     assert item["suggested_assertion"]["query_step"] == "search_after_save"
     assert "step" not in item["suggested_assertion"]
     assert item["assertion_policy"]["auto_append"] is False
-    assert item["assertion_policy"]["mode"] == "advisory"
+    assert item["assertion_policy"]["mode"] == "candidate"
 
 
 def test_readback_plan_prefers_final_runtime_billno_query():

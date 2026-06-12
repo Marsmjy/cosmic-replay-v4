@@ -126,6 +126,10 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
     recorded_pageid_summary = recorded_pageid_flow.get("summary") or {}
     ir_alignment = preview.get("ir_alignment") or {}
     ir_preview = preview.get("ir_preview") or {}
+    ir_write_bridge = preview.get("ir_write_bridge") or {}
+    ir_write_checks = ir_write_bridge.get("checks") or {}
+    ir_interaction_bridge = preview.get("ir_interaction_bridge") or {}
+    ir_interaction_summary = ir_interaction_bridge.get("summary") or {}
     detected_vars = preview.get("detected_vars") or []
     pick_fields = preview.get("pick_fields") or []
     business_flow = preview.get("business_flow") or []
@@ -185,6 +189,20 @@ def summarize_preview(preview: dict[str, Any]) -> dict[str, Any]:
             "response_contract_counts": response_contract_counts,
             "auto_resolve_pick_count": sum(1 for item in pick_fields if item.get("auto_resolve")),
             "high_env_sensitive_count": sum(1 for item in pick_fields if item.get("env_sensitive") == "high"),
+            "ir_write_bridge_status": ir_write_bridge.get("status", ""),
+            "ir_write_anchor_count": ir_write_checks.get("ir_write_anchor_count", 0),
+            "ir_write_anchor_uncovered_count": ir_write_checks.get("uncovered_write_anchor_count", 0),
+            "ir_write_contract_missing_count": ir_write_checks.get(
+                "critical_response_contract_missing_count",
+                0,
+            ),
+            "ir_interaction_bridge_status": ir_interaction_bridge.get("status", ""),
+            "ir_interaction_count": ir_interaction_summary.get("interaction_count", 0),
+            "ir_interaction_uncovered_count": ir_interaction_summary.get("uncovered_count", 0),
+            "ir_interaction_high_risk_uncovered_count": ir_interaction_summary.get(
+                "uncovered_high_risk_count",
+                0,
+            ),
         },
         "pageid_alignment": {
             "grade": pageid_alignment.get("grade", ""),

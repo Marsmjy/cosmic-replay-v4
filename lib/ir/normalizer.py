@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .sanitizer import redact_value, sanitize_headers
 from lib.pageid_trace import classify_pageid, pageid_fragment
+from lib.response_signature import build_response_signature_from_text
 
 
 def normalize_har_entries(har: dict[str, Any]) -> dict[str, Any]:
@@ -165,6 +166,10 @@ def _response_features(resp: dict[str, Any]) -> dict[str, Any]:
         "write_refs": [],
     }
     data = _parse_json_body(text)
+    semantic_signature = build_response_signature_from_text(
+        text,
+        include_candidates=True,
+    )
     page_id = _find_key(data, "pageId")
     if page_id:
         features["has_pageid"] = True
@@ -173,6 +178,8 @@ def _response_features(resp: dict[str, Any]) -> dict[str, Any]:
         features["success_signals"].append("save_success_message")
     if _find_key(data, "pkValue") or _find_key(data, "billId") or _find_key(data, "fid"):
         features["write_refs"].append("${BILL_ID}")
+    if semantic_signature:
+        features["semantic_signature"] = semantic_signature
     return features
 
 

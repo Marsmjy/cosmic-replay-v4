@@ -33,6 +33,7 @@ from lib.runner import (
     _build_resolved_request, _maintenance_expectations,
     _record_maintenance_value_trace,
     _resolve_dynamic_query_entry_row,
+    _apply_target_data_selector,
 )
 from lib.request_signature import build_request_signature, evaluate_request_contract
 from lib.replay import CosmicFormReplay, CosmicSession, ProtocolError, has_error_action
@@ -72,6 +73,65 @@ def test_request_contract_ignores_values_but_requires_recorded_fields():
     }
     errors = evaluate_request_contract(expected, missing_field)["errors"]
     assert any("missing recorded field effective_date" in error for error in errors)
+
+
+def test_target_data_selector_binds_current_environment_identity_fields():
+    step = {
+        "id": "delete_record",
+        "type": "invoke",
+        "args": [{"pkvalue": "recorded-id", "version": "1"}],
+        "target_data_selector": {
+            "source_step": "find_target",
+            "field_key": "number",
+            "value": "AUTO-001",
+            "bindings": [
+                {"source_field": "id", "target_path": "args.0.pkvalue"},
+                {"source_field": "version", "target_path": "args.0.version"},
+            ],
+        },
+    }
+    ctx = {
+        "step_responses": {
+            "find_target": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"number": 0, "id": 1, "version": 2},
+                    "rows": [["AUTO-001", "uat-id", "7"]],
+                },
+            }],
+        },
+    }
+
+    _apply_target_data_selector(step, ctx)
+
+    assert step["args"][0] == {"pkvalue": "uat-id", "version": "7"}
+    assert step["_target_data_selector_resolved"]["match_count"] == 1
+
+
+def test_target_data_selector_rejects_ambiguous_business_key():
+    step = {
+        "target_data_selector": {
+            "source_step": "find_target",
+            "field_key": "number",
+            "value": "DUP",
+            "bindings": [{"source_field": "id", "target_path": "args.0.pkvalue"}],
+        },
+        "args": [{"pkvalue": "recorded-id"}],
+    }
+    ctx = {
+        "step_responses": {
+            "find_target": [{
+                "k": "billlistap",
+                "data": {
+                    "dataindex": {"number": 0, "id": 1},
+                    "rows": [["DUP", "id-1"], ["DUP", "id-2"]],
+                },
+            }],
+        },
+    }
+
+    with pytest.raises(ProtocolError, match="唯一命中"):
+        _apply_target_data_selector(step, ctx)
 
 
 def test_dynamic_query_entry_row_rebuilds_recorded_selection(monkeypatch):

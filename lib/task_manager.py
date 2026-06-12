@@ -497,6 +497,7 @@ def build_decision_summary(result: CaseResult) -> dict:
     dynamic_plan = runtime_evidence.get("runtime_value_flow_plan") or (
         runtime_evidence.get("case_contract") or {}
     ).get("runtime_value_flow_plan") or {}
+    first_success_gate = runtime_evidence.get("first_success_gate") or {}
     failure_category = (result.failure_analysis or {}).get("category") or result.error_category or ""
     write_status = result.write_status
 
@@ -542,6 +543,11 @@ def build_decision_summary(result: CaseResult) -> dict:
         title = "关键接口响应与录制语义不一致"
         next_step = "先对比录制和回放的关键接口；若业务页面也异常则查环境，否则交给 AI 修 pageId/字段解析。"
         confidence = "high"
+    elif first_success_gate.get("status") == "failed":
+        category = "first_success_gate_failed"
+        title = "写入链路没有达到首次成功门槛"
+        next_step = "按缺失项检查写入锚点、关键响应、维护值和系统断言；不要只按最后一步 PASS 判断。"
+        confidence = "high"
     elif failure_category in {"invalid_request_or_session", "navigation_or_environment_service", "server_stack_exception"}:
         category = "environment_or_session"
         title = "更像环境、会话、权限或后端服务问题"
@@ -557,7 +563,13 @@ def build_decision_summary(result: CaseResult) -> dict:
         title = "运行时动态值链路存在风险"
         next_step = "检查保存后 ID、单号、审批任务、回调值是否由前序响应产生并传给后续步骤。"
         confidence = "medium"
-    elif result.passed and write_status == "unverified":
+    elif (
+        result.passed
+        and (
+            write_status == "unverified"
+            or first_success_gate.get("status") == "write_unverified"
+        )
+    ):
         category = "write_unverified"
         title = "执行通过但缺少入库证据"
         next_step = "补业务键只读回查，或由人工确认后再标记为已验证。"
@@ -584,6 +596,8 @@ def build_decision_summary(result: CaseResult) -> dict:
         "unresolved_env_field_count": len(unresolved_env_fields),
         "dynamic_warning_count": len(dynamic_warnings),
         "response_contract_failure_count": len(response_contract_failures),
+        "first_success_status": first_success_gate.get("status", ""),
+        "first_success_missing": list(first_success_gate.get("missing") or []),
     }
 
 

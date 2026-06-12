@@ -651,6 +651,8 @@ def _response_contract_mismatches(expected: dict[str, Any], actual_resp: Any) ->
         add(f"recorded success but runtime outcome is {actual_outcome or 'unknown'}")
     elif expected_outcome == "failure" and actual_outcome != "failure":
         add("recorded business validation was not reproduced")
+    elif expected_outcome == "not_failure" and actual_outcome == "failure":
+        add("recorded write anchor had no failure but runtime response failed")
 
     actual_actions = {
         _action_semantic(action)

@@ -373,3 +373,23 @@ def test_decision_summary_prefers_environment_binding_when_required_field_missin
 
     assert summary["category"] == "environment_binding"
     assert summary["unresolved_env_field_count"] == 1
+
+
+def test_decision_summary_explains_first_success_gate_failure():
+    result = CaseResult(
+        name="case_first_success_gap",
+        passed=False,
+        runtime_evidence={
+            "capability": {"status": "supported", "flow_kind": "write"},
+            "first_success_gate": {
+                "status": "failed",
+                "missing": ["write_anchor_execution", "critical_response_contract"],
+            },
+        },
+    )
+
+    summary = build_decision_summary(result)
+
+    assert summary["category"] == "first_success_gate_failed"
+    assert summary["first_success_status"] == "failed"
+    assert "write_anchor_execution" in summary["first_success_missing"]

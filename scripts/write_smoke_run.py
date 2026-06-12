@@ -193,14 +193,17 @@ def build_safe_summary(
     )
     maintenance_expected = int(runtime_evidence.get("maintenance_expected_count") or 0)
     maintenance_matched = int(runtime_evidence.get("maintenance_matched_count") or 0)
-    fully_verified = bool(
-        passed
-        and request_contract_failure_count == 0
-        and response_contract_failure_count == 0
-        and write_evidence_status != "missing"
-        and readback_status == "verified"
-        and maintenance_expected == maintenance_matched
-    )
+    first_success_gate = runtime_evidence.get("first_success_gate") or {}
+    fully_verified = bool(first_success_gate.get("verified"))
+    if not first_success_gate:
+        fully_verified = bool(
+            passed
+            and request_contract_failure_count == 0
+            and response_contract_failure_count == 0
+            and write_evidence_status != "missing"
+            and readback_status == "verified"
+            and maintenance_expected == maintenance_matched
+        )
     return {
         "case_name": case.get("name", ""),
         "main_form_id": case.get("main_form_id", ""),
@@ -221,6 +224,12 @@ def build_safe_summary(
         "maintenance_matched_count": maintenance_matched,
         "maintenance_value_trace": runtime_evidence.get("maintenance_value_trace") or [],
         "first_success_verified": fully_verified,
+        "first_success_status": first_success_gate.get(
+            "status",
+            "verified" if fully_verified else "write_unverified",
+        ),
+        "first_success_missing": list(first_success_gate.get("missing") or []),
+        "first_success_checks": first_success_gate.get("checks") or {},
         "pageid_trace_count": len(pageid_events),
         "vars_used": {k: v for k, v in (case.get("vars") or {}).items() if not str(k).startswith("_")},
         "disabled_steps": case.get("write_smoke_disabled_steps", []),

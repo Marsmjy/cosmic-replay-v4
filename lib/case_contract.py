@@ -11,7 +11,13 @@ import json
 import re
 from typing import Any, Mapping
 
+from lib.ir.data_selector import build_target_data_selector_plan
 from lib.ir.field_bridge import build_maintainable_field_binding_plan
+from lib.ir.write_contract import (
+    build_case_write_anchor_plan,
+    classify_write_operation,
+    is_write_step as ir_is_write_step,
+)
 
 
 SCHEMA_VERSION = "1.0"
@@ -67,10 +73,12 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
         vars_meta=vars_meta,
         pick_fields=pick_fields,
     )
+    write_anchor_plan = build_case_write_anchor_plan(case)
     runtime_value_flow_plan = build_runtime_value_flow_plan(case)
+    target_data_selector_plan = build_target_data_selector_plan(case)
     capability = build_capability(case, environment_binding_plan, runtime_value_flow_plan)
     ai_assistance = build_ai_assistance(case, capability, environment_binding_plan, runtime_value_flow_plan)
-    execution_contract = build_execution_contract(case, capability)
+    execution_contract = build_execution_contract(case, capability, write_anchor_plan)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -78,7 +86,9 @@ def build_case_contract(case: Mapping[str, Any] | None) -> dict[str, Any]:
         "ai_assistance": ai_assistance,
         "environment_binding_plan": environment_binding_plan,
         "maintainable_field_binding_plan": maintainable_field_binding_plan,
+        "write_anchor_plan": write_anchor_plan,
         "runtime_value_flow_plan": runtime_value_flow_plan,
+        "target_data_selector_plan": target_data_selector_plan,
         "execution_contract": execution_contract,
         "field_model_summary": {
             "business_variable_count": len(vars_meta),
@@ -103,7 +113,9 @@ def attach_case_contract(case: dict[str, Any]) -> dict[str, Any]:
     case["ai_assistance"] = contract["ai_assistance"]
     case["environment_binding_plan"] = contract["environment_binding_plan"]
     case["maintainable_field_binding_plan"] = contract["maintainable_field_binding_plan"]
+    case["write_anchor_plan"] = contract["write_anchor_plan"]
     case["runtime_value_flow_plan"] = contract["runtime_value_flow_plan"]
+    case["target_data_selector_plan"] = contract["target_data_selector_plan"]
     case["execution_contract"] = contract["execution_contract"]
     return case
 
@@ -119,7 +131,9 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
     capability = contract["capability"]
     env_plan = contract["environment_binding_plan"]
     field_binding_plan = contract["maintainable_field_binding_plan"]
+    write_anchor_plan = contract["write_anchor_plan"]
     runtime_plan = contract["runtime_value_flow_plan"]
+    target_selector_plan = contract["target_data_selector_plan"]
     execution_contract = contract["execution_contract"]
 
     errors: list[str] = []
@@ -141,6 +155,13 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
         errors.append(f"目标环境必需字段未配置或无法解析: {label} ({item.get('id')})")
 
     if capability.get("write_mode") == "write":
+        for item in target_selector_plan.get("selectors") or []:
+            if not isinstance(item, Mapping) or item.get("status") == "ready":
+                continue
+            errors.append(
+                "修改/删除目标数据选择器不可执行: "
+                f"{item.get('step_id')} ({', '.join(item.get('reasons') or [])})"
+            )
         overridden_unbound = [
             item for item in field_binding_plan.get("fields") or []
             if isinstance(item, Mapping)
@@ -163,6 +184,12 @@ def validate_case_contract_for_run(case: Mapping[str, Any] | None) -> dict[str, 
                 f"有 {len(unbound_fields)} 个可维护字段尚未绑定到明确执行步骤，"
                 "未修改时继续使用 HAR 录制链路。"
             )
+        write_summary = write_anchor_plan.get("summary") or {}
+        if int(write_summary.get("ir_driven_anchor_count") or 0):
+            for step_id in write_anchor_plan.get("missing_response_contract_step_ids") or []:
+                errors.append(f"IR 写入锚点缺少关键响应契约: {step_id}")
+            for step_id in write_anchor_plan.get("missing_request_contract_step_ids") or []:
+                errors.append(f"IR 写入锚点缺少请求结构契约: {step_id}")
 
     missing_checks = set(execution_contract.get("missing_recommended_checks") or [])
     if capability.get("write_mode") == "write" and "no_save_failure" in missing_checks:
@@ -200,16 +227,31 @@ def build_capability(
     step_types = {str(step.get("type") or "").lower() for step in steps}
     write_steps = [str(step.get("id") or "") for step in steps if is_write_step(step)]
     query_steps = [str(step.get("id") or "") for step in steps if is_query_step(step)]
+    operation_kinds = {
+        str(step.get("id") or ""): classify_write_operation(
+            ac=step.get("ac"),
+            method=step.get("method"),
+            key=step.get("key"),
+            args=step.get("args"),
+            step_id=step.get("id"),
+        )
+        for step in steps
+    }
     delete_steps = [
         str(step.get("id") or "")
         for step in steps
-        if str(step.get("ac") or "").lower() == "delete"
-        or "delete" in str(step.get("key") or "").lower()
+        if operation_kinds.get(str(step.get("id") or "")) == "write_delete"
     ]
     audit_steps = [
         str(step.get("id") or "")
         for step in steps
-        if str(step.get("ac") or "").lower() in {"audit", "unaudit", "afterconfirm", "doconfirm", "startupflow"}
+        if operation_kinds.get(str(step.get("id") or "")) in {
+            "write_audit",
+            "write_unaudit",
+            "write_approve",
+            "write_reject",
+            "write_workflow_start",
+        }
     ]
     upload_steps = [str(step.get("id") or "") for step in steps if str(step.get("type") or "") == "upload_file"]
     unresolved_bindings = [
@@ -267,6 +309,7 @@ def build_capability(
         "requires_readback": bool(write_steps),
         "requires_environment_preflight": bool((environment_binding_plan or {}).get("fields")),
         "requires_runtime_value_flow": bool((runtime_value_flow_plan or {}).get("consumers")),
+        "requires_target_data_selector": bool(delete_steps),
     }
 
 
@@ -451,7 +494,11 @@ def build_ai_assistance(
     }
 
 
-def build_execution_contract(case: Mapping[str, Any] | None, capability: Mapping[str, Any]) -> dict[str, Any]:
+def build_execution_contract(
+    case: Mapping[str, Any] | None,
+    capability: Mapping[str, Any],
+    write_anchor_plan: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     assertions = [item for item in ((case or {}).get("assertions") or []) if isinstance(item, Mapping)]
     assertion_types = {str(item.get("type") or "") for item in assertions}
     write_mode = str(capability.get("write_mode") or "read_only")
@@ -473,23 +520,22 @@ def build_execution_contract(case: Mapping[str, Any] | None, capability: Mapping
         ],
         "user_validation_points_are_business_checks": True,
         "unchecked_user_points_do_not_disable_system_checks": True,
+        "first_success_gate": {
+            "enabled": write_mode == "write",
+            "write_anchor_count": int(
+                ((write_anchor_plan or {}).get("summary") or {}).get("write_anchor_count") or 0
+            ),
+            "requires_all_write_anchors_executed": write_mode == "write",
+            "requires_request_contracts": write_mode == "write",
+            "requires_response_contracts": write_mode == "write",
+            "requires_maintained_values_applied": write_mode == "write",
+            "requires_readback_or_manual_verification": write_mode == "write",
+        },
     }
 
 
 def is_write_step(step: Mapping[str, Any]) -> bool:
-    ac = str(step.get("ac") or "").lower()
-    key = str(step.get("key") or "").lower()
-    method = str(step.get("method") or "").lower()
-    sid = str(step.get("id") or "").lower()
-    args = step.get("args") or []
-    arg_text = json.dumps(args, ensure_ascii=False).lower() if args else ""
-    return (
-        ac in WRITE_ACS
-        or method in WRITE_ACS
-        or key in WRITE_KEYS
-        or any(token in arg_text for token in WRITE_KEYS)
-        or any(token in sid for token in ("save", "submit", "audit", "delete"))
-    )
+    return ir_is_write_step(step)
 
 
 def is_query_step(step: Mapping[str, Any]) -> bool:
