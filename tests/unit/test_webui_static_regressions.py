@@ -268,6 +268,16 @@ def test_validation_point_parser_accepts_safe_dump_indentless_lists():
     assert override_metadata_pos > 0
 
 
+def test_preview_validation_groups_preserve_checkbox_object_identity():
+    html = _index_html()
+    start = html.index("_groupValidationPoints(points = [])")
+    end = html.index("harValidationGroups()", start)
+    block = html[start:end]
+
+    assert "const orderedPoints = [...(points || [])]" in block
+    assert "this._normalizeValidationPoints(points)" not in block
+
+
 def test_agent_repair_prompt_points_ai_to_ir_summary_and_safe_har_tool():
     html = _index_html()
 

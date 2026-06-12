@@ -5541,7 +5541,20 @@ function app() {
         optional: '可选校验',
       };
       const groups = new Map();
-      for (const point of this._normalizeValidationPoints(points)) {
+      // Preview checkboxes must mutate harValidationPointConfig itself. Running
+      // normalization here cloned every point, so a visible toggle only changed
+      // a temporary group item and the extract request still sent the old value.
+      const orderedPoints = [...(points || [])].filter(p => p && typeof p === 'object').sort((a, b) => {
+        const cat = {system: 0, recommended: 1, readback: 2, optional: 3};
+        const ca = cat[a.category] ?? 9;
+        const cb = cat[b.category] ?? 9;
+        if (ca !== cb) return ca - cb;
+        const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : 99999;
+        const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : 99999;
+        if (ao !== bo) return ao - bo;
+        return String(a.label || a.id || '').localeCompare(String(b.label || b.id || ''));
+      });
+      for (const point of orderedPoints) {
         const key = point.category || 'optional';
         if (!groups.has(key)) groups.set(key, {key, label: labels[key] || '其他校验', items: []});
         groups.get(key).items.push(point);

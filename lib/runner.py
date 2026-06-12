@@ -1426,8 +1426,10 @@ def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: 
 
     control_key = str(step.get("dynamic_row_grid_key") or step.get("key") or "billlistap")
     response = ctx.get("step_responses", {}).get(source_step_id)
-    attempts = max(int(step.get("dynamic_row_max_attempts") or 1), 1)
+    requested_attempts = max(int(step.get("dynamic_row_max_attempts") or 1), 1)
     interval_seconds = max(float(step.get("dynamic_row_interval_seconds") or 1), 0.1)
+    max_attempts_for_budget = max(int(10 / interval_seconds), 1)
+    attempts = min(requested_attempts, 10, max_attempts_for_budget)
     resolved: tuple[int, list[Any], dict[str, int]] | None = None
 
     for attempt in range(1, attempts + 1):
@@ -1464,6 +1466,17 @@ def _resolve_dynamic_query_entry_row(step: dict, replay: CosmicFormReplay, ctx: 
         )
         ctx["step_responses"][source_step_id] = response
         ctx.setdefault("response_history", []).append(response)
+
+    if resolved is None and attempts < requested_attempts:
+        run_event = ctx.get("run_event")
+        if callable(run_event):
+            run_event("dynamic_row_retry_capped", {
+                "step_id": str(step.get("id") or ""),
+                "source_step_id": source_step_id,
+                "requested_attempts": requested_attempts,
+                "effective_attempts": attempts,
+                "max_wait_seconds": 10,
+            })
 
     if (
         resolved is None

@@ -1248,6 +1248,20 @@ def test_validation_point_override_can_match_field_metadata_when_id_changes():
     assert point["enabled"] is True
 
 
+def test_dynamic_query_row_retry_is_limited_to_ten_attempts():
+    har_path = PROJECT_ROOT / "har_uploads" / "preview_1781256406_0608变动原因.har"
+
+    case = yaml.safe_load(build_yaml_case(har_path, case_name="regression_dynamic_row_retry"))
+    dynamic_rows = [
+        step
+        for step in case["steps"]
+        if step.get("dynamic_row_retry_until_found")
+    ]
+
+    assert dynamic_rows
+    assert all(step.get("dynamic_row_max_attempts") == 10 for step in dynamic_rows)
+
+
 def test_build_yaml_case_applies_preview_var_override_to_generated_vars():
     har_path = PROJECT_ROOT / "har_uploads" / "preview_1778835311_新增一条行政组织.har"
 

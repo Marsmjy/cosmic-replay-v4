@@ -644,6 +644,8 @@ class CosmicFormReplay:
         苍穹 addnew/modify 的响应中，showForm 可能嵌套在 sendDynamicFormAction→actions
         多层深处。如果只检查顶层会漏掉，导致新表单 pageId 不更新。
         """
+        self._harvest_list_page_ids(resp)
+
         # 先递归收集所有 showForm 里的 formId → pageId（强覆盖）
         # ⭐ 修复：不覆盖已 loadData 的表单 pageId（除非 showForm 来自同表单的请求响应）
         #    根因：苍穹多 tab 页面中，兄弟表单（日历/待入职/快捷卡片等）的 loadData 响应
@@ -746,6 +748,65 @@ class CosmicFormReplay:
                 for v in obj.values(): walk(v)
             elif isinstance(obj, list):
                 for x in obj: walk(x)
+        walk(resp)
+
+    def _harvest_list_page_ids(self, resp: Any) -> None:
+        """Bind an L2 response wrapper to the list entity it explicitly owns.
+
+        Save/close responses commonly return the parent list model as
+        ``{pageId: <L2>, actions: [...]}`` without a top-level ``formId``.
+        The list metadata still names its entity through
+        ``billlistap.entryentities[].key``. Treat that exact entity key as the
+        ownership proof instead of guessing from the invoking form.
+        """
+        def entity_forms(value: Any) -> set[str]:
+            forms: set[str] = set()
+
+            def collect(node: Any) -> None:
+                if isinstance(node, dict):
+                    entries = node.get("entryentities")
+                    if isinstance(entries, list):
+                        for entry in entries:
+                            if not isinstance(entry, dict):
+                                continue
+                            form_id = entry.get("key")
+                            if isinstance(form_id, str) and form_id:
+                                forms.add(form_id)
+                    for child in node.values():
+                        collect(child)
+                elif isinstance(node, list):
+                    for child in node:
+                        collect(child)
+
+            collect(value)
+            return forms
+
+        def walk(value: Any) -> None:
+            if isinstance(value, dict):
+                page_id = value.get("pageId")
+                actions = value.get("actions")
+                if (
+                    isinstance(page_id, str)
+                    and _is_l2_pageid(page_id)
+                    and isinstance(actions, list)
+                ):
+                    for form_id in entity_forms(actions):
+                        old = self.page_ids.get(form_id)
+                        if old != page_id:
+                            log.debug(
+                                "[harvest/list] %s: %s→%s",
+                                form_id,
+                                str(old)[:20],
+                                page_id[:20],
+                            )
+                        self.page_ids[form_id] = page_id
+                        self._loaded_forms.add(form_id)
+                for child in value.values():
+                    walk(child)
+            elif isinstance(value, list):
+                for child in value:
+                    walk(child)
+
         walk(resp)
 
     def _harvest_virtual_tab_pageids(self, resp: Any) -> None:

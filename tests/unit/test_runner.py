@@ -268,6 +268,72 @@ def test_dynamic_query_entry_row_uses_runtime_billno(monkeypatch):
     assert click_step["post_data"][0]["billlistap"]["selDatas"] == [["NEW-ID", "NEW-BILL"]]
 
 
+def test_dynamic_query_entry_row_caps_legacy_retry_count(monkeypatch):
+    sleep_calls = []
+    monkeypatch.setattr(runner_mod.time, "sleep", lambda seconds: sleep_calls.append(seconds))
+    source_step = {
+        "id": "search_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "commonSearch",
+        "key": "filtercontainerap",
+        "method": "commonSearch",
+        "args": [[{"FieldName": ["billno"], "Value": ["NEW-BILL"]}]],
+        "post_data": [{}, []],
+    }
+    click_step = {
+        "id": "click_bill",
+        "type": "invoke",
+        "form_id": "demo_list",
+        "app_id": "demo",
+        "ac": "entryRowClick",
+        "key": "billlistap",
+        "args": [0, "billno"],
+        "post_data": [{"billlistap": {"selDatas": [["OLD-ID", "OLD-BILL"]]}}, []],
+        "dynamic_row_source_step_id": "search_bill",
+        "dynamic_row_grid_key": "billlistap",
+        "dynamic_row_field_map": ["id", "billno"],
+        "dynamic_row_retry_until_found": True,
+        "dynamic_row_max_attempts": 40,
+        "dynamic_row_interval_seconds": 1,
+    }
+
+    class EmptyReplay:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, *_args, **_kwargs):
+            self.calls += 1
+            return []
+
+    replay = EmptyReplay()
+    events = []
+    ctx = {
+        "case": {"steps": [source_step, click_step]},
+        "vars": {},
+        "step_responses": {"search_bill": []},
+        "response_history": [],
+        "run_event": lambda event, data: events.append((event, data)),
+    }
+
+    with pytest.raises(ProtocolError, match="after 10 attempts"):
+        _resolve_dynamic_query_entry_row(click_step, replay, ctx)
+
+    assert replay.calls == 9
+    assert len(sleep_calls) == 9
+    assert events == [(
+        "dynamic_row_retry_capped",
+        {
+            "step_id": "click_bill",
+            "source_step_id": "search_bill",
+            "requested_attempts": 40,
+            "effective_attempts": 10,
+            "max_wait_seconds": 10,
+        },
+    )]
+
+
 def test_maintenance_value_trace_accepts_resolved_basedata_code():
     case = {
         "steps": [{
@@ -1912,6 +1978,68 @@ class TestReplayErrorDetection:
         }])
 
         assert replay.page_ids["hcdm_apphome"] == new_page_id
+
+    def test_list_metadata_response_restores_parent_l2_pageid(self):
+        sess = CosmicSession(
+            base_url="http://example.test",
+            cookie="",
+            user_id="",
+            account_id="",
+            csrf_token="",
+            diff_time=0,
+            root_base_id="",
+            root_page_id="rootabcdef0123456789abcdef0123456789",
+        )
+        replay = CosmicFormReplay(sess)
+        replay.page_ids["haos_orgchangereason"] = "1" * 32
+        list_page_id = "1655715311321754624root" + "a" * 32
+
+        replay._harvest_page_ids([{
+            "p": [{
+                "pageId": list_page_id,
+                "actions": [{
+                    "a": "updateControlMetadata",
+                    "p": [
+                        "billlistap",
+                        {
+                            "entryentities": [{
+                                "key": "haos_orgchangereason",
+                                "pkFieldName": "haos_orgchangereason_id",
+                            }],
+                        },
+                    ],
+                }],
+            }],
+            "a": "sendDynamicFormAction",
+        }])
+
+        assert replay.page_ids["haos_orgchangereason"] == list_page_id
+        assert "haos_orgchangereason" in replay._loaded_forms
+
+    def test_l2_response_without_list_entity_does_not_replace_form_pageid(self):
+        sess = CosmicSession(
+            base_url="http://example.test",
+            cookie="",
+            user_id="",
+            account_id="",
+            csrf_token="",
+            diff_time=0,
+            root_base_id="",
+            root_page_id="rootabcdef0123456789abcdef0123456789",
+        )
+        replay = CosmicFormReplay(sess)
+        existing = "1" * 32
+        replay.page_ids["haos_orgchangereason"] = existing
+
+        replay._harvest_page_ids([{
+            "pageId": "1655715311321754624root" + "a" * 32,
+            "actions": [{
+                "a": "ShowNotificationMsg",
+                "p": [{"content": "保存成功。"}],
+            }],
+        }])
+
+        assert replay.page_ids["haos_orgchangereason"] == existing
 
 
 class TestYAMLLightParsing:

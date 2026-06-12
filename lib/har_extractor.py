@@ -3552,7 +3552,7 @@ def _annotate_dynamic_query_row_selections(steps: list[dict]) -> None:
         step["dynamic_row_grid_key"] = control_key
         step["dynamic_row_field_map"] = field_map
         step["dynamic_row_retry_until_found"] = True
-        step["dynamic_row_max_attempts"] = 40
+        step["dynamic_row_max_attempts"] = 10
         step["dynamic_row_interval_seconds"] = 1
 
 
