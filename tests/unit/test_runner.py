@@ -3205,6 +3205,86 @@ class TestAssertionHandlers:
         assert passed is True
         assert "入库回查通过" in msg
 
+    def test_readback_by_business_key_does_not_accept_save_field_echo(self):
+        ctx = {
+            "step_responses": {
+                "save_record": [{
+                    "a": "u",
+                    "p": [{"k": "number", "v": "CRPLY_003"}],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "save_record",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "number",
+            "value": "CRPLY_003",
+            "match_mode": "grid_field_exact",
+        }, ctx)
+
+        assert passed is False
+        assert "独立 grid 行" in msg
+
+    def test_readback_by_business_key_requires_requested_grid_field(self):
+        ctx = {
+            "step_responses": {
+                "search_after_save": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"name": 0},
+                            "rows": [["CRPLY_004"]],
+                        },
+                    }],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "number",
+            "value": "CRPLY_004",
+        }, ctx)
+
+        assert passed is False
+        assert "不包含字段 number" in msg
+
+    def test_readback_by_business_key_matches_multilang_value_in_exact_field(self):
+        ctx = {
+            "step_responses": {
+                "search_after_save": [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"name": 0, "number": 1},
+                            "rows": [[{"zh_CN": "自动化2288"}, "EMP-2288"]],
+                        },
+                    }],
+                }],
+            },
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "name",
+            "value": "自动化2288",
+            "match_mode": "grid_field_exact",
+        }, ctx)
+
+        assert passed is True
+        assert "命中字段 name" in msg
+
     def test_response_contract_aggregates_duplicate_grid_blocks(self):
         recorded = [{
             "a": "u",
@@ -3327,6 +3407,64 @@ class TestAssertionHandlers:
 
         assert passed is True
         assert replay.calls == 1
+        assert "异步重试" in msg
+
+    def test_readback_retry_rebinds_recorded_query_to_stronger_business_key(self):
+        class FakeReplay:
+            def __init__(self):
+                self.actions = []
+
+            def invoke(self, form_id, app_id, ac, actions):
+                self.actions.append(actions)
+                return [{
+                    "a": "u",
+                    "p": [{
+                        "k": "billlistap",
+                        "data": {
+                            "dataindex": {"number": 0, "name": 1},
+                            "rows": [["EMP-1001", {"zh_CN": "自动化员工"}]],
+                        },
+                    }],
+                }]
+
+        replay = FakeReplay()
+        ctx = {
+            "replay": replay,
+            "vars": {"test_number": "EMP-1001", "test_name": "自动化员工"},
+            "case": {
+                "steps": [{
+                    "id": "search_after_save",
+                    "type": "invoke",
+                    "form_id": "demo_bill",
+                    "app_id": "demo",
+                    "ac": "commonSearch",
+                    "key": "filtercontainerap",
+                    "method": "commonSearch",
+                    "args": [[{
+                        "FieldName": ["employee.number", "employee.name"],
+                        "Value": ["${vars.test_name}"],
+                    }]],
+                }]
+            },
+            "runtime_fields": {},
+            "step_responses": {"search_after_save": []},
+            "main_form_id": "demo_bill",
+        }
+
+        passed, msg = ASSERTION_HANDLERS["readback_by_business_key"]({
+            "step": "search_after_save",
+            "form_id": "demo_bill",
+            "app_id": "demo",
+            "field_key": "number",
+            "value": "EMP-1001",
+            "retry_until_found": True,
+            "max_attempts": 1,
+            "query_field_key": "employee.number",
+            "query_value_ref": "EMP-1001",
+        }, ctx)
+
+        assert passed is True
+        assert replay.actions[0][0]["args"][0][0]["Value"] == ["EMP-1001"]
         assert "异步重试" in msg
 
     def test_runtime_upload_consumed_assertion_passes_after_replacement(self):

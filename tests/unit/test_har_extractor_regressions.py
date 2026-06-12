@@ -206,6 +206,7 @@ def test_append_readback_assertions_is_opt_in_and_uses_business_key():
         "app_id": "hsas",
         "field_key": "number",
         "value": "${vars.test_number}",
+        "match_mode": "grid_field_exact",
     }
 
 
@@ -254,6 +255,7 @@ def test_append_readback_assertions_includes_fresh_menu_strategy_for_hcdm_salary
         "app_id": "hcdm",
         "field_key": "khr_name",
         "value": "${vars.test_name}",
+        "match_mode": "grid_field_exact",
     }
 
 

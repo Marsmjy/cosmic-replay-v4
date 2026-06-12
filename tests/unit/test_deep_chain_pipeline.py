@@ -3,6 +3,7 @@ import json
 from lib.deep_chain_pipeline import (
     build_auto_pipeline_report,
     build_experience_candidate,
+    build_readback_explanation,
     build_readback_plan,
     build_report_from_paths,
     build_sample_expansion_plan,
@@ -141,6 +142,7 @@ def test_build_readback_plan_groups_business_keys_by_form():
         "app_id": "hpdi",
         "field_key": "description",
         "value": "${vars.test_description}",
+        "match_mode": "grid_field_exact",
     }
     assert any("不允许新增、保存" in guard for guard in plan["guardrails"])
 
@@ -237,20 +239,30 @@ def test_readback_plan_prefers_recorded_post_write_query_using_runtime_var():
     assert item["strategy"]["recorded_step"] == "search_after_save"
     assert item["suggested_assertion"]["step"] == "search_after_save"
     assert item["suggested_assertion"]["field_key"] == "number"
+    assert item["suggested_assertion"]["match_mode"] == "grid_field_exact"
     assert item["assertion_policy"]["auto_append"] is True
 
 
 def test_readback_plan_matches_name_variable_to_name_query_field():
     case = {
         "main_form_id": "hspm_assignmentlist",
-        "vars": {"test_name": "自动化${rand:4}"},
+        "vars": {
+            "test_name": "自动化${rand:4}",
+            "test_number": "EMP-${rand:6}",
+        },
         "vars_meta": {
             "test_name": {
                 "field_key": "ba_em_name",
                 "form_id": "hspm_assignmentlist",
                 "app_id": "hspm",
                 "write_step_id": "confirm_onboard",
-            }
+            },
+            "test_number": {
+                "field_key": "ba_em_empnumber",
+                "form_id": "hspm_assignmentlist",
+                "app_id": "hspm",
+                "write_step_id": "confirm_onboard",
+            },
         },
         "steps": [
             {"id": "confirm_onboard", "type": "invoke", "ac": "save"},
@@ -270,7 +282,7 @@ def test_readback_plan_matches_name_variable_to_name_query_field():
                 "expected_response_signature": {
                     "required_grid_schemas": [{
                         "control": "billlistap",
-                        "required_columns": ["hrpi_employee.name"],
+                        "required_columns": ["name", "number"],
                     }]
                 },
             },
@@ -279,7 +291,11 @@ def test_readback_plan_matches_name_variable_to_name_query_field():
 
     item = build_readback_plan(case)["plans"][0]
 
-    assert item["suggested_assertion"]["field_key"] == "hrpi_employee.name"
+    assert item["strategy"]["recorded_step"] == "search_assignment"
+    assert item["suggested_assertion"]["field_key"] == "number"
+    assert item["suggested_assertion"]["value"] == "${vars.test_number}"
+    assert item["suggested_assertion"]["query_field_key"] == "hrpi_employee.empnumber"
+    assert item["suggested_assertion"]["query_value_ref"] == "${vars.test_number}"
     assert item["suggested_assertion"]["retry_until_found"] is True
 
 
@@ -320,6 +336,62 @@ def test_readback_plan_rebuilds_context_for_response_pageid_query():
     assert "step" not in item["suggested_assertion"]
     assert item["assertion_policy"]["auto_append"] is False
     assert item["assertion_policy"]["mode"] == "candidate"
+
+
+def test_readback_explanation_keeps_unverified_recorded_context_honest():
+    case = {
+        "main_form_id": "hbss_nationality",
+        "vars": {"test_number": "AUTO${rand:4}"},
+        "vars_meta": {
+            "test_number": {
+                "field_key": "number",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "write_step_id": "save_record",
+            }
+        },
+        "steps": [
+            {"id": "save_record", "type": "invoke", "ac": "save"},
+            {
+                "id": "search_after_save",
+                "type": "invoke",
+                "form_id": "hbss_nationality",
+                "app_id": "hbss",
+                "ac": "commonSearch",
+                "args": [[{
+                    "FieldName": ["number"],
+                    "Value": ["${vars.test_number}"],
+                }]],
+                "recorded_pageid_source_kind": "responsePageId",
+            },
+        ],
+    }
+
+    explanation = build_readback_explanation(
+        case,
+        readback_status="not_supported",
+        write_evidence_status="verified_by_response",
+        maintenance_expected_count=2,
+        maintenance_matched_count=2,
+    )
+
+    assert explanation["status"] == "not_supported"
+    assert any("维护值" in item for item in explanation["confirmed"])
+    assert explanation["unconfirmed"]
+    assert "pageId" in explanation["reason"]
+    assert "人工查询" in explanation["next_action"]
+
+
+def test_readback_explanation_marks_independent_query_verified():
+    explanation = build_readback_explanation(
+        {},
+        readback_status="verified",
+        write_evidence_status="response_present",
+    )
+
+    assert explanation["status"] == "verified"
+    assert explanation["unconfirmed"] == []
+    assert any("独立只读查询" in item for item in explanation["confirmed"])
 
 
 def test_readback_plan_prefers_final_runtime_billno_query():

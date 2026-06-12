@@ -6477,6 +6477,14 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
                 if suggested.get("retry_until_found") else []
             ),
             *(
+                [("query_field_key", suggested.get("query_field_key"))]
+                if suggested.get("query_field_key") else []
+            ),
+            *(
+                [("query_value_ref", suggested.get("query_value_ref"))]
+                if suggested.get("query_value_ref") else []
+            ),
+            *(
                 [("menu_id", suggested.get("menu_id"))]
                 if suggested.get("menu_id") else []
             ),
@@ -6484,6 +6492,7 @@ def _append_readback_assertions(case: OrderedDict) -> dict:
             ("app_id", suggested.get("app_id", "")),
             ("field_key", field_key),
             ("value", value),
+            ("match_mode", suggested.get("match_mode", "grid_field_exact")),
             *(
                 [("grid_key", suggested.get("grid_key"))]
                 if suggested.get("grid_key") else []

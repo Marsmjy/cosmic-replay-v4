@@ -572,7 +572,10 @@ def build_decision_summary(result: CaseResult) -> dict:
     ):
         category = "write_unverified"
         title = "执行通过但缺少入库证据"
-        next_step = "补业务键只读回查，或由人工确认后再标记为已验证。"
+        next_step = (
+            (result.write_verification or {}).get("next_action")
+            or "在目标环境按本次业务键只读查询；没有独立查询命中前，不要把保存成功当成入库成功。"
+        )
         confidence = "high"
     elif result.passed:
         category = "ok"
@@ -598,6 +601,20 @@ def build_decision_summary(result: CaseResult) -> dict:
         "response_contract_failure_count": len(response_contract_failures),
         "first_success_status": first_success_gate.get("status", ""),
         "first_success_missing": list(first_success_gate.get("missing") or []),
+        "confirmed": (
+            (result.write_verification or {}).get("confirmed")
+            or (
+                ["保存/提交步骤已执行，且关键响应未被系统判定失败"]
+                if category == "write_unverified" else []
+            )
+        ),
+        "unconfirmed": (
+            (result.write_verification or {}).get("unconfirmed")
+            or (
+                ["目标环境中是否真实存在本次运行写入的数据"]
+                if category == "write_unverified" else []
+            )
+        ),
     }
 
 

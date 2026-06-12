@@ -393,3 +393,24 @@ def test_decision_summary_explains_first_success_gate_failure():
     assert summary["category"] == "first_success_gate_failed"
     assert summary["first_success_status"] == "failed"
     assert "write_anchor_execution" in summary["first_success_missing"]
+
+
+def test_decision_summary_separates_confirmed_and_unconfirmed_write_evidence():
+    result = CaseResult(
+        name="case_write_unverified",
+        passed=True,
+        write_status="unverified",
+        runtime_evidence={
+            "first_success_gate": {
+                "status": "write_unverified",
+                "missing": ["readback_or_manual_verification"],
+            },
+        },
+    )
+
+    summary = build_decision_summary(result)
+
+    assert summary["category"] == "write_unverified"
+    assert summary["confirmed"]
+    assert summary["unconfirmed"] == ["目标环境中是否真实存在本次运行写入的数据"]
+    assert "不要把保存成功当成入库成功" in summary["next_step"]

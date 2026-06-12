@@ -23,6 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.config import Config
+from lib.deep_chain_pipeline import build_readback_explanation
 from lib.runner import load_yaml, run_case, _case_has_write_step, _is_write_step
 
 CONFIRM_TOKEN = "YES_GENERATE_TEST_DATA"
@@ -204,6 +205,15 @@ def build_safe_summary(
             and readback_status == "verified"
             and maintenance_expected == maintenance_matched
         )
+    readback_explanation = build_readback_explanation(
+        case,
+        readback_status=readback_status,
+        write_evidence_status=write_evidence_status,
+        request_contract_failure_count=request_contract_failure_count,
+        response_contract_failure_count=response_contract_failure_count,
+        maintenance_expected_count=maintenance_expected,
+        maintenance_matched_count=maintenance_matched,
+    )
     return {
         "case_name": case.get("name", ""),
         "main_form_id": case.get("main_form_id", ""),
@@ -216,6 +226,7 @@ def build_safe_summary(
         "assertions": assertions,
         "readback_results": runtime_evidence.get("readback_results") or [],
         "readback_status": readback_status,
+        "readback_explanation": readback_explanation,
         "request_contract_failure_count": request_contract_failure_count,
         "request_contract_warning_count": request_contract_warning_count,
         "response_contract_failure_count": response_contract_failure_count,

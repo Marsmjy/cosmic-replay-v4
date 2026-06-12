@@ -683,6 +683,8 @@ def build_readback_plan(
                 "recorded_form_id": recorded_step["form_id"],
                 "recorded_app_id": recorded_step["app_id"],
                 "assertion_field_key": recorded_step["field_key"],
+                "query_field_key": recorded_step.get("query_field_key", ""),
+                "query_value_ref": recorded_step.get("query_value_ref", ""),
                 "grid_key": recorded_step["grid_key"],
                 "retry_until_found": assertion_strategy == "recorded_step",
                 "preferred_fields": [recorded_step["field_key"]],
@@ -700,6 +702,7 @@ def build_readback_plan(
             "app_id": assertion_app_id,
             "field_key": readback_strategy.get("assertion_field_key") or strongest.get("field_key", ""),
             "value": strongest.get("value_ref", ""),
+            "match_mode": "grid_field_exact",
         }
         if (
             readback_strategy.get("recorded_step")
@@ -712,6 +715,9 @@ def build_readback_plan(
             suggested_assertion["grid_key"] = str(readback_strategy.get("grid_key") or "")
         if readback_strategy.get("retry_until_found"):
             suggested_assertion["retry_until_found"] = True
+        if readback_strategy.get("query_value_ref"):
+            suggested_assertion["query_field_key"] = str(readback_strategy.get("query_field_key") or "")
+            suggested_assertion["query_value_ref"] = str(readback_strategy.get("query_value_ref") or "")
         if readback_strategy.get("assertion_strategy"):
             suggested_assertion["strategy"] = str(readback_strategy.get("assertion_strategy") or "")
         if readback_strategy.get("menu_id"):
@@ -812,8 +818,75 @@ def _readback_guardrails() -> list[str]:
         "只做查询/回读，不允许新增、保存、提交、审核、删除、导入或上传。",
         "优先使用本次 YAML 的 number/billno/code/name/description 等业务键，不使用浏览器会话凭据或真实 HAR 原文。",
         "若业务键不是唯一键，应结合创建时间、组织或 CRPLY_ 前缀缩小范围。",
+        "严格回查必须在独立查询 grid 的指定字段中精确命中；保存响应中的字段回显、HTTP 200 和成功提示都不能算入库。",
         "回查失败不能直接改 save.post_data，应先检查 pageId 链路、变量覆盖和业务键是否被用户修改。",
     ]
+
+
+def build_readback_explanation(
+    case: dict[str, Any],
+    *,
+    readback_status: str,
+    write_evidence_status: str,
+    request_contract_failure_count: int = 0,
+    response_contract_failure_count: int = 0,
+    maintenance_expected_count: int = 0,
+    maintenance_matched_count: int = 0,
+) -> dict[str, Any]:
+    """Explain write verification in user decision language.
+
+    This deliberately separates request/write evidence from independent
+    persistence evidence so a successful save response cannot be presented as
+    a verified database write.
+    """
+    confirmed: list[str] = []
+    if write_evidence_status != "missing":
+        confirmed.append("保存/提交写入步骤已执行并返回响应")
+    if request_contract_failure_count == 0 and response_contract_failure_count == 0:
+        confirmed.append("关键请求与响应的稳定语义未发现差异")
+    if maintenance_expected_count and maintenance_expected_count == maintenance_matched_count:
+        confirmed.append(f"用户维护值已进入最终请求（{maintenance_matched_count}/{maintenance_expected_count}）")
+    if readback_status == "verified":
+        confirmed.append("目标环境独立只读查询已按本次业务键精确命中")
+        return {
+            "status": "verified",
+            "confirmed": confirmed,
+            "unconfirmed": [],
+            "reason": "已有独立业务键回查证据。",
+            "next_action": "",
+        }
+
+    plan = build_readback_plan(case)
+    plans = plan.get("plans") or []
+    policies = [item.get("assertion_policy") or {} for item in plans if isinstance(item, dict)]
+    strategies = [item.get("strategy") or {} for item in plans if isinstance(item, dict)]
+    has_strict = any(policy.get("auto_append") for policy in policies)
+    has_recorded_candidate = any(
+        strategy.get("source") == "recorded_har_query"
+        and policy.get("mode") == "candidate"
+        for strategy, policy in zip(strategies, policies)
+    )
+
+    if has_strict:
+        reason = "已存在表单专用安全回查策略，但本次 YAML 未执行或未命中该回查。"
+        next_action = "重新生成包含严格回查断言的 YAML 并执行；未命中时检查目标环境数据可见范围。"
+    elif has_recorded_candidate:
+        reason = "HAR 有保存后查询，但其列表 pageId/组织上下文无法在新会话中稳定重建，不能自动认定入库。"
+        next_action = "在目标环境业务列表按本次编码、名称或单号人工查询；确认稳定入口后再沉淀表单专用回查。"
+    elif plan.get("status") == "ready":
+        reason = "已识别业务键，但尚无经过真实环境验证的表单专用只读查询，通用 commonSearch 可能误查旧数据。"
+        next_action = "在目标环境业务列表按本次业务键人工查询；后续录制时保留保存后的列表查询链路。"
+    else:
+        reason = str(plan.get("reason") or "当前没有可安全自动执行的入库回查。")
+        next_action = "人工确认目标环境中的业务结果，并补充可唯一定位本次数据的业务键或只读查询入口。"
+
+    return {
+        "status": readback_status or "not_supported",
+        "confirmed": confirmed,
+        "unconfirmed": ["目标环境中是否真实存在本次运行创建或更新的数据"],
+        "reason": reason,
+        "next_action": next_action,
+    }
 
 
 def _case_business_keys(case: dict[str, Any]) -> list[dict[str, str]]:
@@ -884,6 +957,67 @@ def _find_recorded_readback_step(
                 fields.extend(inspect_filters(child))
         return fields
 
+    def inspect_all_filter_fields(node: Any) -> list[str]:
+        fields: list[str] = []
+        if isinstance(node, dict):
+            names = node.get("FieldName")
+            if isinstance(names, list):
+                fields.extend(str(name) for name in names if name)
+            elif names:
+                fields.append(str(names))
+            for child in node.values():
+                fields.extend(inspect_all_filter_fields(child))
+        elif isinstance(node, list):
+            for child in node:
+                fields.extend(inspect_all_filter_fields(child))
+        return fields
+
+    def choose_grid_field(query_field: str, schemas: list[Any]) -> str:
+        columns = [
+            str(column)
+            for schema in schemas
+            if isinstance(schema, dict)
+            for column in (schema.get("required_columns") or [])
+            if column
+        ]
+        if not columns:
+            return query_field
+        query_lower = query_field.lower()
+        preferred_lower = preferred_field_key.lower()
+        semantic_leaf = (
+            preferred_lower.rsplit(".", 1)[-1].rsplit("_", 1)[-1]
+            or query_lower.rsplit(".", 1)[-1].rsplit("_", 1)[-1]
+        )
+        for candidate in columns:
+            if candidate.lower() in {preferred_lower, query_lower}:
+                return candidate
+        if semantic_leaf == "name":
+            return next(
+                (
+                    candidate for candidate in columns
+                    if candidate.lower().rsplit(".", 1)[-1].rsplit("_", 1)[-1] == "name"
+                ),
+                query_field,
+            )
+        if semantic_leaf in {"number", "code", "empnumber"}:
+            return next(
+                (
+                    candidate for candidate in columns
+                    if any(
+                        token in candidate.lower().rsplit(".", 1)[-1]
+                        for token in ("number", "code")
+                    )
+                ),
+                query_field,
+            )
+        return next(
+            (
+                candidate for candidate in columns
+                if semantic_leaf and semantic_leaf in candidate.lower()
+            ),
+            query_field,
+        )
+
     for index, step in enumerate(steps):
         if index <= write_index:
             continue
@@ -892,6 +1026,10 @@ def _find_recorded_readback_step(
         if ac not in {"commonsearch", "query"} and method not in {"commonsearch", "query"}:
             continue
         fields = inspect_filters(step.get("args"))
+        value_rebind = False
+        if not fields:
+            fields = inspect_all_filter_fields(step.get("args"))
+            value_rebind = True
         if not fields:
             continue
         preferred_lower = preferred_field_key.lower()
@@ -924,8 +1062,13 @@ def _find_recorded_readback_step(
                 )
             if preferred:
                 fields = [preferred, *[field for field in fields if field != preferred]]
+            elif value_rebind:
+                continue
+        elif value_rebind:
+            continue
         response_contract = step.get("expected_response_signature") or {}
         grid_schemas = response_contract.get("required_grid_schemas") or []
+        assertion_field = choose_grid_field(fields[0], grid_schemas)
         grid_key = next(
             (
                 str(schema.get("control") or "")
@@ -938,7 +1081,9 @@ def _find_recorded_readback_step(
             "step": str(step.get("id") or ""),
             "form_id": str(step.get("form_id") or case.get("main_form_id") or ""),
             "app_id": str(step.get("app_id") or _guess_app_id_from_form(str(step.get("form_id") or ""))),
-            "field_key": fields[0],
+            "field_key": assertion_field,
+            "query_field_key": fields[0],
+            "query_value_ref": value_ref if value_rebind else "",
             "grid_key": grid_key,
             "pageid_source_kind": str(step.get("recorded_pageid_source_kind") or ""),
             "pageid_type": str(step.get("recorded_pageid_type") or ""),

@@ -71,6 +71,7 @@ AI Agent 排障时必须永远围绕这 7 件事判断是否真正完成；不�
     - 必须忽略 pageId、内部 id、单号、时间戳、随机测试值、动态行号和未被后续步骤消费的扩展列；`closeWindow/closeBrowserPage` 等同义动作按动作族比较。
     - pageId 的正确性由精确 producer→consumer 图、L2/L3 角色和运行 trace 校验，不要再用 `showForm` 恰好出现在哪个相邻 callback 作为硬响应契约。
 13. `recorded_pageid_source_retained=false` 且消费者需要 L3 时，生成 YAML 应标记 `pageid_recovery_strategy=runtime_form_revalidate` 和 `force_pageid_validation=true`；运行器必须绕过“同一表单只校验一次”的缓存，再次确认当前表单拥有可用 L3。L2 列表步骤使用 `recorded_l2_context`，可选浏览器卡片使用 `harvested_l3_guard`。
+14. 入库回查必须是独立只读查询的指定 grid 字段精确命中。HTTP 200、保存成功提示、`u` action 对 number/name 的字段回显、执行 PASS 都只能证明请求链路，不得作为入库成功。录制后置查询若依赖关闭窗口返回的 `responsePageId`，但运行时只能得到 L0/空列表/旧记录，应保持 `write_unverified`，报告必须分别写明“已确认、尚未确认、用户下一步”；只有真实环境验证稳定且不会误查旧数据的表单才进入专用回查策略库。
 14. 同一个 L2 pageId 字符串可能在同一 HAR 中被菜单多次重新激活。消费者必须关联录制顺序上最近一次生产响应，不能因为 pageId 值相同就永远绑定第一次菜单；菜单响应即使没有 `showForm`，只要生产了 pageId 也必须保留。
 15. `activate/showForm` 响应可能把父级 pageId 与后代节点的 `formId/billFormId` 分开放置。解析和运行 harvest 都要把父 pageId 绑定到后代业务表单别名，否则晚期列表会恢复到错误窗口。
 16. 保存/提交后的晚期列表只读检查若遇到原会话过期，可在新登录会话中只重放最近的只读菜单窗口，再按运行时业务键查询并重建 `selDatas`。禁止在新会话中重放写步骤，也禁止回退点击 HAR 旧行。

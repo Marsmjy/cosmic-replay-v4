@@ -268,6 +268,14 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- 维护值生效：{execution.get('maintenance_matched_count', 0)}/{execution.get('maintenance_expected_count', 0)}；写入证据 `{execution.get('write_evidence_status', 'missing')}`；入库回查 `{execution.get('readback_status', 'not_supported')}`；首次成功验证={'是' if execution.get('first_success_verified') else '否'}",
             ]
         )
+        readback_explanation = execution.get("readback_explanation") or {}
+        if readback_explanation:
+            confirmed = "；".join(readback_explanation.get("confirmed") or []) or "无独立证据"
+            unconfirmed = "；".join(readback_explanation.get("unconfirmed") or []) or "无"
+            lines.append(f"- 已确认：{confirmed}")
+            lines.append(f"- 尚未确认：{unconfirmed}")
+            if readback_explanation.get("next_action"):
+                lines.append(f"- 用户下一步：{readback_explanation.get('next_action')}")
         failed_steps = execution.get("failed_steps") or []
         if failed_steps:
             first = failed_steps[0]
@@ -363,6 +371,7 @@ def _summary_from_evidence(evidence_path: Path, *, returncode: int, duration_s: 
         "assertions": summary.get("assertions", []),
         "readback_results": summary.get("readback_results", []),
         "readback_status": summary.get("readback_status", "not_supported"),
+        "readback_explanation": summary.get("readback_explanation", {}),
         "pageid_trace_count": summary.get("pageid_trace_count", 0),
         "request_contract_warning_count": summary.get("request_contract_warning_count", 0),
         "request_contract_failure_count": summary.get("request_contract_failure_count", 0),

@@ -2270,6 +2270,7 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
         field_key=field_key,
         expected=value,
         grid_key=str(assert_spec.get("grid_key") or "billlistap"),
+        match_mode=str(assert_spec.get("match_mode") or "grid_field_exact"),
     )
     if not matched and assert_spec.get("retry_until_found") and source_step:
         query_step = next(
@@ -2288,6 +2289,11 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
                     time.sleep(interval_seconds)
                 runtime_query = resolve_vars(copy.deepcopy(query_step), ctx.get("vars") or {})
                 _apply_runtime_billno_to_step(runtime_query, ctx, replay)
+                _rebind_readback_query_value(
+                    runtime_query,
+                    query_field_key=str(assert_spec.get("query_field_key") or ""),
+                    value=str(assert_spec.get("query_value_ref") or value),
+                )
                 resp = replay.invoke(
                     str(runtime_query.get("form_id") or form_id),
                     str(runtime_query.get("app_id") or app_id),
@@ -2304,6 +2310,7 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
                     field_key=field_key,
                     expected=value,
                     grid_key=str(assert_spec.get("grid_key") or "billlistap"),
+                    match_mode=str(assert_spec.get("match_mode") or "grid_field_exact"),
                 )
                 if matched:
                     source_desc = f"步骤 {source_step} 异步重试#{attempt}"
@@ -2326,6 +2333,7 @@ def _a_readback_by_business_key(assert_spec: dict, ctx: dict) -> tuple[bool, str
         "matched": matched,
         "source": source_desc,
         "detail": detail,
+        "match_mode": str(assert_spec.get("match_mode") or "grid_field_exact"),
     })
     if matched:
         return True, f"✅ 入库回查通过：{form_id}.{field_key} = {value}（{source_desc}，{detail}）"
@@ -2567,31 +2575,89 @@ def _response_contains_business_key(
     field_key: str,
     expected: str,
     grid_key: str = "billlistap",
+    match_mode: str = "grid_field_exact",
 ) -> tuple[bool, str]:
+    """Match an independent readback row by an exact business-key field.
+
+    Save responses often echo the submitted number/name in generic update
+    actions. That proves request propagation, not persistence. Strict
+    readbacks therefore require a populated grid containing the requested
+    field and an exact cell match. Text fallback remains available only for
+    explicitly declared legacy/advisory assertions.
+    """
     expected_s = str(expected or "").strip()
     if not expected_s:
         return False, "业务键为空"
+    mode = str(match_mode or "grid_field_exact").strip().lower()
     populated_payloads = [
         (dataindex, rows)
         for dataindex, rows in _extract_grid_payloads(resp, grid_key)
         if dataindex and rows
     ]
+    field_seen = False
     for dataindex, rows in populated_payloads:
         if field_key in dataindex:
+            field_seen = True
             for row in rows:
-                if str(_grid_cell(row, dataindex, field_key) or "").strip() == expected_s:
+                if _grid_cell_matches_expected(
+                    _grid_cell(row, dataindex, field_key),
+                    expected_s,
+                ):
                     return True, f"grid {grid_key} 命中字段 {field_key}"
-        else:
+        elif mode == "grid_any_column":
             for row in rows:
                 if any(str(cell or "").strip() == expected_s for cell in row):
                     return True, f"grid {grid_key} 命中任意列"
     if populated_payloads:
         total_rows = sum(len(rows) for _, rows in populated_payloads)
+        if not field_seen and mode != "grid_any_column":
+            return False, f"grid {grid_key} 有 {total_rows} 行，但不包含字段 {field_key}"
         return False, f"grid {grid_key} 有 {total_rows} 行，但字段 {field_key} 未命中"
-    text = json.dumps(resp, ensure_ascii=False, default=str)
-    if expected_s in text:
-        return True, "响应文本包含业务键"
-    return False, "响应未包含 grid 行或业务键文本"
+    if mode in {"grid_or_text", "response_text"}:
+        text = json.dumps(resp, ensure_ascii=False, default=str)
+        if expected_s in text:
+            return True, "响应文本包含业务键（非独立列表证据）"
+        return False, "响应未包含 grid 行或业务键文本"
+    return False, f"响应没有包含字段 {field_key} 的独立 grid 行"
+
+
+def _rebind_readback_query_value(
+    step: dict[str, Any],
+    *,
+    query_field_key: str,
+    value: str,
+) -> None:
+    """Rebind a recorded search box to a stronger current-run business key."""
+    if not query_field_key or not value:
+        return
+
+    def walk(node: Any) -> bool:
+        if isinstance(node, dict):
+            names = node.get("FieldName")
+            name_list = names if isinstance(names, list) else [names] if names else []
+            if query_field_key in {str(name) for name in name_list} and "Value" in node:
+                node["Value"] = [value]
+                return True
+            return any(walk(child) for child in node.values())
+        if isinstance(node, list):
+            return any(walk(child) for child in node)
+        return False
+
+    walk(step.get("args"))
+
+
+def _grid_cell_matches_expected(cell: Any, expected: str) -> bool:
+    """Match exact scalar leaves inside one grid cell.
+
+    Multi-language HR columns are commonly returned as dictionaries or small
+    lists. Recursing only inside the selected field keeps the readback strict
+    while avoiding whole-response substring matching.
+    """
+    if isinstance(cell, dict):
+        return any(_grid_cell_matches_expected(value, expected) for value in cell.values())
+    if isinstance(cell, list):
+        return any(_grid_cell_matches_expected(value, expected) for value in cell)
+    return str(cell if cell is not None else "").strip() == expected
 
 
 # =============================================================
