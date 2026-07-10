@@ -36,8 +36,12 @@ def build_target_data_selector_plan(case: Mapping[str, Any] | None) -> dict[str,
             str(step.get(key) or "").strip().lower()
             for key in ("ac", "method", "operation_mode", "record_mode")
         )
+        # "modify" 是金蝶表单的 UI 状态切换动作（进入编辑态），
+        # 不是写操作；真正的写入由后续 save/submit 步骤承担。
+        # 只有 updatebill / edit_existing / update_existing 等
+        # 真正的记录修改操作才需要 target_data_selector。
         is_modify = any(
-            token in {"modify", "updatebill", "edit_existing", "update_existing"}
+            token in {"updatebill", "edit_existing", "update_existing"}
             for token in action_text.split()
         )
         existing_record_write = bool(

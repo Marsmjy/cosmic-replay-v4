@@ -940,19 +940,24 @@ def _h_pick_basedata(step: dict, replay: CosmicFormReplay, ctx: dict) -> Any:
         lookup_args = step.get("prefetch_lookup_args")
         if not isinstance(lookup_args, list) or not lookup_args:
             lookup_args = [["%", "", "%", 0, 20, 0]]
+        # ⭐ HAR 原始录制中 getLookUpList 的 postData 为 []（空列表），
+        # 不是 [{}, []]。使用 [{}, []] 会导致服务端查找列表初始化异常，
+        # 后续 setItemByIdFromClient 调用返回空响应，基础资料字段无法落库。
         replay.invoke_action(
             step["form_id"], step["app_id"], "getLookUpList",
             [{
                 "key": step["field_key"],
                 "methodName": "getLookUpList",
                 "args": lookup_args,
-                "postData": [{}, []],
+                "postData": [],
             }],
         )
     resp = replay.pick_basedata(
         step["form_id"], step["app_id"],
         step["field_key"], str(step["value_id"]),
         row_index=int(step.get("row_index", 0) or 0),
+        value_name=str(step.get("value_name") or ""),
+        value_code=str(step.get("value_code") or ""),
     )
     errors = has_error_action(resp)
     if (

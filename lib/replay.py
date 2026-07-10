@@ -30,12 +30,18 @@ import time
 import uuid
 import urllib.parse
 from dataclasses import dataclass
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
 import urllib3
 urllib3.disable_warnings()
 import requests
+
+try:
+    import websocket as _ws_mod
+except ImportError:
+    _ws_mod = None
 
 
 log = logging.getLogger("cosmic_replay")
@@ -124,7 +130,16 @@ class CosmicSession:
         return h + self.diff_time + "__length__" + str(len(params_str))
 
     def base_headers(self, cqappid: str = "bos") -> dict:
+        # ⭐ 浏览器兼容头：UAT 等环境对 updateValue / setItemByIdFromClient 等
+        #    写操作校验 signature，签名依赖 diff_time（服务器-本地时间差）。
+        #    同时缺少 Origin / Referer 等头时服务端可能静默拒绝写操作（返回 []）。
+        # ⭐ 注意：HAR 录制使用 fetch API，不发送 X-Requested-With 头。
+        #    额外发送该头可能导致服务端 CSRF 中间件对写操作（updateValue 等）
+        #    进行不同的校验逻辑，导致静默返回 []。
+        parsed = urllib.parse.urlparse(self.base_url)
+        origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
         return {
+            "Accept": "*/*",
             "Cookie": self.cookie,
             "userId": self.user_id,
             "client-start-time": str(int(time.time() * 1000)),
@@ -132,8 +147,21 @@ class CosmicSession:
             "cqappid": cqappid,
             "ajax": "true",
             "kd-client-type": "web",
-            "X-Requested-With": "XMLHttpRequest",
             **({"kd-csrf-token": self.csrf_token} if self.csrf_token else {}),
+            # 浏览器兼容头（UAT 环境写操作需要）
+            **({"Origin": origin} if origin else {}),
+            **({"Referer": f"{self.base_url}/?formId=home_page"} if self.base_url else {}),
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/149.0.0.0 Safari/537.36"
+            ),
+            # ⭐ 注意：HAR 录制中 updateValue 等写操作请求不包含 Sec-Fetch-* 头。
+            #    额外发送这些头可能导致服务端 CSRF 中间件对写操作进行不同的校验逻辑，
+            #    导致静默返回 []。因此移除 Sec-Fetch-* 头。
+            #    （之前添加 Sec-Fetch 头的尝试已证明无效，updateValue 仍返回 []）
+            "Connection": "keep-alive",
         }
 
 
@@ -203,6 +231,19 @@ class CosmicFormReplay:
         self.timeout = timeout
         self.http = requests.Session()
         self.http.verify = False
+        # ⭐ 将登录 cookie 设置到 session jar 中，让 requests 自动管理所有 cookie。
+        #    服务器通过 Set-Cookie 设置的新 cookie（如 ierp-tenant_kdshareflag）
+        #    会被自动捕获并在后续请求中发送。如果使用显式 Cookie 头，这些
+        #    服务器设置的 cookie 不会被发送，可能导致服务端拒绝写操作（返回 []）。
+        if session.cookie:
+            parsed = urllib.parse.urlparse(session.base_url)
+            domain = parsed.hostname or ""
+            for _ck in session.cookie.split(";"):
+                _ck = _ck.strip()
+                if "=" in _ck:
+                    _name, _val = _ck.split("=", 1)
+                    self.http.cookies.set(_name.strip(), _val.strip(),
+                                          domain=domain, path="/")
         # form_id → pageId 映射
         self.page_ids: dict[str, str] = {}
         # 历史响应存档（调试用）
@@ -215,6 +256,122 @@ class CosmicFormReplay:
         self._loaded_forms: set[str] = set()
         # 当前正在 invoke 的 form_id（供 _harvest_page_ids 判断来源）
         self._current_invoke_form: str | None = None
+        # ⭐ 记录每个表单所有 changeYear 的 key/args 列表，用于 updateValue/setItemByIdFromClient
+        #    在回放环境中被服务端静默忽略（返回 []）时的 fallback 机制。
+        #    存为列表而非单个值，因为 fallback 需要选择与被更新字段不同的 changeYear key
+        #    （服务端只处理 postData 中与 changeYear key 不同的字段值）。
+        self._last_changeyear: dict[str, list[tuple[str, list]]] = {}
+        # ⭐ WebSocket 连接：苍穹表单编辑模式要求浏览器建立 WS 连接 (wsconfig.wsurl)，
+        #    服务端可能通过 WS 连接验证写操作 (updateValue/setItemByIdFromClient)。
+        #    缺少 WS 连接时服务端静默忽略写操作（返回 []）。
+        self._ws = None
+        self._ws_url: str | None = None
+        # ⭐ 待落库脏字段：updateValue/setItemByIdFromClient 在回放环境中被服务端
+        #    静默忽略（返回 []）时，将字段值暂存于此。后续 changeYear 步骤或
+        #    保存前自动 flush 时，通过 changeYear postData 机制传递给服务端。
+        #    这是唯一被服务端接受的字段值传递方式（ba_em_empnumber 即通过此机制落库）。
+        #    格式: {form_id: {"app_id": str, "items": [{"k": str, "v": Any, "r": int}]}}
+        self._pending_dirty_fields: dict[str, dict] = {}
+
+    # ---------- WebSocket ----------
+
+    def _extract_wsurl(self, resp: Any) -> str | None:
+        """从响应中递归搜索 wsconfig.wsurl。"""
+        def _find(obj):
+            if isinstance(obj, dict):
+                if "wsurl" in obj:
+                    return obj["wsurl"]
+                if "wsconfig" in obj and isinstance(obj["wsconfig"], dict):
+                    return obj["wsconfig"].get("wsurl")
+                for v in obj.values():
+                    r = _find(v)
+                    if r:
+                        return r
+            elif isinstance(obj, list):
+                for item in obj:
+                    r = _find(item)
+                    if r:
+                        return r
+            return None
+        return _find(resp)
+
+    def _ensure_ws_connection(self, resp: Any):
+        """从响应中提取 wsconfig 并建立 WebSocket 连接。
+
+        ⭐ 苍穹表单编辑模式中，modify/loadData 响应包含 wsconfig.wsurl，
+        指示浏览器建立 WebSocket 连接到 /ierp/msgwatch/。
+        服务端可能通过此 WS 连接验证写操作（updateValue/setItemByIdFromClient），
+        缺少 WS 连接时静默返回 []。
+        """
+        if _ws_mod is None:
+            log.warning("[ws] websocket-client not installed, skipping WS connection")
+            return
+        ws_url = self._extract_wsurl(resp)
+        if not ws_url:
+            return
+        if self._ws is not None:
+            # 已有连接，检查是否还活着
+            try:
+                self._ws.ping()
+                return
+            except Exception:
+                log.info("[ws] connection lost, reconnecting")
+                try:
+                    self._ws.close()
+                except Exception:
+                    pass
+                self._ws = None
+        # 建立新连接
+        ws_url = ws_url.replace("ws://", "http://").replace("wss://", "https://")
+        # websocket-client 需要 ws:// 前缀
+        if ws_url.startswith("http://"):
+            ws_url = "ws://" + ws_url[7:]
+        elif ws_url.startswith("https://"):
+            ws_url = "wss://" + ws_url[8:]
+        self._ws_url = ws_url
+        try:
+            # 收集 cookies
+            cookie_str = "; ".join(f"{k}={v}" for k, v in self.http.cookies.items())
+            parsed = urllib.parse.urlparse(self.s.base_url)
+            origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
+            headers = {
+                "Origin": origin,
+                "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                               "AppleWebKit/537.36 (KHTML, like Gecko) "
+                               "Chrome/149.0.0.0 Safari/537.36"),
+            }
+            if cookie_str:
+                headers["Cookie"] = cookie_str
+            log.info(f"[ws] connecting to {ws_url}")
+            print(f"[WS] connecting to {ws_url}")
+            self._ws = _ws_mod.create_connection(
+                ws_url,
+                header=headers,
+                timeout=10,
+                enable_multithread=True,
+            )
+            print(f"[WS] connected, ready={self._ws.connected}")
+            log.info(f"[ws] connected: {self._ws.connected}")
+            # 发送注册消息（苍穹消息订阅格式）
+            reg_msg = json.dumps({
+                "type": "subscribe",
+                "userId": self.s.user_id,
+                "t": int(time.time() * 1000),
+            })
+            self._ws.send(reg_msg)
+            print(f"[WS] sent registration message")
+            # 尝试接收响应（非阻塞）
+            self._ws.settimeout(2)
+            try:
+                result = self._ws.recv()
+                print(f"[WS] received: {str(result)[:200]}")
+            except Exception:
+                pass
+            self._ws.settimeout(None)
+        except Exception as e:
+            log.warning(f"[ws] connection failed: {e}")
+            print(f"[WS] connection failed: {e}")
+            self._ws = None
 
     # ---------- 资源管理 ----------
 
@@ -253,19 +410,50 @@ class CosmicFormReplay:
                     _time.sleep(retry_wait * (2 ** attempt))
         raise last_err
 
+    def _refresh_diff_time(self, r: requests.Response):
+        """从响应 Date 头刷新 diff_time（有符号：server_ms - local_ms）。
+
+        长时间运行的测试中，本地时钟可能漂移，导致 init_root 时计算的 diff_time
+        失效。每次 HTTP 响应后刷新，确保下一次请求的签名使用最新值。
+        """
+        date_header = r.headers.get("Date", "")
+        if not date_header:
+            return
+        try:
+            server_dt = parsedate_to_datetime(date_header)
+            server_ms = int(server_dt.timestamp() * 1000)
+            local_ms = int(time.time() * 1000)
+            diff = server_ms - local_ms
+            new_diff = str(diff)
+            if new_diff != self.s.diff_time:
+                old_diff = self.s.diff_time
+                self.s.diff_time = new_diff
+                log.debug(f"[diff_time] refreshed: {old_diff} → {new_diff} (server={server_ms}, local={local_ms})")
+        except Exception:
+            pass
+
     def _post(self, path: str, body_urlenc: str, cqappid: str,
               extra_headers: dict | None = None) -> requests.Response:
         headers = self.s.base_headers(cqappid=cqappid)
         headers["Content-Type"] = "application/x-www-form-urlencoded;charset=utf-8"
+        # ⭐ 移除显式 Cookie 头，让 requests 从 session jar 自动发送所有 cookie
+        #    （登录 cookie + 服务器 Set-Cookie 设置的新 cookie）
+        if self.http.cookies:
+            headers.pop("Cookie", None)
         if extra_headers:
             headers.update(extra_headers)
         url = self.s.base_url + path
         r = self._post_with_retry(url, data=body_urlenc, headers=headers, timeout=self.timeout)
+        # ⭐ 每次响应后刷新 diff_time（防止时钟漂移导致后续签名失效）
+        self._refresh_diff_time(r)
         return r
 
     def _get(self, path: str, params: dict, cqappid: str = "bos") -> requests.Response:
         headers = self.s.base_headers(cqappid=cqappid)
         headers["Content-Type"] = "application/json;charset=utf-8"
+        # ⭐ 同 _post：移除显式 Cookie 头，让 requests 自动管理
+        if self.http.cookies:
+            headers.pop("Cookie", None)
         url = self.s.base_url + path
         return self.http.get(url, params=params, headers=headers, timeout=self.timeout)
 
@@ -333,7 +521,12 @@ class CosmicFormReplay:
     # ---------- 会话初始化 ----------
 
     def init_root(self) -> str:
-        """拉取会话根 pageId（从 getConfig.do GET 返回的 pageId 字段取）"""
+        """拉取会话根 pageId（从 getConfig.do GET 返回的 pageId 字段取）。
+
+        同时从响应 Date 头计算服务器-本地时间差（diff_time），
+        用于后续 signature 签名。UAT 等环境对 updateValue / setItemByIdFromClient
+        等写操作校验签名，diff_time 错误会导致服务端静默返回 []。
+        """
         flag = uuid.uuid4().hex[:16]
         f_val = uuid.uuid4().hex[:18]
         r = self._get("/form/getConfig.do", {
@@ -343,6 +536,15 @@ class CosmicFormReplay:
         }, cqappid="bos")
         if r.status_code != 200:
             raise ProtocolError(f"init_root HTTP {r.status_code}: {r.text[:200]}")
+        # ⭐ 从响应 Date 头计算 diff_time（服务器时间 - 本地时间，毫秒，有符号）
+        #    服务端签名验证：expected_server_time = ts + diff_time
+        #    若 diff_time = server_ms - local_ms（有符号），则：
+        #      expected_server_time = local_ms + (server_ms - local_ms) = server_ms ✓
+        #    若使用 abs() 且 diff 为负（本地时间领先服务器），则：
+        #      expected_server_time = local_ms + |server_ms - local_ms| ≠ server_ms ✗
+        #    这会导致服务端时间校验失败，写操作被静默忽略（返回 []）。
+        self._refresh_diff_time(r)
+        log.info(f"[init_root] diff_time={self.s.diff_time}")
         try:
             j = r.json()
         except Exception as e:
@@ -515,6 +717,19 @@ class CosmicFormReplay:
           2. 否则查 self.page_ids[form_id]（由同 form_id 前次响应下发）
           3. 都没有就用 root_page_id 兜底
         """
+        # ⭐ 浏览器自然延迟：HAR 录制中浏览器在 changeYear/getLookUpList 等操作后
+        #    需要时间处理响应并发送下一个写操作（JS 事件循环、DOM 渲染等）。
+        #    回放中请求间几乎 0 延迟，服务端可能未处理完前一个操作就收到写请求，
+        #    导致静默返回 []（而非正常的 [u] 确认）。
+        #    HAR 时间戳分析：
+        #    - changeYear → updateValue: ~1.8s
+        #    - getLookUpList → setItemByIdFromClient: ~1.5s
+        _write_delay_map = {
+            "updateValue": 2.0,
+            "setItemByIdFromClient": 2.0,
+        }
+        if ac in _write_delay_map:
+            time.sleep(_write_delay_map[ac])
         if page_id is None:
             page_id = self.page_ids.get(form_id)
             # ⭐ 优先使用 _pending_by_app（来自 addVirtualTab 的下发 pageId）
@@ -530,6 +745,47 @@ class CosmicFormReplay:
                 page_id = self.s.root_page_id
         if not page_id:
             raise ProtocolError(f"No pageId for {form_id}. Call init_root() / open_form() first.")
+
+        # ⭐ 保存前处理待落库脏字段（双保险机制）：
+        #    1. 将脏字段注入保存操作的 postData（服务端可能在保存时处理这些值）
+        #    2. 通过 changeYear 自动 flush（服务端可能静默处理 postData 字段）
+        #    updateValue/setItemByIdFromClient 在回放环境中被静默忽略（返回 []），
+        #    字段值暂存在 _pending_dirty_fields 中。
+        _SAVE_ACTIONS = {"btn_billsave", "save", "submit", "saveandeffect", "submitandeffect"}
+        if ac in _SAVE_ACTIONS:
+            # 1. 注入脏字段到保存操作的 postData
+            _all_dirty_items = []
+            for _fid, _pending in list(self._pending_dirty_fields.items()):
+                if _pending.get("items"):
+                    _all_dirty_items.extend(_pending["items"])
+            if _all_dirty_items and actions:
+                _pd = actions[0].get("postData", [{}, []])
+                if isinstance(_pd, list) and len(_pd) >= 2 and isinstance(_pd[1], list):
+                    _existing_keys = {item.get("k") for item in _pd[1] if isinstance(item, dict)}
+                    _new_items = [item for item in _all_dirty_items if item.get("k") not in _existing_keys]
+                    if _new_items:
+                        _pd[1].extend(_new_items)
+                        actions[0]["postData"] = _pd
+                        print(f"[DIRTY-SAVE] Injected {len(_new_items)} dirty fields into {ac} postData: {[i.get('k') for i in _new_items]}")
+            # 2. 同时通过 changeYear 自动 flush（双保险）
+            self._flush_pending_dirty_fields()
+
+        # ⭐ 注入待落库脏字段到 changeYear postData：
+        #    当 updateValue/setItemByIdFromClient 返回 [] 时，字段值被暂存到
+        #    _pending_dirty_fields。changeYear 是服务端唯一接受的字段值传递方式，
+        #    因此在 changeYear 请求中将这些字段值合并到 postData 中。
+        if ac == "changeYear" and actions:
+            _pending = self._pending_dirty_fields.get(form_id)
+            if _pending and _pending.get("items"):
+                _pd = actions[0].get("postData", [{}, []])
+                if isinstance(_pd, list) and len(_pd) >= 2 and isinstance(_pd[1], list):
+                    _existing_keys = {item.get("k") for item in _pd[1] if isinstance(item, dict)}
+                    _new_items = [item for item in _pending["items"] if item.get("k") not in _existing_keys]
+                    if _new_items:
+                        _pd[1].extend(_new_items)
+                        actions[0]["postData"] = _pd
+                        print(f"[DIRTY-INJECT] Merged {len(_new_items)} pending dirty fields into changeYear for {form_id}: {[i.get('k') for i in _new_items]}")
+                self._pending_dirty_fields.pop(form_id, None)
 
         # default=str: 兜底 date / datetime / Decimal 等 YAML 解析出来的对象
         params_str = json.dumps(actions, ensure_ascii=False, separators=(",", ":"), default=str)
@@ -556,13 +812,95 @@ class CosmicFormReplay:
             raise ProtocolError(f"invoke {form_id}/{ac} bad json: {r.text[:200]}")
 
         self.last_response = resp
+        # ⭐ 调试日志：updateValue / loadData / changeYear 的请求和响应
+        if ac in ("updateValue", "loadData", "changeYear", "setItemByIdFromClient"):
+            print(f"[DEBUG-{ac}] form={form_id}, pageId={str(page_id)[:32]}, params={params_str[:300]}")
+            print(f"[DEBUG-{ac}] resp={str(resp)[:2000]}")
+            # ⭐ dump 完整请求头（包括 requests 自动添加的头）用于与 HAR 对比
+            if ac in ("updateValue", "setItemByIdFromClient"):
+                try:
+                    prepared_headers = dict(r.request.headers)
+                    print(f"[DEBUG-{ac}] PREPARED HEADERS:")
+                    for k, v in sorted(prepared_headers.items()):
+                        print(f"  {k}: {v[:100] if isinstance(v, str) else v}")
+                    print(f"[DEBUG-{ac}] BODY: {r.request.body[:500]}")
+                    print(f"[DEBUG-{ac}] URL: {r.request.url}")
+                    print(f"[DEBUG-{ac}] RESPONSE STATUS: {r.status_code}")
+                    print(f"[DEBUG-{ac}] RESPONSE HEADERS:")
+                    for k, v in sorted(r.headers.items()):
+                        print(f"  {k}: {v[:100]}")
+                    print(f"[DEBUG-{ac}] RESPONSE TEXT (first 500): {r.text[:500]}")
+                    # 签名计算详情
+                    if self.sign_required:
+                        ts_used = extra.get("client-start-time", "")
+                        sig_input = ts_used + self.s.csrf_token + self.s.diff_time + params_str
+                        print(f"[DEBUG-{ac}] SIGN_INPUT: ts={ts_used}, csrf={self.s.csrf_token[:10]}..., diff_time={self.s.diff_time}, params_len={len(params_str)}")
+                        print(f"[DEBUG-{ac}] SIGN_HASH: {hashlib.sha256(sig_input.encode('utf-8')).hexdigest()}")
+                        print(f"[DEBUG-{ac}] SIGN_FULL: {extra.get('signature', '')}")
+                    # cookie jar
+                    jar_cookies = dict(self.http.cookies)
+                    print(f"[DEBUG-{ac}] COOKIE_JAR: {jar_cookies if jar_cookies else 'empty'}")
+                    # ⭐ 追踪 pageId 变化历史
+                    print(f"[DEBUG-{ac}] PAGE_IDS: {dict((k, str(v)[:32]) for k, v in self.page_ids.items() if 'onbrd' in k)}")
+                    print(f"[DEBUG-{ac}] LOADED_FORMS: {self._loaded_forms}")
+                except Exception as dbg_e:
+                    print(f"[DEBUG-{ac}] debug log error: {dbg_e}")
+            # 搜索响应中的 showForm 动作 和 setFormStatus
+            if ac == "loadData":
+                _showforms = []
+                _form_status = None
+                _call_client_actions = []
+                def _find_showform(obj):
+                    nonlocal _form_status
+                    if isinstance(obj, list):
+                        for item in obj:
+                            _find_showform(item)
+                    elif isinstance(obj, dict):
+                        if obj.get("a") == "showForm":
+                            for p in obj.get("p", []):
+                                if isinstance(p, dict):
+                                    _showforms.append({"formId": p.get("formId"), "pageId": str(p.get("pageId", ""))[:32]})
+                        elif obj.get("a") == "setFormStatus":
+                            _form_status = obj.get("p", [])
+                        elif obj.get("a") == "callClientAction":
+                            for p in obj.get("p", []):
+                                if isinstance(p, dict) and "ai" in p:
+                                    _call_client_actions.append(p.get("ai"))
+                        for v in obj.values():
+                            _find_showform(v)
+                _find_showform(resp)
+                print(f"[DEBUG-loadData] form={form_id} setFormStatus={_form_status} callClientAction_ais={_call_client_actions}")
+                if _showforms:
+                    print(f"[DEBUG-loadData] showForm found: {_showforms}")
+                else:
+                    print(f"[DEBUG-loadData] NO showForm in response")
+        # ⭐ 记录 changeYear 的 key/args，用于 updateValue/setItemByIdFromClient 失败时 fallback
+        if ac == "changeYear" and actions:
+            _act = actions[0]
+            _cy_key = _act.get("key", "")
+            _cy_args = _act.get("args", [])
+            if _cy_key:
+                if form_id not in self._last_changeyear:
+                    self._last_changeyear[form_id] = []
+                self._last_changeyear[form_id].append((_cy_key, _cy_args))
+                log.debug(f"[changeYear] Tracked for {form_id}: key={_cy_key}, args={_cy_args} (total={len(self._last_changeyear[form_id])})")
+        # ⭐ modify/addnew 等切态操作前保存旧 pageId，切态后自动 release 旧页面
+        _old_pids = dict(self.page_ids) if ac in ("modify", "addnew", "copyBill", "edit", "new") else None
         self._current_invoke_form = form_id
         self._harvest_page_ids(resp)
         self._current_invoke_form = None
         self._harvest_virtual_tab_pageids(resp)
+        # ⭐ WebSocket 连接：modify/loadData 响应可能包含 wsconfig.wsurl，
+        #    浏览器会建立 WS 连接用于服务端推送。服务端可能通过 WS 连接验证写操作。
+        if ac in ("modify", "addnew", "loadData"):
+            self._ensure_ws_connection(resp)
         # ⭐ loadData 完成后标记表单已加载，后续兄弟表单响应中的 showForm 不再覆盖其 pageId
         if ac == "loadData":
             self._loaded_forms.add(form_id)
+            # ⭐ loadData 后自动调用 getCityInfo（浏览器行为）
+            #    HAR 录制中浏览器在 loadData 后会自动调用 getCityInfo 初始化城市控件，
+            #    缺少此步骤会导致服务端表单控件未初始化，后续 updateValue 被静默忽略（返回 []）。
+            self._auto_get_city_info(form_id, app_id, resp)
         # ⭐ 关键：服务端通过 addVirtualTab 下发的新 pageId 需要被正确路由到下一个目标表单
         #
         # 两种场景：
@@ -581,7 +919,89 @@ class CosmicFormReplay:
                 # 菜单点击打开新 tab，把 pageId 压入 pending 待消费
                 self._pending_tab_page_id = new_pid
                 print(f"[menuItemClick] pending tab pageId: {new_pid[:30]}")
+        # ⭐ 自动 release 旧 pageId：modify/addnew 等切态操作会通过 showForm 下发新 pageId，
+        #    旧 pageId 不释放会导致服务端页面状态混乱，后续 updateValue 等写操作可能被静默忽略（返回 []）。
+        #    HAR 录制中浏览器在 modify 后会显式调用 release 释放旧页面。
+        if _old_pids:
+            print(f"[DEBUG-release] _old_pids = {dict((k, str(v)[:25]) for k, v in _old_pids.items())}")
+            for fid, old_pid in _old_pids.items():
+                new_pid_now = self.page_ids.get(fid)
+                _changed = old_pid != new_pid_now if old_pid and new_pid_now else False
+                _len32 = len(old_pid) == 32 if old_pid else False
+                print(f"[DEBUG-release] {fid}: old={str(old_pid)[:25]} new={str(new_pid_now)[:25]} changed={_changed} len32={_len32}")
+                if (old_pid and new_pid_now and old_pid != new_pid_now
+                        and len(old_pid) == 32 and '/' not in old_pid):
+                    try:
+                        log.info(f"[{ac}] Auto-releasing old pageId for {fid}: {old_pid[:30]}")
+                        self._send_release(fid, app_id, old_pid)
+                    except Exception as e:
+                        log.warning(f"[{ac}] Failed to release old pageId for {fid}: {e}")
         return resp
+
+    def _send_release(self, form_id: str, app_id: str, page_id: str):
+        """发送 release 请求释放指定 pageId（不触发 harvest，避免副作用）。
+
+        ⭐ HAR 录制中 release 的 args 包含 {"attachmentpanel":{"ep":true}}，
+        告知服务端正确清理附件面板状态。缺少此参数可能导致服务端页面状态不完整，
+        影响后续写操作（updateValue/setItemByIdFromClient 被静默忽略，返回 []）。
+        """
+        actions = [{"key": "", "methodName": "release", "args": [{"attachmentpanel": {"ep": True}}], "postData": []}]
+        params_str = json.dumps(actions, ensure_ascii=False, separators=(",", ":"), default=str)
+        body = urllib.parse.urlencode([
+            ("pageId", page_id),
+            ("appId", app_id),
+            ("params", params_str),
+        ])
+        extra = {}
+        if self.sign_required:
+            ts = str(int(time.time() * 1000))
+            extra["client-start-time"] = ts
+            extra["signature"] = self.s.sign(params_str, ts)
+        path = f"/form/batchInvokeAction.do?appId={app_id}&f={form_id}&ac=release"
+        r = self._post(path, body, cqappid=app_id, extra_headers=extra)
+        if r.status_code != 200:
+            log.warning(f"release {form_id} HTTP {r.status_code}: {r.text[:200]}")
+        else:
+            log.info(f"[release] Released old pageId for {form_id}: {page_id[:30]}")
+
+    def _auto_get_city_info(self, form_id: str, app_id: str, resp: Any):
+        """loadData 后检查表单是否有 checkcity 控件，有则自动调用 getCityInfo（模拟浏览器行为）。
+
+        HAR 录制中浏览器在每次 loadData 后会自动调用 getCityInfo 初始化城市选择控件。
+        缺少此步骤时，服务端表单控件未初始化，后续 updateValue 可能被静默忽略（返回 []）。
+        """
+        # 检查响应中是否包含 "checkcity" 控件
+        _has_checkcity = False
+        def _scan(obj):
+            nonlocal _has_checkcity
+            if _has_checkcity:
+                return
+            if isinstance(obj, list):
+                for item in obj:
+                    _scan(item)
+            elif isinstance(obj, dict):
+                if obj.get("k") == "checkcity":
+                    _has_checkcity = True
+                    return
+                for v in obj.values():
+                    _scan(v)
+        _scan(resp)
+        print(f"[DEBUG-getCityInfo] form={form_id}, checkcity_found={_has_checkcity}")
+        # ⭐ 只在响应中包含 checkcity 控件时才调用 getCityInfo（与 HAR 录制行为一致）。
+        #    HAR 中浏览器只为 hom_onbrdinfo 调用 getCityInfo，不会为 hom_onbrddetailhead、
+        #    hom_activityoverview 等没有 city 控件的表单调用。无条件的额外请求会干扰
+        #    服务端表单会话状态，导致后续 updateValue/setItemByIdFromClient 被静默忽略（返回 []）。
+        if not _has_checkcity:
+            log.debug(f"[getCityInfo] Skipped for {form_id}: no checkcity control in response")
+            return
+        actions = [{"key": "checkcity", "methodName": "getCityInfo", "args": [[]], "postData": [{}, []]}]
+        try:
+            result = self.invoke_action(form_id, app_id, "getCityInfo", actions)
+            print(f"[DEBUG-getCityInfo] response for {form_id}: {str(result)[:300]}")
+            log.info(f"[getCityInfo] Auto-called for {form_id} after loadData")
+        except Exception as e:
+            print(f"[DEBUG-getCityInfo] FAILED for {form_id}: {e}")
+            log.warning(f"[getCityInfo] Failed for {form_id} after loadData: {e}")
 
     def invoke_action(self, form_id: str, app_id: str, ac: str,
                       actions: list[dict], page_id: str | None = None) -> list | dict:
@@ -903,21 +1323,80 @@ class CosmicFormReplay:
 
     def update_fields(self, form_id: str, app_id: str, fields: dict,
                       row_index: int = -1) -> list | dict:
-        """updateValue 多字段一次发"""
+        """updateValue 多字段一次发
+
+        ⭐ 当 updateValue 返回空 []（回放环境中服务端静默忽略），
+        将字段值暂存到 _pending_dirty_fields。后续 changeYear 步骤
+        或保存前自动 flush 时通过 postData 机制传递给服务端。
+        这是唯一被服务端接受的字段值传递方式（ba_em_empnumber 即通过此机制落库）。
+        """
         items = [{"k": k, "v": v, "r": row_index} for k, v in fields.items()]
-        return self.invoke(form_id, app_id, "updateValue", [{
+        resp = self.invoke(form_id, app_id, "updateValue", [{
             "key": "", "methodName": "updateValue", "args": [],
             "postData": [{}, items],
         }])
+        # ⭐ 当 updateValue 返回空 []，将字段值暂存到 _pending_dirty_fields
+        #    后续 changeYear 步骤会自动注入，或在保存前自动 flush
+        if isinstance(resp, list) and len(resp) == 0 and items:
+            if form_id not in self._pending_dirty_fields:
+                self._pending_dirty_fields[form_id] = {"app_id": app_id, "items": []}
+            self._pending_dirty_fields[form_id]["items"].extend(items)
+            print(f"[DIRTY-STASH] Stashed {len(items)} fields for {form_id} (updateValue returned []): {[i.get('k') for i in items]}")
+        return resp
 
     def pick_basedata(self, form_id: str, app_id: str,
                       field_key: str, value_id: str,
-                      row_index: int = 0) -> list | dict:
-        """setItemByIdFromClient 选基础资料"""
-        return self.invoke(form_id, app_id, "setItemByIdFromClient", [{
+                      row_index: int = 0,
+                      value_name: str = "",
+                      value_code: str = "") -> list | dict:
+        """setItemByIdFromClient 选基础资料
+
+        ⭐ 当 setItemByIdFromClient 返回空 []（回放环境中服务端静默忽略），
+        将字段值暂存到 _pending_dirty_fields。后续 changeYear 步骤
+        或保存前自动 flush 时通过 postData 机制传递给服务端。
+        """
+        resp = self.invoke(form_id, app_id, "setItemByIdFromClient", [{
             "key": field_key, "methodName": "setItemByIdFromClient",
             "args": [[value_id, row_index]], "postData": [{}, []],
         }])
+        # ⭐ 当 setItemByIdFromClient 返回空 []，将字段值暂存到 _pending_dirty_fields
+        if isinstance(resp, list) and len(resp) == 0:
+            item = {"k": field_key, "v": value_id, "r": row_index}
+            if form_id not in self._pending_dirty_fields:
+                self._pending_dirty_fields[form_id] = {"app_id": app_id, "items": []}
+            self._pending_dirty_fields[form_id]["items"].append(item)
+            print(f"[DIRTY-STASH] Stashed basedata field for {form_id} (setItemByIdFromClient returned []): {field_key}={value_id}")
+        return resp
+
+    def _flush_pending_dirty_fields(self):
+        """保存前自动 flush 所有待落库脏字段。
+
+        遍历所有有待落库脏字段的表单，为每个表单自动发送一个 changeYear 请求，
+        将脏字段值通过 postData 传递给服务端。这是 updateValue/setItemByIdFromClient
+        在回放环境中被静默忽略时的 fallback 机制。
+        """
+        for form_id, pending in list(self._pending_dirty_fields.items()):
+            items = pending.get("items", [])
+            if not items:
+                continue
+            app_id = pending.get("app_id", "hom")
+            # 取出并清空待 flush 的字段
+            items_to_flush = items[:]
+            self._pending_dirty_fields.pop(form_id, None)
+            # 找一个有效的 changeYear key
+            cy_list = self._last_changeyear.get(form_id, [])
+            cy_key, cy_args = (cy_list[-1] if cy_list else ("b_effectivedate", [2026]))
+            print(f"[DIRTY-FLUSH] Flushing {len(items_to_flush)} fields for {form_id} via changeYear(key={cy_key}): {[i.get('k') for i in items_to_flush]}")
+            try:
+                resp = self.invoke(form_id, app_id, "changeYear", [{
+                    "key": cy_key, "methodName": "changeYear", "args": cy_args,
+                    "postData": [{}, items_to_flush],
+                }])
+                _has_u = any(isinstance(c, dict) and c.get("a") == "u" for c in (resp if isinstance(resp, list) else []))
+                print(f"[DIRTY-FLUSH] Response has 'u' action: {_has_u}, resp={str(resp)[:300]}")
+            except Exception as e:
+                print(f"[DIRTY-FLUSH] Failed for {form_id}: {e}")
+                log.warning(f"[DIRTY-FLUSH] Failed for {form_id}: {e}")
 
     def query_tree(self, form_id: str, app_id: str,
                    parent_node_id: str = "", tree_key: str = "treeview") -> list | dict:

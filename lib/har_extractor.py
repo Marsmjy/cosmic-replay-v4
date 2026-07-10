@@ -2489,6 +2489,39 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
 
         if action_wrap.get("type") == "invoke" and action_wrap.get("method") == "updateValue":
             walk_update_fields(action_wrap.get("post_data") or [])
+        # ⭐ 规则：commonSearch 快捷搜索框/高级筛选面板的搜索值藏在 args 里，
+        # 不经过 walk_update_fields，若不在这里变量化，整个字段将永远是录制时的硬编码值，
+        # 不会出现在可维护变量面板里。快捷搜索（多列 FieldName）统一命名为
+        # target_number（项目现有命名约定）；高级筛选（单列 FieldName）复用 maybe_var 启发式分类。
+        elif ac == "commonSearch" or method == "commonSearch":
+            args = action_wrap.get("args")
+            if isinstance(args, list):
+                for group in args:
+                    if not isinstance(group, list):
+                        continue
+                    for entry in group:
+                        if not isinstance(entry, dict):
+                            continue
+                        if "FieldName" not in entry or "Value" not in entry:
+                            continue
+                        field_names = [str(f) for f in (entry.get("FieldName") or []) if f]
+                        values = entry.get("Value")
+                        if not field_names or not isinstance(values, list):
+                            continue
+                        is_quick_search = len(field_names) > 1
+                        for vi, val in enumerate(values):
+                            if not isinstance(val, str) or not val or val.startswith("${"):
+                                continue
+                            if is_quick_search:
+                                vname = "target_number"
+                                if vname not in vars_map:
+                                    vars_map[vname] = val
+                                    vars_labels[vname] = "目标记录编号"
+                                values[vi] = f"${{vars.{vname}}}"
+                            else:
+                                new_v = maybe_var(val, field_names[0])
+                                if new_v != val:
+                                    values[vi] = new_v
         # ⭐ 规则9：处理 newentry（新增条目行）步骤的 post_data
         # 业务模型的基础资料附表等场景中，新增条目行时 name 等字段值嵌入在 newentry 的 post_data 中
         elif ac == "newentry":
@@ -4758,6 +4791,22 @@ def _missing_required_context_pick_id(field_key: str) -> str:
     return f"pick_{_sanitize(field_key) or field_key}_id"
 
 
+def _has_modify_step(steps: list[dict]) -> bool:
+    """检查流程是否包含 modify 步骤（查询修改保存流程）。
+
+    modify 动作是金蝶表单的 UI 状态切换（进入编辑态），
+    说明当前是对已有记录的修改，而非新建。
+    对于修改流程，软必填上下文字段（如变动原因）已存在于记录中，
+    不应在预览面板暴露给用户维护，由后台保留原始值即可。
+    """
+    for step in steps or []:
+        ac = str(step.get("ac") or "").strip().lower()
+        method = str(step.get("method") or "").strip().lower()
+        if "modify" in ac or "modify" in method:
+            return True
+    return False
+
+
 def _append_missing_required_context_pick_fields(
     pick_fields_map: OrderedDict,
     steps: list[dict],
@@ -4766,6 +4815,10 @@ def _append_missing_required_context_pick_fields(
     app_id: str,
     meta_resolver=None,
 ) -> None:
+    # ⭐ 修改流程（查询修改保存）中，软必填上下文字段已存在于记录中，
+    # 不应在预览面板暴露给用户维护，由后台保留原始值。
+    if _has_modify_step(steps):
+        return
     configured_forms = set(_SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM)
     present_forms = {
         str(step.get("form_id") or "")
@@ -4834,6 +4887,9 @@ def _append_missing_required_context_steps(
 ) -> list[dict]:
     """Insert soft-required context pick steps only when the user supplied a value."""
     if not steps or not pick_field_overrides:
+        return steps
+    # ⭐ 修改流程中不注入软必填上下文字段步骤（值已存在于记录中）
+    if _has_modify_step(steps):
         return steps
     additions: list[dict[str, Any]] = []
     configured_forms = set(_SOFT_REQUIRED_CONTEXT_FIELDS_BY_FORM)
@@ -5268,16 +5324,54 @@ def _collect_var_refs(value: Any, refs: set[str]) -> None:
             _collect_var_refs(item, refs)
 
 
+def _iter_invoke_search_conditions(step: dict) -> list[tuple[str, list, bool]]:
+    """Extract commonSearch / advanced-filter query conditions from an invoke
+    step's ``args``.
+
+    Quick-search boxes and advanced filter panels both encode conditions as
+    ``{"FieldName": [...], "Value": [...]}`` inside ``args``, which carry
+    ``${vars.*}`` search-criteria references (e.g. commonSearch quick search
+    by employee number). ``post_data`` scanning misses these entirely, which
+    previously made search-condition variables invisible in the maintainable
+    variable/field panels even though they already existed as real vars.
+
+    Returns a list of (field_key_hint, values, is_quick_search) tuples where
+    ``is_quick_search`` is True when the condition searches across multiple
+    aliased columns (typical for the top quick-search box, e.g.
+    candidate.number/ba_em_name/phone/...).
+    """
+    out: list[tuple[str, list, bool]] = []
+    args = step.get("args")
+    if not isinstance(args, list):
+        return out
+    for group in args:
+        if not isinstance(group, list):
+            continue
+        for entry in group:
+            if not isinstance(entry, dict):
+                continue
+            if "FieldName" not in entry or "Value" not in entry:
+                continue
+            field_names = [str(f) for f in (entry.get("FieldName") or []) if f]
+            values = entry.get("Value")
+            if not field_names or not isinstance(values, list):
+                continue
+            is_quick_search = len(field_names) > 1
+            field_key_hint = "" if is_quick_search else field_names[0]
+            out.append((field_key_hint, values, is_quick_search))
+    return out
+
+
 def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "", meta_resolver=None) -> OrderedDict:
     """Infer variable source form/field/block metadata from generated steps."""
     meta: OrderedDict[str, OrderedDict] = OrderedDict()
 
-    def remember(vname: str, *, step_idx: int, field_key: str = "") -> None:
+    def remember(vname: str, *, step_idx: int, field_key: str = "", label_hint: str = "") -> None:
         if not vname or vname in meta:
             return
         step = steps[step_idx] if 0 <= step_idx < len(steps) else {}
         scope = _step_scope_for_index(steps, step_idx, main_form)
-        label = _resolve_field_label(field_key, entity_id=scope.get("form_id") or main_form) if field_key else ""
+        label = label_hint or (_resolve_field_label(field_key, entity_id=scope.get("form_id") or main_form) if field_key else "")
         item = OrderedDict([
             ("label", label or field_key or vname),
             ("field_key", field_key),
@@ -5316,6 +5410,19 @@ def _infer_vars_meta_from_steps(steps: list[dict], main_form: str = "", meta_res
                     _collect_var_refs(entry.get("v"), refs)
                     for ref in sorted(refs):
                         remember(ref, step_idx=idx, field_key=str(entry.get("k") or ""))
+            # 搜索条件（commonSearch 快捷搜索框 / 高级筛选面板）藏在 args 里，
+            # 不在 post_data 中，需单独扫描才能让搜索条件变量出现在维护面板。
+            for field_key_hint, values, is_quick_search in _iter_invoke_search_conditions(step):
+                for value in values:
+                    refs = set()
+                    _collect_var_refs(value, refs)
+                    for ref in sorted(refs):
+                        remember(
+                            ref,
+                            step_idx=idx,
+                            field_key=field_key_hint,
+                            label_hint="查询条件" if is_quick_search else "",
+                        )
         elif stype == "pick_basedata":
             # pick_fields own the environment panel; do not duplicate them as
             # smart case variables when old YAML still contains a vars ref.
