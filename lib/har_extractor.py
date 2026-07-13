@@ -2238,6 +2238,7 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
         kl = key_hint.lower()
 
         # ⭐ kb 一票否决前置
+        kb_cls: str | None = None
         if _kb is not None and current_form_id:
             try:
                 kb_cls = _kb.classify_field(current_form_id, key_hint, meta_resolver=meta_resolver)
@@ -2245,9 +2246,18 @@ def detect_var_placeholders(actions_seq: list[dict], meta_resolver=None) -> tupl
                     return None
                 # kb_cls == "A" 或 None 时继续走原有启发式，以便细分前缀
             except Exception:
-                pass
+                kb_cls = None
 
-        return _classify_key_heuristic(key_hint)
+        heuristic_cls = _classify_key_heuristic(key_hint)
+        if heuristic_cls:
+            return heuristic_cls
+        if kb_cls == "A":
+            # ⭐ kb 明确判定应变量化（如 MuliLangTextField 多语言长文本），
+            # 但启发式未能命中具体前缀时，不能丢弃这个信号，否则字段会
+            # 被硬编码进 YAML、无法在预览面板/变量面板中维护。
+            # 兼底归为通用自由文本变量（同 description/remark 处理方式）。
+            return "text"
+        return None
 
     def _text_var_name(key_hint: str) -> str:
         kl = (key_hint or "text").lower()
@@ -5131,8 +5141,13 @@ def _yaml_scalar(v: Any, key: Any | None = None) -> str:
     if s and re.match(r"^0\d+$", s):
         return json.dumps(s, ensure_ascii=False)
     # ⭐ 规则1：纯数字字符串必须加引号，否则 YAML 解析器会转成整数
-    # Java 服务端通过 beanutils 反射调用，需要 String 类型匹配方法签名
-    if s and _RX_INTEGER.match(s) and len(s) >= 6:
+    # Java 服务端通过 beanutils 反射调用，需要 String 类型匹配方法签名。
+    # ⭐ 不再限定长度 >= 6：短数字文本（如年龄要求 "33"）同样会被
+    # 存入 vars: 区块，若不加引号会被 YAML 解析为 int，回放时注入到
+    # MuliLangTextField 的 zh_CN 会抛 java.lang.Integer cannot be cast to
+    # java.lang.String。这里传入的 s 本质上已是 Python str（int/float 已在上方
+    # isinstance 分支处理），因此无条件地强制加引号不会误伤真正的整数值。
+    if s and _RX_INTEGER.match(s):
         return json.dumps(s, ensure_ascii=False)
     # ⭐ 日期格式加引号：防止 YAML 解析器把 2026-04-24 解析为 datetime.date 对象
     if re.match(r"^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$", s):
@@ -7811,6 +7826,18 @@ def build_yaml_case(
                 )
                 if incoming_value_id != current_value_id and pf_cfg.get("resolve_status") == "manual":
                     manual_override = True
+                # ⭐ 规则：前端“确认”按钮在用户未真正修改值时也会发送
+                # manual_override/user_overridden=True（例如“上级岗位”“岗位模板”等
+                # 非必填字段，用户只是点击确认而未修改值）。若最终值与录制原值完全一致，
+                # 不应视为“真实用户覆盖”，否则会被 case_contract 的
+                # overridden_unbound 规则误判为必须绑定到可执行步骤，强制阻断生成。
+                # 未真正修改时保留原有 HAR 回放语义，直接跳过生成即可。
+                incoming_value_name_raw = str(pf_cfg.get("value_name", current_value_name) or "")
+                real_value_changed = (
+                    incoming_value_id != current_value_id
+                    or incoming_value_code != current_value_code
+                    or incoming_value_name_raw != current_value_name
+                )
                 if "value_id" in pf_cfg:
                     pick_fields_map[pf_id]["value_id"] = incoming_value_id
                 if "value_name" in pf_cfg:
@@ -7843,12 +7870,14 @@ def build_yaml_case(
                     pick_fields_map[pf_id]["auto_resolve"] = bool(pf_cfg["auto_resolve"])
                 if "resolve_status" in pf_cfg and not manual_override:
                     pick_fields_map[pf_id]["resolve_status"] = str(pf_cfg["resolve_status"] or "")
-                if pf_cfg.get("user_overridden"):
+                if pf_cfg.get("user_overridden") and real_value_changed:
                     pick_fields_map[pf_id]["user_overridden"] = True
                 if manual_override:
                     pick_fields_map[pf_id]["auto_resolve"] = False
                     pick_fields_map[pf_id]["resolve_status"] = "manual"
-                    pick_fields_map[pf_id]["manual_override"] = True
+                    # 只在值真实发生变化时才标记为 manual_override，
+                    # 避免仅“确认”未修改的值被误判为必须绑定到可执行步骤。
+                    pick_fields_map[pf_id]["manual_override"] = bool(real_value_changed)
                 elif (
                     str(pick_fields_map[pf_id].get("value_code") or "").strip()
                     and _looks_like_internal_id(pick_fields_map[pf_id].get("value_id"))

@@ -249,11 +249,15 @@ def build_generation_gate(
                 action="使用业务键在目标环境精确查询本次目标数据，禁止复用录制环境静态 ID。",
             )
 
+        # ⚠️ required_context=True 的字段是“软性上下文推断”（_soft_required_context_items），
+        # 并非业务强制必填；用户未真正修改、或修改后仍无法绑定时不应硬性阻断生成，
+        # 否则会把“岗位模板”“上级岗位”等非必填字段误判为必须绑定，强制卡住生成。
         overridden_unbound = [
             item for item in maintainable_field_binding_plan.get("fields") or []
             if isinstance(item, Mapping)
             and item.get("user_overridden")
             and item.get("status") == "unbound"
+            and not item.get("required_context")
         ]
         for item in overridden_unbound[:8]:
             label = item.get("label") or item.get("id")
@@ -269,8 +273,8 @@ def build_generation_gate(
         unbound_fields = [
             item for item in maintainable_field_binding_plan.get("fields") or []
             if isinstance(item, Mapping)
-            and not item.get("user_overridden")
             and item.get("status") == "unbound"
+            and (not item.get("user_overridden") or item.get("required_context"))
         ]
         if unbound_fields:
             add(

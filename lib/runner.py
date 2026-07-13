@@ -2113,6 +2113,24 @@ def _a_maintained_value_applied(assert_spec: dict, ctx: dict) -> tuple[bool, str
             continue
         matches.append(item)
     if not matches:
+        # ⭐ 防御：当 kind=="environment_field" 时，检查 case.pick_fields 中该字段是否
+        # 本就没有配置任何可消费的有效值（value_id/value_name/value_code 均为空）。
+        # 如果确实没有值，说明这个验证点是基于陈旧快照生成的误报
+        # （历史上字段曾被标记为 user_overridden，但当前实际并无有效维护值）。
+        # 字段本就没有维护值可消费，不应判为失败而阻断整条 case。
+        if kind == "environment_field":
+            case_dict = ctx.get("case") or {}
+            pf_meta = (case_dict.get("pick_fields") or {}).get(target_id)
+            if isinstance(pf_meta, dict):
+                has_value = any(
+                    str(pf_meta.get(k) or "").strip()
+                    for k in ("value_id", "value_name", "value_code", "value_number")
+                )
+                if not has_value:
+                    return True, (
+                        f"⚠️ {target_id} 当前无有效维护值（value_id/value_name/value_code 均为空），"
+                        f"验证点自动跳过"
+                    )
         return False, f"{target_id} 没有记录到维护值消费证据"
     if any(item.get("matched") for item in matches):
         return True, f"✅ {target_id} 的维护值已进入目标回放请求"

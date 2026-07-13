@@ -210,10 +210,16 @@ def _binding_row(
     source_step_id = str(meta.get("source_step_id") or "")
     resolver_kind = _resolver_kind(field_id, meta, panel=panel)
     user_overridden = bool(meta.get("user_overridden") or meta.get("manual_override"))
+    required_context = bool(meta.get("required_context"))
     is_runtime_context = bool(
         meta.get("context_only")
-        or meta.get("required_context")
+        or required_context
         or str(meta.get("source") or "") == "runtime_rule"
+        # ⚠️ env_..._treeview_focus 是环境上下文点击动作（如“新增上下文组织”），
+        # 与 _runtime_pick_injection_supported/_injection_strategy 保持一致，它通过
+        # runtime_tree_context_update 注入，本来就不需要在 yaml_steps 中找到匹配
+        # field_key 才能“绑定”，否则会被误判为 unbound 并阻断生成。
+        or (field_id.startswith("env_") and field_id.endswith("_treeview_focus"))
     )
     if is_runtime_context and not user_overridden:
         return {
@@ -233,6 +239,7 @@ def _binding_row(
             "target_step_ids": [],
             "target_step_types": [],
             "match_reasons": ["runtime_context"],
+            "required_context": required_context,
         }
     matches = []
     for target in targets:
@@ -286,6 +293,7 @@ def _binding_row(
         "target_step_ids": [str(item.get("step_id") or "") for item in matches],
         "target_step_types": sorted({str(item.get("step_type") or "") for item in matches}),
         "match_reasons": sorted({str(item.get("match_reason") or "") for item in matches}),
+        "required_context": required_context,
     }
 
 

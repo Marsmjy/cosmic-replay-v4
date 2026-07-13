@@ -5421,8 +5421,12 @@ function app() {
     harMaintenancePriorityLabel(item) {
       const ref = item?.ref || {};
       if (ref.source_type === 'upload_file' && !String(ref.value_id || '').trim()) return '必填';
-      if (ref.required_context || ref.required || ref.env_sensitive === 'high') return '必填';
-      if (ref.env_sensitive === 'medium') return '建议';
+      // ⚠️ env_sensitive 表示“跨环境敏感”，required_context 是“软性上下文推断”
+      // （_soft_required_context_items，基于字段元数据推断而非业务强制），两者都不
+      // 代表业务上真正的“必填”。只有 required 才是真正的强制必填字段，否则会把
+      // “岗位模板”“上级岗位”“岗位模板类型”“新增上下文组织”等非必填字段错误标红为必填。
+      if (ref.required) return '必填';
+      if (ref.required_context || ref.env_sensitive === 'high' || ref.env_sensitive === 'medium') return '建议';
       return '可选';
     },
 

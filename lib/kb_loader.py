@@ -436,6 +436,12 @@ def classify_field(form_id: str, field_key: str, meta_resolver=None) -> str | No
                     return "A"
                 if any(kl.endswith(suf) for suf in _A_UNIQUE_SUFFIXES):
                     return "A"
+                # ⭐ 多语言长文本（岗位定位/岗位职责/岗位衡量标准等）本质上是
+                # 用户自由填写的可维护内容字段，与 description/remark 同类，
+                # 即使命名不在唯一键列表里也应归为 A 档，进入变量面板供维护。
+                # 普通单行 TextProp 保持保守（可能是短代码/固定值），不强制。
+                if rt_type in ("MuliLangTextProp", "LargeTextProp", "TextAreaProp"):
+                    return "A"
                 # 必填文本但不在唯一键列表 → 不强制分类
     # ---- 实时元数据精确分类结束 ----
 
@@ -483,6 +489,12 @@ def classify_field(form_id: str, field_key: str, meta_resolver=None) -> str | No
             if kl in _A_UNIQUE_KEY_HINTS or kl in _A_NAME_FIELDS:
                 return "A"
             if any(kl.endswith(suf) for suf in _A_UNIQUE_SUFFIXES):
+                return "A"
+            # ⭐ MuliLangTextField（多语言长文本）本质是用户自由填写的可维护
+            # 内容字段（岗位定位/岗位职责/岗位衡量标准/知识要求等），即使不在
+            # 唯一键命名列表里也应归为 A 档，避免录制的测试值被硬编码进 YAML
+            # 而无法在预览面板/变量面板中维护。普通 TextField 保持保守。
+            if ftype == "MuliLangTextField":
                 return "A"
             return None  # 普通文本字段，不强制
         # B 档：基础资料类
